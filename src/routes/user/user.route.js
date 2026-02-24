@@ -111,4 +111,25 @@ route.post('/login-with-pin', userController.loginWithPin);
  */
 route.delete('/account', userController.deleteAccount);
 
+/**
+ * @swagger
+ * /user/forgot-pin:
+ *   post:
+ *     summary: Request OTP for Forgot PIN
+ *     tags: [User]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OTP sent
+ */
+route.post('/forgot-pin', userController.forgotPin);
+
 module.exports = route;

@@ -18,7 +18,7 @@ exports.adminSignup = async (req, res) => {
         const admin = await db.Admin.create({ username, email, password: hashedPassword });
 
         // Generate JWT token on signup
-        const token = jwt.sign({ id: admin._id, email: admin.email, role: 'admin' }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET, {
             expiresIn: '7d'
         });
 
@@ -43,10 +43,24 @@ exports.adminLogin = async (req, res) => {
         if (!isMatch) {
             return RESPONSE.error(res, 401, 1005, 'Invalid email or password');
         }
-        const token = jwt.sign({ id: admin._id, email: admin.email, role: 'admin' }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET, {
             expiresIn: '7d'
         });
         return RESPONSE.success(res, 200, 1006, { admin, token });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+// Get All Audit Logs
+exports.getAuditLogs = async (req, res) => {
+    try {
+        const logs = await db.AuditLog.find()
+            .populate('userId', 'email name')
+            .sort({ createdAt: -1 })
+            .limit(100); // Limit to last 100 for now
+
+        return RESPONSE.success(res, 200, 1001, logs);
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
     }

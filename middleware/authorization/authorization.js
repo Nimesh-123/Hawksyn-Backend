@@ -2,14 +2,22 @@ const jwt = require('jsonwebtoken');
 const RESPONSE = require('../../utils/response.js');
 const { db } = require('../../src/models/index.model.js');
 
-exports.user_auth = async (req, res, next) => {
+/**
+ * Authentication Middleware
+ * 1. Checks if token exists (Bearer Token)
+ * 2. Verifies JWT
+ * 3. Checks if user/admin exists and is not blocked/deleted
+ * 4. Attaches decoded payload to req.user
+ */
+exports.authenticate = async (req, res, next) => {
     try {
-        const exclude_employee_auth_routes = [
+        const public_routes = [
             '/auth',
             '/user/send-otp',
             '/user/verify-otp',
             '/user/set-pin',
-            '/user/login-with-pin'
+            '/user/login-with-pin',
+            '/user/forgot-pin'
         ];
 
         const fullPath = req.originalUrl || '';
@@ -20,7 +28,7 @@ exports.user_auth = async (req, res, next) => {
             cleanPath = fullPath.slice(apiPrefix.length);
         }
 
-        const isPublicRoute = exclude_employee_auth_routes.some(
+        const isPublicRoute = public_routes.some(
             route => cleanPath === route || cleanPath.startsWith(route + '/')
         );
 
@@ -30,7 +38,7 @@ exports.user_auth = async (req, res, next) => {
 
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return RESPONSE.error(res, 401, 3001, 'No token provided');
+            return RESPONSE.error(res, 401, 3001, 'Unauthorized: No token provided');
         }
 
         const token = authHeader.split(' ')[1];
@@ -39,26 +47,59 @@ exports.user_auth = async (req, res, next) => {
 
         try {
             const decoded = jwt.verify(token, secret);
-            req.role = decoded.role;
 
-            const user = await db.User.findById(decoded.id);
-            if (!user || user.isDeleted) return RESPONSE.error(res, 404, 3001);
-            if (user.isBlocked) return RESPONSE.error(res, 403, 3003);
+            // Handle cross-check for User or Admin depending on role in token
+            let entity;
+            if (decoded.role === 'admin') {
+                entity = await db.Admin.findById(decoded.id);
+            } else {
+                entity = await db.User.findById(decoded.id);
+            }
 
-            req.user = decoded;
+            if (!entity) return RESPONSE.error(res, 404, 3001, 'User not found');
+
+            // User specific checks
+            if (decoded.role !== 'admin') {
+                if (entity.isDeleted) return RESPONSE.error(res, 404, 3001, 'Account is deleted');
+                if (entity.isBlocked) return RESPONSE.error(res, 403, 3003, 'Account is blocked');
+            }
+
+            req.user = decoded; // Attach decoded payload {id, email, role}
+
+            // --- Centralized Authorization Logic ---
+            const isAdminRoute = cleanPath.startsWith('/admin');
+
+            if (isAdminRoute && decoded.role !== 'admin') {
+                return RESPONSE.error(res, 403, 4444, 'Permission Denied: Admin access required');
+            }
+            // --- End of Authorization Logic ---
+
             next();
         } catch (err) {
-            return RESPONSE.error(res, 401, 9999, 'Invalid token');
+            if (err.name === 'TokenExpiredError') {
+                return RESPONSE.error(res, 401, 1002, 'Token Expired');
+            }
+            return RESPONSE.error(res, 401, 1002, 'Invalid Token');
         }
     } catch (e) {
         return RESPONSE.error(res, 500, 9999, 'Internal server error');
     }
 };
 
-exports.verifyToken = async token => {
-    const secret = process.env.JWT_SECRET;
-    const decoded = jwt.verify(token, secret);
-    const user = await db.User.findById(decoded.id);
-    if (!user || user.isDeleted || user.isBlocked) throw new Error('Unauthorized');
-    return decoded;
+/**
+ * Authorization Middleware (RBAC)
+ * Verifies if the user's role is among the allowed roles for the route
+ */
+exports.authorize = (...allowedRoles) => {
+    return (req, res, next) => {
+        if (!req.user || !req.user.role) {
+            return RESPONSE.error(res, 401, 3001, 'Unauthorized: Access Denied');
+        }
+
+        if (!allowedRoles.includes(req.user.role)) {
+            return RESPONSE.error(res, 403, 4444, 'Permission Denied: You do not have access to this resource');
+        }
+
+        next();
+    };
 };

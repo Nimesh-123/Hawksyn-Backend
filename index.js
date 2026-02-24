@@ -6,7 +6,7 @@ const path = require('path');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 
-const { user_auth } = require('./middleware/authorization/authorization.js');
+const { authenticate } = require('./middleware/authorization/authorization.js');
 const { check_validation } = require('./utils/validateRequest.js');
 const swaggerSpec = require('./utils/swagger.js');
 const route = require('./src/routes/index.route.js');
@@ -36,7 +36,7 @@ app.use(`${process.env.API_COMMON_ROUTE}/uploads`, express.static(path.join(__di
 
 app.use(`${process.env.API_COMMON_ROUTE}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.use(`${process.env.API_COMMON_ROUTE}`, user_auth, check_validation, route);
+app.use(`${process.env.API_COMMON_ROUTE}`, authenticate, check_validation, route);
 
 const PORT = process.env.PORT || 3001;
 

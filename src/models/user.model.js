@@ -16,8 +16,8 @@ const userSchema = new mongoose.Schema(
         isDeleted: { type: Boolean, default: false },
         deletedAt: { type: Date },
         isBlocked: { type: Boolean, default: false },
-        isHost: { type: Boolean, default: false },
-        role: { type: String, default: 'user' }
+        mPinSet: { type: Boolean, default: false },
+        role: { type: String, enum: ['user', 'admin', 'expert'], default: 'user' }
     },
     { timestamps: true }
 );
