@@ -29,7 +29,11 @@ exports.adminSignup = async (req, res) => {
         admin.refreshToken = refreshToken;
         await admin.save();
 
-        return RESPONSE.success(res, 201, 1004, { admin, accessToken, refreshToken });
+        const adminResponse = admin.toObject();
+        delete adminResponse.password;
+        delete adminResponse.refreshToken;
+
+        return RESPONSE.success(res, 201, 1004, { admin: adminResponse, accessToken, refreshToken });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
     }
@@ -62,7 +66,11 @@ exports.adminLogin = async (req, res) => {
         admin.refreshToken = refreshToken;
         await admin.save();
 
-        return RESPONSE.success(res, 200, 1006, { admin, accessToken, refreshToken });
+        const adminResponse = admin.toObject();
+        delete adminResponse.password;
+        delete adminResponse.refreshToken;
+
+        return RESPONSE.success(res, 200, 1006, { admin: adminResponse, accessToken, refreshToken });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
     }

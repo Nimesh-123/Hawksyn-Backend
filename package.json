@@ -19,9 +19,11 @@
   "homepage": "",
   "description": "",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@aws-sdk/client-s3": "^3.997.0",
     "@aws-sdk/lib-storage": "^3.997.0",
     "@aws-sdk/s3-request-presigner": "^3.997.0",
+    "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
@@ -31,7 +33,9 @@
     "multer": "^2.0.2",
     "nodemailer": "^8.0.1",
     "nodemon": "^3.1.10",
+    "openai": "^6.25.0",
     "path": "^0.12.7",
+    "pdf-parse": "^1.1.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "validatorjs": "^3.22.1"

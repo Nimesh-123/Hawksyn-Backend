@@ -2,6 +2,7 @@ const express = require('express');
 const route = express.Router();
 
 const userController = require('../../controllers/user.controller.js');
+const upload = require('../../../middleware/multer.js');
 
 /**
  * @swagger
@@ -131,5 +132,57 @@ route.delete('/account', userController.deleteAccount);
  *         description: OTP sent
  */
 route.post('/forgot-pin', userController.forgotPin);
+
+/**
+ * @swagger
+ * /user/upload-cv:
+ *   post:
+ *     summary: Upload and Parse User CV (PDF only, max 10MB)
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: bulk
+ *         schema:
+ *           type: boolean
+ *         description: If true, uses Gemini directly for cheaper/faster bulk parsing.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               cv:
+ *                 type: string
+ *                 format: binary
+ *                 description: PDF file of the CV (Strictly PDF)
+ *     responses:
+ *       200:
+ *         description: CV uploaded and parsed successfully. Returns stored S3 URL and structured AEU JSON data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                     cvUrl:
+ *                       type: string
+ *                     parsedData:
+ *                       type: object
+ *                       description: Normalized AEU JSON structure
+ *       400:
+ *         description: Invalid file type (Non-PDF) or file too large (>10MB)
+ *       404:
+ *         description: User not found
+ */
+route.post('/upload-cv', upload.single('cv'), userController.uploadCV);
 
 module.exports = route;

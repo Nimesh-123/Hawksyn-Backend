@@ -17,7 +17,11 @@ const userSchema = new mongoose.Schema(
         deletedAt: { type: Date },
         isBlocked: { type: Boolean, default: false },
         mPinSet: { type: Boolean, default: false },
-        role: { type: String, enum: ['user', 'admin', 'expert'], default: 'user' }
+        role: { type: String, enum: ['user', 'admin', 'expert'], default: 'user' },
+        cvUrl: { type: String },
+        cvUploadedAt: { type: Date },
+        parsedCvData: { type: Object }, // AEU Normalized Format
+        refreshToken: { type: String } // Solution 1: Refresh Token support
     },
     { timestamps: true }
 );

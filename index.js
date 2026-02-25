@@ -58,6 +58,9 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3001;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`Magic happens on port ${PORT}`);
 });
+
+// Set timeout to 2 minutes for AI processing
+server.timeout = 120000;
