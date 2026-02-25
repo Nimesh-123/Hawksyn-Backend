@@ -17,7 +17,8 @@ exports.authenticate = async (req, res, next) => {
             '/user/verify-otp',
             '/user/set-pin',
             '/user/login-with-pin',
-            '/user/forgot-pin'
+            '/user/forgot-pin',
+            '/test/upload'
         ];
 
         const fullPath = req.originalUrl || '';

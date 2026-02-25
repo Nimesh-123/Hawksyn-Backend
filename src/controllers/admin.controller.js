@@ -17,12 +17,19 @@ exports.adminSignup = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const admin = await db.Admin.create({ username, email, password: hashedPassword });
 
-        // Generate JWT token on signup
-        const token = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET, {
-            expiresIn: '7d'
-        });
+        /* 
+        // Current Solution: 1 year expiry
+        const token = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET, { expiresIn: '365d' });
+        */
 
-        return RESPONSE.success(res, 201, 1004, { admin, token });
+        // Active Solution 1: Refresh Token support
+        const accessToken = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        const refreshToken = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET_REFRESH || 'refresh_secret', { expiresIn: '365d' });
+
+        admin.refreshToken = refreshToken;
+        await admin.save();
+
+        return RESPONSE.success(res, 201, 1004, { admin, accessToken, refreshToken });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
     }
@@ -43,10 +50,19 @@ exports.adminLogin = async (req, res) => {
         if (!isMatch) {
             return RESPONSE.error(res, 401, 1005, 'Invalid email or password');
         }
-        const token = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET, {
-            expiresIn: '7d'
-        });
-        return RESPONSE.success(res, 200, 1006, { admin, token });
+        /* 
+        // Current Solution: 1 year expiry
+        const token = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET, { expiresIn: '365d' });
+        */
+
+        // Active Solution 1: Refresh Token support
+        const accessToken = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        const refreshToken = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET_REFRESH || 'refresh_secret', { expiresIn: '365d' });
+
+        admin.refreshToken = refreshToken;
+        await admin.save();
+
+        return RESPONSE.success(res, 200, 1006, { admin, accessToken, refreshToken });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
     }

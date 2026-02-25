@@ -1,17 +1,14 @@
 const multer = require('multer');
-const fs = require('fs');
 
-const storage = multer.diskStorage({
-    filename: (req, file, callback) => {
-        const filename = Date.now() + Math.floor(Math.random() * 100) + file.originalname;
-        callback(null, filename);
-    },
-    destination: (req, file, callback) => {
-        if (!fs.existsSync('uploads')) {
-            fs.mkdirSync('uploads');
-        }
-        callback(null, 'uploads');
+// Use memory storage to avoid saving files locally
+// Files will be available in req.file.buffer
+const storage = multer.memoryStorage();
+
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB limit
     }
 });
 
-module.exports = multer({ storage });
+module.exports = upload;
