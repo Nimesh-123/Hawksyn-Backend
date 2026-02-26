@@ -6,6 +6,7 @@ const { generateOTP } = require('../../utils/function.js');
 const { createAuditLog } = require('../../utils/auditLogger.js');
 const { uploadFile } = require('../../utils/s3');
 const { smartCVParser } = require('../../utils/aiParser');
+const { get_message } = require('../../utils/message.js');
 
 const generateToken = (payload) => {
     /* 
@@ -74,7 +75,7 @@ exports.verifyOTP = async (req, res) => {
 
         // 2. Check failure count
         if (otpRecord.failCount >= 5) {
-            return RESPONSE.error(res, 403, 4444, "Too many failed attempts. Please request a new OTP.");
+            return RESPONSE.error(res, 403, "Too many failed attempts. Please request a new OTP.", get_message(4444));
         }
 
         // 3. Verify Hash
