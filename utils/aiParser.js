@@ -135,13 +135,22 @@ const parseWithOpenAI = async (text, fileName) => {
                 model: "gpt-4o-mini",
                 messages: [
                     { role: "system", content: TURBO_SCHEMA_PROMPT },
-                    { role: "user", content: `Text:\n${cleanText}\n\nINSTANT RULE: Start with { and end with }. No markdown. 1 sentence max per record.` }
+                    { role: "user", content: `Text:\n${cleanText}\n\nINSTANT RULE: Give me exactly 1 rich sentence per job/project. Output must be valid JSON.` }
                 ],
+                response_format: { type: "json_object" }, // Ensures valid JSON structure
                 temperature: 0,
-                max_tokens: 800,
+                max_tokens: 1500, // Increased to prevent truncation errors
             });
 
-            resultData = JSON.parse(response.choices[0].message.content.trim());
+            try {
+                resultData = JSON.parse(response.choices[0].message.content.trim());
+            } catch (jsonErr) {
+                console.error("[AI Parser] Turbo JSON Parse Error. Retrying with loose mode.");
+                // Loose recovery if JSON mode fails for some reason
+                let content = response.choices[0].message.content.trim();
+                if (content.startsWith("```json")) content = content.replace(/```json|```/g, "").trim();
+                resultData = JSON.parse(content);
+            }
         } else {
             console.log(`[AI Parser] Using Accuracy-Mode: Dual-Specialist (${charCount} chars)...`);
             modelType = "gpt-4o (Dual-Specialist)";

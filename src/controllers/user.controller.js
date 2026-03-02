@@ -7,6 +7,7 @@ const { createAuditLog } = require('../../utils/auditLogger.js');
 const { uploadFile } = require('../../utils/s3');
 const { smartCVParser } = require('../../utils/aiParser');
 const { get_message } = require('../../utils/message.js');
+const { getUserActiveCv } = require('../../utils/cvHelper.js');
 
 const generateToken = (payload) => {
     /* 
@@ -100,14 +101,22 @@ exports.verifyOTP = async (req, res) => {
             await createAuditLog(req, 'USER_CREATED', user._id, { email: user.email });
         }
 
-        // 5. Delete OTP record after successful verification
-        await db.OTP.deleteOne({ _id: otpRecord._id });
+        // 5. Update OTP record instead of deleting (Logic Update)
+        otpRecord.isUsed = true;
+        otpRecord.expiresAt = new Date(); // Optional: expire quickly now that it's used
+        await otpRecord.save();
 
         const tokens = generateToken({ id: user._id, email: user.email, role: user.role });
         user.refreshToken = tokens.refreshToken;
         await user.save();
 
+        const userActiveCv = await getUserActiveCv(user._id);
         const userResponse = user.toObject();
+        if (userActiveCv) {
+            userResponse.cvUrl = userActiveCv.cvUrl;
+            userResponse.cvUploadedAt = userActiveCv.cvUploadedAt;
+            userResponse.parsedCvData = userActiveCv.parsedCvData;
+        }
         delete userResponse.mPin;
         delete userResponse.refreshToken;
 
@@ -140,7 +149,13 @@ exports.setPin = async (req, res) => {
         user.refreshToken = tokens.refreshToken;
         await user.save();
 
+        const userActiveCv = await getUserActiveCv(user._id);
         const userResponse = user.toObject();
+        if (userActiveCv) {
+            userResponse.cvUrl = userActiveCv.cvUrl;
+            userResponse.cvUploadedAt = userActiveCv.cvUploadedAt;
+            userResponse.parsedCvData = userActiveCv.parsedCvData;
+        }
         delete userResponse.mPin;
         delete userResponse.refreshToken;
 
@@ -181,7 +196,13 @@ exports.loginWithPin = async (req, res) => {
         user.refreshToken = tokens.refreshToken;
         await user.save();
 
+        const userActiveCv = await getUserActiveCv(user._id);
         const userResponse = user.toObject();
+        if (userActiveCv) {
+            userResponse.cvUrl = userActiveCv.cvUrl;
+            userResponse.cvUploadedAt = userActiveCv.cvUploadedAt;
+            userResponse.parsedCvData = userActiveCv.parsedCvData;
+        }
         delete userResponse.mPin;
         delete userResponse.refreshToken;
 
@@ -265,21 +286,40 @@ exports.uploadCV = async (req, res) => {
             // We still save the CV URL even if AI fails, but log the error
         }
 
-        // 7. Persist to Database
-        const user = await db.User.findById(req.user.id);
-        if (!user) return RESPONSE.error(res, 404, 3001);
+        // 7. Persist to Database - Phase 2 (Safe Migration)
+        const userId = req.user.id;
 
-        user.cvUrl = fileUrl;
-        user.cvUploadedAt = new Date();
-        if (extractedData) {
-            user.parsedCvData = extractedData;
-        }
-        await user.save();
+        // STEP A - deactivate previous CVs in the new collection
+        await db.UserCvUploads.updateMany(
+            { userId },
+            { $set: { isActive: false } }
+        );
 
-        await createAuditLog(req, 'CV_UPLOADED', user._id, {
-            s3Key: fileName,
-            aiModel: extractedData ? extractedData.meta.modelUsed : 'FAILED'
+        // STEP B - insert new CV record in the new collection
+        const newCv = await db.UserCvUploads.create({
+            userId,
+            fileName: file.originalname, // Added as per new required schema field
+            cvUrl: fileUrl,
+            parsedCvData: extractedData,
+            parserStatus: extractedData ? "COMPLETED" : "FAILED", // Keeps status logic but supports new defaults
+            isActive: true
         });
+
+        // 8. Production Hardening - Safety Check
+        const activeCount = await db.UserCvUploads.countDocuments({ userId, isActive: true });
+        if (activeCount !== 1) {
+            console.warn(`[CV Guard] User ${userId} has ${activeCount} active CVs after upload! Race condition suspected.`);
+        }
+
+        // STEP C - User model is now lean, no legacy fields updated.
+
+        await createAuditLog(req, 'CV_UPLOADED', userId, {
+            s3Key: fileName,
+            aiModel: extractedData ? extractedData.meta.modelUsed : 'FAILED',
+            cvUploadId: newCv._id
+        });
+
+        console.log(`[CV Success] User ${userId} uploaded new CV: ${newCv._id}`);
 
         return RESPONSE.success(res, 200, 1001, {
             message: extractedData ? "CV uploaded and parsed successfully" : "CV uploaded but AI parsing failed",
@@ -288,7 +328,7 @@ exports.uploadCV = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("CV Upload Error:", error);
+        console.error(`[CV Upload Failure] User ${req.user.id}: ${error.message}`);
         return RESPONSE.error(res, 500, 9999, "Failed to upload CV. Please try again later.");
     }
 };
