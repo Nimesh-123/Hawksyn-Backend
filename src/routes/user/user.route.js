@@ -141,12 +141,7 @@ route.post('/forgot-pin', userController.forgotPin);
  *     tags: [User]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: bulk
- *         schema:
- *           type: boolean
- *         description: If true, uses Gemini directly for cheaper/faster bulk parsing.
+ *     parameters: []
  *     requestBody:
  *       required: true
  *       content:

@@ -1,48 +1,158 @@
 const OpenAI = require('openai');
-const { Anthropic } = require('@anthropic-ai/sdk');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const pdf = require('pdf-parse');
 const mammoth = require('mammoth');
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const MAX_CHARS = 30000; // Increased to 30k to handle long fragmented resumes without cutting off the projects at the bottom.
 
-const AEU_SCHEMA_PROMPT = `
-Act as an intelligent CV data engine. Extract ALL professional information into a JSON structure based on three core pillars: Identity, Work, and Composition.
+// const AEU_SCHEMA_PROMPT = `
+// Act as a Precision CV Extraction Engine for Hawksyn. Your objective is ONLY to extract and structure data. DO NOT analyze, judge, or evaluate the candidate.
 
-Pillars:
-1. IDENTITY: Personal details (Name, Contact, Links, Location, and Date of Birth if available).
-2. WORK: Professional history (Jobs, Roles, Responsibilities, Achievements) and Projects.
-3. COMPOSITION: Academic background (Education), Skills (Technical/Soft), Certifications, and any other attributes.
+// DEFINITION: 
+// An Atomic Evidence Unit (AEU) is a single, verifiable, standalone fact.
 
-Rules:
-1. DESCRIPTIVE: Be clear and detailed. Do NOT truncate or overly shorten project/job descriptions. Match the detail level of ChatGPT-Web.
-2. DATES: Use a single 'duration' field (e.g., "Oct 2021 — Present").
+// STRICT INSTRUCTIONS:
+// 1. EXTRACTION ONLY: Your job is to mirror the CV data into a structured format. Do not add external opinions.
+// 2. ATOMICITY: Each AEU must represent ONLY ONE fact (e.g., one specific responsibility, one skill, one date).
+// 3. SENIORITY SIGNALS: Explicitly extract signals of seniority (e.g., "Led a team of 5", "Managed $1M budget", "7+ years experience", "VP level").
+// 4. INFERENCES: If a fact is not explicitly stated but logical (e.g., inferring 'Senior' from 10 years experience), mark it with "isInferred": true. Otherwise, "isInferred": false.
+// 5. CONFIDENCE: Provide a "confidenceScore" (0.0 to 1.0) for every AEU based on how explicitly it is stated in the text.
+// 6. PILLS: Categorize every AEU into one of three pillars: Identity, Work, or Composition.
 
-Base Structure:
+// OUTPUT STRUCTURE:
+// {
+//   "aeuList": [
+//     { 
+//       "id": "aeu-1", 
+//       "pillar": "work", 
+//       "fact": "Role: Senior Developer at TechCorp (2019-2023)", 
+//       "isInferred": false, 
+//       "confidenceScore": 1.0,
+//       "senioritySignal": true
+//     },
+//     { 
+//       "id": "aeu-2", 
+//       "pillar": "composition", 
+//       "fact": "Expertise in distributed systems architecture", 
+//       "isInferred": true, 
+//       "confidenceScore": 0.8,
+//       "senioritySignal": false
+//     }
+//   ],
+//   "structured": {
+//     "identity": { "fullName": "", "email": "", "phone": "", "dob": "" },
+//     "work": {
+//       "experience": [{ "title": "", "company": "", "duration": "", "description": "", "senioritySignals": [] }],
+//       "projects": [{ "name": "", "description": "" }]
+//     },
+//     "composition": {
+//       "education": [{ "degree": "", "institution": "", "duration": "" }],
+//       "skills": { "technical": [], "soft": [] },
+//       "senioritySummary": ""
+//     }
+//   }
+// }
+
+// CRITICAL: The aeuList must contain EVERY detail from the CV broken down into atomic units.
+// `;
+const AEU_SCHEMA_PROMPT = `Act as a High-Speed CV Extractor.
+Goal: Complete extraction into structured JSON. Maintain <10s speed.
+
+STRICT RULES:
+1. SKILLS: Extract EVERY technical and soft skill. Do NOT truncate or skip the skills list.
+2. EXPERIENCE: Titles must NOT be null. If a job title is missing in the experience section, infer it from the profile (e.g., "Android Developer").
+3. MANDATORY INF: Include all 5 AEU_INF_... units (Seniority, Years, Status, Domain, Edu).
+4. SPEED: Keep project descriptions to 1-2 concise sentences. Do NOT copy long paragraphs.
+5. aeuList: Include unique facts for Identity, Work, Comp, and Inferred.
+
+STRICT OUTPUT FORMAT:
 {
-  "identity": { "fullName": "", "email": "", "phone": "", "dob": "" },
-  "work": {
-    "experience": [{ "title": "", "company": "", "duration": "", "description": "" }],
-    "projects": [{ "name": "", "description": "" }]
-  },
-  "composition": {
-    "education": [{ "degree": "", "institution": "", "duration": "" }],
-    "skills": { "technical": [], "soft": [] }
+  "aeuList": [
+    { "id": "AEU_IDENTITY_001", "pillar": "identity", "fact": "Name: [Name]", "isInferred": false, "confidenceScore": 1.0 },
+    { "id": "AEU_INF_001", "pillar": "inferred", "fact": "Seniority Level: [Level]", "isInferred": true, "inferenceReason": "Reason", "confidenceScore": 0.8 },
+    { "id": "AEU_INF_002", "pillar": "inferred", "fact": "Total Experience Years: [Num]", "isInferred": false, "confidenceScore": 1.0 },
+    { "id": "AEU_INF_003", "pillar": "inferred", "fact": "Employment Status: [Status]", "isInferred": true, "confidenceScore": 0.9 },
+    { "id": "AEU_INF_004", "pillar": "inferred", "fact": "Domain Indicator: [Domain]", "isInferred": true, "confidenceScore": 0.9 },
+    { "id": "AEU_INF_005", "pillar": "inferred", "fact": "Highest Education Level: [Level]", "isInferred": false, "confidenceScore": 1.0 }
+  ],
+  "structured": {
+    "identity": { "fullName": "", "email": "", "phone": "", "location": "", "currentRoleTitle": "" },
+    "work": {
+      "experience": [ { "title": "", "company": "", "duration": "", "description": "" } ],
+      "projects": [ { "name": "", "techStack": [], "description": "" } ]
+    },
+    "composition": {
+      "education": [ { "degree": "", "institution": "", "startYear": "", "endYear": "" } ],
+      "skills": { "technical": [], "soft": [], "languagesSpoken": [] },
+      "certifications": [],
+      "training": [ { "courseName": "", "institution": "", "duration": "" } ],
+      "senioritySummary": ""
+    },
+    "inferred": { "seniorityLevel": "", "totalExperienceYears": 0, "employmentStatus": "", "domainIndicator": "", "highestEducationLevel": "", "seniorityConfidence": 0.9, "senioritySummary": "" }
   }
 }
-`;
+Return VALID JSON ONLY.`;
 
 /**
- * Validate the extracted JSON against the required AEU schema keys
+ * Standardize output format (Supports both old flat and new AEU-centric output)
  */
-const validateAEUSchema = (data) => {
-    if (!data || typeof data !== 'object') return false;
-    const requiredKeys = ['identity', 'work', 'composition'];
-    return requiredKeys.every(key => Object.prototype.hasOwnProperty.call(data, key));
+const standardizeAeuResponse = (jsonData, duration, modelUsed) => {
+    const rawStructured = jsonData.structured || jsonData;
+    const standardized = {
+        aeuList: Array.isArray(jsonData.aeuList) ? jsonData.aeuList : [],
+        structured: {
+            identity: rawStructured.identity || rawStructured.personal || {},
+            work: {
+                experience: rawStructured.work?.experience || rawStructured.experience || [],
+                projects: rawStructured.work?.projects || rawStructured.projects || []
+            },
+            composition: {
+                education: Array.isArray(rawStructured.composition?.education || rawStructured.education)
+                    ? (rawStructured.composition?.education || rawStructured.education)
+                    : [],
+                skills: {
+                    technical: Array.isArray(rawStructured.composition?.skills?.technical || rawStructured.skills?.technical)
+                        ? (rawStructured.composition?.skills?.technical || rawStructured.skills?.technical)
+                        : [],
+                    soft: Array.isArray(rawStructured.composition?.skills?.soft || rawStructured.skills?.soft)
+                        ? (rawStructured.composition?.skills?.soft || rawStructured.skills?.soft)
+                        : [],
+                    languagesSpoken: Array.isArray(rawStructured.composition?.skills?.languagesSpoken || rawStructured.skills?.languagesSpoken || rawStructured.composition?.languagesSpoken || rawStructured.languagesSpoken)
+                        ? (rawStructured.composition?.skills?.languagesSpoken || rawStructured.skills?.languagesSpoken || rawStructured.composition?.languagesSpoken || rawStructured.languagesSpoken)
+                        : []
+                },
+                certifications: Array.isArray(rawStructured.composition?.certifications || rawStructured.certifications)
+                    ? (rawStructured.composition?.certifications || rawStructured.certifications)
+                    : [],
+                senioritySummary: rawStructured.composition?.senioritySummary || rawStructured.senioritySummary || ""
+            }
+        },
+        parsingDuration: `${duration}s`,
+        modelUsed: modelUsed
+    };
+
+    // Extra polish: ensure identity fields are top-level if nested in response
+    if (rawStructured.fullName && !standardized.structured.identity.fullName) standardized.structured.identity.fullName = rawStructured.fullName;
+    if (rawStructured.email && !standardized.structured.identity.email) standardized.structured.identity.email = rawStructured.email;
+
+    // STEP: Finalize (Age, Timing, etc.)
+    const finalIdentity = standardized.structured.identity || {};
+    if (finalIdentity.dob) {
+        const birthDate = new Date(finalIdentity.dob);
+        if (!isNaN(birthDate.getTime())) {
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+            finalIdentity.age = age > 0 ? age : null;
+        }
+    }
+    standardized.structured.identity = { ...standardized.structured.identity, ...finalIdentity };
+
+    return standardized;
 };
 
 /**
@@ -82,26 +192,6 @@ const extractTextFromFile = async (buffer, mimetype) => {
 };
 
 /**
- * Helper to call OpenAI for a specific section
- */
-const extractSection = async (sectionName, focusSchema, text, maxTokens) => {
-    const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-            {
-                role: "system",
-                content: `${AEU_SCHEMA_PROMPT}\n\nFOCUS: ${sectionName}. \nCRITICAL: Extract EVERY SINGLE ITEM mentioned in this section from the text. DO NOT truncate, group, or skip any records even if there are many.`
-            },
-            { role: "user", content: `Focus Schema: ${focusSchema}\n\nResume Text:\n${text}` }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0,
-        max_tokens: maxTokens,
-    });
-    return JSON.parse(response.choices[0].message.content);
-};
-
-/**
  * Neural Text Healer: Collapses noise and fixes whitespace for cleaner AI context.
  */
 const neuralHealer = (text) => {
@@ -112,8 +202,9 @@ const neuralHealer = (text) => {
         .trim();
 };
 
-const TURBO_SCHEMA_PROMPT = `CV to JSON. One sentence descriptions only. 
-Structure: { "identity": { "fullName": "", "email": "", "phone": "", "dob": "" }, "work": { "experience": [], "projects": [] }, "composition": { "education": [], "skills": { "technical": [], "soft": [] } } }`;
+const TURBO_SCHEMA_PROMPT = `CV to AEU JSON. 
+Facts must be atomic. IDs: AEU_IDENTITY_001, AEU_WORK_001, etc.
+Output only JSON.`;
 
 /**
  * OpenAI Parser (Smart-Speed: Dual-Engine vs Single-Pass)
@@ -134,8 +225,8 @@ const parseWithOpenAI = async (text, fileName) => {
             const response = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages: [
-                    { role: "system", content: TURBO_SCHEMA_PROMPT },
-                    { role: "user", content: `Text:\n${cleanText}\n\nINSTANT RULE: Give me exactly 1 rich sentence per job/project. Output must be valid JSON.` }
+                    { role: "system", content: TURBO_SCHEMA_PROMPT + "\n\n" + AEU_SCHEMA_PROMPT },
+                    { role: "user", content: `Text:\n${cleanText}` }
                 ],
                 response_format: { type: "json_object" }, // Ensures valid JSON structure
                 temperature: 0,
@@ -160,7 +251,7 @@ const parseWithOpenAI = async (text, fileName) => {
                     model: "gpt-4o",
                     messages: [
                         { role: "system", content: AEU_SCHEMA_PROMPT },
-                        { role: "user", content: `Focus: IDENTITY, EXPERIENCE, SKILLS. Extract Name, Contact, and BOTH Job Experience entries (Appsculpt and Technozer). Transcription:\n${cleanText}` }
+                        { role: "user", content: `Focus: IDENTITY, EXPERIENCE, SKILLS. Extract Name, Contact, and ALL Job Experience entries. Transcription:\n${cleanText}` }
                     ],
                     response_format: { type: "json_object" },
                     temperature: 0.1,
@@ -170,7 +261,7 @@ const parseWithOpenAI = async (text, fileName) => {
                     model: "gpt-4o",
                     messages: [
                         { role: "system", content: AEU_SCHEMA_PROMPT },
-                        { role: "user", content: `Focus: ALL PROJECTS. Search for 1) Camera & Photo Editor, 2) Christmas Photo Editor, 3) Live Mic, 4) Diary, 5) iPhone Gallery, 6) WiFi, and 7) SMS Messenger. Extract EVERY SINGLE ONE. Transcription:\n${cleanText}` }
+                        { role: "user", content: `Focus: ALL PROJECTS. Search for every project listed in the CV. Extract EVERY SINGLE ONE. Transcription:\n${cleanText}` }
                     ],
                     response_format: { type: "json_object" },
                     temperature: 0.1,
@@ -194,80 +285,13 @@ const parseWithOpenAI = async (text, fileName) => {
             };
         }
 
-        // STEP 3: Finalize (Age, Timing, etc.)
-        const finalIdentity = resultData.identity || {};
-        if (finalIdentity.dob) {
-            const birthDate = new Date(finalIdentity.dob);
-            if (!isNaN(birthDate.getTime())) {
-                const today = new Date();
-                let age = today.getFullYear() - birthDate.getFullYear();
-                const m = today.getMonth() - birthDate.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                finalIdentity.age = age > 0 ? age : null;
-            }
-        }
-
-        const result = {
-            ...resultData,
-            identity: { ...resultData.identity, ...finalIdentity },
-            parsingDuration: `${((Date.now() - startTime) / 1000).toFixed(2)}s`,
-            modelUsed: modelType
-        };
+        const duration = (Date.now() - startTime) / 1000;
+        const result = standardizeAeuResponse(resultData, duration, modelType);
 
         console.timeEnd("OpenAI_Model_Time");
         return result;
     } catch (error) {
         console.error("[AI Parser] OpenAI Error:", error.message);
-        return null;
-    }
-};
-
-/**
- * Claude Parser (Fallback)
- */
-const parseWithClaude = async (text, fileName) => {
-    console.time("Claude_Model_Time");
-    const startTime = Date.now();
-    try {
-        console.log("[AI Parser] Using Claude...");
-
-        const response = await anthropic.messages.create({
-            model: "claude-3-5-sonnet-20241022",
-            max_tokens: 1500,
-            temperature: 0,
-            system: "You are a specialized CV data extractor. Return ONLY valid JSON matching the schema.",
-            messages: [
-                {
-                    role: "user",
-                    content: `${AEU_SCHEMA_PROMPT}\n\nResume Content:\n${text}`
-                }
-            ],
-        });
-
-        const duration = (Date.now() - startTime) / 1000;
-        console.timeEnd("Claude_Model_Time");
-        console.log(`[AI Parser] Claude finished in ${duration}s`);
-
-        const rawText = response.content.find(c => c.type === 'text')?.text;
-        if (!rawText) throw new Error("Empty response from Claude");
-
-        let cleanText = rawText.trim();
-        if (cleanText.startsWith('```')) {
-            cleanText = cleanText.replace(/```json|```/g, '').trim();
-        }
-
-        const result = JSON.parse(cleanText);
-
-        // Meta info used by caller
-        result.parsingDuration = `${duration}s`;
-        result.modelUsed = "claude-3-5-sonnet";
-
-        if (validateAEUSchema(result)) return result;
-        throw new Error("Invalid AEU Schema from Claude");
-    } catch (error) {
-        try { console.timeEnd("Claude_Model_Time"); } catch (e) { }
-        const duration = (Date.now() - startTime) / 1000;
-        console.error(`[AI Parser] Claude Error after ${duration}s:`, error.message);
         return null;
     }
 };
@@ -279,18 +303,39 @@ const parseWithGemini = async (text, fileName) => {
     console.time("Gemini_Model_Time");
     const startTime = Date.now();
     try {
-        console.log("[AI Parser] Using Gemini 2.0 Flash...");
+        console.log("[AI Parser] Using Gemini 2.0 Flash for extraction...");
 
         const model = genAI.getGenerativeModel({
             model: "gemini-2.0-flash",
-            generationConfig: { responseMimeType: "application/json" }
+            generationConfig: {
+                responseMimeType: "application/json",
+                temperature: 0.0,
+                maxOutputTokens: 2000,
+            }
         });
 
-        const prompt = `${AEU_SCHEMA_PROMPT}\n\nResume Content:\n${text}`;
+        const prompt = `${AEU_SCHEMA_PROMPT}\n\nResume Content:\n${text}\n\nCRITICAL: Return ONLY valid JSON matching the schema precisely.`;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        let cleanText = response.text().trim();
+
+        // Safety check for empty or blocked response
+        if (!response) {
+            throw new Error("Empty response from Gemini");
+        }
+
+        let cleanText = "";
+        try {
+            cleanText = response.text().trim();
+        } catch (textErr) {
+            console.error("[AI Parser] Gemini Response Error (possibly blocked):", textErr.message);
+            // Fallback: check if there's a reason for failure
+            const candidates = response.candidates || [];
+            if (candidates.length > 0 && candidates[0].finishReason) {
+                throw new Error(`Gemini failed to generate content. Reason: ${candidates[0].finishReason}`);
+            }
+            throw textErr;
+        }
 
         if (cleanText.startsWith('```')) {
             cleanText = cleanText.replace(/```json|```/g, '').trim();
@@ -300,19 +345,15 @@ const parseWithGemini = async (text, fileName) => {
         console.timeEnd("Gemini_Model_Time");
         console.log(`[AI Parser] Gemini finished in ${duration}s`);
 
-        const jsonData = JSON.parse(cleanText);
+        let jsonData;
+        try {
+            jsonData = JSON.parse(cleanText);
+        } catch (parseErr) {
+            console.error("[AI Parser] Gemini returned invalid JSON. Content preview:", cleanText.substring(0, 100));
+            throw new Error("Failed to parse Gemini JSON response");
+        }
 
-        // Standardize output format
-        const standardizedResult = {
-            identity: jsonData.identity || jsonData.personal || {},
-            work: jsonData.work || { experience: jsonData.experience || [], projects: jsonData.projects || [] },
-            composition: jsonData.composition || { education: jsonData.education || [], skills: jsonData.skills || [] },
-            parsingDuration: `${duration}s`,
-            modelUsed: "gemini-2.0-flash"
-        };
-
-        if (validateAEUSchema(standardizedResult)) return standardizedResult;
-        throw new Error("Invalid AEU Schema from Gemini");
+        return standardizeAeuResponse(jsonData, duration, "gemini-2.0-flash");
     } catch (error) {
         try { console.timeEnd("Gemini_Model_Time"); } catch (e) { }
         const duration = (Date.now() - startTime) / 1000;
@@ -324,63 +365,33 @@ const parseWithGemini = async (text, fileName) => {
 /**
  * Smart Router Logic
  */
-const smartCVParser = async (buffer, fileName, mimetype, bulkMode = false) => {
+const smartCVParser = async (buffer, fileName, mimetype) => {
     console.time("Total_Pipeline_Time");
     const totalStartTime = Date.now();
     let result = null;
 
-    console.log(`[AI Parser] Starting extraction. bulkMode: ${bulkMode}`);
-    const isBulk = bulkMode === true || bulkMode === "true";
+    console.log(`[AI Parser] Starting extraction...`);
 
     // 1. Extract text ONCE
     const rawText = await extractTextFromFile(buffer, mimetype);
 
-    // 2. Aggressive Cleaning
+    // Aggressive Cleaning
     const cleanedText = cleanCVText(rawText);
+    const trimmedText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) : cleanedText;
 
-    // 3. Hard Input size cap
-    const trimmedText = cleanedText.length > MAX_CHARS
-        ? cleanedText.slice(0, MAX_CHARS)
-        : cleanedText;
+    // Use Gemini 2.0 Flash (Fastest + Highest priority for Hawksyn)
+    result = await parseWithGemini(trimmedText, fileName);
 
-    console.log(`[AI Parser] Text processed. Raw: ${rawText.length}, Trimmed: ${trimmedText.length}`);
-
-    // 1. If bulkMode is true, try Gemini first
-    if (isBulk) {
-        result = await parseWithGemini(trimmedText, fileName);
-    }
-
-    // 2. If result is still null (standard mode OR Gemini failed in bulkMode)
+    // If Gemini fails, fallback to OpenAI Hyper-Speed
     if (!result) {
-        // 2a. Try OpenAI (Primary)
+        console.warn("[AI Parser] Gemini failed. Falling back to OpenAI Turbo...");
         result = await parseWithOpenAI(trimmedText, fileName);
-
-        if (!result) {
-            // 2b. Try Claude (Fallback)
-            console.warn("[AI Parser] OpenAI failed. Retrying with Claude...");
-            result = await parseWithClaude(trimmedText, fileName);
-        }
-
-        if (!result) {
-            // 2c. Final Fallback to Gemini
-            console.warn("[AI Parser] Claude failed. Final attempt with Gemini...");
-            result = await parseWithGemini(trimmedText, fileName);
-        }
     }
 
     const totalDuration = (Date.now() - totalStartTime) / 1000;
-    console.timeEnd("Total_Pipeline_Time");
-    console.log(`[AI Parser] TOTAL Extraction Time: ${totalDuration}s`);
-
-    if (!result) {
-        console.error(`[AI Parser] All extraction models failed after ${totalDuration}s`);
-        return null;
-    }
-
-    // Attach durations for top-level performance reporting
-    result.totalPipelineDuration = `${totalDuration}s`;
+    if (result) result.totalPipelineDuration = `${totalDuration}s`;
 
     return result;
 };
 
-module.exports = { smartCVParser, parseWithOpenAI, parseWithClaude, parseWithGemini, extractTextFromFile, cleanCVText };
+module.exports = { smartCVParser, parseWithOpenAI, parseWithGemini, extractTextFromFile, cleanCVText };

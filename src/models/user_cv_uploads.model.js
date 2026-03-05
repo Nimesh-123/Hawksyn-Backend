@@ -54,7 +54,6 @@ userCvUploadsSchema.index(
     { userId: 1 },
     { unique: true, partialFilterExpression: { isActive: true } }
 );
-userCvUploadsSchema.index({ isActive: 1 });
-userCvUploadsSchema.index({ uploadedAt: -1 });
+userCvUploadsSchema.index({ userId: 1, uploadedAt: -1 });
 
 module.exports = mongoose.model('UserCvUploads', userCvUploadsSchema);

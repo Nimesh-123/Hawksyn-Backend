@@ -277,10 +277,22 @@ exports.uploadCV = async (req, res) => {
 
         // 6. AI Data Extraction (Smart Pipeline)
         console.log(`[AI] Starting AI Extraction for User ${req.user.id}...`);
-        const isBulk = req.query.bulk === 'true'; // Allow routing via query param
         let extractedData = null;
+        let parserStatus = "FAILED";
+
         try {
-            extractedData = await smartCVParser(file.buffer, file.originalname, isBulk);
+            extractedData = await smartCVParser(file.buffer, file.originalname, file.mimetype);
+            if (extractedData) {
+                // Post-processing Sanitizer to fill 7 common missing gaps
+                try {
+                    const { sanitizeParsedData } = require('../../utils/cvSanitizer.js');
+                    extractedData = sanitizeParsedData(extractedData);
+                    parserStatus = "COMPLETED";
+                } catch (sanitizerError) {
+                    console.error("[Sanitizer Error]", sanitizerError.message);
+                    parserStatus = "PARTIAL"; // Still save data but mark as partial due to sanitizer failure
+                }
+            }
         } catch (aiError) {
             console.error("[AI Extraction Failed]", aiError.message);
             // We still save the CV URL even if AI fails, but log the error
@@ -289,19 +301,27 @@ exports.uploadCV = async (req, res) => {
         // 7. Persist to Database - Phase 2 (Safe Migration)
         const userId = req.user.id;
 
+        // [LOGIC UPDATE] We show durations in response for monitoring, but keep DB clean.
+        const dbSafeParsedData = extractedData ? JSON.parse(JSON.stringify(extractedData)) : null;
+        if (dbSafeParsedData) {
+            delete dbSafeParsedData.parsingDuration;
+            delete dbSafeParsedData.modelUsed;
+            delete dbSafeParsedData.totalPipelineDuration;
+        }
+
         // STEP A - deactivate previous CVs in the new collection
         await db.UserCvUploads.updateMany(
             { userId },
             { $set: { isActive: false } }
         );
 
-        // STEP B - insert new CV record in the new collection
+        // STEP B - insert new CV record (Using the clean sanitized data for DB)
         const newCv = await db.UserCvUploads.create({
             userId,
-            fileName: file.originalname, // Added as per new required schema field
+            fileName: file.originalname,
             cvUrl: fileUrl,
-            parsedCvData: extractedData,
-            parserStatus: extractedData ? "COMPLETED" : "FAILED", // Keeps status logic but supports new defaults
+            parsedCvData: dbSafeParsedData,
+            parserStatus: parserStatus,
             isActive: true
         });
 
@@ -315,7 +335,7 @@ exports.uploadCV = async (req, res) => {
 
         await createAuditLog(req, 'CV_UPLOADED', userId, {
             s3Key: fileName,
-            aiModel: extractedData ? extractedData.meta.modelUsed : 'FAILED',
+            aiModel: extractedData ? extractedData.modelUsed : 'FAILED',
             cvUploadId: newCv._id
         });
 
