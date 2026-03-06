@@ -180,4 +180,30 @@ route.post('/forgot-pin', userController.forgotPin);
  */
 route.post('/upload-cv', upload.single('cv'), userController.uploadCV);
 
+/**
+ * @swagger
+ * /user/refresh-token:
+ *   post:
+ *     summary: Get new Access Token using Refresh Token
+ *     tags:
+ *       - User
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: New access token generated
+ *       401:
+ *         description: Invalid or expired refresh token
+ */
+route.post('/refresh-token', userController.refreshToken);
+
 module.exports = route;
