@@ -6,14 +6,14 @@ const userRoute = require('./user/userIndex.route.js');
 const adminRoute = require('./admin/adminIndex.route.js');
 const caseRoutes = require('./caseRoutes.js');
 const paymentRoutes = require('./paymentRoutes.js');
-const cvRoutes = require('./cvRoutes.js');
+const runRoutes = require('./runRoutes.js');
 
 route.use('/auth', authRoute);
 route.use('/admin', adminRoute);
 route.use('/user', userRoute);
 route.use('/cases', caseRoutes);
 route.use('/payment', paymentRoutes);
-route.use('/runs', cvRoutes);
+route.use('/runs', runRoutes);
 
 
 module.exports = route;

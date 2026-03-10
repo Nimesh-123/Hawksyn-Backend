@@ -262,7 +262,7 @@ async function seedQuestions() {
             normalizationMax: 100,
             direction: 'HIGHER_IS_BETTER',
             numericMin: 0,
-            numericMax: 36,
+            numericMax: 60,
             outOfRangePolicy: 'CLAMP',
             roundingRule: 'ROUND'
             // Score = (months / 36) * 100, capped at 100
@@ -408,18 +408,40 @@ async function seedMoiQuestionMapping() {
         {
             moiqmId: 'MOIQM_000002',
             moiId: 'MOI_AI_STAY_V1',
-            questionId: 'Q_COMPANY_SIGNAL_V1',
-            isMandatory: false,
-            weightOverride: 0.9,
-            accuracyImpactFlag: 'MEDIUM',
+            questionId: 'Q_FINANCIAL_RUNWAY_V1',
+            isMandatory: true,
+            weightOverride: null,
+            accuracyImpactFlag: 'HIGH',
             displayOrder: 2,
             dependencyRuleId: null,
             isActive: true
         },
         {
             moiqmId: 'MOIQM_000003',
+            moiId: 'MOI_AI_STAY_V1',
+            questionId: 'Q_ROLE_UNIQUENESS_V1',
+            isMandatory: true,
+            weightOverride: null,
+            accuracyImpactFlag: 'MEDIUM',
+            displayOrder: 3,
+            dependencyRuleId: null,
+            isActive: true
+        },
+        {
+            moiqmId: 'MOIQM_000004',
+            moiId: 'MOI_AI_STAY_V1',
+            questionId: 'Q_COMPANY_AI_POLICY_V1',
+            isMandatory: true,
+            weightOverride: null,
+            accuracyImpactFlag: 'HIGH',
+            displayOrder: 4,
+            dependencyRuleId: null,
+            isActive: true
+        },
+        {
+            moiqmId: 'MOIQM_000005',
             moiId: 'MOI_MBA_V1',
-            questionId: 'Q_FIN_RUNWAY_MONTHS_V1',
+            questionId: 'Q_FINANCIAL_RUNWAY_V1',
             isMandatory: true,
             weightOverride: 1.7,
             accuracyImpactFlag: 'CRITICAL',
@@ -428,9 +450,9 @@ async function seedMoiQuestionMapping() {
             isActive: true
         },
         {
-            moiqmId: 'MOIQM_000004',
+            moiqmId: 'MOIQM_000006',
             moiId: 'MOI_AI_SWITCH_V1',
-            questionId: 'Q_SWITCH_READINESS_V1',
+            questionId: 'Q_ROLE_UNIQUENESS_V1',
             isMandatory: true,
             weightOverride: null,
             accuracyImpactFlag: 'HIGH',
@@ -439,9 +461,9 @@ async function seedMoiQuestionMapping() {
             isActive: true
         },
         {
-            moiqmId: 'MOIQM_000005',
+            moiqmId: 'MOIQM_000007',
             moiId: 'MOI_AI_UPSKILL_V1',
-            questionId: 'Q_LEARNING_SPEED_V1',
+            questionId: 'Q_AI_ROLE_EXPOSURE_V1',
             isMandatory: true,
             weightOverride: 1.2,
             accuracyImpactFlag: 'HIGH',

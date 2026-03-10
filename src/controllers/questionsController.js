@@ -1,0 +1,372 @@
+const { db } = require('../models/index.model.js');
+
+/**
+ * API 1 — GET /api/runs/:runId/questions/next
+ */
+exports.getNextQuestions = async (req, res) => {
+    try {
+        const { runId } = req.params;
+
+        // 1. Find run
+        const run = await db.Runs.findOne({ runId });
+        if (!run) {
+            return res.status(404).json({ success: false, message: "Run not found" });
+        }
+
+        // 2. Find MOI
+        const moi = await db.MandatoryObjectiveInput.findOne({
+            caseId: run.caseId,
+            intentId: run.intentId,
+            playbookVersionId: run.playbookVersionId,
+            isActive: true
+        });
+        if (!moi) {
+            return res.status(404).json({ success: false, message: "Mandatory objective inputs config not found for this run" });
+        }
+
+        // 3. Find all mappings sorted by displayOrder
+        const allMappings = await db.MoiQuestionMapping.find({
+            moiId: moi.moiId,
+            isActive: true
+        }).sort({ displayOrder: 1 });
+
+        // 4. Find already answered questions from RAS
+        const rasRecords = await db.Ras.find({
+            runId: runId,
+            stepNo: 3,
+            artifactType: 'OBJECTIVE_INPUTS_CAPTURED',
+            status: 'FINAL'
+        });
+
+        const answeredQuestionIds = [];
+        const allAnswerObjects = [];
+        rasRecords.forEach(record => {
+            if (record.artifactJson.answers && Array.isArray(record.artifactJson.answers)) {
+                record.artifactJson.answers.forEach(a => {
+                    answeredQuestionIds.push(a.questionId);
+                    allAnswerObjects.push(a);
+                });
+            }
+        });
+
+        // 5. Filter out answered questions
+        const remainingMappings = allMappings.filter(m => !answeredQuestionIds.includes(m.questionId));
+
+        // 5.5 Fetch User Profile for 'profile' source dependencies
+        const userProfile = await db.UserProfile.findOne({ userId: req.user.id });
+        const profileData = userProfile?.confirmedProfile || userProfile?.originalParsedData?.structured || {};
+
+        // 6. Apply dependency rules
+        const dependencySkipLog = [];
+        const visibleQuestions = [];
+
+        for (const mapping of remainingMappings) {
+            const rule = await db.DependencyRules.findOne({
+                targetQuestionId: mapping.questionId,
+                isActive: true
+            });
+
+            if (!rule || !rule.ruleJson || !rule.ruleJson.all) {
+                visibleQuestions.push(mapping);
+                continue;
+            }
+
+            let allConditionsMet = true;
+            let skipReason = '';
+            let failedOn = '';
+
+            for (const condition of rule.ruleJson.all) {
+                const { source, field, op, value } = condition;
+                let actualValue;
+
+                if (source === 'answer') {
+                    const ans = allAnswerObjects.find(a => a.questionId === field);
+                    actualValue = ans ? ans.answerValue : undefined;
+                } else if (source === 'profile') {
+                    // Navigate nested profile objects if field is like 'inferred.employmentStatus'
+                    actualValue = field.split('.').reduce((obj, key) => obj?.[key], profileData);
+                }
+
+                let conditionMet = false;
+                switch (op) {
+                    case 'eq': conditionMet = String(actualValue) === String(value); break;
+                    case 'neq': conditionMet = String(actualValue) !== String(value); break;
+                    case 'gte': conditionMet = Number(actualValue) >= Number(value); break;
+                    case 'lte': conditionMet = Number(actualValue) <= Number(value); break;
+                    case 'in': conditionMet = Array.isArray(value) && value.includes(actualValue); break;
+                    default: conditionMet = false;
+                }
+
+                if (!conditionMet) {
+                    allConditionsMet = false;
+                    skipReason = `condition_not_met_${op}`;
+                    failedOn = field;
+                    break;
+                }
+            }
+
+            if (allConditionsMet) {
+                visibleQuestions.push(mapping);
+            } else {
+                dependencySkipLog.push({
+                    questionId: mapping.questionId,
+                    skipReason,
+                    dependsOn: failedOn
+                });
+            }
+        }
+
+        // 7. If no visible questions left
+        if (visibleQuestions.length === 0) {
+            return res.status(200).json({
+                success: true,
+                data: {
+                    isComplete: true,
+                    message: "All questions answered"
+                }
+            });
+        }
+
+        // 8. Take next batch of 3
+        const BATCH_SIZE = 3;
+        const currentBatch = visibleQuestions.slice(0, BATCH_SIZE);
+        const batchNumber = rasRecords.length + 1;
+
+        // 9. Fetch full question details
+        const questionDetails = await Promise.all(
+            currentBatch.map(async (mapping) => {
+                const q = await db.Questions.findOne({
+                    questionId: mapping.questionId
+                });
+                if (!q) return null;
+                return {
+                    questionId: q.questionId,
+                    questionText: q.questionText,
+                    questionType: q.questionType,
+                    options: q.optionsJson || [], // Schema uses optionsJson
+                    scaleMin: q.scaleMin || null,
+                    scaleMax: q.scaleMax || null,
+                    numericMin: q.numericMin || null,
+                    numericMax: q.numericMax || null,
+                    isRequired: true,
+                    displayOrder: mapping.displayOrder,
+                    accuracyImpactFlag: mapping.accuracyImpactFlag
+                };
+            })
+        );
+
+        // Filter out any potential nulls if question data is missing
+        const cleanQuestionDetails = questionDetails.filter(q => q !== null);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                runId,
+                batchNumber,
+                totalQuestions: allMappings.length,
+                answeredCount: answeredQuestionIds.length,
+                remainingCount: visibleQuestions.length,
+                isLastBatch: visibleQuestions.length <= BATCH_SIZE,
+                questions: cleanQuestionDetails,
+                dependencySkipLog,
+                progressLabel: `${answeredQuestionIds.length}/${allMappings.length}`
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * API 2 — POST /api/runs/:runId/questions/answers
+ */
+exports.saveAnswers = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const { batchNumber, answers } = req.body;
+
+        if (!batchNumber || !answers || !Array.isArray(answers)) {
+            return res.status(400).json({ success: false, message: "batchNumber and answers array are required" });
+        }
+
+        // 1. Find run
+        const run = await db.Runs.findOne({ runId });
+        if (!run) {
+            return res.status(404).json({ success: false, message: "Run not found" });
+        }
+
+        // 2. Check for existing record
+        const existing = await db.Ras.findOne({
+            runId: runId,
+            stepNo: 3,
+            artifactType: 'OBJECTIVE_INPUTS_CAPTURED',
+            'artifactJson.batchNumber': batchNumber
+        });
+
+        if (existing && existing.status === 'FINAL') {
+            return res.status(400).json({
+                success: false,
+                message: "This batch is already confirmed and cannot be changed."
+            });
+        }
+
+        // 3. Validate answers
+        for (const answer of answers) {
+            const q = await db.Questions.findOne({
+                questionId: answer.questionId
+            });
+            if (!q) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Question ${answer.questionId} not found`
+                });
+            }
+
+            if (q.questionType === 'MCQ') {
+                const options = q.optionsJson || [];
+                const optionValues = options.map(o => o.opt || o);
+                if (!optionValues.includes(answer.answerValue)) {
+                    return res.status(400).json({
+                        success: false,
+                        field: answer.questionId,
+                        message: `Invalid option selected for ${answer.questionId}`
+                    });
+                }
+            }
+
+            if (q.questionType === 'NUMERIC') {
+                const val = Number(answer.answerValue);
+                const min = q.validationJson?.min ?? q.numericMin ?? 0;
+                const max = q.validationJson?.max ?? q.numericMax ?? 9999999;
+
+                if (val < min || val > max) {
+                    return res.status(400).json({
+                        success: false,
+                        field: answer.questionId,
+                        message: `Value must be between ${min} and ${max}`
+                    });
+                }
+            }
+
+            if (q.questionType === 'SCALE') {
+                const val = Number(answer.answerValue);
+                const min = q.validationJson?.min ?? q.scaleMin ?? 0;
+                const max = q.validationJson?.max ?? q.scaleMax ?? 10;
+
+                if (val < min || val > max) {
+                    return res.status(400).json({
+                        success: false,
+                        field: answer.questionId,
+                        message: `Scale value must be between ${min} and ${max}`
+                    });
+                }
+            }
+        }
+
+        // 4. Save to RAS
+        const rasId = `RAS_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+
+        await db.Ras.create({
+            rasId,
+            runId,
+            stepNo: 3,
+            artifactType: 'OBJECTIVE_INPUTS_CAPTURED',
+            artifactVersion: 1,
+            artifactJson: {
+                batchNumber,
+                answers: answers.map(a => ({
+                    questionId: a.questionId,
+                    answerValue: a.answerValue,
+                    answerLabel: a.answerLabel || null,
+                    answeredAt: new Date()
+                })),
+                completeness: 'PASS'
+            },
+            status: 'FINAL'
+        });
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                rasId,
+                runId,
+                batchNumber,
+                answeredCount: answers.length,
+                message: "Your answers have been recorded. They will be used to evaluate risk, constraints, and accuracy."
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * API 3 — GET /api/runs/:runId/questions/status
+ */
+exports.getQuestionsStatus = async (req, res) => {
+    try {
+        const { runId } = req.params;
+
+        // 1. Find run
+        const run = await db.Runs.findOne({ runId });
+        if (!run) {
+            return res.status(404).json({ success: false, message: "Run not found" });
+        }
+
+        // 2. Find MOI
+        const moi = await db.MandatoryObjectiveInput.findOne({
+            caseId: run.caseId,
+            intentId: run.intentId,
+            playbookVersionId: run.playbookVersionId,
+            isActive: true
+        });
+        if (!moi) {
+            return res.status(404).json({ success: false, message: "Mandatory objective inputs config not found for this run" });
+        }
+
+        // 3. Find all mappings
+        const allMappings = await db.MoiQuestionMapping.find({
+            moiId: moi.moiId,
+            isActive: true
+        });
+
+        // 4. Find all RAS records
+        const rasRecords = await db.Ras.find({
+            runId: runId,
+            stepNo: 3,
+            artifactType: 'OBJECTIVE_INPUTS_CAPTURED',
+            status: 'FINAL'
+        });
+
+        let answeredCount = 0;
+        rasRecords.forEach(r => {
+            if (r.artifactJson.answers) {
+                answeredCount += r.artifactJson.answers.length;
+            }
+        });
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                runId,
+                totalQuestions: allMappings.length,
+                answeredCount,
+                remainingCount: Math.max(0, allMappings.length - answeredCount),
+                progressLabel: `${answeredCount}/${allMappings.length}`,
+                progressPercent: allMappings.length > 0 ? Math.round((answeredCount / allMappings.length) * 100) : 0,
+                isComplete: answeredCount >= allMappings.length,
+                batches: rasRecords.map(r => ({
+                    batchNumber: r.artifactJson.batchNumber,
+                    status: r.status,
+                    questionCount: r.artifactJson.answers?.length || 0,
+                    confirmedAt: r.createdAt
+                }))
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
