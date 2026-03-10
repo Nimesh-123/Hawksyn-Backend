@@ -10,25 +10,30 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 // ── Import all models ──
-const CaseRegistry = require('../models/CaseRegistry');
-const IntentTaxonomy = require('../models/IntentTaxonomy');
-const CvFileRules = require('../models/CvFileRules');
-const Playbooks = require('../models/Playbooks');
-const CaseIntentConfig = require('../models/CaseIntentConfig');
-const Questions = require('../models/Questions');
-const InputSchemas = require('../models/InputSchemas');
-const Constraints = require('../models/Constraints');
-const ConstraintQuestionMapping = require('../models/ConstraintQuestionMapping');
-const Contradictions = require('../models/Contradictions');
-const CoverageRequirements = require('../models/CoverageRequirements');
-const RedFlagTaxonomy = require('../models/RedFlagTaxonomy');
-const AccuracyScoringPolicy = require('../models/AccuracyScoringPolicy');
-const Warnings = require('../models/Warnings');
-const EvaluationLibraryRegistry = require('../models/EvaluationLibraryRegistry');
-const GuardrailRegistry = require('../models/GuardrailRegistry');
-const DecisionAssuranceSections = require('../models/DecisionAssuranceSections');
-const PromptConfigRegistry = require('../models/PromptConfigRegistry');
-
+const CaseRegistry = require('../models/CaseRegistry.model');
+const IntentTaxonomy = require('../models/IntentTaxonomy.model');
+const CvFileRules = require('../models/CvFileRules.model');
+const Playbooks = require('../models/Playbooks.model');
+const CaseIntentConfig = require('../models/CaseIntentConfig.model');
+const Questions = require('../models/Questions.model');
+const Constraints = require('../models/Constraints.model');
+const ConstraintQuestionMapping = require('../models/ConstraintQuestionMapping.model');
+const Contradictions = require('../models/Contradictions.model');
+const CoverageRequirements = require('../models/CoverageRequirements.model');
+const RedFlagTaxonomy = require('../models/RedFlagTaxonomy.model');
+const AccuracyScoringPolicy = require('../models/AccuracyScoringPolicy.model');
+const Warnings = require('../models/Warnings.model');
+const EvaluationLibraryRegistry = require('../models/EvaluationLibraryRegistry.model');
+const GuardrailRegistry = require('../models/GuardrailRegistry.model');
+const DecisionAssuranceSections = require('../models/DecisionAssuranceSections.model');
+const PromptConfigRegistry = require('../models/PromptConfigRegistry.model');
+const DependencyRules = require('../models/DependencyRules.model');
+const ExternalSignalTaxonomy = require('../models/ExternalSignalTaxonomy.model');
+const SourceRegistry = require('../models/SourceRegistry.model');
+const DataPatternKeyTaxonomy = require('../models/DataPatternKeyTaxonomy.model');
+const RiskAuditorRegistry = require('../models/RiskAuditorRegistry.model');
+const MandatoryObjectiveInput = require('../models/MandatoryObjectiveInput.model');
+const MoiQuestionMapping = require('../models/MoiQuestionMapping.model');
 // ════════════════════════════════════════════════════════════
 // STEP 1 — case_registry
 // ════════════════════════════════════════════════════════════
@@ -45,7 +50,8 @@ async function seedCaseRegistry() {
             minPrice: 999,
             maxPrice: 2999,
             cvRequiredDefault: true,
-            isActive: true
+            isActive: true,
+            logoSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><path d="M50 5 L88 20 L88 52 C88 72 70 88 50 95 C30 88 12 72 12 52 L12 20 Z" fill="#1E1E2E" stroke="#FFA500" stroke-width="2.5"/><line x1="30" y1="40" x2="50" y2="40" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="50" y1="40" x2="70" y2="40" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="35" y1="55" x2="50" y2="55" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="50" y1="55" x2="65" y2="55" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="50" y1="40" x2="50" y2="55" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="35" y1="40" x2="35" y2="55" stroke="#FFA500" stroke-width="1.2" opacity="0.5"/><line x1="65" y1="40" x2="65" y2="55" stroke="#FFA500" stroke-width="1.2" opacity="0.5"/><circle cx="30" cy="40" r="3" fill="#FFA500"/><circle cx="50" cy="40" r="3.5" fill="#FFA500"/><circle cx="70" cy="40" r="3" fill="#FFA500"/><circle cx="35" cy="55" r="3" fill="#FFA500" opacity="0.8"/><circle cx="50" cy="55" r="3.5" fill="#FFA500"/><circle cx="65" cy="55" r="3" fill="#FFA500" opacity="0.8"/><circle cx="50" cy="47" r="5" fill="none" stroke="#FFA500" stroke-width="1.5" opacity="0.6"/><circle cx="50" cy="47" r="2.5" fill="#FFA500"/><circle cx="50" cy="70" r="5" fill="#FFA500" opacity="0.9"/><path d="M42 82 Q50 76 58 82" fill="none" stroke="#FFA500" stroke-width="2" stroke-linecap="round" opacity="0.9"/></svg>`
         }
     ]);
 }
@@ -328,48 +334,123 @@ async function seedQuestions() {
 // ════════════════════════════════════════════════════════════
 // STEP 7 — input_schemas (MOI)
 // ════════════════════════════════════════════════════════════
-async function seedInputSchemas() {
-    await InputSchemas.deleteMany({});
-    await InputSchemas.insertMany([
+
+async function seedMandatoryObjectiveInputs() {
+    await MandatoryObjectiveInput.deleteMany({});
+    await MandatoryObjectiveInput.insertMany([
         {
             moiId: 'MOI_AI_STAY_V1',
-            moiName: 'AI Job Risk — Stay Safe — Mandatory Inputs v1',
+            moiName: 'AI Job Risk – Stay – Mandatory Inputs',
             caseId: 'CASE_AI_JOB_RISK',
             intentId: 'INT_STAY_12M_SAFE',
             playbookVersionId: 'PBV_000001',
             version: 'v1.0',
-            description: 'Mandatory objective questions for the AI job risk stay-safe validation.',
-            questions: [
-                {
-                    questionId: 'Q_AI_ROLE_EXPOSURE_V1',
-                    isMandatory: true,
-                    displayOrder: 1,
-                    accuracyImpactFlag: 'CRITICAL'
-                },
-                {
-                    questionId: 'Q_FINANCIAL_RUNWAY_V1',
-                    isMandatory: true,
-                    displayOrder: 2,
-                    accuracyImpactFlag: 'CRITICAL'
-                },
-                {
-                    questionId: 'Q_ROLE_UNIQUENESS_V1',
-                    isMandatory: true,
-                    displayOrder: 3,
-                    accuracyImpactFlag: 'HIGH'
-                },
-                {
-                    questionId: 'Q_COMPANY_AI_POLICY_V1',
-                    isMandatory: true,
-                    displayOrder: 4,
-                    accuracyImpactFlag: 'HIGH'
-                }
-            ],
+            description: 'Mandatory inputs for role safety validation',
+            isActive: true
+        },
+        {
+            moiId: 'MOI_AI_SWITCH_V1',
+            moiName: 'AI Job Risk – Switch – Mandatory Inputs',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'INT_SWITCH_ROLE_6M',
+            playbookVersionId: 'PBV_000002',
+            version: 'v1.0',
+            description: 'Mandatory inputs for transition evaluation',
+            isActive: true
+        },
+        {
+            moiId: 'MOI_AI_UPSKILL_V1',
+            moiName: 'AI Job Risk – Upskill – Mandatory Inputs',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'INT_UPSKILL_90D',
+            playbookVersionId: 'PBV_000003',
+            version: 'v1.0',
+            description: 'Mandatory inputs for skill improvement plan',
+            isActive: true
+        },
+        {
+            moiId: 'MOI_MBA_V1',
+            moiName: 'MBA Decision – Mandatory Inputs',
+            caseId: 'CASE_MBA_BREAK',
+            intentId: 'INT_MBA_2026_YESNO',
+            playbookVersionId: 'PBV_000004',
+            version: 'v1.0',
+            description: 'Inputs required for MBA decision validation',
+            isActive: true
+        },
+        {
+            moiId: 'MOI_AUDIT_V1',
+            moiName: 'Annual Career Audit – Mandatory Inputs',
+            caseId: 'CASE_ANNUAL_CAREER_AUDIT',
+            intentId: 'INT_FULL_YEAR_AUDIT',
+            playbookVersionId: 'PBV_000005',
+            version: 'v1.0',
+            description: 'Inputs required for full career audit',
             isActive: true
         }
     ]);
 }
 
+async function seedMoiQuestionMapping() {
+    await MoiQuestionMapping.deleteMany({});
+    await MoiQuestionMapping.insertMany([
+        {
+            moiqmId: 'MOIQM_000001',
+            moiId: 'MOI_AI_STAY_V1',
+            questionId: 'Q_AI_ROLE_EXPOSURE_V1',
+            isMandatory: true,
+            weightOverride: null,
+            accuracyImpactFlag: 'HIGH',
+            displayOrder: 1,
+            dependencyRuleId: null,
+            isActive: true
+        },
+        {
+            moiqmId: 'MOIQM_000002',
+            moiId: 'MOI_AI_STAY_V1',
+            questionId: 'Q_COMPANY_SIGNAL_V1',
+            isMandatory: false,
+            weightOverride: 0.9,
+            accuracyImpactFlag: 'MEDIUM',
+            displayOrder: 2,
+            dependencyRuleId: null,
+            isActive: true
+        },
+        {
+            moiqmId: 'MOIQM_000003',
+            moiId: 'MOI_MBA_V1',
+            questionId: 'Q_FIN_RUNWAY_MONTHS_V1',
+            isMandatory: true,
+            weightOverride: 1.7,
+            accuracyImpactFlag: 'CRITICAL',
+            displayOrder: 1,
+            dependencyRuleId: null,
+            isActive: true
+        },
+        {
+            moiqmId: 'MOIQM_000004',
+            moiId: 'MOI_AI_SWITCH_V1',
+            questionId: 'Q_SWITCH_READINESS_V1',
+            isMandatory: true,
+            weightOverride: null,
+            accuracyImpactFlag: 'HIGH',
+            displayOrder: 1,
+            dependencyRuleId: 'DRR_000001',
+            isActive: true
+        },
+        {
+            moiqmId: 'MOIQM_000005',
+            moiId: 'MOI_AI_UPSKILL_V1',
+            questionId: 'Q_LEARNING_SPEED_V1',
+            isMandatory: true,
+            weightOverride: 1.2,
+            accuracyImpactFlag: 'HIGH',
+            displayOrder: 1,
+            dependencyRuleId: null,
+            isActive: true
+        }
+    ]);
+}
 // ════════════════════════════════════════════════════════════
 // STEP 8 — constraints (with thresholds embedded)
 // ════════════════════════════════════════════════════════════
@@ -939,9 +1020,349 @@ async function seedPromptConfigRegistry() {
     ]);
 }
 
+
 // ════════════════════════════════════════════════════════════
-// MASTER RUNNER
+// STEP 19 — dependency_rules
 // ════════════════════════════════════════════════════════════
+async function seedDependencyRules() {
+    await DependencyRules.deleteMany({});
+    await DependencyRules.insertMany([
+        {
+            dependencyRuleId: 'DRR_000004',
+            moiId: 'MOI_AI_STAY_V1',
+            ruleName: 'Ask company signals only if company size is mid/large',
+            targetQuestionId: 'Q_COMPANY_SIGNAL_V1',
+            ruleJson: {
+                all: [{ source: 'profile', field: 'company_size', op: 'in', value: ['MID', 'LARGE'] }],
+                any: []
+            },
+            onFailAction: 'SKIP',
+            skipReason: 'Skip because signals question not reliable for very small firms',
+            isActive: true
+        },
+        {
+            dependencyRuleId: 'DRR_000005',
+            moiId: 'MOI_AI_STAY_V1',
+            ruleName: 'Ask exposure only if role is not unemployed',
+            targetQuestionId: 'Q_AI_ROLE_EXPOSURE_V1',
+            ruleJson: {
+                all: [{ source: 'profile', field: 'employment_status', op: 'neq', value: 'UNEMPLOYED' }],
+                any: []
+            },
+            onFailAction: 'SKIP',
+            skipReason: 'Skip because role exposure not applicable without employment',
+            isActive: true
+        }
+    ]);
+}
+
+// ════════════════════════════════════════════════════════════
+// STEP 20 — external_signal_taxonomy
+// ════════════════════════════════════════════════════════════
+async function seedExternalSignalTaxonomy() {
+    await ExternalSignalTaxonomy.deleteMany({});
+    await ExternalSignalTaxonomy.insertMany([
+        {
+            signalId: 'EST_LM_001',
+            signalName: 'Labour Market AI Displacement Index',
+            signalCategory: 'LABOUR_MARKET',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'ALL',
+            valueFormat: 'NUMERIC',
+            unit: 'index_score',
+            recencyDaysMax: 365,
+            isMandatory: false,
+            isActive: true
+        },
+        {
+            signalId: 'EST_TECH_004',
+            signalName: 'AI Tool Adoption Rate in Role Category',
+            signalCategory: 'TECH_TREND',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'ALL',
+            valueFormat: 'PERCENT',
+            unit: '%',
+            recencyDaysMax: 180,
+            isMandatory: false,
+            isActive: true
+        },
+        {
+            signalId: 'EST_IND_002',
+            signalName: 'Industry Hiring Momentum Score',
+            signalCategory: 'INDUSTRY',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'ALL',
+            valueFormat: 'NUMERIC',
+            unit: 'score',
+            recencyDaysMax: 90,
+            isMandatory: false,
+            isActive: true
+        },
+        {
+            signalId: 'EST_CO_003',
+            signalName: 'Company AI Investment Signal',
+            signalCategory: 'COMPANY',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'INT_STAY_12M_SAFE',
+            valueFormat: 'BOOLEAN',
+            unit: '',
+            recencyDaysMax: 180,
+            isMandatory: false,
+            isActive: true
+        },
+        {
+            signalId: 'EST_REG_005',
+            signalName: 'Regulatory AI Policy Signal',
+            signalCategory: 'REGULATORY',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'ALL',
+            valueFormat: 'TEXT',
+            unit: '',
+            recencyDaysMax: 365,
+            isMandatory: false,
+            isActive: true
+        }
+    ]);
+}
+
+// ════════════════════════════════════════════════════════════
+// STEP 21 — source_registry
+// ════════════════════════════════════════════════════════════
+async function seedSourceRegistry() {
+    await SourceRegistry.deleteMany({});
+    await SourceRegistry.insertMany([
+        {
+            sourceId: 'SR_0001',
+            sourceName: 'World Economic Forum',
+            sourceType: 'RESEARCH_BODY',
+            domainUrl: 'weforum.org',
+            credibilityTier: 'TIER_1',
+            geoScope: 'GLOBAL',
+            recencyDaysDefault: 365,
+            minConfidenceWeight: 90,
+            allowedSignalCategories: ['LABOUR_MARKET', 'TECH_TREND'],
+            conflictPriorityRank: 1,
+            requiresManualValidation: false,
+            isActive: true
+        },
+        {
+            sourceId: 'SR_0002',
+            sourceName: 'Government Labour Bureau (India)',
+            sourceType: 'GOVERNMENT',
+            domainUrl: 'labour.gov.in',
+            credibilityTier: 'TIER_1',
+            geoScope: 'COUNTRY',
+            recencyDaysDefault: 365,
+            minConfidenceWeight: 95,
+            allowedSignalCategories: ['LABOUR_MARKET'],
+            conflictPriorityRank: 1,
+            requiresManualValidation: false,
+            isActive: true
+        },
+        {
+            sourceId: 'SR_0003',
+            sourceName: 'Company Quarterly Filing',
+            sourceType: 'COMPANY_DISCLOSURE',
+            domainUrl: 'investor.company.com',
+            credibilityTier: 'TIER_1',
+            geoScope: 'COMPANY',
+            recencyDaysDefault: 180,
+            minConfidenceWeight: 85,
+            allowedSignalCategories: ['COMPANY'],
+            conflictPriorityRank: 1,
+            requiresManualValidation: false,
+            isActive: true
+        },
+        {
+            sourceId: 'SR_0004',
+            sourceName: 'Major Financial News Outlet',
+            sourceType: 'NEWS',
+            domainUrl: 'example-news.com',
+            credibilityTier: 'TIER_2',
+            geoScope: 'GLOBAL',
+            recencyDaysDefault: 90,
+            minConfidenceWeight: 70,
+            allowedSignalCategories: ['LABOUR_MARKET', 'INDUSTRY', 'COMPANY'],
+            conflictPriorityRank: 2,
+            requiresManualValidation: false,
+            isActive: true
+        },
+        {
+            sourceId: 'SR_0005',
+            sourceName: 'Independent Tech Blog',
+            sourceType: 'OTHER',
+            domainUrl: 'techblog.example',
+            credibilityTier: 'TIER_3',
+            geoScope: 'GLOBAL',
+            recencyDaysDefault: 60,
+            minConfidenceWeight: 50,
+            allowedSignalCategories: ['TECH_TREND'],
+            conflictPriorityRank: 3,
+            requiresManualValidation: true,
+            isActive: true
+        }
+    ]);
+}
+
+// ════════════════════════════════════════════════════════════
+// STEP 22 — data_pattern_key_taxonomy
+// ════════════════════════════════════════════════════════════
+async function seedDataPatternKeyTaxonomy() {
+    await DataPatternKeyTaxonomy.deleteMany({});
+    await DataPatternKeyTaxonomy.insertMany([
+        {
+            patternKeyId: 'DPKT_0001',
+            patternName: 'AI Labour Risk Composite',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'ALL',
+            requiredSignals: ['EST_LM_001', 'EST_TECH_004'],
+            minRequiredSignals: 2,
+            aggregationMethod: 'INDEX_BLEND',
+            weightingLogicJson: { 'EST_LM_001': 0.6, 'EST_TECH_004': 0.4 },
+            minimumConfidenceScore: 75,
+            conflictResolutionStrategy: 'HIGH_TIER_PRIORITY',
+            producesAnchorName: 'Labour Market Risk Anchor',
+            isActive: true
+        },
+        {
+            patternKeyId: 'DPKT_0002',
+            patternName: 'Industry Hiring Momentum Pattern',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'ALL',
+            requiredSignals: ['EST_IND_002'],
+            minRequiredSignals: 1,
+            aggregationMethod: 'THRESHOLD_BREACH',
+            weightingLogicJson: {},
+            minimumConfidenceScore: 70,
+            conflictResolutionStrategy: 'MARK_CONFLICT',
+            producesAnchorName: 'Industry Stability Anchor',
+            isActive: true
+        },
+        {
+            patternKeyId: 'DPKT_0003',
+            patternName: 'Company Stability Pattern',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'INT_STAY_12M_SAFE',
+            requiredSignals: ['EST_CO_003'],
+            minRequiredSignals: 1,
+            aggregationMethod: 'MAJORITY_SIGNAL',
+            weightingLogicJson: {},
+            minimumConfidenceScore: 75,
+            conflictResolutionStrategy: 'ESCALATE_HUMAN',
+            producesAnchorName: 'Company Stability Anchor',
+            isActive: true
+        },
+        {
+            patternKeyId: 'DPKT_0004',
+            patternName: 'Regulatory Pressure Pattern',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'ALL',
+            requiredSignals: ['EST_REG_005'],
+            minRequiredSignals: 1,
+            aggregationMethod: 'THRESHOLD_BREACH',
+            weightingLogicJson: {},
+            minimumConfidenceScore: 65,
+            conflictResolutionStrategy: 'HIGH_TIER_PRIORITY',
+            producesAnchorName: 'Regulatory Risk Anchor',
+            isActive: true
+        },
+        {
+            patternKeyId: 'DPKT_0005',
+            patternName: 'Multi-Signal Escalation Pattern',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'ALL',
+            requiredSignals: ['EST_LM_001', 'EST_IND_002', 'EST_CO_003'],
+            minRequiredSignals: 2,
+            aggregationMethod: 'COMPOSITE_RULE',
+            weightingLogicJson: { rule: '2_or_more_negative' },
+            minimumConfidenceScore: 80,
+            conflictResolutionStrategy: 'ESCALATE_HUMAN',
+            producesAnchorName: 'Composite External Risk Anchor',
+            isActive: true
+        }
+    ]);
+}
+
+// ════════════════════════════════════════════════════════════
+// STEP 23 — risk_auditor_registry
+// ════════════════════════════════════════════════════════════
+async function seedRiskAuditorRegistry() {
+    await RiskAuditorRegistry.deleteMany({});
+    await RiskAuditorRegistry.insertMany([
+        {
+            auditorId: 'RAR_0001',
+            auditorName: 'Arjun Mehta',
+            professionalBackground: 'AI Strategy Consultant',
+            specializationTags: ['AI_RISK', 'CAREER_TRANSITION'],
+            supportedCases: ['CASE_AI_JOB_RISK'],
+            supportedIntents: ['ALL'],
+            escalationTier: 'TIER_2',
+            slaHours: 48,
+            maxActiveCases: 5,
+            ratingScore: 4.7,
+            requiresPrePayment: true,
+            status: 'ACTIVE'
+        },
+        {
+            auditorId: 'RAR_0002',
+            auditorName: 'Neha Kapoor',
+            professionalBackground: 'Labour Market Analyst',
+            specializationTags: ['LABOUR_MARKET', 'POLICY'],
+            supportedCases: ['CASE_AI_JOB_RISK'],
+            supportedIntents: ['ALL'],
+            escalationTier: 'TIER_1',
+            slaHours: 72,
+            maxActiveCases: 8,
+            ratingScore: 4.5,
+            requiresPrePayment: true,
+            status: 'ACTIVE'
+        },
+        {
+            auditorId: 'RAR_0003',
+            auditorName: 'Raghav Sharma',
+            professionalBackground: 'Corporate Finance Advisor',
+            specializationTags: ['FINANCE', 'RUNWAY_ANALYSIS'],
+            supportedCases: ['CASE_AI_JOB_RISK', 'CASE_MBA_BREAK'],
+            supportedIntents: ['ALL'],
+            escalationTier: 'TIER_2',
+            slaHours: 48,
+            maxActiveCases: 6,
+            ratingScore: 4.8,
+            requiresPrePayment: true,
+            status: 'ACTIVE'
+        },
+        {
+            auditorId: 'RAR_0004',
+            auditorName: 'Simran Arora',
+            professionalBackground: 'Tech Industry Consultant',
+            specializationTags: ['TECH_TREND', 'STARTUPS'],
+            supportedCases: ['CASE_AI_JOB_RISK'],
+            supportedIntents: ['INT_STAY_12M_SAFE'],
+            escalationTier: 'TIER_3',
+            slaHours: 36,
+            maxActiveCases: 3,
+            ratingScore: 4.9,
+            requiresPrePayment: true,
+            status: 'ACTIVE'
+        },
+        {
+            auditorId: 'RAR_0005',
+            auditorName: 'Mohan Iyer',
+            professionalBackground: 'Career Coach (Mid-Level Professionals)',
+            specializationTags: ['CAREER_TRANSITION'],
+            supportedCases: ['CASE_AI_JOB_RISK'],
+            supportedIntents: ['ALL'],
+            escalationTier: 'TIER_1',
+            slaHours: 72,
+            maxActiveCases: 10,
+            ratingScore: 4.3,
+            requiresPrePayment: false,
+            status: 'ACTIVE'
+        }
+    ]);
+}
+
+
 async function runSeed() {
     try {
         console.log('\n🌱 Hawksyn Master Seed Starting...\n');
@@ -956,7 +1377,6 @@ async function runSeed() {
             { name: 'playbooks', fn: seedPlaybooks },
             { name: 'case_intent_config', fn: seedCaseIntentConfig },
             { name: 'questions', fn: seedQuestions },
-            { name: 'input_schemas', fn: seedInputSchemas },
             { name: 'constraints', fn: seedConstraints },
             { name: 'constraint_question_mapping', fn: seedConstraintQuestionMapping },
             { name: 'contradictions', fn: seedContradictions },
@@ -968,6 +1388,13 @@ async function runSeed() {
             { name: 'guardrail_registry', fn: seedGuardrailRegistry },
             { name: 'decision_assurance_sections', fn: seedDecisionAssuranceSections },
             { name: 'prompt_config_registry', fn: seedPromptConfigRegistry },
+            { name: 'dependency_rules', fn: seedDependencyRules },
+            { name: 'external_signal_taxonomy', fn: seedExternalSignalTaxonomy },
+            { name: 'source_registry', fn: seedSourceRegistry },
+            { name: 'data_pattern_key_taxonomy', fn: seedDataPatternKeyTaxonomy },
+            { name: 'risk_auditor_registry', fn: seedRiskAuditorRegistry },
+            { name: 'mandatory_objective_inputs', fn: seedMandatoryObjectiveInputs },
+            { name: 'moi_question_mapping', fn: seedMoiQuestionMapping },
         ];
 
         for (const step of steps) {

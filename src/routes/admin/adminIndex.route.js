@@ -10,7 +10,7 @@ const { authorize } = require('../../../middleware/authorization/authorization.j
  * /admin/logs:
  *   get:
  *     summary: Get all audit logs (Admin only)
- *     tags: [Admin]
+ *     tags: [6. Admin]
  *     responses:
  *       200:
  *         description: List of audit logs

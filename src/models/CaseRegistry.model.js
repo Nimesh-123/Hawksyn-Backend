@@ -10,7 +10,8 @@ const CaseRegistrySchema = new mongoose.Schema({
     minPrice: { type: Number },
     maxPrice: { type: Number },
     cvRequiredDefault: { type: Boolean, default: true },
-    isActive: { type: Boolean, default: true }
+    isActive: { type: Boolean, default: true },
+    logoSvg: { type: String, default: null }
 }, {
     timestamps: true,
     collection: 'case_registry'

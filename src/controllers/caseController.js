@@ -1,7 +1,7 @@
-const CaseRegistry = require('../models/CaseRegistry');
-const IntentTaxonomy = require('../models/IntentTaxonomy');
-const CaseIntentConfig = require('../models/CaseIntentConfig');
-const Playbooks = require('../models/Playbooks');
+const CaseRegistry = require('../models/CaseRegistry.model');
+const IntentTaxonomy = require('../models/IntentTaxonomy.model');
+const CaseIntentConfig = require('../models/CaseIntentConfig.model');
+const Playbooks = require('../models/Playbooks.model');
 
 /**
  * API 1 — GET /api/cases
@@ -9,14 +9,48 @@ const Playbooks = require('../models/Playbooks');
  */
 exports.getCases = async (req, res) => {
     try {
+        let { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'asc' } = req.query;
+
+        // Convert to numbers
+        page = parseInt(page);
+        limit = parseInt(limit);
+
+        // Validation for sortBy to prevent injection/errors
+        const allowedSortFields = ['minPrice', 'maxPrice', 'caseName', 'createdAt'];
+        if (!allowedSortFields.includes(sortBy)) {
+            sortBy = 'createdAt';
+        }
+
+        // Prepare sort object
+        const sort = {};
+        sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+        const skip = (page - 1) * limit;
+
+        const totalCount = await CaseRegistry.countDocuments({ isActive: true });
         const cases = await CaseRegistry.find({ isActive: true })
-            .select('caseId caseName caseCategory caseDescription defaultCurrency minPrice maxPrice')
-            .sort({ displayOrder: 1, launchStage: 1 });
+            .select('caseId caseName caseCategory caseDescription defaultCurrency minPrice maxPrice logoSvg')
+            .sort(sort)
+            .skip(skip)
+            .limit(limit);
+
+        const totalPages = Math.ceil(totalCount / limit);
 
         return res.status(200).json({
             success: true,
-            data: cases
+            data: {
+                cases: cases,
+                pagination: {
+                    currentPage: page,
+                    totalPages: totalPages,
+                    totalCount: totalCount,
+                    limit: limit,
+                    hasNextPage: page < totalPages,
+                    hasPrevPage: page > 1
+                }
+            }
         });
+
     } catch (error) {
         return res.status(500).json({
             success: false,
@@ -32,11 +66,21 @@ exports.getCases = async (req, res) => {
 exports.getCaseIntents = async (req, res) => {
     try {
         const { caseId } = req.params;
+        let { page = 1, limit = 10 } = req.query;
 
-        // Fetch ALL configs for this caseId (active and inactive)
-        const configs = await CaseIntentConfig.find({
-            caseId
-        }).sort({ displayOrder: 1 });
+        // Convert to numbers
+        page = parseInt(page);
+        limit = parseInt(limit);
+        const skip = (page - 1) * limit;
+
+        // Fetch total count for this specific case
+        const totalCount = await CaseIntentConfig.countDocuments({ caseId });
+
+        // Fetch paginated configs
+        const configs = await CaseIntentConfig.find({ caseId })
+            .sort({ displayOrder: 1 })
+            .skip(skip)
+            .limit(limit);
 
         if (!configs || configs.length === 0) {
             return res.status(404).json({
@@ -45,7 +89,7 @@ exports.getCaseIntents = async (req, res) => {
             });
         }
 
-        const data = [];
+        const intentsList = [];
         for (const config of configs) {
             // Fetch intent details
             const intent = await IntentTaxonomy.findOne({
@@ -53,7 +97,7 @@ exports.getCaseIntents = async (req, res) => {
             });
 
             if (intent) {
-                data.push({
+                intentsList.push({
                     intentId: intent.intentId,
                     intentName: intent.intentName,
                     intentHorizonDays: intent.intentHorizonDays,
@@ -65,17 +109,23 @@ exports.getCaseIntents = async (req, res) => {
             }
         }
 
-        if (data.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'No intents found for this case'
-            });
-        }
+        const totalPages = Math.ceil(totalCount / limit);
 
         return res.status(200).json({
             success: true,
-            data: data
+            data: {
+                intents: intentsList,
+                pagination: {
+                    currentPage: page,
+                    totalPages: totalPages,
+                    totalCount: totalCount,
+                    limit: limit,
+                    hasNextPage: page < totalPages,
+                    hasPrevPage: page > 1
+                }
+            }
         });
+
     } catch (error) {
         return res.status(500).json({
             success: false,

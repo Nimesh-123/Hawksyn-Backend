@@ -1,23 +1,17 @@
 const mongoose = require('mongoose');
 
-const InputSchemasSchema = new mongoose.Schema({
+const MandatoryObjectiveInputSchema = new mongoose.Schema({
     moiId: { type: String, required: true, unique: true },
     moiName: { type: String, required: true },
     caseId: { type: String, required: true },
     intentId: { type: String, required: true },
     playbookVersionId: { type: String, required: true },
-    version: { type: String },
+    version: { type: String, default: 'v1.0' },
     description: { type: String },
-    questions: [{
-        questionId: { type: String },
-        isMandatory: { type: Boolean },
-        displayOrder: { type: Number },
-        accuracyImpactFlag: { type: String }
-    }],
     isActive: { type: Boolean, default: true }
 }, {
     timestamps: true,
-    collection: 'input_schemas'
+    collection: 'mandatory_objective_input'
 });
 
-module.exports = mongoose.model('InputSchemas', InputSchemasSchema);
+module.exports = mongoose.model('MandatoryObjectiveInput', MandatoryObjectiveInputSchema);

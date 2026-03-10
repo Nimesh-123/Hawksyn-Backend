@@ -325,7 +325,23 @@ exports.uploadCV = async (req, res) => {
             isActive: true
         });
 
+        // [LOGIC UPDATE] Auto-create or Update UserProfile every time user uploads CV.
+        await db.UserProfile.findOneAndUpdate(
+            { userId },
+            {
+                lastCvUploadId: newCv._id,
+                cvUrl: fileUrl,
+                originalParsedData: dbSafeParsedData,
+                confirmedProfile: null,  // reset on new upload
+                isConfirmed: false,      // needs re-confirmation
+                confirmedAt: null
+            },
+
+            { upsert: true, new: true }
+        );
+
         // 8. Production Hardening - Safety Check
+
         const activeCount = await db.UserCvUploads.countDocuments({ userId, isActive: true });
         if (activeCount !== 1) {
             console.warn(`[CV Guard] User ${userId} has ${activeCount} active CVs after upload! Race condition suspected.`);

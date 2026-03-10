@@ -9,7 +9,7 @@ const upload = require('../../../middleware/multer.js');
  * /user/send-otp:
  *   post:
  *     summary: Send OTP to email
- *     tags: [User]
+ *     tags: [1. Authentication & Security]
  *     requestBody:
  *       required: true
  *       content:
@@ -31,7 +31,7 @@ route.post('/send-otp', userController.sendOTP);
  * /user/verify-otp:
  *   post:
  *     summary: Verify OTP
- *     tags: [User]
+ *     tags: [1. Authentication & Security]
  *     requestBody:
  *       required: true
  *       content:
@@ -55,7 +55,7 @@ route.post('/verify-otp', userController.verifyOTP);
  * /user/set-pin:
  *   post:
  *     summary: Set M-PIN
- *     tags: [User]
+ *     tags: [1. Authentication & Security]
  *     requestBody:
  *       required: true
  *       content:
@@ -80,7 +80,7 @@ route.post('/set-pin', userController.setPin);
  * /user/login-with-pin:
  *   post:
  *     summary: Login using Email and M-PIN
- *     tags: [User]
+ *     tags: [1. Authentication & Security]
  *     requestBody:
  *       required: true
  *       content:
@@ -103,7 +103,7 @@ route.post('/login-with-pin', userController.loginWithPin);
  * /user/account:
  *   delete:
  *     summary: Soft delete user account
- *     tags: [User]
+ *     tags: [1. Authentication & Security]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -117,7 +117,7 @@ route.delete('/account', userController.deleteAccount);
  * /user/forgot-pin:
  *   post:
  *     summary: Request OTP for Forgot PIN
- *     tags: [User]
+ *     tags: [1. Authentication & Security]
  *     requestBody:
  *       required: true
  *       content:
@@ -138,7 +138,7 @@ route.post('/forgot-pin', userController.forgotPin);
  * /user/upload-cv:
  *   post:
  *     summary: Upload and Parse User CV (PDF only, max 10MB)
- *     tags: [User]
+ *     tags: [2. Onboarding (Persistent Profile)]
  *     security:
  *       - bearerAuth: []
  *     parameters: []
@@ -185,8 +185,7 @@ route.post('/upload-cv', upload.single('cv'), userController.uploadCV);
  * /user/refresh-token:
  *   post:
  *     summary: Get new Access Token using Refresh Token
- *     tags:
- *       - User
+ *     tags: [1. Authentication & Security]
  *     requestBody:
  *       required: true
  *       content:

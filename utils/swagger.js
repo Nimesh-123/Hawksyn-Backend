@@ -24,7 +24,16 @@ const options = {
         },
       },
     },
+    tags: [
+      { name: "1. Authentication & Security", description: "Login, OTP, and Pin management" },
+      { name: "2. Onboarding (Persistent Profile)", description: "Cross-run profile setup and confirmation" },
+      { name: "3. Discovery (Explore Cases)", description: "Browse available cases and intents" },
+      { name: "4. Payments & Run Setup", description: "Payment processing and run initiation" },
+      { name: "5. Run Operations (Specific Actions)", description: "Actions specific to an active validation run" },
+      { name: "6. Admin", description: "Logs and system management" },
+    ],
   },
+
   apis: [
     path.join(__dirname, "../src/routes/**/*.js"),
     path.join(__dirname, "../src/controllers/**/*.js"),

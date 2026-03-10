@@ -6,24 +6,45 @@ const auth = require('../middleware/auth');
 // All routes require JWT authentication
 router.use(auth);
 
-/**
- * @swagger
- * tags:
- *   name: Cases
- *   description: Case and Intent management APIs
- */
 
 /**
  * @swagger
  * /cases:
  *   get:
- *     summary: Get all active cases
- *     tags: [Cases]
+ *     summary: Get all active cases with pagination and sorting
+ *     tags: [3. Discovery (Explore Cases)]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [minPrice, maxPrice, caseName, createdAt]
+ *           default: createdAt
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *         description: Sort order
  *     responses:
  *       200:
- *         description: List of active cases
+ *         description: Paginated list of active cases
  *         content:
  *           application/json:
  *             schema:
@@ -32,24 +53,45 @@ router.use(auth);
  *                 success:
  *                   type: boolean
  *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       caseId:
- *                         type: string
- *                       caseName:
- *                         type: string
- *                       caseCategory:
- *                         type: string
- *                       caseDescription:
- *                         type: string
- *                       defaultCurrency:
- *                         type: string
- *                       minPrice:
- *                         type: number
- *                       maxPrice:
- *                         type: number
+ *                   type: object
+ *                   properties:
+ *                     cases:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           caseId:
+ *                             type: string
+ *                           caseName:
+ *                             type: string
+ *                           caseCategory:
+ *                             type: string
+ *                           caseDescription:
+ *                             type: string
+ *                           defaultCurrency:
+ *                             type: string
+ *                           minPrice:
+ *                             type: number
+ *                           maxPrice:
+ *                             type: number
+ *                           logoSvg:
+ *                             type: string
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         currentPage:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                         totalCount:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         hasNextPage:
+ *                           type: boolean
+ *                         hasPrevPage:
+ *                           type: boolean
+
  *       401:
  *         description: Unauthorized
  *       500:
@@ -61,8 +103,8 @@ router.get('/', caseController.getCases);
  * @swagger
  * /cases/{caseId}/intents:
  *   get:
- *     summary: Get valid intents for a case
- *     tags: [Cases]
+ *     summary: Get valid intents for a case with pagination
+ *     tags: [3. Discovery (Explore Cases)]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -72,9 +114,21 @@ router.get('/', caseController.getCases);
  *         schema:
  *           type: string
  *         example: CASE_AI_JOB_RISK
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
  *     responses:
  *       200:
- *         description: List of valid intents
+ *         description: Paginated list of valid intents
  *         content:
  *           application/json:
  *             schema:
@@ -83,20 +137,43 @@ router.get('/', caseController.getCases);
  *                 success:
  *                   type: boolean
  *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       intentId:
- *                         type: string
- *                       intentName:
- *                         type: string
- *                       intentHorizonDays:
- *                         type: number
- *                       intentType:
- *                         type: string
- *                       isDefault:
- *                         type: boolean
+ *                   type: object
+ *                   properties:
+ *                     intents:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           intentId:
+ *                             type: string
+ *                           intentName:
+ *                             type: string
+ *                           intentHorizonDays:
+ *                             type: number
+ *                           intentType:
+ *                             type: string
+ *                           isDefault:
+ *                             type: boolean
+ *                           isAvailable:
+ *                             type: boolean
+ *                           availabilityLabel:
+ *                             type: string
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         currentPage:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                         totalCount:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         hasNextPage:
+ *                           type: boolean
+ *                         hasPrevPage:
+ *                           type: boolean
+
  *       404:
  *         description: No active intents found
  *       500:
@@ -109,7 +186,7 @@ router.get('/:caseId/intents', caseController.getCaseIntents);
  * /cases/{caseId}/intents/{intentId}/playbook:
  *   get:
  *     summary: Load active playbook for case + intent
- *     tags: [Cases]
+ *     tags: [3. Discovery (Explore Cases)]
  *     security:
  *       - bearerAuth: []
  *     parameters:
