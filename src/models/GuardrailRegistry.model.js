@@ -9,6 +9,11 @@ const GuardrailRegistrySchema = new mongoose.Schema({
     guardrailType: { type: String },
     ruleStatement: { type: String },
     enforcementMode: { type: String },
+    applicableSectionsJson: { type: [String], default: ['ALL'] },
+  applicableSignalsJson:  { type: [String], default: ['ALL'] },
+  penaltyPoints:          { type: Number, default: 0 },
+  violationAction:        { type: String, default: 'BLOCK' },
+
     isActive: { type: Boolean, default: true }
 }, {
     timestamps: true,

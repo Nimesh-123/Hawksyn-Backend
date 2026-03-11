@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const cvController = require('../controllers/cvController');
-const auth = require('../middleware/auth');
+const auth = require('../../middleware/auth');
 const upload = require('../../middleware/multer.js');
 
 // All routes require JWT authentication

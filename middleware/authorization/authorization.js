@@ -21,11 +21,6 @@ exports.authenticate = async (req, res, next) => {
             '/user/refresh-token'
         ];
 
-
-
-
-
-
         const fullPath = req.originalUrl || '';
         const apiPrefix = (process.env.API_COMMON_ROUTE || '/api/v1').trim();
 

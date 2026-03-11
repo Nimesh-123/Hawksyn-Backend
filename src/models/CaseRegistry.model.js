@@ -9,7 +9,7 @@ const CaseRegistrySchema = new mongoose.Schema({
     defaultCurrency: { type: String },
     minPrice: { type: Number },
     maxPrice: { type: Number },
-    cvRequiredDefault: { type: Boolean, default: true },
+    documentRequired: { type: Boolean, default: true },
     isActive: { type: Boolean, default: true },
     logoSvg: { type: String, default: null }
 }, {

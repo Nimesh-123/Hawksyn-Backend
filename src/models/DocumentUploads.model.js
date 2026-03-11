@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const userCvUploadsSchema = new mongoose.Schema(
+const documentUploadsSchema = new mongoose.Schema(
     {
         userId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -45,15 +45,15 @@ const userCvUploadsSchema = new mongoose.Schema(
     },
     {
         timestamps: true,
-        collection: 'user_cv_uploads'
+        collection: 'document_uploads'
     }
 );
 
 // Indexes
-userCvUploadsSchema.index(
+documentUploadsSchema.index(
     { userId: 1 },
     { unique: true, partialFilterExpression: { isActive: true } }
 );
-userCvUploadsSchema.index({ userId: 1, uploadedAt: -1 });
+documentUploadsSchema.index({ userId: 1, uploadedAt: -1 });
 
-module.exports = mongoose.model('UserCvUploads', userCvUploadsSchema);
+module.exports = mongoose.model('DocumentUploads', documentUploadsSchema);

@@ -310,13 +310,13 @@ exports.uploadCV = async (req, res) => {
         }
 
         // STEP A - deactivate previous CVs in the new collection
-        await db.UserCvUploads.updateMany(
+        await db.DocumentUploads.updateMany(
             { userId },
             { $set: { isActive: false } }
         );
 
         // STEP B - insert new CV record (Using the clean sanitized data for DB)
-        const newCv = await db.UserCvUploads.create({
+        const newCv = await db.DocumentUploads.create({
             userId,
             fileName: file.originalname,
             cvUrl: fileUrl,
@@ -342,7 +342,7 @@ exports.uploadCV = async (req, res) => {
 
         // 8. Production Hardening - Safety Check
 
-        const activeCount = await db.UserCvUploads.countDocuments({ userId, isActive: true });
+        const activeCount = await db.DocumentUploads.countDocuments({ userId, isActive: true });
         if (activeCount !== 1) {
             console.warn(`[CV Guard] User ${userId} has ${activeCount} active CVs after upload! Race condition suspected.`);
         }

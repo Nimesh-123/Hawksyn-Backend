@@ -170,7 +170,7 @@ exports.uploadRunCv = async (req, res) => {
         }
 
         // Deactivate previous CVs
-        await db.UserCvUploads.updateMany(
+        await db.DocumentUploads.updateMany(
             { userId },
             { $set: { isActive: false } }
         );
@@ -183,7 +183,7 @@ exports.uploadRunCv = async (req, res) => {
         }
 
         // Insert new CV record
-        const newCv = await db.UserCvUploads.create({
+        const newCv = await db.DocumentUploads.create({
             userId,
             fileName: file.originalname,
             cvUrl: fileUrl,
@@ -204,6 +204,23 @@ exports.uploadRunCv = async (req, res) => {
                     'cvSnapshot.source': 'REUPLOADED'
                 }
             }
+        );
+
+        // ✅ NEW: Also update master UserProfile so user can edit new data
+        await db.UserProfile.findOneAndUpdate(
+            { userId },
+            {
+                $set: {
+                    lastCvUploadId: newCv._id,
+                    cvUrl: newCv.cvUrl,
+                    originalParsedData: newCv.parsedCvData, // New baseline
+                    confirmedProfile: null,                 // Clear old confirmation
+                    isConfirmed: false,                    // Force re-confirmation
+                    'overrideMap.fieldsChanged': [],
+                    'overrideMap.changeDetails': []
+                }
+            },
+            { upsert: true }
         );
 
         return res.status(200).json({

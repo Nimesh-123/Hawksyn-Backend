@@ -12,7 +12,7 @@ require('dotenv').config();
 // ── Import all models ──
 const CaseRegistry = require('../models/CaseRegistry.model');
 const IntentTaxonomy = require('../models/IntentTaxonomy.model');
-const CvFileRules = require('../models/CvFileRules.model');
+const DocumentFileRules = require('../models/DocumentFileRules.model');
 const Playbooks = require('../models/Playbooks.model');
 const CaseIntentConfig = require('../models/CaseIntentConfig.model');
 const Questions = require('../models/Questions.model');
@@ -49,7 +49,7 @@ async function seedCaseRegistry() {
             defaultCurrency: 'INR',
             minPrice: 999,
             maxPrice: 2999,
-            cvRequiredDefault: true,
+            documentRequired: true,
             isActive: true,
             logoSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><path d="M50 5 L88 20 L88 52 C88 72 70 88 50 95 C30 88 12 72 12 52 L12 20 Z" fill="#1E1E2E" stroke="#FFA500" stroke-width="2.5"/><line x1="30" y1="40" x2="50" y2="40" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="50" y1="40" x2="70" y2="40" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="35" y1="55" x2="50" y2="55" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="50" y1="55" x2="65" y2="55" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="50" y1="40" x2="50" y2="55" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="35" y1="40" x2="35" y2="55" stroke="#FFA500" stroke-width="1.2" opacity="0.5"/><line x1="65" y1="40" x2="65" y2="55" stroke="#FFA500" stroke-width="1.2" opacity="0.5"/><circle cx="30" cy="40" r="3" fill="#FFA500"/><circle cx="50" cy="40" r="3.5" fill="#FFA500"/><circle cx="70" cy="40" r="3" fill="#FFA500"/><circle cx="35" cy="55" r="3" fill="#FFA500" opacity="0.8"/><circle cx="50" cy="55" r="3.5" fill="#FFA500"/><circle cx="65" cy="55" r="3" fill="#FFA500" opacity="0.8"/><circle cx="50" cy="47" r="5" fill="none" stroke="#FFA500" stroke-width="1.5" opacity="0.6"/><circle cx="50" cy="47" r="2.5" fill="#FFA500"/><circle cx="50" cy="70" r="5" fill="#FFA500" opacity="0.9"/><path d="M42 82 Q50 76 58 82" fill="none" stroke="#FFA500" stroke-width="2" stroke-linecap="round" opacity="0.9"/></svg>`
         }
@@ -95,16 +95,16 @@ async function seedIntentTaxonomy() {
 }
 
 // ════════════════════════════════════════════════════════════
-// STEP 3 — cv_file_rules
+// STEP 3 — document_file_rules
 // ════════════════════════════════════════════════════════════
-async function seedCvFileRules() {
-    await CvFileRules.deleteMany({});
-    await CvFileRules.insertMany([
+async function seedDocumentFileRules() {
+    await DocumentFileRules.deleteMany({});
+    await DocumentFileRules.insertMany([
         {
-            cvPolicyId: 'CVPOLICY_V1_STD',
-            policyName: 'Standard CV Policy v1',
+            documentPolicyId: 'DOCPOLICY_V1_STD',
+            policyName: 'Standard Document Policy v1',
             policyVersion: 'v1.0',
-            allowedFormats: 'PDF,DOCX',
+            allowedFormats: 'PDF|DOCX',
             rejectPasswordProtected: true,
             rejectScannedOrImage: true,
             parserEngine: 'TEXT_EXTRACT_V1',
@@ -112,11 +112,16 @@ async function seedCvFileRules() {
             promptTemplateId: 'PCR_CV_EXTRACT_V1',
             outputSchemaId: 'AEU_SCHEMA_V1',
             fieldMappingProfileId: 'FMP_STD_V1',
-            isActive: true
+            isActive: true,
+            notes: 'Standard policy for MVP'
         }
     ]);
+    console.log('✅ DocumentFileRules seeded');
 }
 
+// ════════════════════════════════════════════════════════════
+// STEP 4 — playbooks
+// ════════════════════════════════════════════════════════════
 // ════════════════════════════════════════════════════════════
 // STEP 4 — playbooks
 // ════════════════════════════════════════════════════════════
@@ -130,21 +135,15 @@ async function seedPlaybooks() {
             version: 'v1.0',
             caseId: 'CASE_AI_JOB_RISK',
             intentId: 'INT_STAY_12M_SAFE',
-            cvPolicyId: 'CVPOLICY_V1_STD',
-            cvMandatory: true,
-            allowedCvFormats: 'PDF,DOCX',
+            documentPolicyId: 'DOCPOLICY_V1_STD',
+            documentMandatory: true,
+            allowedDocumentFormats: 'PDF|DOCX',
             adversarialMirrorEnabled: false,
-            allowedLlms: ['GEMINI', 'OPENAI'],
+            allowedLlms: 'GEMINI|OPENAI',
             normalisationLlm: 'GEMINI',
-            mandatoryCvFields: [
-                'current_role',
-                'experience_years',
-                'skills',
-                'current_company',
-                'domain'
-            ],
+            mandatoryDocumentFields: 'current_role|experience_years|skills|current_company|domain',
             objectiveInputSchemaId: 'MOI_AI_STAY_V1',
-            outputContracts: ['INTEGRITY_PACK', 'VERDICT', 'FINANCIAL_RESILIENCE', 'MARKET_SIGNALS'],
+            outputContracts: 'INTEGRITY_PACK|VERDICT|FINANCIAL_RESILIENCE|MARKET_SIGNALS',
             layerGuardrails: {
                 L2: 'no_hallucination',
                 L3: 'citation_required',
@@ -157,7 +156,8 @@ async function seedPlaybooks() {
             },
             effectiveFrom: new Date('2026-01-01'),
             effectiveTo: null,
-            isActive: true
+            isActive: true,
+            notes: 'MVP playbook v1'
         }
     ]);
 }
@@ -837,16 +837,18 @@ async function seedEvaluationLibraryRegistry() {
     await EvaluationLibraryRegistry.insertMany([
         {
             elrId: 'ELR_0001',
+            elrName: 'AI Job Risk — Stay Safe 12M Library',
             caseId: 'CASE_AI_JOB_RISK',
             intentId: 'INT_STAY_12M_SAFE',
             playbookVersionId: 'PBV_000001',
+            documentPolicyId: 'DOCPOLICY_V1_STD',
             constraintSetId: 'CT_AI_STAY_V1',
             contradictionSetId: 'CONTR_AI_STAY_V1',
             coverageSetId: 'CRT_AI_STAY_V1',
             redFlagSetId: 'RFT_AI_STAY_V1',
             accuracyPolicyId: 'ASP_AI_V1',
             warningMappingId: 'WMT_AI_V1',
-            version: 'v1.0',
+            version:'v1.0',   
             isActive: true
         }
     ]);
@@ -858,7 +860,6 @@ async function seedEvaluationLibraryRegistry() {
 async function seedGuardrailRegistry() {
     await GuardrailRegistry.deleteMany({});
     await GuardrailRegistry.insertMany([
-
         {
             grRuleId: 'GR_0001',
             ruleName: 'No hallucination — only AEU evidence allowed',
@@ -868,9 +869,12 @@ async function seedGuardrailRegistry() {
             guardrailType: 'NO_INFERENCE',
             ruleStatement: 'You must only use data provided in the evidence packet. Do not introduce any fact, number, or claim not present in the AEUs.',
             enforcementMode: 'HARD_BLOCK',
+            applicableSectionsJson: ['ALL'],
+            applicableSignalsJson: ['ALL'],
+            penaltyPoints: 0,
+            violationAction: 'BLOCK',
             isActive: true
         },
-
         {
             grRuleId: 'GR_0002',
             ruleName: 'Citation required for all external claims',
@@ -880,9 +884,12 @@ async function seedGuardrailRegistry() {
             guardrailType: 'CITATION_REQUIRED',
             ruleStatement: 'Every claim derived from external signals must include the source reference ID from the evidence packet.',
             enforcementMode: 'HARD_BLOCK',
+            applicableSectionsJson: ['ALL'],
+            applicableSignalsJson: ['ALL'],
+            penaltyPoints: 0,
+            violationAction: 'BLOCK',
             isActive: true
         },
-
         {
             grRuleId: 'GR_0003',
             ruleName: 'Certainty cap by accuracy band',
@@ -892,9 +899,12 @@ async function seedGuardrailRegistry() {
             guardrailType: 'RECENCY_LIMIT',
             ruleStatement: 'Language certainty must not exceed the cap defined by the accuracy band: HIGH=85%, MEDIUM=70%, LOW=55%, VERY_LOW=40%.',
             enforcementMode: 'SOFT_WARN',
+            applicableSectionsJson: ['ALL'],
+            applicableSignalsJson: ['ALL'],
+            penaltyPoints: 0,
+            violationAction: 'BLOCK',
             isActive: true
         }
-
     ]);
 }
 
@@ -904,7 +914,6 @@ async function seedGuardrailRegistry() {
 async function seedDecisionAssuranceSections() {
     await DecisionAssuranceSections.deleteMany({});
     await DecisionAssuranceSections.insertMany([
-
         {
             sectionId: 'SEC_001',
             sectionName: 'Profile Risk Summary',
@@ -916,9 +925,9 @@ async function seedDecisionAssuranceSections() {
             certaintyCapPercent: 85,
             minAccuracyRequired: 0,
             fallbackPolicy: 'DEGRADE',
+            outputSchemaReference: null,
             isActive: true
         },
-
         {
             sectionId: 'SEC_002',
             sectionName: 'Financial Resilience Assessment',
@@ -931,9 +940,9 @@ async function seedDecisionAssuranceSections() {
             certaintyCapPercent: 85,
             minAccuracyRequired: 0,
             fallbackPolicy: 'DEGRADE',
+            outputSchemaReference: null,
             isActive: true
         },
-
         {
             sectionId: 'SEC_003',
             sectionName: 'Market Signals',
@@ -946,9 +955,9 @@ async function seedDecisionAssuranceSections() {
             certaintyCapPercent: 70,
             minAccuracyRequired: 0,
             fallbackPolicy: 'DEGRADE',
+            outputSchemaReference: null,
             isActive: true
         },
-
         {
             sectionId: 'SEC_004',
             sectionName: 'Verdict',
@@ -960,9 +969,9 @@ async function seedDecisionAssuranceSections() {
             certaintyCapPercent: 85,
             minAccuracyRequired: 0,
             fallbackPolicy: 'ESCALATE',
+            outputSchemaReference: null,
             isActive: true
         }
-
     ]);
 }
 
@@ -972,7 +981,6 @@ async function seedDecisionAssuranceSections() {
 async function seedPromptConfigRegistry() {
     await PromptConfigRegistry.deleteMany({});
     await PromptConfigRegistry.insertMany([
-
         {
             promptId: 'PCR_SEC001_V1',
             sectionId: 'SEC_001',
@@ -994,9 +1002,9 @@ async function seedPromptConfigRegistry() {
             },
             certaintyCapPercent: 85,
             retryPolicy: 'RETRY_ON_SCHEMA_FAIL',
+            outputSchemaReference: null,
             isActive: true
         },
-
         {
             promptId: 'PCR_SEC004_V1',
             sectionId: 'SEC_004',
@@ -1017,10 +1025,9 @@ async function seedPromptConfigRegistry() {
             },
             certaintyCapPercent: 85,
             retryPolicy: 'RETRY_ON_SCHEMA_FAIL',
+            outputSchemaReference: null,
             isActive: true
         },
-
-        // CV Extraction prompt
         {
             promptId: 'PCR_CV_EXTRACT_V1',
             sectionId: 'CV_NORMALISATION',
@@ -1036,12 +1043,11 @@ async function seedPromptConfigRegistry() {
             evidencePlaceholdersJson: { CV_TEXT: 'raw_cv_text' },
             certaintyCapPercent: 100,
             retryPolicy: 'RETRY_ON_SCHEMA_FAIL',
+            outputSchemaReference: null,
             isActive: true
         }
-
     ]);
 }
-
 
 // ════════════════════════════════════════════════════════════
 // STEP 19 — dependency_rules
@@ -1395,7 +1401,7 @@ async function runSeed() {
         const steps = [
             { name: 'case_registry', fn: seedCaseRegistry },
             { name: 'intent_taxonomy', fn: seedIntentTaxonomy },
-            { name: 'cv_file_rules', fn: seedCvFileRules },
+            { name: 'document_file_rules', fn: seedDocumentFileRules },
             { name: 'playbooks', fn: seedPlaybooks },
             { name: 'case_intent_config', fn: seedCaseIntentConfig },
             { name: 'questions', fn: seedQuestions },

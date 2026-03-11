@@ -15,6 +15,7 @@ const RasSchema = new mongoose.Schema({
             'OBJECTIVE_INPUTS_CAPTURED',
             'CONSTRAINT_SCORES',
             'RED_FLAGS_TRIGGERED',
+            'INTEGRITY_PACK',
             'REPORT_GENERATED',
             'EXPERT_ASSIGNED'
         ]

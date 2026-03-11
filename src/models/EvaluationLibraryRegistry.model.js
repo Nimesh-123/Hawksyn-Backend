@@ -2,9 +2,11 @@ const mongoose = require('mongoose');
 
 const EvaluationLibraryRegistrySchema = new mongoose.Schema({
     elrId: { type: String, required: true, unique: true },
+    elrName: { type: String },
     caseId: { type: String, required: true },
     intentId: { type: String, required: true },
     playbookVersionId: { type: String, required: true },
+    documentPolicyId: { type: String },
     constraintSetId: { type: String },
     contradictionSetId: { type: String },
     coverageSetId: { type: String },

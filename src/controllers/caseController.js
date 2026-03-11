@@ -180,11 +180,11 @@ exports.getPlaybook = async (req, res) => {
             data: {
                 playbookVersionId: playbook.playbookVersionId,
                 playbookName: playbook.playbookName,
-                cvMandatory: playbook.cvMandatory,
-                allowedCvFormats: playbook.allowedCvFormats,
+                documentMandatory: playbook.documentMandatory,
+                allowedDocumentFormats: playbook.allowedDocumentFormats,
                 adversarialMirrorEnabled: playbook.adversarialMirrorEnabled,
                 allowedLlms: playbook.allowedLlms,
-                mandatoryCvFields: playbook.mandatoryCvFields,
+                mandatoryDocumentFields: playbook.mandatoryDocumentFields,
                 layerGuardrails: playbook.layerGuardrails
             }
         });

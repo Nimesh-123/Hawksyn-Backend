@@ -15,6 +15,7 @@ const PromptConfigRegistrySchema = new mongoose.Schema({
     evidencePlaceholdersJson: { type: mongoose.Schema.Types.Mixed },
     certaintyCapPercent: { type: Number },
     retryPolicy: { type: String },
+    outputSchemaReference: { type: String, default: null },
     isActive: { type: Boolean, default: true }
 }, {
     timestamps: true,

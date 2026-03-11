@@ -150,6 +150,33 @@ exports.updateUserProfile = async (req, res) => {
         userProfile.markModified('overrideMap');
         await userProfile.save();
 
+        // ✅ NEW: Sync with active Run if exists
+        const activeRun = await db.Runs.findOne({ userId: req.user.id, status: 'IN_PROGRESS' });
+        if (activeRun) {
+            await db.Runs.updateOne(
+                { runId: activeRun.runId },
+                { $set: { 'cvSnapshot.parsedData': mergedProfile } }
+            );
+
+            // ✅ NEW: Create/Update RAS artifact for Integrity Engine (Step 4)
+            // Points #2 and #4.3 of manual require PROFILE_CONFIRMED in evaluation dataset
+            const rasId = `RAS_PROFILE_${activeRun.runId}`;
+            await db.Ras.findOneAndUpdate(
+                { rasId },
+                {
+                    $set: {
+                        runId: activeRun.runId,
+                        stepNo: 2,
+                        artifactType: 'PROFILE_CONFIRMED',
+                        artifactVersion: 1,
+                        artifactJson: mergedProfile,
+                        status: 'FINAL'
+                    }
+                },
+                { upsert: true }
+            );
+        }
+
         return res.status(200).json({
             success: true,
             data: { isConfirmed: true, confirmedAt: userProfile.confirmedAt, message: "Profile confirmed successfully." }

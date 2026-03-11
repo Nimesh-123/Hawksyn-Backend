@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const caseController = require('../controllers/caseController');
-const auth = require('../middleware/auth');
+const auth = require('../../middleware/auth');
 
 // All routes require JWT authentication
 router.use(auth);
@@ -219,20 +219,18 @@ router.get('/:caseId/intents', caseController.getCaseIntents);
  *                       type: string
  *                     playbookName:
  *                       type: string
- *                     cvMandatory:
+ *                     documentMandatory:
  *                       type: boolean
- *                     allowedCvFormats:
+ *                     allowedDocumentFormats:
  *                       type: string
  *                     adversarialMirrorEnabled:
  *                       type: boolean
  *                     allowedLlms:
- *                       type: array
- *                       items:
- *                         type: string
- *                     mandatoryCvFields:
- *                       type: array
- *                       items:
- *                         type: string
+ *                       type: string
+ *                     mandatoryDocumentFields:
+ *                       type: string
+ *                     outputContracts:
+ *                       type: string
  *                     layerGuardrails:
  *                       type: object
  *       404:

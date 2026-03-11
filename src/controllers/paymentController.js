@@ -75,6 +75,22 @@ exports.initiatePayment = async (req, res) => {
             return res.status(400).json({ success: false, message: 'This intent is not available' });
         }
 
+        // Check for existing COMPLETED payment (Avoid double payment)
+        const completedPayment = await Payments.findOne({ userId, caseId, intentId, status: 'COMPLETED' });
+        if (completedPayment) {
+            return res.status(200).json({
+                success: true,
+                data: {
+                    paymentId: completedPayment.paymentId,
+                    purchaseId: completedPayment.purchaseId,
+                    status: "COMPLETED",
+                    runId: completedPayment.runId,
+                    isPaid: true,
+                    message: "You have already completed the payment for this case and intent."
+                }
+            });
+        }
+
         // Check for existing PENDING payment
         const existingPayment = await Payments.findOne({ userId, caseId, intentId, status: 'PENDING' });
         if (existingPayment) {
@@ -226,10 +242,60 @@ exports.verifyPayment = async (req, res) => {
                 intentId,
                 playbookVersionId: config.playbookVersionId,
                 status: "IN_PROGRESS",
-                cvRequired: playbook.cvMandatory,
+                cvRequired: playbook.documentMandatory,
                 message: "Payment verified. Run created successfully."
             }
         });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * API 4 — GET /api/payment/status
+ * Purpose: Check if user has already paid for a specific case/intent before showing payment UI.
+ */
+exports.getPaymentStatus = async (req, res) => {
+    try {
+        const { caseId, intentId } = req.query;
+        const userId = req.user.id;
+
+        if (!caseId || !intentId) {
+            return res.status(400).json({ success: false, message: 'caseId and intentId are required' });
+        }
+
+        // 1. Check for completed payment
+        const completedPayment = await Payments.findOne({ userId, caseId, intentId, status: 'COMPLETED' });
+
+        // 2. Check for active run
+        const activeRun = await Runs.findOne({ userId, caseId, intentId, status: 'IN_PROGRESS' });
+
+        if (completedPayment || activeRun) {
+            return res.status(200).json({
+                success: true,
+                data: {
+                    isPaid: true,
+                    hasActiveRun: !!activeRun,
+                    runId: activeRun ? activeRun.runId : (completedPayment ? completedPayment.runId : null),
+                    status: activeRun ? "RESUME_RUN" : "PAYMENT_DONE_RUN_NOT_STARTED"
+                }
+            });
+        }
+
+        // 3. Check for pending payment
+        const pendingPayment = await Payments.findOne({ userId, caseId, intentId, status: 'PENDING' });
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                isPaid: false,
+                hasActiveRun: false,
+                hasPending: !!pendingPayment,
+                paymentId: pendingPayment ? pendingPayment.paymentId : null,
+                status: pendingPayment ? "PAYMENT_PENDING" : "NOT_PAID"
+            }
+        });
+
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }

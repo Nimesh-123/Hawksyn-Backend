@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/paymentController');
-const auth = require('../middleware/auth');
+const auth = require('../../middleware/auth');
 
 // All routes require JWT authentication
 router.use(auth);
@@ -31,6 +31,31 @@ router.use(auth);
  *         description: Case not found
  */
 router.get('/product', paymentController.getProduct);
+
+/**
+ * @swagger
+ * /payment/status:
+ *   get:
+ *     summary: Check payment and run status for a case/intent
+ *     tags: [4. Payments & Run Setup]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: intentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Status details
+ */
+router.get('/status', paymentController.getPaymentStatus);
 
 /**
  * @swagger

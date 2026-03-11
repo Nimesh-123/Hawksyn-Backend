@@ -11,7 +11,7 @@ const UserProfileSchema = new Schema({
 
     lastCvUploadId: {
         type: Schema.Types.ObjectId,
-        ref: 'UserCvUploads',
+        ref: 'DocumentUploads',
         default: null
     },
 

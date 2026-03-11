@@ -20,7 +20,7 @@ const RunsSchema = new mongoose.Schema({
         default: 'IN_PROGRESS'
     },
     cvSnapshot: {
-        cvUploadId: { type: mongoose.Schema.Types.ObjectId, ref: 'UserCvUploads', default: null },
+        cvUploadId: { type: mongoose.Schema.Types.ObjectId, ref: 'DocumentUploads', default: null },
         cvUrl: { type: String, default: null },
         parsedData: { type: mongoose.Schema.Types.Mixed, default: null },
         attachedAt: { type: Date, default: null },

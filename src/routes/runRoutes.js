@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const questionsController = require('../controllers/questionsController');
 const cvController = require('../controllers/cvController');
-const auth = require('../middleware/auth');
+const integrityController = require('../controllers/integrityController');
+const auth = require('../../middleware/auth');
 const upload = require('../../middleware/multer.js');
 
 // All routes require JWT authentication
@@ -151,5 +152,30 @@ router.post('/:runId/questions/answers', questionsController.saveAnswers);
  *         description: Current progress status
  */
 router.get('/:runId/questions/status', questionsController.getQuestionsStatus);
+
+
+/**
+ * --- Step 4: Integrity Engine ---
+ */
+
+/**
+ * @swagger
+ * /runs/{runId}/integrity/run:
+ *   post:
+ *     summary: Run the full integrity engine for this run
+ *     tags: [5. Run Operations (Specific Actions)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Integrity audit completed successfully
+ */
+router.post('/:runId/integrity/run', integrityController.runIntegrityEngine);
 
 module.exports = router;

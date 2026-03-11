@@ -11,9 +11,12 @@ const DecisionAssuranceSectionsSchema = new mongoose.Schema({
     certaintyCapPercent: { type: Number },
     minAccuracyRequired: { type: Number },
     fallbackPolicy: { type: String },
+      outputSchemaReference: { type: String, default: null },
+
     isActive: { type: Boolean, default: true },
     requiredInternalAnchorsJson: [{ type: String }],
-    requiredExternalAnchorsJson: [{ type: String }]
+    requiredExternalAnchorsJson: [{ type: String }],
+    
 }, {
     timestamps: true,
     collection: 'decision_assurance_sections'

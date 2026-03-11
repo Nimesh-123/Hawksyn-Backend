@@ -11,7 +11,7 @@ const { db } = require('../src/models/index.model');
 async function getUserActiveCv(userId) {
     try {
         // 1. Check new collection for active CV
-        const activeCv = await db.UserCvUploads.findOne({
+        const activeCv = await db.DocumentUploads.findOne({
             userId,
             isActive: true
         })

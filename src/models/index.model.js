@@ -4,12 +4,12 @@ db.Admin = require('./admin.model.js');
 db.User = require('./user.model.js');
 db.OTP = require('./otp.model.js');
 db.AuditLog = require('./auditLog.model.js');
-db.UserCvUploads = require('./UserCvUploads.model');
+db.DocumentUploads = require('./DocumentUploads.model');
 
 // Hawksyn — Decision Assurance Models
 db.CaseRegistry = require('./CaseRegistry.model');
 db.IntentTaxonomy = require('./IntentTaxonomy.model');
-db.CvFileRules = require('./CvFileRules.model');
+db.DocumentFileRules = require('./DocumentFileRules.model');
 db.Playbooks = require('./Playbooks.model');
 db.CaseIntentConfig = require('./CaseIntentConfig.model');
 db.Questions = require('./Questions.model');
