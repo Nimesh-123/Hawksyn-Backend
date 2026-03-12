@@ -7,13 +7,24 @@ const textFormat = format.printf(({ timestamp, level, message, stack }) => {
   // Header: [Time] [LEVEL] [ID] [User]
   const header = `[${timestamp}] [${level.toUpperCase()}] [${m.requestId || 'system'}] [User: ${m.userId || 'guest'}]`;
   
-  // Body: Method Route Status (Time)
+  // Body logic
   let body = "";
-  if (m.method) body += ` ${m.method} ${m.route} -> ${m.statusCode} (${m.responseTime})`;
-  else if (m.errorMessage) body += ` ERROR: ${m.errorMessage}`;
-  else body += ` ${m.msg || JSON.stringify(m)}`;
+  if (m.method) {
+    body += ` ${m.method} ${m.route} -> ${m.statusCode}`;
+    if (m.responseTime) body += ` (${m.responseTime})`;
+    
+    // Include failure details if present
+    const reason = m.failureReason || m.errorMessage;
+    if (reason) body += ` [REASON: ${reason}]`;
+  } 
+  else if (m.errorMessage) {
+    body += ` ERROR: ${m.errorMessage}`;
+  } 
+  else {
+    body += ` ${m.msg || JSON.stringify(m)}`;
+  }
 
-  // Stack trace for errors
+  // Stack trace for errors (only if present and significant)
   const errorDetails = stack || m.stack ? `\nSTACK: ${stack || m.stack}` : "";
 
   return `${header}${body}${errorDetails}`;
