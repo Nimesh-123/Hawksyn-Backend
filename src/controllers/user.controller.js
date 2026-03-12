@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const RESPONSE = require('../../utils/response.js');
 const { generateOTP } = require('../../utils/function.js');
 const { createAuditLog } = require('../../utils/auditLogger.js');
-const { uploadFile } = require('../../utils/s3');
+const { uploadFile, deleteFile } = require('../../utils/s3');
 const { smartCVParser } = require('../../utils/aiParser');
 const { get_message } = require('../../utils/message.js');
 const { getUserActiveCv } = require('../../utils/cvHelper.js');
@@ -216,17 +216,52 @@ exports.loginWithPin = async (req, res) => {
 
 exports.deleteAccount = async (req, res) => {
     try {
-        const user = await db.User.findById(req.user.id);
+        const userId = req.user.id;
+        const { hardDelete } = req.query;
+
+        const user = await db.User.findById(userId);
         if (!user) return RESPONSE.error(res, 404, 3001);
 
-        user.isDeleted = true;
-        user.deletedAt = new Date();
-        await user.save();
+        if (hardDelete === 'true') {
+            console.log(`[Account Delete] Starting PERMANENT HARD DELETE for User ${userId}...`);
 
-        await createAuditLog(req, 'ACCOUNT_DELETED', user._id, { email: user.email });
+            // 1. Get all runIds for this user to cascade to RAS
+            const runs = await db.Runs.find({ userId }).select('runId');
+            const runIds = runs.map(r => r.runId);
 
-        return RESPONSE.success(res, 200, 2002); // Success message for deletion
+            // 2. Cascade Delete Decision Assurance Data
+            if (runIds.length > 0) {
+                await db.Ras.deleteMany({ runId: { $in: runIds } });
+            }
+
+            // 3. Delete User Assets & Config
+            await db.Runs.deleteMany({ userId });
+            await db.Payments.deleteMany({ userId });
+            await db.UserProfile.deleteMany({ userId });
+            await db.DocumentUploads.deleteMany({ userId });
+
+            
+            // 4. Clean up Authentication & Logs
+            await db.OTP.deleteMany({ email: user.email });
+            await db.AuditLog.deleteMany({ userId });
+
+            // 5. Finally delete the core User record
+            await db.User.findByIdAndDelete(userId);
+
+            console.log(`[Account Delete] Hard delete successful for user: ${userId}`);
+            return RESPONSE.success(res, 200, 2002, { message: "Your account and all associated data have been permanently removed from our systems." });
+        } else {
+            // Soft Delete logic (Default)
+            user.isDeleted = true;
+            user.deletedAt = new Date();
+            await user.save();
+
+            await createAuditLog(req, 'ACCOUNT_DELETED', user._id, { email: user.email });
+
+            return RESPONSE.success(res, 200, 2002);
+        }
     } catch (err) {
+        console.error(`[Account Delete Error] User ${req.user.id}: ${err.message}`);
         return RESPONSE.error(res, 500, 9999, err.message);
     }
 };
@@ -282,6 +317,14 @@ exports.uploadCV = async (req, res) => {
 
         try {
             extractedData = await smartCVParser(file.buffer, file.originalname, file.mimetype);
+            
+            // ✅ NEW: Reject if not a CV
+            if (extractedData && extractedData.isCv === false) {
+                console.warn(`[CV Guard] User ${req.user.id} uploaded a non-CV document. Deleting from S3...`);
+                await deleteFile(fileName);
+                return RESPONSE.error(res, 400, 1002, "The uploaded document does not appear to be a valid Resume/CV. Please upload a relevant professional document.");
+            }
+
             if (extractedData) {
                 // Post-processing Sanitizer to fill 7 common missing gaps
                 try {

@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════
-// HAWKSYN — MASTER SEED SCRIPT
+// HAWKSYN — MASTER SEED SCRIPT (FINAL — Excel Aligned)
 // Seeds all config/master data for case: CASE_AI_JOB_RISK
 // Intent: INT_STAY_12M_SAFE
 //
@@ -34,6 +34,7 @@ const DataPatternKeyTaxonomy = require('../models/DataPatternKeyTaxonomy.model')
 const RiskAuditorRegistry = require('../models/RiskAuditorRegistry.model');
 const MandatoryObjectiveInput = require('../models/MandatoryObjectiveInput.model');
 const MoiQuestionMapping = require('../models/MoiQuestionMapping.model');
+
 // ════════════════════════════════════════════════════════════
 // STEP 1 — case_registry
 // ════════════════════════════════════════════════════════════
@@ -80,11 +81,12 @@ async function seedIntentTaxonomy() {
             intentType: 'SWITCH',
             primaryOutcome: 'TRANSITION_PLAN',
             defaultVerdictMode: 'PROCEED_PAUSE_ABORT',
-            isActive: false // Not live yet
+            isActive: false
         },
         {
             intentId: 'INT_UPSKILL_AI_PROOF',
             intentName: 'Upskill to AI-proof myself in next 3 months',
+            intentDescription: 'Upskill strategy to AI-proof current skillset in 3 months.',
             intentHorizonDays: 90,
             intentType: 'UPSKILL',
             primaryOutcome: 'SKILL_GAP_PLAN',
@@ -116,12 +118,8 @@ async function seedDocumentFileRules() {
             notes: 'Standard policy for MVP'
         }
     ]);
-    console.log('✅ DocumentFileRules seeded');
 }
 
-// ════════════════════════════════════════════════════════════
-// STEP 4 — playbooks
-// ════════════════════════════════════════════════════════════
 // ════════════════════════════════════════════════════════════
 // STEP 4 — playbooks
 // ════════════════════════════════════════════════════════════
@@ -174,6 +172,10 @@ async function seedCaseIntentConfig() {
             playbookVersionId: 'PBV_000001',
             isDefault: true,
             displayOrder: 1,
+            minAgeYears: null,
+            maxAgeYears: null,
+            minExperienceYears: null,
+            maxExperienceYears: null,
             effectiveFrom: new Date('2026-01-01'),
             effectiveTo: null,
             isActive: true,
@@ -185,9 +187,13 @@ async function seedCaseIntentConfig() {
             playbookVersionId: 'PBV_000002',
             isDefault: false,
             displayOrder: 2,
+            minAgeYears: null,
+            maxAgeYears: null,
+            minExperienceYears: null,
+            maxExperienceYears: null,
             effectiveFrom: new Date('2026-01-01'),
             effectiveTo: null,
-            isActive: false,   // Not yet live
+            isActive: false,
             notes: 'Switch role intent — Phase 2'
         },
         {
@@ -196,23 +202,24 @@ async function seedCaseIntentConfig() {
             playbookVersionId: 'PBV_000003',
             isDefault: false,
             displayOrder: 3,
+            minAgeYears: null,
+            maxAgeYears: null,
+            minExperienceYears: null,
+            maxExperienceYears: null,
             effectiveFrom: new Date('2026-01-01'),
             effectiveTo: null,
-            isActive: false,   // Not yet live
+            isActive: false,
             notes: 'Upskill intent — Phase 3'
         }
-
     ]);
 }
 
 // ════════════════════════════════════════════════════════════
-// STEP 6 — questions (with scoring rules embedded)
+// STEP 6 — questions
 // ════════════════════════════════════════════════════════════
 async function seedQuestions() {
     await Questions.deleteMany({});
     await Questions.insertMany([
-
-        // Q1 — AI Role Exposure
         {
             questionId: 'Q_AI_ROLE_EXPOSURE_V1',
             questionText: 'How much of your daily work can be automated by AI tools today?',
@@ -229,7 +236,6 @@ async function seedQuestions() {
             intentScope: 'ALL',
             isMandatory: true,
             isActive: true,
-            // Scoring rules embedded
             scoringRuleId: 'SR_AI_ROLE_EXPOSURE_V1',
             scoringType: 'MCQ_MAP',
             normalizationMin: 0,
@@ -241,17 +247,19 @@ async function seedQuestions() {
                 { optionScore: 2, normalizedScore: 60 },
                 { optionScore: 3, normalizedScore: 25 },
                 { optionScore: 4, normalizedScore: 5 }
-            ]
+            ],
+            validationJson: null,
+            stepApplicability: null,
+            profileGateJson: null,
+            triggerRuleJson: null,
+            outputTagsJson: null
         },
-
-        // Q2 — Financial Runway
         {
             questionId: 'Q_FINANCIAL_RUNWAY_V1',
             questionText: 'How many months of living expenses can you cover without income?',
             questionType: 'NUMERIC',
             scoreMode: 'DIRECT',
             defaultWeight: 0.25,
-            validationJson: { min: 0, max: 60, unit: 'months' },
             caseScope: 'CASE_AI_JOB_RISK',
             intentScope: 'INT_STAY_12M_SAFE',
             isMandatory: true,
@@ -264,11 +272,20 @@ async function seedQuestions() {
             numericMin: 0,
             numericMax: 60,
             outOfRangePolicy: 'CLAMP',
-            roundingRule: 'ROUND'
-            // Score = (months / 36) * 100, capped at 100
+            roundingRule: 'ROUND',
+            validationJson: { min: 0, max: 60, unit: 'months' },
+            scoringMapJson: [
+                { minVal: 0,  maxVal: 3,  normalizedScore: 5  },   // CRITICAL — less than 3 months
+                { minVal: 4,  maxVal: 6,  normalizedScore: 25 },   // FRAGILE  — 4 to 6 months
+                { minVal: 7,  maxVal: 12, normalizedScore: 55 },   // MODERATE — 7 to 12 months
+                { minVal: 13, maxVal: 24, normalizedScore: 80 },   // STRONG   — 13 to 24 months
+                { minVal: 25, maxVal: 60, normalizedScore: 100 }   // VERY STRONG — 25+ months
+            ],
+            stepApplicability: null,
+            profileGateJson: null,
+            triggerRuleJson: null,
+            outputTagsJson: null
         },
-
-        // Q3 — Role Uniqueness
         {
             questionId: 'Q_ROLE_UNIQUENESS_V1',
             questionText: 'How unique is your role in your current company?',
@@ -294,10 +311,13 @@ async function seedQuestions() {
                 { optionScore: 1, normalizedScore: 20 },
                 { optionScore: 2, normalizedScore: 55 },
                 { optionScore: 3, normalizedScore: 90 }
-            ]
+            ],
+            validationJson: null,
+            stepApplicability: null,
+            profileGateJson: null,
+            triggerRuleJson: null,
+            outputTagsJson: null
         },
-
-        // Q4 — Company AI Policy
         {
             questionId: 'Q_COMPANY_AI_POLICY_V1',
             questionText: 'What is your company\'s current stance on AI adoption?',
@@ -325,16 +345,19 @@ async function seedQuestions() {
                 { optionScore: 2, normalizedScore: 65 },
                 { optionScore: 3, normalizedScore: 30 },
                 { optionScore: 4, normalizedScore: 5 }
-            ]
+            ],
+            validationJson: null,
+            stepApplicability: null,
+            profileGateJson: null,
+            triggerRuleJson: null,
+            outputTagsJson: null
         }
-
     ]);
 }
 
 // ════════════════════════════════════════════════════════════
-// STEP 7 — input_schemas (MOI)
+// STEP 7 — mandatory_objective_inputs
 // ════════════════════════════════════════════════════════════
-
 async function seedMandatoryObjectiveInputs() {
     await MandatoryObjectiveInput.deleteMany({});
     await MandatoryObjectiveInput.insertMany([
@@ -352,7 +375,7 @@ async function seedMandatoryObjectiveInputs() {
             moiId: 'MOI_AI_SWITCH_V1',
             moiName: 'AI Job Risk – Switch – Mandatory Inputs',
             caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'INT_SWITCH_ROLE_6M',
+            intentId: 'INT_SWITCH_ROLE_SAFE',          // ✅ FIXED: was INT_SWITCH_ROLE_6M
             playbookVersionId: 'PBV_000002',
             version: 'v1.0',
             description: 'Mandatory inputs for transition evaluation',
@@ -362,7 +385,7 @@ async function seedMandatoryObjectiveInputs() {
             moiId: 'MOI_AI_UPSKILL_V1',
             moiName: 'AI Job Risk – Upskill – Mandatory Inputs',
             caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'INT_UPSKILL_90D',
+            intentId: 'INT_UPSKILL_AI_PROOF',          // ✅ FIXED: was INT_UPSKILL_90D
             playbookVersionId: 'PBV_000003',
             version: 'v1.0',
             description: 'Mandatory inputs for skill improvement plan',
@@ -391,6 +414,9 @@ async function seedMandatoryObjectiveInputs() {
     ]);
 }
 
+// ════════════════════════════════════════════════════════════
+// STEP 7b — moi_question_mapping
+// ════════════════════════════════════════════════════════════
 async function seedMoiQuestionMapping() {
     await MoiQuestionMapping.deleteMany({});
     await MoiQuestionMapping.insertMany([
@@ -457,7 +483,7 @@ async function seedMoiQuestionMapping() {
             weightOverride: null,
             accuracyImpactFlag: 'HIGH',
             displayOrder: 1,
-            dependencyRuleId: 'DRR_000001',
+            dependencyRuleId: null,               // ✅ FIXED: was DRR_000001 (does not exist)
             isActive: true
         },
         {
@@ -473,17 +499,17 @@ async function seedMoiQuestionMapping() {
         }
     ]);
 }
+
 // ════════════════════════════════════════════════════════════
-// STEP 8 — constraints (with thresholds embedded)
+// STEP 8 — constraints (flat threshold fields)
 // ════════════════════════════════════════════════════════════
 async function seedConstraints() {
     await Constraints.deleteMany({});
     await Constraints.insertMany([
-
-        // C1 — Role Automation Exposure
         {
             constraintId: 'CONS_AI_001',
             constraintSetId: 'CT_AI_STAY_V1',
+            thresholdSetId: 'CT_AI_STAY_V1',
             caseId: 'CASE_AI_JOB_RISK',
             intentId: 'INT_STAY_12M_SAFE',
             constraintName: 'Role Automation Exposure',
@@ -491,19 +517,16 @@ async function seedConstraints() {
             scoringModel: 'WEIGHTED_AVG',
             isBlockingConstraint: false,
             displayOrder: 1,
-            thresholds: [
-                { bandName: 'STRONG', minScore: 80, maxScore: 100, bandPriority: 1, bandColorCode: '#2E7D32', isTerminalFailure: false },
-                { bandName: 'MODERATE', minScore: 60, maxScore: 79, bandPriority: 2, bandColorCode: '#F57F17', isTerminalFailure: false },
-                { bandName: 'FRAGILE', minScore: 40, maxScore: 59, bandPriority: 3, bandColorCode: '#E65100', isTerminalFailure: false },
-                { bandName: 'CRITICAL', minScore: 0, maxScore: 39, bandPriority: 4, bandColorCode: '#C62828', isTerminalFailure: true }
-            ],
+            strongMin: 80, strongMax: 100, strongColor: '#2E7D32', strongIsTerminal: false, strongPriority: 1,
+            moderateMin: 60, moderateMax: 79, moderateColor: '#F57F17', moderateIsTerminal: false, moderatePriority: 2,
+            fragileMin: 40, fragileMax: 59, fragileColor: '#E65100', fragileIsTerminal: false, fragilePriority: 3,
+            criticalMin: 0, criticalMax: 39, criticalColor: '#C62828', criticalIsTerminal: true, criticalPriority: 4,
             isActive: true
         },
-
-        // C2 — Financial Resilience
         {
             constraintId: 'CONS_AI_002',
             constraintSetId: 'CT_AI_STAY_V1',
+            thresholdSetId: 'CT_AI_STAY_V1',
             caseId: 'CASE_AI_JOB_RISK',
             intentId: 'INT_STAY_12M_SAFE',
             constraintName: 'Financial Resilience',
@@ -511,19 +534,16 @@ async function seedConstraints() {
             scoringModel: 'WEIGHTED_AVG',
             isBlockingConstraint: false,
             displayOrder: 2,
-            thresholds: [
-                { bandName: 'STRONG', minScore: 80, maxScore: 100, bandPriority: 1, bandColorCode: '#2E7D32', isTerminalFailure: false },
-                { bandName: 'MODERATE', minScore: 60, maxScore: 79, bandPriority: 2, bandColorCode: '#F57F17', isTerminalFailure: false },
-                { bandName: 'FRAGILE', minScore: 40, maxScore: 59, bandPriority: 3, bandColorCode: '#E65100', isTerminalFailure: false },
-                { bandName: 'CRITICAL', minScore: 0, maxScore: 39, bandPriority: 4, bandColorCode: '#C62828', isTerminalFailure: true }
-            ],
+            strongMin: 80, strongMax: 100, strongColor: '#2E7D32', strongIsTerminal: false, strongPriority: 1,
+            moderateMin: 60, moderateMax: 79, moderateColor: '#F57F17', moderateIsTerminal: false, moderatePriority: 2,
+            fragileMin: 40, fragileMax: 59, fragileColor: '#E65100', fragileIsTerminal: false, fragilePriority: 3,
+            criticalMin: 0, criticalMax: 39, criticalColor: '#C62828', criticalIsTerminal: true, criticalPriority: 4,
             isActive: true
         },
-
-        // C3 — Role Uniqueness
         {
             constraintId: 'CONS_AI_003',
             constraintSetId: 'CT_AI_STAY_V1',
+            thresholdSetId: 'CT_AI_STAY_V1',
             caseId: 'CASE_AI_JOB_RISK',
             intentId: 'INT_STAY_12M_SAFE',
             constraintName: 'Role Uniqueness & Replaceability',
@@ -531,19 +551,16 @@ async function seedConstraints() {
             scoringModel: 'WEIGHTED_AVG',
             isBlockingConstraint: false,
             displayOrder: 3,
-            thresholds: [
-                { bandName: 'STRONG', minScore: 80, maxScore: 100, bandPriority: 1, bandColorCode: '#2E7D32', isTerminalFailure: false },
-                { bandName: 'MODERATE', minScore: 60, maxScore: 79, bandPriority: 2, bandColorCode: '#F57F17', isTerminalFailure: false },
-                { bandName: 'FRAGILE', minScore: 40, maxScore: 59, bandPriority: 3, bandColorCode: '#E65100', isTerminalFailure: false },
-                { bandName: 'CRITICAL', minScore: 0, maxScore: 39, bandPriority: 4, bandColorCode: '#C62828', isTerminalFailure: true }
-            ],
+            strongMin: 80, strongMax: 100, strongColor: '#2E7D32', strongIsTerminal: false, strongPriority: 1,
+            moderateMin: 60, moderateMax: 79, moderateColor: '#F57F17', moderateIsTerminal: false, moderatePriority: 2,
+            fragileMin: 40, fragileMax: 59, fragileColor: '#E65100', fragileIsTerminal: false, fragilePriority: 3,
+            criticalMin: 0, criticalMax: 39, criticalColor: '#C62828', criticalIsTerminal: true, criticalPriority: 4,
             isActive: true
         },
-
-        // C4 — Company AI Risk
         {
             constraintId: 'CONS_AI_004',
             constraintSetId: 'CT_AI_STAY_V1',
+            thresholdSetId: 'CT_AI_STAY_V1',
             caseId: 'CASE_AI_JOB_RISK',
             intentId: 'INT_STAY_12M_SAFE',
             constraintName: 'Company AI Displacement Risk',
@@ -551,15 +568,12 @@ async function seedConstraints() {
             scoringModel: 'WEIGHTED_AVG',
             isBlockingConstraint: false,
             displayOrder: 4,
-            thresholds: [
-                { bandName: 'STRONG', minScore: 80, maxScore: 100, bandPriority: 1, bandColorCode: '#2E7D32', isTerminalFailure: false },
-                { bandName: 'MODERATE', minScore: 60, maxScore: 79, bandPriority: 2, bandColorCode: '#F57F17', isTerminalFailure: false },
-                { bandName: 'FRAGILE', minScore: 40, maxScore: 59, bandPriority: 3, bandColorCode: '#E65100', isTerminalFailure: false },
-                { bandName: 'CRITICAL', minScore: 0, maxScore: 39, bandPriority: 4, bandColorCode: '#C62828', isTerminalFailure: true }
-            ],
+            strongMin: 80, strongMax: 100, strongColor: '#2E7D32', strongIsTerminal: false, strongPriority: 1,
+            moderateMin: 60, moderateMax: 79, moderateColor: '#F57F17', moderateIsTerminal: false, moderatePriority: 2,
+            fragileMin: 40, fragileMax: 59, fragileColor: '#E65100', fragileIsTerminal: false, fragilePriority: 3,
+            criticalMin: 0, criticalMax: 39, criticalColor: '#C62828', criticalIsTerminal: true, criticalPriority: 4,
             isActive: true
         }
-
     ]);
 }
 
@@ -569,31 +583,65 @@ async function seedConstraints() {
 async function seedConstraintQuestionMapping() {
     await ConstraintQuestionMapping.deleteMany({});
     await ConstraintQuestionMapping.insertMany([
-
-        // CONS_AI_001 — Role Automation Exposure
-        { cqmtId: 'CQMT_0001', constraintId: 'CONS_AI_001', questionId: 'Q_AI_ROLE_EXPOSURE_V1', scoringRuleId: 'SR_AI_ROLE_EXPOSURE_V1', contributionWeight: 0.60, isRequiredForConstraint: true, normalizationMethod: 'NORMALIZED_100', isActive: true },
-        { cqmtId: 'CQMT_0002', constraintId: 'CONS_AI_001', questionId: 'Q_FINANCIAL_RUNWAY_V1', scoringRuleId: 'SR_FINANCIAL_RUNWAY_V1', contributionWeight: 0.40, isRequiredForConstraint: false, normalizationMethod: 'NORMALIZED_100', isActive: true },
-
-        // CONS_AI_002 — Financial Resilience
-        { cqmtId: 'CQMT_0003', constraintId: 'CONS_AI_002', questionId: 'Q_FINANCIAL_RUNWAY_V1', scoringRuleId: 'SR_FINANCIAL_RUNWAY_V1', contributionWeight: 1.00, isRequiredForConstraint: true, normalizationMethod: 'NORMALIZED_100', isActive: true },
-
-        // CONS_AI_003 — Role Uniqueness
-        { cqmtId: 'CQMT_0004', constraintId: 'CONS_AI_003', questionId: 'Q_ROLE_UNIQUENESS_V1', scoringRuleId: 'SR_ROLE_UNIQUENESS_V1', contributionWeight: 1.00, isRequiredForConstraint: true, normalizationMethod: 'NORMALIZED_100', isActive: true },
-
-        // CONS_AI_004 — Company AI Risk
-        { cqmtId: 'CQMT_0005', constraintId: 'CONS_AI_004', questionId: 'Q_COMPANY_AI_POLICY_V1', scoringRuleId: 'SR_COMPANY_AI_POLICY_V1', contributionWeight: 1.00, isRequiredForConstraint: true, normalizationMethod: 'NORMALIZED_100', isActive: true }
-
+        {
+            cqmtId: 'CQMT_000001',                    // ✅ FIXED: was CQMT_0001
+            constraintId: 'CONS_AI_001',
+            questionId: 'Q_AI_ROLE_EXPOSURE_V1',
+            scoringRuleId: 'SR_AI_ROLE_EXPOSURE_V1',
+            contributionWeight: 0.60,
+            isRequiredForConstraint: true,
+            normalizationMethod: 'NORMALIZED_100',
+            isActive: true
+        },
+        {
+            cqmtId: 'CQMT_000002',                    // ✅ FIXED: was CQMT_0002
+            constraintId: 'CONS_AI_001',
+            questionId: 'Q_FINANCIAL_RUNWAY_V1',
+            scoringRuleId: 'SR_FINANCIAL_RUNWAY_V1',
+            contributionWeight: 0.40,
+            isRequiredForConstraint: false,
+            normalizationMethod: 'NORMALIZED_100',
+            isActive: true
+        },
+        {
+            cqmtId: 'CQMT_000003',                    // ✅ FIXED: was CQMT_0003
+            constraintId: 'CONS_AI_002',
+            questionId: 'Q_FINANCIAL_RUNWAY_V1',
+            scoringRuleId: 'SR_FINANCIAL_RUNWAY_V1',
+            contributionWeight: 1.00,
+            isRequiredForConstraint: true,
+            normalizationMethod: 'NORMALIZED_100',
+            isActive: true
+        },
+        {
+            cqmtId: 'CQMT_000004',                    // ✅ FIXED: was CQMT_0004
+            constraintId: 'CONS_AI_003',
+            questionId: 'Q_ROLE_UNIQUENESS_V1',
+            scoringRuleId: 'SR_ROLE_UNIQUENESS_V1',
+            contributionWeight: 1.00,
+            isRequiredForConstraint: true,
+            normalizationMethod: 'NORMALIZED_100',
+            isActive: true
+        },
+        {
+            cqmtId: 'CQMT_000005',                    // ✅ FIXED: was CQMT_0005
+            constraintId: 'CONS_AI_004',
+            questionId: 'Q_COMPANY_AI_POLICY_V1',
+            scoringRuleId: 'SR_COMPANY_AI_POLICY_V1',
+            contributionWeight: 1.00,
+            isRequiredForConstraint: true,
+            normalizationMethod: 'NORMALIZED_100',
+            isActive: true
+        }
     ]);
 }
 
 // ════════════════════════════════════════════════════════════
-// STEP 10 — contradictions
+// STEP 10 — contradictions  ← 4 fields ADDED
 // ════════════════════════════════════════════════════════════
 async function seedContradictions() {
     await Contradictions.deleteMany({});
     await Contradictions.insertMany([
-
-        // CONTR_AI_001
         {
             contradictionId: 'CONTR_AI_001',
             contradictionSetId: 'CONTR_AI_STAY_V1',
@@ -602,9 +650,9 @@ async function seedContradictions() {
             contradictionName: 'Active AI Adoption + Low Financial Runway',
             contradictionDescription: 'Company is actively deploying AI but user has very low financial buffer.',
             contradictionType: 'INPUT_VS_INPUT',
-            involvedEntitiesJson: {
-                questionIds: ['Q_COMPANY_AI_POLICY_V1', 'Q_FINANCIAL_RUNWAY_V1']
-            },
+            involvedEntitiesJson: { questionIds: ['Q_COMPANY_AI_POLICY_V1', 'Q_FINANCIAL_RUNWAY_V1'] },
+            defaultSeverityBand: 'HIGH',                // ✅ ADDED
+            ruleName: 'Active AI + Low Runway Rule',     // ✅ ADDED
             ruleJson: {
                 operator: 'AND',
                 conditions: [
@@ -616,12 +664,12 @@ async function seedContradictions() {
             onMissingData: 'NOT_EVALUATED',
             severityBand: 'HIGH',
             accuracyPenaltyPoints: 15,
+            confidencePenaltyPoints: 0,                 // ✅ ADDED
             isBlocking: false,
+            escalationTag: null,                        // ✅ ADDED
             maxTriggerCount: 1,
             isActive: true
         },
-
-        // CONTR_AI_002
         {
             contradictionId: 'CONTR_AI_002',
             contradictionSetId: 'CONTR_AI_STAY_V1',
@@ -630,9 +678,9 @@ async function seedContradictions() {
             contradictionName: 'Claims Low AI Exposure But Company Is AI-First',
             contradictionDescription: 'User claims very low AI automation exposure but company is AI-first.',
             contradictionType: 'INPUT_VS_INPUT',
-            involvedEntitiesJson: {
-                questionIds: ['Q_AI_ROLE_EXPOSURE_V1', 'Q_COMPANY_AI_POLICY_V1']
-            },
+            involvedEntitiesJson: { questionIds: ['Q_AI_ROLE_EXPOSURE_V1', 'Q_COMPANY_AI_POLICY_V1'] },
+            defaultSeverityBand: 'MEDIUM',              // ✅ ADDED
+            ruleName: 'Low Exposure + AI First Rule',   // ✅ ADDED
             ruleJson: {
                 operator: 'AND',
                 conditions: [
@@ -644,21 +692,21 @@ async function seedContradictions() {
             onMissingData: 'NOT_EVALUATED',
             severityBand: 'MEDIUM',
             accuracyPenaltyPoints: 10,
+            confidencePenaltyPoints: 0,                 // ✅ ADDED
             isBlocking: false,
+            escalationTag: null,                        // ✅ ADDED
             maxTriggerCount: 1,
             isActive: true
         }
-
     ]);
 }
 
 // ════════════════════════════════════════════════════════════
-// STEP 11 — coverage_requirements
+// STEP 11 — coverage_requirements  ← 2 fields ADDED
 // ════════════════════════════════════════════════════════════
 async function seedCoverageRequirements() {
     await CoverageRequirements.deleteMany({});
     await CoverageRequirements.insertMany([
-
         {
             crtId: 'CRT_0001',
             coverageSetId: 'CRT_AI_STAY_V1',
@@ -674,10 +722,11 @@ async function seedCoverageRequirements() {
             gapType: 'MISSING',
             stackingMode: 'CAP',
             stackingCapPoints: 10,
+            escalationThreshold: null,                  // ✅ ADDED
+            escalationPenaltyPoints: null,              // ✅ ADDED
             displayOrder: 1,
             isActive: true
         },
-
         {
             crtId: 'CRT_0002',
             coverageSetId: 'CRT_AI_STAY_V1',
@@ -693,10 +742,11 @@ async function seedCoverageRequirements() {
             gapType: 'MISSING',
             stackingMode: 'CAP',
             stackingCapPoints: 10,
+            escalationThreshold: null,                  // ✅ ADDED
+            escalationPenaltyPoints: null,              // ✅ ADDED
             displayOrder: 2,
             isActive: true
         }
-
     ]);
 }
 
@@ -706,7 +756,6 @@ async function seedCoverageRequirements() {
 async function seedRedFlagTaxonomy() {
     await RedFlagTaxonomy.deleteMany({});
     await RedFlagTaxonomy.insertMany([
-
         {
             redFlagId: 'RF_0001',
             redFlagSetId: 'RFT_AI_STAY_V1',
@@ -723,7 +772,6 @@ async function seedRedFlagTaxonomy() {
             displayOrder: 1,
             isActive: true
         },
-
         {
             redFlagId: 'RF_0002',
             redFlagSetId: 'RFT_AI_STAY_V1',
@@ -740,7 +788,6 @@ async function seedRedFlagTaxonomy() {
             displayOrder: 2,
             isActive: true
         },
-
         {
             redFlagId: 'RF_0003',
             redFlagSetId: 'RFT_AI_STAY_V1',
@@ -750,13 +797,12 @@ async function seedRedFlagTaxonomy() {
             triggerSource: 'CONTRADICTION',
             triggerReferenceId: 'CONTR_AI_001',
             severityBand: 'HIGH',
-            penaltyPoints: 0, // Penalty already in contradiction
+            penaltyPoints: 0,
             uniquenessMode: 'UNIQUE',
             escalationRequired: false,
             displayOrder: 3,
             isActive: true
         }
-
     ]);
 }
 
@@ -788,17 +834,17 @@ async function seedAccuracyScoringPolicy() {
 }
 
 // ════════════════════════════════════════════════════════════
-// STEP 14 — warnings
+// STEP 14 — warnings  ← 2 fields ADDED
 // ════════════════════════════════════════════════════════════
 async function seedWarnings() {
     await Warnings.deleteMany({});
     await Warnings.insertMany([
-
         {
             warningId: 'WARN_FIN_RUNWAY_LOW',
             warningMappingId: 'WMT_AI_V1',
             redFlagId: 'RF_0001',
             triggerMode: 'ALWAYS',
+            minSeverityBand: null,                      // ✅ ADDED
             displayPriority: 1,
             warningTitle: 'Financial Cushion Is Weak',
             warningMessage: 'You have less than 6 months of financial runway. This is critically low in a period of AI-driven workforce change. If your role is disrupted, you will have very limited time to transition.',
@@ -807,14 +853,15 @@ async function seedWarnings() {
             ctaText: 'Build a 6-month emergency fund before making any career decisions.',
             humanValidationRecommended: false,
             displayType: 'TOP_BANNER',
+            expiresAfterDays: null,                     // ✅ ADDED
             isActive: true
         },
-
         {
             warningId: 'WARN_AI_DISPLACEMENT_HIGH',
             warningMappingId: 'WMT_AI_V1',
             redFlagId: 'RF_0002',
             triggerMode: 'ALWAYS',
+            minSeverityBand: null,                      // ✅ ADDED
             displayPriority: 2,
             warningTitle: 'Your Company Is Actively Deploying AI',
             warningMessage: 'Companies in active AI deployment phases typically reorganize roles and responsibilities within 6 to 12 months. This creates structural risk for roles with high automation overlap.',
@@ -823,14 +870,14 @@ async function seedWarnings() {
             ctaText: 'Map which of your tasks are being automated and identify which skills make you irreplaceable.',
             humanValidationRecommended: true,
             displayType: 'REPORT_SECTION',
+            expiresAfterDays: null,                     // ✅ ADDED
             isActive: true
         }
-
     ]);
 }
 
 // ════════════════════════════════════════════════════════════
-// STEP 15 — evaluation_library_registry (LAST — links everything)
+// STEP 15 — evaluation_library_registry
 // ════════════════════════════════════════════════════════════
 async function seedEvaluationLibraryRegistry() {
     await EvaluationLibraryRegistry.deleteMany({});
@@ -848,7 +895,7 @@ async function seedEvaluationLibraryRegistry() {
             redFlagSetId: 'RFT_AI_STAY_V1',
             accuracyPolicyId: 'ASP_AI_V1',
             warningMappingId: 'WMT_AI_V1',
-            version:'v1.0',   
+            version: 'v1.0',
             isActive: true
         }
     ]);
@@ -909,7 +956,7 @@ async function seedGuardrailRegistry() {
 }
 
 // ════════════════════════════════════════════════════════════
-// STEP 17 — decision_assurance_sections
+// STEP 17 — decision_assurance_sections  ← anchor fields ADDED to all 4
 // ════════════════════════════════════════════════════════════
 async function seedDecisionAssuranceSections() {
     await DecisionAssuranceSections.deleteMany({});
@@ -925,6 +972,8 @@ async function seedDecisionAssuranceSections() {
             certaintyCapPercent: 85,
             minAccuracyRequired: 0,
             fallbackPolicy: 'DEGRADE',
+            requiredInternalAnchorsJson: [],            // ✅ ADDED
+            requiredExternalAnchorsJson: [],            // ✅ ADDED
             outputSchemaReference: null,
             isActive: true
         },
@@ -935,11 +984,12 @@ async function seedDecisionAssuranceSections() {
             intentId: 'INT_STAY_12M_SAFE',
             sectionOrder: 2,
             sectionType: 'RISK_SYNTHESIS',
-            requiredInternalAnchorsJson: ['Financial Resilience'],
             allowedAeuTypesJson: ['inferred', 'work'],
             certaintyCapPercent: 85,
             minAccuracyRequired: 0,
             fallbackPolicy: 'DEGRADE',
+            requiredInternalAnchorsJson: ['Financial Resilience'],  // ✅ already present
+            requiredExternalAnchorsJson: [],                        // ✅ ADDED
             outputSchemaReference: null,
             isActive: true
         },
@@ -950,11 +1000,12 @@ async function seedDecisionAssuranceSections() {
             intentId: 'INT_STAY_12M_SAFE',
             sectionOrder: 3,
             sectionType: 'ANALYSIS',
-            requiredExternalAnchorsJson: ['Market Demand Signal'],
             allowedAeuTypesJson: ['external'],
             certaintyCapPercent: 70,
             minAccuracyRequired: 0,
             fallbackPolicy: 'DEGRADE',
+            requiredInternalAnchorsJson: [],                        // ✅ ADDED
+            requiredExternalAnchorsJson: ['Market Demand Signal'],  // ✅ already present
             outputSchemaReference: null,
             isActive: true
         },
@@ -969,6 +1020,8 @@ async function seedDecisionAssuranceSections() {
             certaintyCapPercent: 85,
             minAccuracyRequired: 0,
             fallbackPolicy: 'ESCALATE',
+            requiredInternalAnchorsJson: [],            // ✅ ADDED
+            requiredExternalAnchorsJson: [],            // ✅ ADDED
             outputSchemaReference: null,
             isActive: true
         }
@@ -1006,6 +1059,51 @@ async function seedPromptConfigRegistry() {
             isActive: true
         },
         {
+            promptId:          'PCR_SEC002_V1',
+            sectionId:         'SEC_002',
+            caseId:            'CASE_AI_JOB_RISK',
+            intentId:          'INT_STAY_12M_SAFE',
+            playbookVersionId: 'PBV_000001',
+            promptVersion:     1,
+            modelFamily:       'GEMINI',
+            temperature:       0.3,
+            maxTokens:         600,
+            systemPrompt:      'You are a financial resilience analyst for Hawksyn. Assess the user\'s financial runway against career risk. Be factual and concise. Do not invent numbers not present in the evidence.',
+            userPrompt:        'Assess the financial resilience of this user.\nFinancial Runway: {{FINANCIAL_RUNWAY}} months.\nAccuracy Band: {{ACCURACY_BAND}}.\nRed Flags: {{RED_FLAGS}}.\n\nWrite 2-3 paragraphs covering:\n1. Is the current financial cushion adequate given AI risk?\n2. What happens if role is disrupted?\n3. What is the recommended immediate action?',
+            evidencePlaceholdersJson: {
+                FINANCIAL_RUNWAY: 'Q_FINANCIAL_RUNWAY_V1',
+                ACCURACY_BAND:    'integrityPack.accuracy.band',
+                RED_FLAGS:        'integrityPack.redFlags.triggered'
+            },
+            certaintyCapPercent: 85,
+            retryPolicy:         'RETRY_ON_SCHEMA_FAIL',
+            outputSchemaReference: null,
+            isActive: true
+        },
+        {
+            promptId:          'PCR_SEC003_V1',
+            sectionId:         'SEC_003',
+            caseId:            'CASE_AI_JOB_RISK',
+            intentId:          'INT_STAY_12M_SAFE',
+            playbookVersionId: 'PBV_000001',
+            promptVersion:     1,
+            modelFamily:       'GEMINI',
+            temperature:       0.4,
+            maxTokens:         500,
+            systemPrompt:      'You are a market signals analyst for Hawksyn. Summarize external market conditions relevant to the user\'s role and domain. Only use the provided inputs. Do not fabricate statistics or cite external sources.',
+            userPrompt:        'Summarize market demand signals for this user.\nRole: {{CURRENT_ROLE}}.\nDomain: {{DOMAIN}}.\nCompany AI stance: {{COMPANY_AI_POLICY}}.\nAccuracy Band: {{ACCURACY_BAND}}.\n\nNote: External signal data may be limited. Acknowledge any data gaps explicitly.',
+            evidencePlaceholdersJson: {
+                CURRENT_ROLE:      'parsedCvData.current_role',
+                DOMAIN:            'parsedCvData.domain',
+                COMPANY_AI_POLICY: 'Q_COMPANY_AI_POLICY_V1',
+                ACCURACY_BAND:     'integrityPack.accuracy.band'
+            },
+            certaintyCapPercent: 70,
+            retryPolicy:         'RETRY_ON_SCHEMA_FAIL',
+            outputSchemaReference: null,
+            isActive: true
+        },
+        {
             promptId: 'PCR_SEC004_V1',
             sectionId: 'SEC_004',
             caseId: 'CASE_AI_JOB_RISK',
@@ -1016,7 +1114,22 @@ async function seedPromptConfigRegistry() {
             temperature: 0.2,
             maxTokens: 400,
             systemPrompt: 'You are the verdict engine for Hawksyn. Deliver PROCEED, PAUSE, or ABORT verdict. Do not hedge beyond the accuracy band ceiling. Base verdict solely on provided integrity data.',
-            userPrompt: 'Deliver verdict for this run. Accuracy Score: {{ACCURACY_SCORE}}. Accuracy Band: {{ACCURACY_BAND}}. Red Flags: {{RED_FLAGS}}. Contradictions: {{CONTRADICTIONS}}. Verdict options: PROCEED / PAUSE / ABORT.',
+            userPrompt: `Deliver a verdict for this user based on the integrity data provided.
+
+Accuracy Score: {{ACCURACY_SCORE}}
+Accuracy Band: {{ACCURACY_BAND}}
+Red Flags: {{RED_FLAGS}}
+Contradictions: {{CONTRADICTIONS}}
+
+Instructions:
+- Your first line MUST be exactly one of: PROCEED, PAUSE, or ABORT
+- Then write 3-4 sentences explaining the verdict
+- Reference the specific risk factors from the data above
+- End with one clear actionable recommendation for the user
+
+Use this exact format:
+ABORT
+[Your 3-4 sentence explanation here. Reference red flags and accuracy band. End with one recommendation.]`,
             evidencePlaceholdersJson: {
                 ACCURACY_SCORE: 'AEU_INT_001',
                 ACCURACY_BAND: 'AEU_INT_002',
@@ -1059,14 +1172,14 @@ async function seedDependencyRules() {
             dependencyRuleId: 'DRR_000004',
             moiId: 'MOI_AI_STAY_V1',
             ruleName: 'Ask company signals only if company size is mid/large',
-            targetQuestionId: 'Q_COMPANY_SIGNAL_V1',
+            targetQuestionId: 'Q_COMPANY_AI_POLICY_V1',  // ✅ FIXED: was Q_COMPANY_SIGNAL_V1
             ruleJson: {
-                all: [{ source: 'profile', field: 'company_size', op: 'in', value: ['MID', 'LARGE'] }],
+                all: [{ source: 'profile', field: 'inferred.companySize', op: 'in', value: ['MID', 'LARGE'] }],
                 any: []
             },
             onFailAction: 'SKIP',
             skipReason: 'Skip because signals question not reliable for very small firms',
-            isActive: true
+            isActive: false
         },
         {
             dependencyRuleId: 'DRR_000005',
@@ -1074,7 +1187,7 @@ async function seedDependencyRules() {
             ruleName: 'Ask exposure only if role is not unemployed',
             targetQuestionId: 'Q_AI_ROLE_EXPOSURE_V1',
             ruleJson: {
-                all: [{ source: 'profile', field: 'employment_status', op: 'neq', value: 'UNEMPLOYED' }],
+                all: [{ source: 'profile', field: 'inferred.employmentStatus', op: 'neq', value: 'UNEMPLOYED' }],
                 any: []
             },
             onFailAction: 'SKIP',
@@ -1090,66 +1203,11 @@ async function seedDependencyRules() {
 async function seedExternalSignalTaxonomy() {
     await ExternalSignalTaxonomy.deleteMany({});
     await ExternalSignalTaxonomy.insertMany([
-        {
-            signalId: 'EST_LM_001',
-            signalName: 'Labour Market AI Displacement Index',
-            signalCategory: 'LABOUR_MARKET',
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'ALL',
-            valueFormat: 'NUMERIC',
-            unit: 'index_score',
-            recencyDaysMax: 365,
-            isMandatory: false,
-            isActive: true
-        },
-        {
-            signalId: 'EST_TECH_004',
-            signalName: 'AI Tool Adoption Rate in Role Category',
-            signalCategory: 'TECH_TREND',
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'ALL',
-            valueFormat: 'PERCENT',
-            unit: '%',
-            recencyDaysMax: 180,
-            isMandatory: false,
-            isActive: true
-        },
-        {
-            signalId: 'EST_IND_002',
-            signalName: 'Industry Hiring Momentum Score',
-            signalCategory: 'INDUSTRY',
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'ALL',
-            valueFormat: 'NUMERIC',
-            unit: 'score',
-            recencyDaysMax: 90,
-            isMandatory: false,
-            isActive: true
-        },
-        {
-            signalId: 'EST_CO_003',
-            signalName: 'Company AI Investment Signal',
-            signalCategory: 'COMPANY',
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'INT_STAY_12M_SAFE',
-            valueFormat: 'BOOLEAN',
-            unit: '',
-            recencyDaysMax: 180,
-            isMandatory: false,
-            isActive: true
-        },
-        {
-            signalId: 'EST_REG_005',
-            signalName: 'Regulatory AI Policy Signal',
-            signalCategory: 'REGULATORY',
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'ALL',
-            valueFormat: 'TEXT',
-            unit: '',
-            recencyDaysMax: 365,
-            isMandatory: false,
-            isActive: true
-        }
+        { signalId: 'EST_LM_001', signalName: 'Labour Market AI Displacement Index', signalCategory: 'LABOUR_MARKET', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', valueFormat: 'NUMERIC', unit: 'index_score', recencyDaysMax: 365, isMandatory: false, isActive: true },
+        { signalId: 'EST_TECH_004', signalName: 'AI Tool Adoption Rate in Role Category', signalCategory: 'TECH_TREND', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', valueFormat: 'PERCENT', unit: '%', recencyDaysMax: 180, isMandatory: false, isActive: true },
+        { signalId: 'EST_IND_002', signalName: 'Industry Hiring Momentum Score', signalCategory: 'INDUSTRY', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', valueFormat: 'NUMERIC', unit: 'score', recencyDaysMax: 90, isMandatory: false, isActive: true },
+        { signalId: 'EST_CO_003', signalName: 'Company AI Investment Signal', signalCategory: 'COMPANY', caseId: 'CASE_AI_JOB_RISK', intentId: 'INT_STAY_12M_SAFE', valueFormat: 'BOOLEAN', unit: '', recencyDaysMax: 180, isMandatory: false, isActive: true },
+        { signalId: 'EST_REG_005', signalName: 'Regulatory AI Policy Signal', signalCategory: 'REGULATORY', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', valueFormat: 'TEXT', unit: '', recencyDaysMax: 365, isMandatory: false, isActive: true }
     ]);
 }
 
@@ -1159,76 +1217,11 @@ async function seedExternalSignalTaxonomy() {
 async function seedSourceRegistry() {
     await SourceRegistry.deleteMany({});
     await SourceRegistry.insertMany([
-        {
-            sourceId: 'SR_0001',
-            sourceName: 'World Economic Forum',
-            sourceType: 'RESEARCH_BODY',
-            domainUrl: 'weforum.org',
-            credibilityTier: 'TIER_1',
-            geoScope: 'GLOBAL',
-            recencyDaysDefault: 365,
-            minConfidenceWeight: 90,
-            allowedSignalCategories: ['LABOUR_MARKET', 'TECH_TREND'],
-            conflictPriorityRank: 1,
-            requiresManualValidation: false,
-            isActive: true
-        },
-        {
-            sourceId: 'SR_0002',
-            sourceName: 'Government Labour Bureau (India)',
-            sourceType: 'GOVERNMENT',
-            domainUrl: 'labour.gov.in',
-            credibilityTier: 'TIER_1',
-            geoScope: 'COUNTRY',
-            recencyDaysDefault: 365,
-            minConfidenceWeight: 95,
-            allowedSignalCategories: ['LABOUR_MARKET'],
-            conflictPriorityRank: 1,
-            requiresManualValidation: false,
-            isActive: true
-        },
-        {
-            sourceId: 'SR_0003',
-            sourceName: 'Company Quarterly Filing',
-            sourceType: 'COMPANY_DISCLOSURE',
-            domainUrl: 'investor.company.com',
-            credibilityTier: 'TIER_1',
-            geoScope: 'COMPANY',
-            recencyDaysDefault: 180,
-            minConfidenceWeight: 85,
-            allowedSignalCategories: ['COMPANY'],
-            conflictPriorityRank: 1,
-            requiresManualValidation: false,
-            isActive: true
-        },
-        {
-            sourceId: 'SR_0004',
-            sourceName: 'Major Financial News Outlet',
-            sourceType: 'NEWS',
-            domainUrl: 'example-news.com',
-            credibilityTier: 'TIER_2',
-            geoScope: 'GLOBAL',
-            recencyDaysDefault: 90,
-            minConfidenceWeight: 70,
-            allowedSignalCategories: ['LABOUR_MARKET', 'INDUSTRY', 'COMPANY'],
-            conflictPriorityRank: 2,
-            requiresManualValidation: false,
-            isActive: true
-        },
-        {
-            sourceId: 'SR_0005',
-            sourceName: 'Independent Tech Blog',
-            sourceType: 'OTHER',
-            domainUrl: 'techblog.example',
-            credibilityTier: 'TIER_3',
-            geoScope: 'GLOBAL',
-            recencyDaysDefault: 60,
-            minConfidenceWeight: 50,
-            allowedSignalCategories: ['TECH_TREND'],
-            conflictPriorityRank: 3,
-            requiresManualValidation: true,
-            isActive: true
-        }
+        { sourceId: 'SR_0001', sourceName: 'World Economic Forum', sourceType: 'RESEARCH_BODY', domainUrl: 'weforum.org', credibilityTier: 'TIER_1', geoScope: 'GLOBAL', recencyDaysDefault: 365, minConfidenceWeight: 90, allowedSignalCategories: ['LABOUR_MARKET', 'TECH_TREND'], conflictPriorityRank: 1, requiresManualValidation: false, isActive: true },
+        { sourceId: 'SR_0002', sourceName: 'Government Labour Bureau (India)', sourceType: 'GOVERNMENT', domainUrl: 'labour.gov.in', credibilityTier: 'TIER_1', geoScope: 'COUNTRY', recencyDaysDefault: 365, minConfidenceWeight: 95, allowedSignalCategories: ['LABOUR_MARKET'], conflictPriorityRank: 1, requiresManualValidation: false, isActive: true },
+        { sourceId: 'SR_0003', sourceName: 'Company Quarterly Filing', sourceType: 'COMPANY_DISCLOSURE', domainUrl: 'investor.company.com', credibilityTier: 'TIER_1', geoScope: 'COMPANY', recencyDaysDefault: 180, minConfidenceWeight: 85, allowedSignalCategories: ['COMPANY'], conflictPriorityRank: 1, requiresManualValidation: false, isActive: true },
+        { sourceId: 'SR_0004', sourceName: 'Major Financial News Outlet', sourceType: 'NEWS', domainUrl: 'example-news.com', credibilityTier: 'TIER_2', geoScope: 'GLOBAL', recencyDaysDefault: 90, minConfidenceWeight: 70, allowedSignalCategories: ['LABOUR_MARKET', 'INDUSTRY', 'COMPANY'], conflictPriorityRank: 2, requiresManualValidation: false, isActive: true },
+        { sourceId: 'SR_0005', sourceName: 'Independent Tech Blog', sourceType: 'OTHER', domainUrl: 'techblog.example', credibilityTier: 'TIER_3', geoScope: 'GLOBAL', recencyDaysDefault: 60, minConfidenceWeight: 50, allowedSignalCategories: ['TECH_TREND'], conflictPriorityRank: 3, requiresManualValidation: true, isActive: true }
     ]);
 }
 
@@ -1238,76 +1231,11 @@ async function seedSourceRegistry() {
 async function seedDataPatternKeyTaxonomy() {
     await DataPatternKeyTaxonomy.deleteMany({});
     await DataPatternKeyTaxonomy.insertMany([
-        {
-            patternKeyId: 'DPKT_0001',
-            patternName: 'AI Labour Risk Composite',
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'ALL',
-            requiredSignals: ['EST_LM_001', 'EST_TECH_004'],
-            minRequiredSignals: 2,
-            aggregationMethod: 'INDEX_BLEND',
-            weightingLogicJson: { 'EST_LM_001': 0.6, 'EST_TECH_004': 0.4 },
-            minimumConfidenceScore: 75,
-            conflictResolutionStrategy: 'HIGH_TIER_PRIORITY',
-            producesAnchorName: 'Labour Market Risk Anchor',
-            isActive: true
-        },
-        {
-            patternKeyId: 'DPKT_0002',
-            patternName: 'Industry Hiring Momentum Pattern',
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'ALL',
-            requiredSignals: ['EST_IND_002'],
-            minRequiredSignals: 1,
-            aggregationMethod: 'THRESHOLD_BREACH',
-            weightingLogicJson: {},
-            minimumConfidenceScore: 70,
-            conflictResolutionStrategy: 'MARK_CONFLICT',
-            producesAnchorName: 'Industry Stability Anchor',
-            isActive: true
-        },
-        {
-            patternKeyId: 'DPKT_0003',
-            patternName: 'Company Stability Pattern',
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'INT_STAY_12M_SAFE',
-            requiredSignals: ['EST_CO_003'],
-            minRequiredSignals: 1,
-            aggregationMethod: 'MAJORITY_SIGNAL',
-            weightingLogicJson: {},
-            minimumConfidenceScore: 75,
-            conflictResolutionStrategy: 'ESCALATE_HUMAN',
-            producesAnchorName: 'Company Stability Anchor',
-            isActive: true
-        },
-        {
-            patternKeyId: 'DPKT_0004',
-            patternName: 'Regulatory Pressure Pattern',
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'ALL',
-            requiredSignals: ['EST_REG_005'],
-            minRequiredSignals: 1,
-            aggregationMethod: 'THRESHOLD_BREACH',
-            weightingLogicJson: {},
-            minimumConfidenceScore: 65,
-            conflictResolutionStrategy: 'HIGH_TIER_PRIORITY',
-            producesAnchorName: 'Regulatory Risk Anchor',
-            isActive: true
-        },
-        {
-            patternKeyId: 'DPKT_0005',
-            patternName: 'Multi-Signal Escalation Pattern',
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'ALL',
-            requiredSignals: ['EST_LM_001', 'EST_IND_002', 'EST_CO_003'],
-            minRequiredSignals: 2,
-            aggregationMethod: 'COMPOSITE_RULE',
-            weightingLogicJson: { rule: '2_or_more_negative' },
-            minimumConfidenceScore: 80,
-            conflictResolutionStrategy: 'ESCALATE_HUMAN',
-            producesAnchorName: 'Composite External Risk Anchor',
-            isActive: true
-        }
+        { patternKeyId: 'DPKT_0001', patternName: 'AI Labour Risk Composite', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', requiredSignals: ['EST_LM_001', 'EST_TECH_004'], minRequiredSignals: 2, aggregationMethod: 'INDEX_BLEND', weightingLogicJson: { 'EST_LM_001': 0.6, 'EST_TECH_004': 0.4 }, minimumConfidenceScore: 75, conflictResolutionStrategy: 'HIGH_TIER_PRIORITY', producesAnchorName: 'Labour Market Risk Anchor', isActive: true },
+        { patternKeyId: 'DPKT_0002', patternName: 'Industry Hiring Momentum Pattern', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', requiredSignals: ['EST_IND_002'], minRequiredSignals: 1, aggregationMethod: 'THRESHOLD_BREACH', weightingLogicJson: {}, minimumConfidenceScore: 70, conflictResolutionStrategy: 'MARK_CONFLICT', producesAnchorName: 'Industry Stability Anchor', isActive: true },
+        { patternKeyId: 'DPKT_0003', patternName: 'Company Stability Pattern', caseId: 'CASE_AI_JOB_RISK', intentId: 'INT_STAY_12M_SAFE', requiredSignals: ['EST_CO_003'], minRequiredSignals: 1, aggregationMethod: 'MAJORITY_SIGNAL', weightingLogicJson: {}, minimumConfidenceScore: 75, conflictResolutionStrategy: 'ESCALATE_HUMAN', producesAnchorName: 'Company Stability Anchor', isActive: true },
+        { patternKeyId: 'DPKT_0004', patternName: 'Regulatory Pressure Pattern', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', requiredSignals: ['EST_REG_005'], minRequiredSignals: 1, aggregationMethod: 'THRESHOLD_BREACH', weightingLogicJson: {}, minimumConfidenceScore: 65, conflictResolutionStrategy: 'HIGH_TIER_PRIORITY', producesAnchorName: 'Regulatory Risk Anchor', isActive: true },
+        { patternKeyId: 'DPKT_0005', patternName: 'Multi-Signal Escalation Pattern', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', requiredSignals: ['EST_LM_001', 'EST_IND_002', 'EST_CO_003'], minRequiredSignals: 2, aggregationMethod: 'COMPOSITE_RULE', weightingLogicJson: { rule: '2_or_more_negative' }, minimumConfidenceScore: 80, conflictResolutionStrategy: 'ESCALATE_HUMAN', producesAnchorName: 'Composite External Risk Anchor', isActive: true }
     ]);
 }
 
@@ -1317,84 +1245,42 @@ async function seedDataPatternKeyTaxonomy() {
 async function seedRiskAuditorRegistry() {
     await RiskAuditorRegistry.deleteMany({});
     await RiskAuditorRegistry.insertMany([
-        {
-            auditorId: 'RAR_0001',
-            auditorName: 'Arjun Mehta',
-            professionalBackground: 'AI Strategy Consultant',
-            specializationTags: ['AI_RISK', 'CAREER_TRANSITION'],
-            supportedCases: ['CASE_AI_JOB_RISK'],
-            supportedIntents: ['ALL'],
-            escalationTier: 'TIER_2',
-            slaHours: 48,
-            maxActiveCases: 5,
-            ratingScore: 4.7,
-            requiresPrePayment: true,
-            status: 'ACTIVE'
+        { 
+            auditorId: 'RAR_001', 
+            auditorName: 'Senior Risk Analyst', 
+            caseId: 'CASE_AI_JOB_RISK', 
+            specializations: ['AI_DISPLACEMENT', 'FINANCIAL_RISK', 'REM_SKILL_UPSKILL'], 
+            maxCaseload: 20, 
+            currentCaseload: 5, 
+            isActive: true 
         },
-        {
-            auditorId: 'RAR_0002',
-            auditorName: 'Neha Kapoor',
-            professionalBackground: 'Labour Market Analyst',
-            specializationTags: ['LABOUR_MARKET', 'POLICY'],
-            supportedCases: ['CASE_AI_JOB_RISK'],
-            supportedIntents: ['ALL'],
-            escalationTier: 'TIER_1',
-            slaHours: 72,
-            maxActiveCases: 8,
-            ratingScore: 4.5,
-            requiresPrePayment: true,
-            status: 'ACTIVE'
+        { 
+            auditorId: 'RAR_002', 
+            auditorName: 'Neha Kapoor', 
+            caseId: 'CASE_AI_JOB_RISK', 
+            specializations: ['LABOUR_MARKET', 'POLICY'], 
+            maxCaseload: 20, 
+            currentCaseload: 2, 
+            isActive: true 
         },
-        {
-            auditorId: 'RAR_0003',
-            auditorName: 'Raghav Sharma',
-            professionalBackground: 'Corporate Finance Advisor',
-            specializationTags: ['FINANCE', 'RUNWAY_ANALYSIS'],
-            supportedCases: ['CASE_AI_JOB_RISK', 'CASE_MBA_BREAK'],
-            supportedIntents: ['ALL'],
-            escalationTier: 'TIER_2',
-            slaHours: 48,
-            maxActiveCases: 6,
-            ratingScore: 4.8,
-            requiresPrePayment: true,
-            status: 'ACTIVE'
-        },
-        {
-            auditorId: 'RAR_0004',
-            auditorName: 'Simran Arora',
-            professionalBackground: 'Tech Industry Consultant',
-            specializationTags: ['TECH_TREND', 'STARTUPS'],
-            supportedCases: ['CASE_AI_JOB_RISK'],
-            supportedIntents: ['INT_STAY_12M_SAFE'],
-            escalationTier: 'TIER_3',
-            slaHours: 36,
-            maxActiveCases: 3,
-            ratingScore: 4.9,
-            requiresPrePayment: true,
-            status: 'ACTIVE'
-        },
-        {
-            auditorId: 'RAR_0005',
-            auditorName: 'Mohan Iyer',
-            professionalBackground: 'Career Coach (Mid-Level Professionals)',
-            specializationTags: ['CAREER_TRANSITION'],
-            supportedCases: ['CASE_AI_JOB_RISK'],
-            supportedIntents: ['ALL'],
-            escalationTier: 'TIER_1',
-            slaHours: 72,
-            maxActiveCases: 10,
-            ratingScore: 4.3,
-            requiresPrePayment: false,
-            status: 'ACTIVE'
+        { 
+            auditorId: 'RAR_003', 
+            auditorName: 'Raghav Sharma', 
+            caseId: 'CASE_AI_JOB_RISK', 
+            specializations: ['FINANCIAL_RISK', 'RUNWAY_ANALYSIS'], 
+            maxCaseload: 20, 
+            currentCaseload: 8, 
+            isActive: true 
         }
     ]);
 }
 
-
+// ════════════════════════════════════════════════════════════
+// RUN
+// ════════════════════════════════════════════════════════════
 async function runSeed() {
     try {
         console.log('\n🌱 Hawksyn Master Seed Starting...\n');
-
         await mongoose.connect(process.env.DB_URI);
         console.log('✅ MongoDB connected\n');
 

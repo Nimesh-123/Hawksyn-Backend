@@ -102,10 +102,17 @@ route.post('/login-with-pin', userController.loginWithPin);
  * @swagger
  * /user/account:
  *   delete:
- *     summary: Soft delete user account
+ *     summary: Delete user account (Soft or Hard)
+ *     description: Default is soft delete. Pass hardDelete=true to permanently wipe all user data (runs, CVs, payments, profile).
  *     tags: [1. Authentication & Security]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: hardDelete
+ *         schema:
+ *           type: boolean
+ *         description: Set to true for permanent deletion of all data.
  *     responses:
  *       200:
  *         description: Account deleted successfully

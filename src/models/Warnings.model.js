@@ -13,6 +13,8 @@ const WarningsSchema = new mongoose.Schema({
     ctaText: { type: String },
     humanValidationRecommended: { type: Boolean },
     displayType: { type: String },
+    minSeverityBand: { type: String, enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'], default: null },
+    expiresAfterDays: { type: Number, default: null },
     isActive: { type: Boolean, default: true }
 }, {
     timestamps: true,

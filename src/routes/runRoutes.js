@@ -3,6 +3,8 @@ const router = express.Router();
 const questionsController = require('../controllers/questionsController');
 const cvController = require('../controllers/cvController');
 const integrityController = require('../controllers/integrityController');
+const reportController = require('../controllers/reportController');
+const expertController = require('../controllers/expertController');
 const auth = require('../../middleware/auth');
 const upload = require('../../middleware/multer.js');
 
@@ -177,5 +179,53 @@ router.get('/:runId/questions/status', questionsController.getQuestionsStatus);
  *         description: Integrity audit completed successfully
  */
 router.post('/:runId/integrity/run', integrityController.runIntegrityEngine);
+
+/**
+ * --- Step 5: Report Generation ---
+ */
+
+/**
+ * @swagger
+ * /runs/{runId}/report/generate:
+ *   post:
+ *     summary: Generate the final comprehensive report for this run
+ *     tags: [5. Run Operations (Specific Actions)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Report generated successfully
+ */
+router.post('/:runId/report/generate', reportController.generateReport);
+
+/**
+ * --- Step 6: Expert Assignment ---
+ */
+
+/**
+ * @swagger
+ * /runs/{runId}/expert/assign:
+ *   post:
+ *     summary: Assign a specialized expert to this run for review
+ *     tags: [5. Run Operations (Specific Actions)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Expert assigned successfully
+ */
+router.post('/:runId/expert/assign', expertController.assignExpert);
 
 module.exports = router;

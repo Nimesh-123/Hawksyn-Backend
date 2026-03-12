@@ -40,6 +40,8 @@
     "pdf-parse": "^1.1.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "validatorjs": "^3.22.1"
+    "uuid": "^13.0.0",
+    "validatorjs": "^3.22.1",
+    "winston": "^3.19.0"
   }
 }

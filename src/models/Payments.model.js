@@ -40,7 +40,7 @@ const PaymentsSchema = new mongoose.Schema({
 });
 
 // Indexes
-PaymentsSchema.index({ userId: 1 });
+
 PaymentsSchema.index({ userId: 1, status: 1 });
 PaymentsSchema.index({ runId: 1 });
 

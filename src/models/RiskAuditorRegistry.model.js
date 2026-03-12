@@ -3,15 +3,14 @@ const mongoose = require('mongoose');
 const RiskAuditorRegistrySchema = new mongoose.Schema({
     auditorId: { type: String, required: true, unique: true },
     auditorName: { type: String, required: true },
+    caseId: { type: String, required: true },
+    specializations: { type: [String], default: [] },
+    maxCaseload: { type: Number, default: 20 },
+    currentCaseload: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+    // Keeping some legacy fields just in case
     professionalBackground: { type: String },
-    specializationTags: { type: [String] },
-    supportedCases: { type: [String] },
-    supportedIntents: { type: [String] },
-    escalationTier: { type: String },
-    slaHours: { type: Number },
-    maxActiveCases: { type: Number },
     ratingScore: { type: Number },
-    requiresPrePayment: { type: Boolean, default: true },
     status: { type: String, default: 'ACTIVE' }
 }, {
     timestamps: true,

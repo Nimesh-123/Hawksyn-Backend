@@ -1,5 +1,5 @@
 const { db } = require('../models/index.model.js');
-const { uploadFile } = require('../../utils/s3');
+const { uploadFile, deleteFile } = require('../../utils/s3');
 const { smartCVParser } = require('../../utils/aiParser');
 
 /**
@@ -156,6 +156,17 @@ exports.uploadRunCv = async (req, res) => {
 
         try {
             extractedData = await smartCVParser(file.buffer, file.originalname, file.mimetype);
+
+            // ✅ NEW: Reject if not a CV
+            if (extractedData && extractedData.isCv === false) {
+                console.warn(`[CV Guard] User ${userId} uploaded a non-CV document during Step 1. Deleting from S3...`);
+                await deleteFile(fileName);
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "The uploaded document does not appear to be a valid Resume/CV. Please upload a relevant professional document." 
+                });
+            }
+
             if (extractedData) {
                 try {
                     const { sanitizeParsedData } = require('../../utils/cvSanitizer.js');

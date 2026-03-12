@@ -1,4 +1,5 @@
 const { db } = require('../models/index.model.js');
+const { evaluateDependencyRule } = require('../../utils/evaluationHelpers.js');
 
 /**
  * API 1 — GET /api/runs/:runId/questions/next
@@ -60,58 +61,32 @@ exports.getNextQuestions = async (req, res) => {
         const dependencySkipLog = [];
         const visibleQuestions = [];
 
+        // Prepare comprehensive data map for shared evaluation logic
+        const profileMap = {
+            ...profileData,
+            ...allAnswerObjects.reduce((acc, a) => ({ ...acc, [a.questionId]: a.answerValue }), {})
+        };
+
         for (const mapping of remainingMappings) {
             const rule = await db.DependencyRules.findOne({
                 targetQuestionId: mapping.questionId,
                 isActive: true
             });
 
-            if (!rule || !rule.ruleJson || !rule.ruleJson.all) {
+            if (!rule) {
                 visibleQuestions.push(mapping);
                 continue;
             }
 
-            let allConditionsMet = true;
-            let skipReason = '';
-            let failedOn = '';
+            const shouldShow = evaluateDependencyRule(rule.ruleJson, profileMap);
 
-            for (const condition of rule.ruleJson.all) {
-                const { source, field, op, value } = condition;
-                let actualValue;
-
-                if (source === 'answer') {
-                    const ans = allAnswerObjects.find(a => a.questionId === field);
-                    actualValue = ans ? ans.answerValue : undefined;
-                } else if (source === 'profile') {
-                    // Navigate nested profile objects if field is like 'inferred.employmentStatus'
-                    actualValue = field.split('.').reduce((obj, key) => obj?.[key], profileData);
-                }
-
-                let conditionMet = false;
-                switch (op) {
-                    case 'eq': conditionMet = String(actualValue) === String(value); break;
-                    case 'neq': conditionMet = String(actualValue) !== String(value); break;
-                    case 'gte': conditionMet = Number(actualValue) >= Number(value); break;
-                    case 'lte': conditionMet = Number(actualValue) <= Number(value); break;
-                    case 'in': conditionMet = Array.isArray(value) && value.includes(actualValue); break;
-                    default: conditionMet = false;
-                }
-
-                if (!conditionMet) {
-                    allConditionsMet = false;
-                    skipReason = `condition_not_met_${op}`;
-                    failedOn = field;
-                    break;
-                }
-            }
-
-            if (allConditionsMet) {
+            if (shouldShow) {
                 visibleQuestions.push(mapping);
             } else {
                 dependencySkipLog.push({
                     questionId: mapping.questionId,
-                    skipReason,
-                    dependsOn: failedOn
+                    skipReason: rule.skipReason || 'dependency_not_met',
+                    dependsOn: 'multiple_conditions'
                 });
             }
         }
@@ -144,10 +119,10 @@ exports.getNextQuestions = async (req, res) => {
                     questionText: q.questionText,
                     questionType: q.questionType,
                     options: q.optionsJson || [], // Schema uses optionsJson
-                    scaleMin: q.scaleMin || null,
-                    scaleMax: q.scaleMax || null,
-                    numericMin: q.numericMin || null,
-                    numericMax: q.numericMax || null,
+                    scaleMin: q.scaleMin ?? null,
+                    scaleMax: q.scaleMax ?? null,
+                    numericMin: q.numericMin ?? null,
+                    numericMax: q.numericMax ?? null,
                     isRequired: true,
                     displayOrder: mapping.displayOrder,
                     accuracyImpactFlag: mapping.accuracyImpactFlag

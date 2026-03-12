@@ -16,9 +16,11 @@ const RunsSchema = new mongoose.Schema({
     playbookVersionId: { type: String, required: true },
     status: {
         type: String,
-        enum: ['IN_PROGRESS', 'COMPLETED', 'FAILED'],
+        enum: ['IN_PROGRESS', 'COMPLETED', 'FAILED', 'REPORT_COMPLETE', 'REPORT_FAILED'],
         default: 'IN_PROGRESS'
     },
+    finalReport: { type: mongoose.Schema.Types.Mixed, default: null },
+    verdict:     { type: String, enum: ['PROCEED', 'PAUSE', 'ABORT'], default: null },
     cvSnapshot: {
         cvUploadId: { type: mongoose.Schema.Types.ObjectId, ref: 'DocumentUploads', default: null },
         cvUrl: { type: String, default: null },
@@ -40,7 +42,7 @@ const RunsSchema = new mongoose.Schema({
 });
 
 // Indexes
-RunsSchema.index({ userId: 1 });
+
 RunsSchema.index({ userId: 1, status: 1 });
 RunsSchema.index({ caseId: 1, intentId: 1 });
 

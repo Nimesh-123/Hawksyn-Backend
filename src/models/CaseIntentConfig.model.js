@@ -6,8 +6,12 @@ const CaseIntentConfigSchema = new mongoose.Schema({
     playbookVersionId: { type: String, required: true },
     isDefault: { type: Boolean, default: false },
     displayOrder: { type: Number },
-    effectiveFrom: { type: Date },
-    effectiveTo: { type: Date },
+    minAgeYears: { type: Number, default: null },
+    maxAgeYears: { type: Number, default: null },
+    minExperienceYears: { type: Number, default: null },
+    maxExperienceYears: { type: Number, default: null },
+    effectiveFrom: { type: Date, default: null },
+    effectiveTo: { type: Date, default: null },
     isActive: { type: Boolean, default: true },
     notes: { type: String }
 }, {

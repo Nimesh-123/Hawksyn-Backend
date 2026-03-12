@@ -6,7 +6,8 @@ const mammoth = require('mammoth');
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-const MAX_CHARS = 30000; // Increased to 30k to handle long fragmented resumes without cutting off the projects at the bottom.
+const MAX_CHARS = 30000;
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // const AEU_SCHEMA_PROMPT = `
 // Act as a Precision CV Extraction Engine for Hawksyn. Your objective is ONLY to extract and structure data. DO NOT analyze, judge, or evaluate the candidate.
@@ -67,6 +68,8 @@ STRICT RULES:
 3. MANDATORY INF: Include all 5 AEU_INF_... units (Seniority, Years, Status, Domain, Edu).
 4. SPEED: Keep project descriptions to 1-2 concise sentences. Do NOT copy long paragraphs.
 5. aeuList: Include unique facts for Identity, Work, Comp, and Inferred.
+6. VALIDATION: Check if the text is clearly a CV/Resume (contains names, experience, education, or skills). If it is a DIFFERENT type of document (bank statement, book, invoice, story, etc.), set "isCv": false in the root. Otherwise true.
+7. Return VALID JSON ONLY.
 
 STRICT OUTPUT FORMAT:
 {
@@ -91,8 +94,9 @@ STRICT OUTPUT FORMAT:
       "training": [ { "courseName": "", "institution": "", "duration": "" } ],
       "senioritySummary": ""
     },
-    "inferred": { "seniorityLevel": "", "totalExperienceYears": 0, "employmentStatus": "", "domainIndicator": "", "highestEducationLevel": "", "seniorityConfidence": 0.9, "senioritySummary": "" }
-  }
+    "inferred": { "seniorityLevel": "", "totalExperienceYears": 0, "employmentStatus": "", "companySize": "", "domainIndicator": "", "highestEducationLevel": "", "seniorityConfidence": 0.9, "senioritySummary": "" }
+  },
+  "isCv": true
 }
 Return VALID JSON ONLY.`;
 
@@ -131,7 +135,8 @@ const standardizeAeuResponse = (jsonData, duration, modelUsed) => {
             }
         },
         parsingDuration: `${duration}s`,
-        modelUsed: modelUsed
+        modelUsed: modelUsed,
+        isCv: jsonData.isCv !== undefined ? jsonData.isCv : true // Default to true if not explicitly false
     };
 
     // Extra polish: ensure identity fields are top-level if nested in response
@@ -264,7 +269,7 @@ const parseWithOpenAI = async (text, fileName) => {
                         { role: "user", content: `Focus: ALL PROJECTS. Search for every project listed in the CV. Extract EVERY SINGLE ONE. Transcription:\n${cleanText}` }
                     ],
                     response_format: { type: "json_object" },
-                    temperature: 0.1,
+                    temperature: 0,
                 })
             ]);
 
@@ -316,7 +321,28 @@ const parseWithGemini = async (text, fileName) => {
 
         const prompt = `${AEU_SCHEMA_PROMPT}\n\nResume Content:\n${text}\n\nCRITICAL: Return ONLY valid JSON matching the schema precisely.`;
 
-        const result = await model.generateContent(prompt);
+        // ✅ Optimized Retry Logic for Paid Tier (Short wait)
+        let result = null;
+        let attempts = 0;
+        const maxAttempts = 2; // Simple 1-time retry is usually enough for paid burst limits
+
+        while (attempts < maxAttempts) {
+            try {
+                attempts++;
+                result = await model.generateContent(prompt);
+                break; // Success!
+            } catch (err) {
+                const isRateLimit = err.message?.includes('429') || err.message?.includes('Resource exhausted');
+                if (isRateLimit && attempts < maxAttempts) {
+                    const waitTime = 1000; // Just 1 second is enough for paid tier recovery
+                    console.warn(`[AI Parser] Gemini 429 detected. Retrying in ${waitTime}ms...`);
+                    await sleep(waitTime);
+                    continue;
+                }
+                throw err;
+            }
+        }
+
         const response = await result.response;
 
         // Safety check for empty or blocked response

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const PlaybooksSchema = new mongoose.Schema({
-    playbookId: { type: String, required: true },
+    playbookId: { type: String, required: true, unique: true },
     playbookVersionId: { type: String, required: true, unique: true },
     playbookName: { type: String, required: true },
     version: { type: String },
@@ -16,10 +16,10 @@ const PlaybooksSchema = new mongoose.Schema({
     mandatoryDocumentFields: { type: String },
     objectiveInputSchemaId: { type: String },
     outputContracts: { type: String },
-    layerGuardrails: { type: mongoose.Schema.Types.Mixed },
-    configJson: { type: mongoose.Schema.Types.Mixed },
+    layerGuardrails: { type: mongoose.Schema.Types.Mixed, default: null },
+    configJson: { type: mongoose.Schema.Types.Mixed, default: null },
     effectiveFrom: { type: Date },
-    effectiveTo: { type: Date },
+    effectiveTo: { type: Date, default: null },
     isActive: { type: Boolean, default: true },
     notes: { type: String }
 }, {

@@ -1,37 +1,15 @@
 const { db } = require('../models/index.model.js');
+const {
+    getConstraintBand,
+    evaluateRuleJson,
+    calculateQuestionScore,
+    evaluateCondition
+} = require('../../utils/evaluationHelpers.js');
 
-/**
- * Helper function to evaluate conditions for contradictions and red flags
- */
-function evaluateCondition(answerValue, operator, conditionValue) {
-    if (answerValue === undefined || answerValue === null) return false;
-
-    const numVal = Number(answerValue);
-    const numCond = Number(conditionValue);
-    const strVal = String(answerValue);
-    const strCond = String(conditionValue);
-
-    switch (operator.toLowerCase()) {
-        case 'eq':
-            return strVal === strCond;
-        case 'neq':
-            return strVal !== strCond;
-        case 'gte':
-            return numVal >= numCond;
-        case 'lte':
-            return numVal <= numCond;
-        case 'gt':
-            return numVal > numCond;
-        case 'lt':
-            return numVal < numCond;
-        case 'in':
-            if (Array.isArray(conditionValue)) {
-                return conditionValue.includes(answerValue);
-            }
-            return String(conditionValue).split(',').map(v => v.trim()).includes(strVal);
-        default:
-            return false;
-    }
+const SEVERITY_ORDER = { LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 };
+function shouldTriggerWarning(warning, currentAccuracyBand) {
+    if (!warning.minSeverityBand) return true;
+    return (SEVERITY_ORDER[currentAccuracyBand] || 0) >= (SEVERITY_ORDER[warning.minSeverityBand] || 0);
 }
 
 /**
@@ -69,6 +47,12 @@ exports.runIntegrityEngine = async (req, res) => {
                 }
             });
 
+        // Map for fast lookup
+        const answersMap = {};
+        allAnswers.forEach(a => {
+            answersMap[a.questionId] = a.answerValue;
+        });
+
         // 3. External Signals (Point #5.2)
         const allSignals = [];
         rasInputs.filter(r => r.artifactType === 'EXTERNAL_SIGNALS_CAPTURED')
@@ -96,41 +80,13 @@ exports.runIntegrityEngine = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Evaluation config (ELR) not found' });
         }
 
-        // STEP D — Score each answer
+        // STEP D — Score each answer using shared helper
         const scoredAnswers = [];
         for (const answer of allAnswers) {
             const q = await db.Questions.findOne({ questionId: answer.questionId });
             if (!q) continue;
 
-            let score = 0;
-            if (q.scoringType === 'MCQ_MAP') {
-                const chosenOption = q.optionsJson?.find(o => (o.opt || o) === answer.answerValue);
-                if (chosenOption) {
-                    const optionScore = chosenOption.score;
-                    const mapEntry = q.scoringMapJson?.find(m => m.optionScore === optionScore);
-                    score = mapEntry ? mapEntry.normalizedScore : 0;
-                }
-            } else if (q.scoringType === 'NUMERIC_RANGE') {
-                const val = Number(answer.answerValue);
-                const ranges = q.scoringMapJson || {};
-                for (const [range, pts] of Object.entries(ranges)) {
-                    if (range.endsWith('+')) {
-                        if (val >= parseInt(range)) { score = pts; break; }
-                    } else {
-                        const [min, max] = range.split('-').map(Number);
-                        if (val >= min && val <= max) { score = pts; break; }
-                    }
-                }
-            } else if (q.scoringType === 'SCALE_LINEAR') {
-                const val = Number(answer.answerValue);
-                const minScore = q.normalizationMin ?? 0;
-                const maxScore = q.normalizationMax ?? 100;
-                const range = (q.numericMax - q.numericMin) || 1;
-                score = Math.round(minScore + ((val - q.numericMin) / range) * (maxScore - minScore));
-            } else {
-                const chosenOption = q.optionsJson?.find(o => (o.opt || o) === answer.answerValue);
-                score = chosenOption ? (chosenOption.score || 0) : 0;
-            }
+            const score = calculateQuestionScore(q, answer.answerValue);
 
             scoredAnswers.push({
                 questionId: answer.questionId,
@@ -141,8 +97,11 @@ exports.runIntegrityEngine = async (req, res) => {
             });
         }
 
-        // STEP E — Evaluate constraints (Uses CTT: thresholds array)
+        // STEP E — Evaluate constraints (Uses flat fields)
         const constraintResults = [];
+        const terminalConstraints = [];
+        let hasTerminalFailure = false;
+
         const constraints = await db.Constraints.find({
             caseId: run.caseId,
             intentId: run.intentId,
@@ -166,32 +125,37 @@ exports.runIntegrityEngine = async (req, res) => {
 
             const constraintScore = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
 
-            // ✅ FIX 1: Use CTT (Constraint Threshold Taxonomy) from model
-            let band = 'UNCLASSIFIED';
-            if (constraint.thresholds && Array.isArray(constraint.thresholds)) {
-                const match = constraint.thresholds.find(t => constraintScore >= t.minScore && constraintScore <= t.maxScore);
-                if (match) band = match.bandName;
+            const bandResult = getConstraintBand(constraint, constraintScore);
+            const bandName = bandResult.band;
+            const isTerminal = bandResult.isTerminal;
+
+            if (isTerminal) {
+                hasTerminalFailure = true;
+                terminalConstraints.push(constraint.constraintId);
             }
 
             constraintResults.push({
                 constraintId: constraint.constraintId,
                 constraintName: constraint.constraintName,
                 score: constraintScore,
-                band,
-                isBlocking: constraint.isBlockingConstraint && (band === 'CRITICAL' || band === 'TERMINAL_FAILURE')
+                band: bandResult.band,
+                color: bandResult.color,
+                priority: bandResult.priority,
+                isTerminal: bandResult.isTerminal,
+                isBlocking: constraint.isBlockingConstraint && bandResult.isTerminal
             });
         }
 
-        // ✅ FIX 2: Coverage Check (CRT + CAT)
+        // STEP F — Coverage Check (CRT + CAT)
         const coverageResults = [];
         let coveragePenalty = 0;
+        let requiresEscalation = false;
 
         const crtMap = await db.CoverageRequirements.find({
             coverageSetId: elr.coverageSetId,
             isActive: true
         });
 
-        // CAT (Constraint Adjustment Taxonomy / DataPatternKeyTaxonomy)
         const patterns = await db.DataPatternKeyTaxonomy.find({
             caseId: run.caseId,
             intentId: run.intentId,
@@ -202,36 +166,38 @@ exports.runIntegrityEngine = async (req, res) => {
             let sufficiency = 'MISSING';
             let evidenceCount = 0;
 
-            // Check Question-based anchors
             if (crt.requiredSourcesJson?.questionIds) {
                 const present = crt.requiredSourcesJson.questionIds.filter(qid => allAnswers.some(a => a.questionId === qid));
                 evidenceCount += present.length;
             }
 
-            // Check Signal-based anchors
             if (crt.requiredSourcesJson?.externalSignalIds) {
                 const present = crt.requiredSourcesJson.externalSignalIds.filter(sid => allSignals.some(s => s.signalId === sid));
                 evidenceCount += present.length;
             }
 
-            // Check Pattern-based anchors (CAT logic)
             const relatedPatterns = patterns.filter(p => p.producesAnchorName === crt.anchorName);
             for (const pattern of relatedPatterns) {
                 const presentSignals = pattern.requiredSignals.filter(sid => allSignals.some(s => s.signalId === sid));
                 if (presentSignals.length >= (pattern.minRequiredSignals || 1)) {
-                    evidenceCount += 1; // Pattern satisfied
+                    evidenceCount += 1;
                 }
             }
 
             if (evidenceCount >= (crt.minimumEvidenceCount || 1)) sufficiency = 'FOUND';
             else if (evidenceCount > 0 && crt.allowsPartial) sufficiency = 'PARTIAL';
-            else sufficiency = 'NOT FOUND';
+            else sufficiency = 'NOT_FOUND';
 
             let penalty = 0;
-            if (sufficiency === 'NOT FOUND') penalty = crt.missingPenaltyPoints || 0;
+            if (sufficiency === 'NOT_FOUND') penalty = crt.missingPenaltyPoints || 0;
             else if (sufficiency === 'PARTIAL') penalty = crt.partialPenaltyPoints || 0;
 
             coveragePenalty += penalty;
+
+            if (crt.escalationThreshold != null && penalty >= crt.escalationThreshold) {
+                requiresEscalation = true;
+            }
+
             coverageResults.push({
                 anchor: crt.anchorName,
                 sufficiency,
@@ -240,7 +206,7 @@ exports.runIntegrityEngine = async (req, res) => {
             });
         }
 
-        // ✅ FIX 3: Contradictions (CCT: ruleJson + CST: severity/penalty)
+        // STEP G — Contradictions
         const contradictionResults = [];
         const contradictions = await db.Contradictions.find({
             caseId: run.caseId,
@@ -249,31 +215,24 @@ exports.runIntegrityEngine = async (req, res) => {
         });
 
         for (const contradiction of contradictions) {
-            let triggered = false;
-            // CCT logic (Rule Evaluation)
-            if (contradiction.ruleJson && contradiction.ruleJson.conditions) {
-                const results = contradiction.ruleJson.conditions.map(cond => {
-                    const ans = allAnswers.find(a => a.questionId === cond.field);
-                    if (!ans) return false;
-                    return evaluateCondition(ans.answerValue, cond.operator, cond.value);
-                });
-
-                if (contradiction.ruleJson.operator === 'AND') triggered = results.every(r => r === true);
-                else if (contradiction.ruleJson.operator === 'OR') triggered = results.some(r => r === true);
-            }
+            const triggered = evaluateRuleJson(contradiction.ruleJson, answersMap);
 
             if (triggered) {
+                const accuracyPenalty = contradiction.accuracyPenaltyPoints || 0;
+                const confidencePenalty = contradiction.confidencePenaltyPoints || 0;
+                const severity = contradiction.severityBand || contradiction.defaultSeverityBand || 'MEDIUM';
+
                 contradictionResults.push({
                     contradictionId: contradiction.contradictionId,
                     contradictionName: contradiction.contradictionName,
-                    // CST logic (Severity & Penalty)
-                    severity: contradiction.severityBand || 'MEDIUM',
-                    penaltyScore: contradiction.accuracyPenaltyPoints || 0
+                    severity,
+                    accuracyPenaltyScore: accuracyPenalty,
+                    confidencePenaltyScore: confidencePenalty
                 });
             }
         }
 
-        // ✅ FIX 4: Red Flag Uniqueness Check
+        // STEP H — Red Flag Uniqueness Check
         const redFlagResults = [];
         const allRedFlags = await db.RedFlagTaxonomy.find({
             caseId: run.caseId,
@@ -284,84 +243,106 @@ exports.runIntegrityEngine = async (req, res) => {
         const triggeredFlagIds = new Set();
         for (const flag of allRedFlags) {
             let triggered = false;
-
             if (flag.triggerSource === 'QUESTION_ANSWER') {
-                const answer = allAnswers.find(a => a.questionId === flag.triggerReferenceId);
-                if (answer) triggered = evaluateCondition(answer.answerValue, flag.ruleJson?.op || 'eq', flag.ruleJson?.value || '');
+                triggered = evaluateCondition(flag.triggerReferenceId, flag.ruleJson?.op || 'eq', flag.ruleJson?.value || '', answersMap);
             } else if (flag.triggerSource === 'CONSTRAINT' || flag.triggerSource === 'CONSTRAINT_SCORE') {
                 const constraint = constraintResults.find(c => c.constraintId === flag.triggerReferenceId);
-                if (constraint && (constraint.band === 'CRITICAL' || constraint.band === 'FRAGILE')) triggered = true;
+                if (constraint && constraint.band === 'CRITICAL') triggered = true;
             } else if (flag.triggerSource === 'CONTRADICTION') {
                 const contra = contradictionResults.find(c => c.contradictionId === flag.triggerReferenceId);
                 if (contra) triggered = true;
             }
 
-            // EXPLICIT UNIQUENESS CHECK
             if (triggered) {
-                if (flag.uniquenessMode === 'UNIQUE' && triggeredFlagIds.has(flag.redFlagId)) {
-                    continue; // Skip duplicate
-                }
+                if (flag.uniquenessMode === 'UNIQUE' && triggeredFlagIds.has(flag.redFlagId)) continue;
                 triggeredFlagIds.add(flag.redFlagId);
                 redFlagResults.push({
                     redFlagId: flag.redFlagId,
                     redFlagName: flag.redFlagName,
                     severityBand: flag.severityBand,
                     penaltyPoints: flag.penaltyPoints || 0,
-                    remediationCode: flag.remediationCode || null, // ✅ Point #6.4
+                    remediationCode: flag.remediationCode || null,
                     triggerSource: flag.triggerSource,
                     triggerReferenceId: flag.triggerReferenceId
                 });
             }
         }
 
-        // Warnings Mapping
-        const warningResults = [];
-        for (const flag of redFlagResults) {
-            const warning = await db.Warnings.findOne({ redFlagId: flag.redFlagId, isActive: true });
-            if (warning) warningResults.push({
-                warningId: warning.warningId,
-                warningTitle: warning.warningTitle,
-                warningMessage: warning.warningMessage,
-                severityBand: warning.severityBand,
-                displayPriority: warning.displayPriority || 99
-            });
-        }
-        warningResults.sort((a, b) => a.displayPriority - b.displayPriority);
-
-        // Score Calculation
+        // STEP I — Warnings & Score
         const policy = await db.AccuracyScoringPolicy.findOne({ caseId: run.caseId, intentId: run.intentId, isActive: true });
         if (!policy) return res.status(404).json({ success: false, message: 'Accuracy policy not found' });
 
         let accuracyScore = policy.baseScore || 100;
         const totalPenalty = Math.min(
-            contradictionResults.reduce((sum, c) => sum + c.penaltyScore, 0) +
+            contradictionResults.reduce((sum, c) => sum + (c.accuracyPenaltyScore || 0), 0) +
             redFlagResults.reduce((sum, f) => sum + f.penaltyPoints, 0) +
             coveragePenalty,
             policy.maxTotalPenalty || 75
         );
-
         accuracyScore = Math.max(accuracyScore - totalPenalty, policy.floorScore || 0);
 
         let accuracyBand = 'VERY_LOW';
         if (policy.bandRulesJson) {
             const bands = policy.bandRulesJson;
-            if (accuracyScore >= bands.HIGH?.min) accuracyBand = 'HIGH';
-            else if (accuracyScore >= bands.MEDIUM?.min) accuracyBand = 'MEDIUM';
-            else if (accuracyScore >= bands.LOW?.min) accuracyBand = 'LOW';
+            if (accuracyScore >= (bands.HIGH?.min || 80)) accuracyBand = 'HIGH';
+            else if (accuracyScore >= (bands.MEDIUM?.min || 60)) accuracyBand = 'MEDIUM';
+            else if (accuracyScore >= (bands.LOW?.min || 40)) accuracyBand = 'LOW';
         }
 
-        // ✅ FIX 5: Integrity Pack (Single RAS Artifact)
+        // Warning Mapping with minSeverityBand filter
+        const warningResults = [];
+        for (const flag of redFlagResults) {
+            const warning = await db.Warnings.findOne({ redFlagId: flag.redFlagId, isActive: true });
+            if (warning && shouldTriggerWarning(warning, accuracyBand)) {
+                warningResults.push({
+                    warningId: warning.warningId,
+                    warningTitle: warning.warningTitle,
+                    warningMessage: warning.warningMessage,
+                    severityBand: warning.severityBand,
+                    displayPriority: warning.displayPriority || 99
+                });
+            }
+        }
+        warningResults.sort((a, b) => a.displayPriority - b.displayPriority);
+
+        // ✅ FINAL FIX: Integrity Pack (Single RAS Artifact)
+        // ✅ FINAL FIX: Integrity Pack (Single RAS Artifact)
         const integrityPackId = `RAS_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
         const integrityPack = {
             runId,
             stepNo: 4,
-            accuracy: { accuracyScore, accuracyBand, totalPenalty },
-            constraints: constraintResults,
-            coverage: { results: coverageResults, totalPenalty: coveragePenalty },
-            contradictions: contradictionResults,
-            redFlags: redFlagResults,
-            warnings: warningResults,
-            requiresEscalation: accuracyScore <= (policy.escalationThresholdScore || 40)
+
+            accuracy: {
+                score:             accuracyScore,
+                band:              accuracyBand,
+                totalPenalty:      totalPenalty,
+                escalationRequired: requiresEscalation || accuracyScore <= (policy.escalationThresholdScore || 40)
+            },
+
+            constraints: {
+                results:            constraintResults,
+                hasTerminalFailure: hasTerminalFailure,
+                terminalConstraints: terminalConstraints
+            },
+
+            coverage: {
+                results:      coverageResults,
+                totalPenalty: coveragePenalty
+            },
+
+            contradictions: {
+                triggered:    contradictionResults,
+                totalPenalty: contradictionResults.reduce((sum, c) => sum + (c.accuracyPenaltyScore || 0), 0)
+            },
+
+            redFlags: {
+                triggered:    redFlagResults,
+                totalPenalty: redFlagResults.reduce((sum, f) => sum + (f.penaltyPoints || 0), 0)
+            },
+
+            warnings:           warningResults,
+            hasTerminalFailure: hasTerminalFailure,
+            requiresEscalation: requiresEscalation || accuracyScore <= (policy.escalationThresholdScore || 40)
         };
 
         await db.Ras.create({
@@ -378,9 +359,16 @@ exports.runIntegrityEngine = async (req, res) => {
             success: true,
             data: {
                 runId,
-                rasId: integrityPackId,
-                ...integrityPack,
-                message: 'Integrity engine completed successfully.'
+                rasId:             integrityPackId,
+                accuracy:          integrityPack.accuracy,
+                constraints:       integrityPack.constraints,
+                coverage:          integrityPack.coverage,
+                contradictions:    integrityPack.contradictions,
+                redFlags:          integrityPack.redFlags,
+                warnings:          integrityPack.warnings,
+                hasTerminalFailure: integrityPack.hasTerminalFailure,
+                requiresEscalation: integrityPack.requiresEscalation,
+                message:           'Integrity engine completed successfully.'
             }
         });
 

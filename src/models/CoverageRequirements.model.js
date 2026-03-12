@@ -16,6 +16,8 @@ const CoverageRequirementsSchema = new mongoose.Schema({
     stackingMode: { type: String },
     stackingCapPoints: { type: Number },
     displayOrder: { type: Number },
+    escalationThreshold: { type: Number, default: null },
+    escalationPenaltyPoints: { type: Number, default: null },
     isActive: { type: Boolean, default: true }
 }, {
     timestamps: true,

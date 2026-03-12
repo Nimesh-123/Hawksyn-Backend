@@ -26,7 +26,7 @@ db.DecisionAssuranceSections = require('./DecisionAssuranceSections.model');
 db.PromptConfigRegistry = require('./PromptConfigRegistry.model');
 db.Runs = require('./Runs.model');
 db.Payments = require('./Payments.model');
-db.ProfileSnapshots = require('./ProfileSnapshots.model');
+
 db.UserProfile = require('./UserProfile.model');
 db.DependencyRules = require('./DependencyRules.model');
 db.ExternalSignalTaxonomy = require('./ExternalSignalTaxonomy.model');
