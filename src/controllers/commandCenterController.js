@@ -521,7 +521,7 @@ exports.runHawk = async (req, res) => {
 exports.refreshClocksFromCase = async (req, res) => {
     try {
         const { userId } = req.params;
-        const { runId } = req.body;
+        const { runId } = req.body || {};
 
         const user = await db.User.findById(userId);
         if (!user) return res.status(404).json({ success: false, message: 'User not found' });

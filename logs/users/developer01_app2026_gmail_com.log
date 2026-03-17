@@ -100,3 +100,6 @@
 [2026-03-17 15:33:45] [INFO] [304ff2f0-f195-47bd-bd4e-d25425a7f9f0] [User: 69b5236e33db32d3118765e8] GET /api/v1/users/69b5236e33db32d3118765e8/records?page=1&limit=5 -> 200 (256ms)
 [2026-03-17 15:35:59] [INFO] [7f9bb91a-ba6d-4c64-b613-cee25d65b2df] [User: 69b5236e33db32d3118765e8] GET /api/v1/users/69b5236e33db32d3118765e8/records/RUN_20260314_0003 -> 200 (171ms)
 [2026-03-17 15:38:10] [INFO] [3ecdb451-9ee8-48b6-a14b-466f8fa2b228] [User: 69b5236e33db32d3118765e8] GET /api/v1/users/69b5236e33db32d3118765e8/records?page=1&limit=5 -> 200 (172ms)
+[2026-03-17 16:48:25] [INFO] [3e4d9a2a-e3eb-480a-805c-0407a33cdc84] [User: 69b5236e33db32d3118765e8] GET /api/v1/command-center/69b5236e33db32d3118765e8/command-center -> 200 (332ms)
+[2026-03-17 17:42:12] [INFO] [7e2535d4-5099-40aa-88c3-2ed39306e4d3] [User: 69b5236e33db32d3118765e8] GET /api/v1/command-center/69b5236e33db32d3118765e8/credits -> 200 (76ms)
+[2026-03-17 17:42:37] [ERROR] [d663c57a-0658-4261-bf4a-73bb9b01ae2f] [User: 69b5236e33db32d3118765e8] POST /api/v1/command-center/69b5236e33db32d3118765e8/clock-refresh-from-case -> 500 (25ms) [REASON: Cannot destructure property 'runId' of 'req.body' as it is undefined.]
