@@ -25,9 +25,13 @@ exports.runIntegrityEngine = async (req, res) => {
         if (!run) {
             return res.status(404).json({ success: false, message: 'Run not found' });
         }
-        if (run.status !== 'IN_PROGRESS') {
-            return res.status(400).json({ success: false, message: 'Run is not in progress' });
+        
+        const allowedStatuses = ['PROFILE_CONFIRMED', 'QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED', 'INTEGRITY_COMPLETE', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED'];
+        if (!allowedStatuses.includes(run.status)) {
+            return res.status(400).json({ success: false, message: `Run must be in one of the allowed analysis states (current: ${run.status})` });
         }
+
+
 
         // STEP B — Load all inputs from RAS (Points #2 & #4.3)
         const rasInputs = await db.Ras.find({
@@ -39,18 +43,28 @@ exports.runIntegrityEngine = async (req, res) => {
         const profileSnapshot = rasInputs.find(r => r.artifactType === 'PROFILE_CONFIRMED')?.artifactJson || {};
 
         // 2. Objective Inputs Captured (Step-3)
-        const allAnswers = [];
+        const allAnswersMap = new Map(); // Use Map to handle deduplication across batches if any
         rasInputs.filter(r => r.artifactType === 'OBJECTIVE_INPUTS_CAPTURED')
             .forEach(record => {
                 if (record.artifactJson.answers && Array.isArray(record.artifactJson.answers)) {
-                    record.artifactJson.answers.forEach(a => allAnswers.push(a));
+                    record.artifactJson.answers.forEach(a => {
+                        // FIX: Prefer answerLabel (descriptive text) over answerValue (numeric ID)
+                        // This ensures getNormalizedScore / calculateQuestionScore matches correctly.
+                        const resolvedValue = a.answerLabel || a.answerValue;
+                        allAnswersMap.set(a.questionId, {
+                            ...a,
+                            resolvedValue
+                        });
+                    });
                 }
             });
 
-        // Map for fast lookup
+        const allAnswers = Array.from(allAnswersMap.values());
+
+        // Map for fast lookup (Contradictions/Red Flags)
         const answersMap = {};
         allAnswers.forEach(a => {
-            answersMap[a.questionId] = a.answerValue;
+            answersMap[a.questionId] = a.resolvedValue;
         });
 
         // 3. External Signals (Point #5.2)
@@ -86,11 +100,11 @@ exports.runIntegrityEngine = async (req, res) => {
             const q = await db.Questions.findOne({ questionId: answer.questionId });
             if (!q) continue;
 
-            const score = calculateQuestionScore(q, answer.answerValue);
+            const score = calculateQuestionScore(q, answer.resolvedValue);
 
             scoredAnswers.push({
                 questionId: answer.questionId,
-                answerValue: answer.answerValue,
+                answerValue: answer.resolvedValue,
                 rawScore: score,
                 weight: q.defaultWeight || 1,
                 scoringType: q.scoringType
@@ -247,7 +261,15 @@ exports.runIntegrityEngine = async (req, res) => {
                 triggered = evaluateCondition(flag.triggerReferenceId, flag.ruleJson?.op || 'eq', flag.ruleJson?.value || '', answersMap);
             } else if (flag.triggerSource === 'CONSTRAINT' || flag.triggerSource === 'CONSTRAINT_SCORE') {
                 const constraint = constraintResults.find(c => c.constraintId === flag.triggerReferenceId);
-                if (constraint && constraint.band === 'CRITICAL') triggered = true;
+                if (constraint) {
+                    // FIX: Trigger logic based on Red Flag severityBand vs Constraint band
+                    const shouldTrigger = 
+                        (flag.severityBand === 'CRITICAL' && constraint.band === 'CRITICAL') ||
+                        (flag.severityBand === 'HIGH'     && ['CRITICAL', 'FRAGILE'].includes(constraint.band)) ||
+                        (flag.severityBand === 'MEDIUM'   && ['CRITICAL', 'FRAGILE', 'MODERATE'].includes(constraint.band));
+
+                    if (shouldTrigger) triggered = true;
+                }
             } else if (flag.triggerSource === 'CONTRADICTION') {
                 const contra = contradictionResults.find(c => c.contradictionId === flag.triggerReferenceId);
                 if (contra) triggered = true;
@@ -313,34 +335,34 @@ exports.runIntegrityEngine = async (req, res) => {
             stepNo: 4,
 
             accuracy: {
-                score:             accuracyScore,
-                band:              accuracyBand,
-                totalPenalty:      totalPenalty,
+                score: accuracyScore,
+                band: accuracyBand,
+                totalPenalty: totalPenalty,
                 escalationRequired: requiresEscalation || accuracyScore <= (policy.escalationThresholdScore || 40)
             },
 
             constraints: {
-                results:            constraintResults,
+                results: constraintResults,
                 hasTerminalFailure: hasTerminalFailure,
                 terminalConstraints: terminalConstraints
             },
 
             coverage: {
-                results:      coverageResults,
+                results: coverageResults,
                 totalPenalty: coveragePenalty
             },
 
             contradictions: {
-                triggered:    contradictionResults,
+                triggered: contradictionResults,
                 totalPenalty: contradictionResults.reduce((sum, c) => sum + (c.accuracyPenaltyScore || 0), 0)
             },
 
             redFlags: {
-                triggered:    redFlagResults,
+                triggered: redFlagResults,
                 totalPenalty: redFlagResults.reduce((sum, f) => sum + (f.penaltyPoints || 0), 0)
             },
 
-            warnings:           warningResults,
+            warnings: warningResults,
             hasTerminalFailure: hasTerminalFailure,
             requiresEscalation: requiresEscalation || accuracyScore <= (policy.escalationThresholdScore || 40)
         };
@@ -355,20 +377,24 @@ exports.runIntegrityEngine = async (req, res) => {
             status: 'FINAL'
         });
 
+        // Update run status
+        await db.Runs.updateOne({ runId }, { $set: { status: 'INTEGRITY_COMPLETE' } });
+
+
         return res.status(200).json({
             success: true,
             data: {
                 runId,
-                rasId:             integrityPackId,
-                accuracy:          integrityPack.accuracy,
-                constraints:       integrityPack.constraints,
-                coverage:          integrityPack.coverage,
-                contradictions:    integrityPack.contradictions,
-                redFlags:          integrityPack.redFlags,
-                warnings:          integrityPack.warnings,
+                rasId: integrityPackId,
+                accuracy: integrityPack.accuracy,
+                constraints: integrityPack.constraints,
+                coverage: integrityPack.coverage,
+                contradictions: integrityPack.contradictions,
+                redFlags: integrityPack.redFlags,
+                warnings: integrityPack.warnings,
                 hasTerminalFailure: integrityPack.hasTerminalFailure,
                 requiresEscalation: integrityPack.requiresEscalation,
-                message:           'Integrity engine completed successfully.'
+                message: 'Integrity engine completed successfully.'
             }
         });
 

@@ -229,9 +229,10 @@ exports.deleteAccount = async (req, res) => {
             const runs = await db.Runs.find({ userId }).select('runId');
             const runIds = runs.map(r => r.runId);
 
-            // 2. Cascade Delete Decision Assurance Data
+            // 2. Cascade Delete Decision Assurance Data (Runs + RAS + CaseFiles)
             if (runIds.length > 0) {
                 await db.Ras.deleteMany({ runId: { $in: runIds } });
+                await db.CaseFile.deleteMany({ runId: { $in: runIds } });
             }
 
             // 3. Delete User Assets & Config
@@ -240,12 +241,16 @@ exports.deleteAccount = async (req, res) => {
             await db.UserProfile.deleteMany({ userId });
             await db.DocumentUploads.deleteMany({ userId });
 
+            // 4. Delete Command Center Data (Clocks + Credits)
+            await db.UserClocks.deleteMany({ userId });
+            await db.ClockHistory.deleteMany({ userId });
+            await db.UserCredits.deleteMany({ userId });
             
-            // 4. Clean up Authentication & Logs
+            // 5. Clean up Authentication & Logs
             await db.OTP.deleteMany({ email: user.email });
             await db.AuditLog.deleteMany({ userId });
 
-            // 5. Finally delete the core User record
+            // 6. Finally delete the core User record
             await db.User.findByIdAndDelete(userId);
 
             console.log(`[Account Delete] Hard delete successful for user: ${userId}`);

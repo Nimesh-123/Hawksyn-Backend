@@ -188,7 +188,7 @@ exports.verifyPayment = async (req, res) => {
                 data: {
                     paymentId: payment.paymentId,
                     runId: payment.runId,
-                    status: "IN_PROGRESS",
+                    status: "CREATED",
                     alreadyVerified: true,
                     message: "Payment already verified."
                 }
@@ -219,7 +219,7 @@ exports.verifyPayment = async (req, res) => {
 
         // Check existing run
 
-        let run = await Runs.findOne({ userId, caseId, intentId, status: 'IN_PROGRESS' });
+        let run = await Runs.findOne({ userId, caseId, intentId, status: 'CREATED' });
 
         if (!run) {
             // Generate runId
@@ -230,7 +230,7 @@ exports.verifyPayment = async (req, res) => {
                 caseId,
                 intentId,
                 playbookVersionId: config.playbookVersionId,
-                status: 'IN_PROGRESS',
+                status: 'CREATED',
                 cvSnapshot: {
                     cvUploadId: userProfile.lastCvUploadId,
                     cvUrl: userProfile.cvUrl,
@@ -256,7 +256,7 @@ exports.verifyPayment = async (req, res) => {
                 caseId,
                 intentId,
                 playbookVersionId: config.playbookVersionId,
-                status: "IN_PROGRESS",
+                status: "CREATED",
                 cvRequired: playbook.documentMandatory,
                 message: "Payment verified. Run created successfully."
             }
@@ -282,8 +282,13 @@ exports.getPaymentStatus = async (req, res) => {
         // 1. Check for completed payment
         const completedPayment = await Payments.findOne({ userId, caseId, intentId, status: 'COMPLETED' });
 
-        // 2. Check for active run
-        const activeRun = await Runs.findOne({ userId, caseId, intentId, status: 'IN_PROGRESS' });
+        // 2. Check for ANY run (active or completed) for this case/intent
+        let activeRun = null;
+        if (completedPayment && completedPayment.runId) {
+            activeRun = await Runs.findOne({ runId: completedPayment.runId });
+        } else {
+            activeRun = await Runs.findOne({ userId, caseId, intentId }).sort({ createdAt: -1 });
+        }
 
         if (completedPayment || activeRun) {
             return res.status(200).json({
@@ -292,7 +297,11 @@ exports.getPaymentStatus = async (req, res) => {
                     isPaid: true,
                     hasActiveRun: !!activeRun,
                     runId: activeRun ? activeRun.runId : (completedPayment ? completedPayment.runId : null),
-                    status: activeRun ? "RESUME_RUN" : "PAYMENT_DONE_RUN_NOT_STARTED"
+                    status: activeRun ? "RESUME_RUN" : "PAYMENT_DONE_RUN_NOT_STARTED",
+                    runStatus: activeRun ? activeRun.status : null,
+                    message: activeRun && ['QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED', 'INTEGRITY_COMPLETE', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED'].includes(activeRun.status)
+                        ? "Questions already answered. Proceed to analysis."
+                        : activeRun ? "Resume your current run." : "Payment complete. Start your run."
                 }
             });
         }

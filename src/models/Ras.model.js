@@ -13,6 +13,7 @@ const RasSchema = new mongoose.Schema({
             'MISSING_FIELD_QUESTIONS',
             'PROFILE_CONFIRMED',
             'OBJECTIVE_INPUTS_CAPTURED',
+            'EXTERNAL_SIGNALS_CAPTURED',
             'CONSTRAINT_SCORES',
             'RED_FLAGS_TRIGGERED',
             'INTEGRITY_PACK',

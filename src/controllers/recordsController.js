@@ -8,16 +8,18 @@ const { db } = require('../models/index.model.js');
 
 // ─────────────────────────────────────────────────────────
 // HELPER — buildRunSummary
-// Single run ka summary object banata hai RAS data se
+// Single run ka summary object banata hai for Slide 44
 // ─────────────────────────────────────────────────────────
 async function buildRunSummary(run) {
-    // Load all RAS artifacts for this run in one query
+    // 1. Fetch Case Name from Registry
+    const caseData = await db.CaseRegistry.findOne({ caseId: run.caseId }).lean();
+    
+    // 2. Load all RAS artifacts for this run
     const rasArtifacts = await db.Ras.find({
         runId:  run.runId,
         status: 'FINAL'
     });
 
-    // Map by artifactType for easy access
     const rasMap = {};
     for (const ras of rasArtifacts) {
         rasMap[ras.artifactType] = ras.artifactJson;
@@ -25,120 +27,123 @@ async function buildRunSummary(run) {
 
     const finalReport   = rasMap['FINAL_REPORT']    || null;
     const expertData    = rasMap['EXPERT_ASSIGNED']  || null;
+    const objectiveData = rasMap['OBJECTIVE_INPUTS_CAPTURED'] || run.objectiveInputs || null;
 
-    // Build sections summary from report
-    const sectionsSummary = (finalReport?.sections || []).map(s => ({
-        sectionId:   s.sectionId,
-        sectionName: s.sectionName,
-        status:      s.status,
-        degraded:    s.degraded || false
-    }));
+    // 3. Duration Calculation (Slide 44)
+    let durationStr = '00:00:00';
+    if (run.completedAt && run.createdAt) {
+        const diffMs = new Date(run.completedAt) - new Date(run.createdAt);
+        const diffSec = Math.floor(diffMs / 1000);
+        const h = Math.floor(diffSec / 3600).toString().padStart(2, '0');
+        const m = Math.floor((diffSec % 3600) / 60).toString().padStart(2, '0');
+        const s = (diffSec % 60).toString().padStart(2, '0');
+        durationStr = `${h}:${m}:${s}`;
+    }
 
-    // Expert summary
-    const assignedExpert = expertData?.assignedExpert
-        ? {
-            auditorId:   expertData.assignedExpert.auditorId,
-            auditorName: expertData.assignedExpert.auditorName,
-            assignedAt:  expertData.assignedExpert.assignedAt
-          }
-        : null;
+    // 4. Simplified User Quote (Slide 44)
+    // Extracting the main objective text provided by user
+    const userObservation = objectiveData?.observation || objectiveData?.input || "Assessment Completed";
 
     return {
         runId:             run.runId,
         caseId:            run.caseId,
-        intentId:          run.intentId,
-        playbookVersionId: run.playbookVersionId,
+        caseName:          caseData?.caseName || "Unknown Case",
         status:            run.status,
+        userObservation:   userObservation,
+        duration:          durationStr,
 
-        // Report data
-        verdict:           finalReport?.verdict       || null,
-        accuracyScore:     finalReport?.accuracyScore || null,
-        accuracyBand:      finalReport?.accuracyBand  || null,
-        hasTerminalFailure: finalReport?.hasTerminalFailure || false,
-        requiresEscalation: finalReport?.requiresEscalation || false,
-
-        // Counts
-        redFlagsCount: (finalReport?.redFlags  || []).length,
-        warningsCount: (finalReport?.warnings  || []).length,
-
-        // Expert
-        assignedExpert,
-        assignmentStatus: expertData?.assignmentStatus || null,
-
-        // Sections summary
-        sectionsSummary,
-
-        // Timestamps
-        createdAt:   run.createdAt,
-        updatedAt:   run.updatedAt
+        // Verdict logic for Slide 44 (Secured vs Not Secured)
+        verdict:           finalReport?.verdict || null,
+        displayVerdict:    finalReport?.verdict === 'PROCEED' ? 'Secured' : 'Not Secured',
+        
+        // Dates
+        createdAt:         run.createdAt,
+        completedAt:       run.completedAt,
+        
+        // Recurrence placeholder (Logic: 180 days after completion)
+        reRunInDays:       180 
     };
 }
 
 // ════════════════════════════════════════════════════════════
 // CONTROLLER 1 — getAllRecords
 // GET /api/v1/users/:userId/records
+// Supports Slide 44 (List) and Slide 45 (Comparison)
 // ════════════════════════════════════════════════════════════
 exports.getAllRecords = async (req, res) => {
     try {
         const { userId } = req.params;
-        const { page = 1, limit = 10, status, verdict } = req.query;
+        const { page = 1, limit = 10 } = req.query;
 
-        // ── A. Verify user exists ──
         const user = await db.User.findById(userId);
-        if (!user)
-            return res.status(404).json({ success: false, message: 'User not found' });
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-        // ── B. Build filter ──
-        const filter = { userId: user._id }; // Usually runs store ObjectId
-        // Wait, does Run store userId as String or ObjectId?
-        // Checking Runs.model.js...
-        
-        // If the runs collection uses the 'userId' field from the URL (which might be the string 'USR_...'),
-        // then filter = { userId }. But usually it's the ObjectId.
-        // Let's assume the run.userId matches the user.userId string or the user._id.
-        // Looking at Runs.model.js from earlier:
-        // userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
-        // So we need the user._id.
-        
         const runFilter = { userId: user._id };
-        if (status)  runFilter.status  = status;
-        // verdict is stored in the Runs model now (Step 5 fix)
-        if (verdict) runFilter.verdict = verdict;
-
-        // ── C. Load runs with pagination ──
-        const skip      = (Number(page) - 1) * Number(limit);
         const totalRuns = await db.Runs.countDocuments(runFilter);
-        const runs      = await db.Runs.find(runFilter)
-            .sort({ createdAt: -1 })   // latest first
-            .skip(skip)
+        const runs = await db.Runs.find(runFilter)
+            .sort({ createdAt: -1 }) // latest first
+            .skip((Number(page) - 1) * Number(limit))
             .limit(Number(limit));
 
         if (!runs.length) {
-            return res.status(200).json({
-                success: true,
-                data: {
-                    userId,
-                    totalRuns:   0,
-                    page:        Number(page),
-                    totalPages:  0,
-                    records:     []
-                }
-            });
+            return res.status(200).json({ success: true, data: { records: [], timeline: [] } });
         }
 
-        // ── D. Build summary for each run ──
-        const records = await Promise.all(
-            runs.map(run => buildRunSummary(run))
-        );
+        // ── 1. Build individual records with delta logic ──
+        const records = await Promise.all(runs.map(async (run, index) => {
+            const summary = await buildRunSummary(run);
+            
+            // Delta Logic for Slide 45
+            // Compare with the run immediately before it in chronological order
+            let delta = { riskChange: 0, verdictChanged: false, newAssumptions: false };
+            const nextRun = runs[index + 1]; // Since sorted latest first, index + 1 is the older run
+            
+            if (nextRun) {
+                const olderScore = (100 - (nextRun.finalReport?.accuracyScore || 50));
+                const newerScore = (100 - (run.finalReport?.accuracyScore || 50));
+                delta.riskChange = newerScore - olderScore;
+                delta.verdictChanged = run.verdict !== nextRun.verdict;
+            }
+
+            return {
+                ...summary,
+                delta,
+                isBaseline: (totalRuns > 1 && index === totalRuns - 1) // First run is baseline by default
+            };
+        }));
+
+        // ── 2. Build Timeline for "Decision Direction" (Slide 45 Top Box) ──
+        // We take the last 3 runs for the timeline
+        const timeline = records.slice(0, 3).reverse().map(r => ({
+            date: r.createdAt,
+            riskScore: (100 - (r.accuracyScore || 50)),
+            verdict: r.verdict,
+            displayVerdict: r.displayVerdict
+        }));
+
+        // ── 3. AI Trend Interpretation (Blue Box in Slide 45) ──
+        let trendStatement = "Insufficient data to establish a trend.";
+        if (timeline.length >= 2) {
+            const first = timeline[0].riskScore;
+            const last = timeline[timeline.length - 1].riskScore;
+            if (Math.abs(last - first) < 5) {
+                trendStatement = "Net position stable despite short-term fluctuation.";
+            } else if (last > first) {
+                trendStatement = "Risk trajectory is increasing. Immediate recalibration advised.";
+            } else {
+                trendStatement = "Risk profile is improving. Mitigation strategies are effective.";
+            }
+        }
 
         return res.status(200).json({
             success: true,
             data: {
                 userId,
                 totalRuns,
-                page:       Number(page),
-                totalPages: Math.ceil(totalRuns / Number(limit)),
-                records
+                trendStatement,
+                timeline, // Top box Slide 45
+                records,  // Individual cards Slide 45
+                canRunNewCase: true
             }
         });
 

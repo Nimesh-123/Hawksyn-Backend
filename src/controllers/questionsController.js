@@ -13,6 +13,12 @@ exports.getNextQuestions = async (req, res) => {
         if (!run) {
             return res.status(404).json({ success: false, message: "Run not found" });
         }
+        
+        // Status validation: Allow fetching questions if run is in any early state
+        const allowedStatuses = ['CREATED', 'CV_UPLOADED', 'PROFILE_CONFIRMED', 'QUESTIONS_CONFIRMED', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED'];
+        if (!allowedStatuses.includes(run.status)) {
+            return res.status(400).json({ success: false, message: `Run is not in a state to fetch questions (${run.status})` });
+        }
 
         // 2. Find MOI
         const moi = await db.MandatoryObjectiveInput.findOne({
@@ -93,6 +99,12 @@ exports.getNextQuestions = async (req, res) => {
 
         // 7. If no visible questions left
         if (visibleQuestions.length === 0) {
+            // Update status to QUESTIONS_CONFIRMED only if it's currently in an earlier state
+            const terminalSteps = ['QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED', 'INTEGRITY_COMPLETE', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED'];
+            if (!terminalSteps.includes(run.status)) {
+                await db.Runs.updateOne({ runId }, { $set: { status: 'QUESTIONS_CONFIRMED' } });
+            }
+
             return res.status(200).json({
                 success: true,
                 data: {
@@ -261,6 +273,35 @@ exports.saveAnswers = async (req, res) => {
             status: 'FINAL'
         });
 
+        // 5. Check if all questions are now answered to transition status
+        const moi = await db.MandatoryObjectiveInput.findOne({
+            caseId: run.caseId,
+            intentId: run.intentId,
+            playbookVersionId: run.playbookVersionId,
+            isActive: true
+        });
+
+        if (moi) {
+            const allMappings = await db.MoiQuestionMapping.find({ moiId: moi.moiId, isActive: true });
+            const rasRecords = await db.Ras.find({
+                runId: runId,
+                stepNo: 3,
+                artifactType: 'OBJECTIVE_INPUTS_CAPTURED',
+                status: 'FINAL'
+            });
+
+            const answeredQuestionIds = new Set();
+            rasRecords.forEach(record => {
+                if (record.artifactJson.answers) {
+                    record.artifactJson.answers.forEach(a => answeredQuestionIds.add(a.questionId));
+                }
+            });
+
+            if (answeredQuestionIds.size >= allMappings.length) {
+                await db.Runs.updateOne({ runId }, { $set: { status: 'QUESTIONS_CONFIRMED' } });
+            }
+        }
+
         return res.status(200).json({
             success: true,
             data: {
@@ -337,7 +378,10 @@ exports.getQuestionsStatus = async (req, res) => {
                     status: r.status,
                     questionCount: r.artifactJson.answers?.length || 0,
                     confirmedAt: r.createdAt
-                }))
+                })),
+                message: answeredCount >= allMappings.length 
+                    ? "Your answers have been successfully recorded and locked." 
+                    : "Some questions are still pending."
             }
         });
 

@@ -99,13 +99,16 @@ exports.getUserProfile = async (req, res) => {
                 highestEducation: p.inferred?.highestEducationLevel || ""
             },
             assumptions: aeuList
-                .filter(aeu => aeu.isInferred === true)
-                .map(aeu => ({
-                    field: aeu.fact.split(':')[0].trim(),
-                    assumedValue: aeu.fact.split(':')[1].trim(),
-                    label: "Assumed from CV",
-                    reason: aeu.inferenceReason || ""
-                }))
+                .filter(aeu => aeu.isInferred === true && aeu.fact)
+                .map(aeu => {
+                    const parts = aeu.fact.split(':');
+                    return {
+                        field: parts[0] ? parts[0].trim() : "Assumption",
+                        assumedValue: parts[1] ? parts[1].trim() : "N/A",
+                        label: "Assumed from CV",
+                        reason: aeu.inferenceReason || ""
+                    };
+                })
         };
 
         return res.status(200).json({ success: true, data: cleanResponse });
@@ -151,12 +154,13 @@ exports.updateUserProfile = async (req, res) => {
         await userProfile.save();
 
         // ✅ NEW: Sync with active Run if exists
-        const activeRun = await db.Runs.findOne({ userId: req.user.id, status: 'IN_PROGRESS' });
+        const activeRun = await db.Runs.findOne({ userId: req.user.id, status: { $in: ['CV_UPLOADED', 'PROFILE_CONFIRMED'] } });
         if (activeRun) {
             await db.Runs.updateOne(
                 { runId: activeRun.runId },
-                { $set: { 'cvSnapshot.parsedData': mergedProfile } }
+                { $set: { status: 'PROFILE_CONFIRMED', 'cvSnapshot.parsedData': mergedProfile } }
             );
+
 
             // ✅ NEW: Create/Update RAS artifact for Integrity Engine (Step 4)
             // Points #2 and #4.3 of manual require PROFILE_CONFIRMED in evaluation dataset

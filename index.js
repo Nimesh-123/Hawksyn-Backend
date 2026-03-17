@@ -12,6 +12,9 @@ const swaggerSpec = require('./utils/swagger.js');
 const route = require('./src/routes/index.route.js');
 require('./middleware/database/connectDatabase.js');
 
+// --- Cron Jobs ---
+require('./src/crons/trendEngine.cron.js');
+
 // --- Global Logging & Request ID ---
 const requestLogger = require('./middleware/requestLogger.js');
 const errorHandler = require('./middleware/errorHandler.js');

@@ -20,8 +20,9 @@ exports.keepExistingCv = async (req, res) => {
         if (run.userId.toString() !== userId) {
             return res.status(403).json({ success: false, message: "Unauthorized" });
         }
-        if (run.status !== 'IN_PROGRESS') {
-            return res.status(400).json({ success: false, message: "Run is not active" });
+        const allowedStatuses = ['CREATED', 'CV_UPLOADED', 'PROFILE_CONFIRMED', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED'];
+        if (!allowedStatuses.includes(run.status)) {
+            return res.status(400).json({ success: false, message: `Run is not in a state for CV operations (${run.status})` });
         }
 
         // Step 2 — Verify payment
@@ -67,15 +68,33 @@ exports.keepExistingCv = async (req, res) => {
             { runId },
             {
                 $set: {
+                    status: 'CV_UPLOADED',
                     'cvSnapshot.cvUploadId': userProfile.lastCvUploadId,
                     'cvSnapshot.cvUrl': userProfile.cvUrl,
                     'cvSnapshot.parsedData': userProfile.confirmedProfile,
-
                     'cvSnapshot.attachedAt': new Date(),
                     'cvSnapshot.source': 'EXISTING'
                 }
             },
             { new: true }
+        );
+
+        // ✅ Step 6 — Create PROFILE_CONFIRMED RAS artifact
+        // This is required for Doc Step 6 (Case File Formation)
+        const rasId = `RAS_PROFILE_${runId}`;
+        await db.Ras.findOneAndUpdate(
+            { rasId },
+            {
+                $set: {
+                    runId,
+                    stepNo: 2,
+                    artifactType: 'PROFILE_CONFIRMED',
+                    artifactVersion: 1,
+                    artifactJson: userProfile.confirmedProfile,
+                    status: 'FINAL'
+                }
+            },
+            { upsert: true }
         );
 
 
@@ -85,7 +104,7 @@ exports.keepExistingCv = async (req, res) => {
                 runId: updatedRun.runId,
                 cvAttached: true,
                 cvUrl: updatedRun.cvSnapshot.cvUrl,
-                fileName: cv.fileName,
+                fileName: updatedRun.cvSnapshot.cvUrl ? updatedRun.cvSnapshot.cvUrl.split('/').pop() : 'Existing CV',
                 source: "EXISTING",
                 message: "CV attached. Proceeding to profile review."
             }
@@ -113,8 +132,9 @@ exports.uploadRunCv = async (req, res) => {
         if (run.userId.toString() !== userId) {
             return res.status(403).json({ success: false, message: "Unauthorized" });
         }
-        if (run.status !== 'IN_PROGRESS') {
-            return res.status(400).json({ success: false, message: "Run is not active" });
+        const allowedStatuses = ['CREATED', 'CV_UPLOADED', 'PROFILE_CONFIRMED', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED'];
+        if (!allowedStatuses.includes(run.status)) {
+            return res.status(400).json({ success: false, message: `Run is not in a state for CV operations (${run.status})` });
         }
 
         // Add Check 2 — Payment verification
@@ -161,9 +181,9 @@ exports.uploadRunCv = async (req, res) => {
             if (extractedData && extractedData.isCv === false) {
                 console.warn(`[CV Guard] User ${userId} uploaded a non-CV document during Step 1. Deleting from S3...`);
                 await deleteFile(fileName);
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "The uploaded document does not appear to be a valid Resume/CV. Please upload a relevant professional document." 
+                return res.status(400).json({
+                    success: false,
+                    message: "The uploaded document does not appear to be a valid Resume/CV. Please upload a relevant professional document."
                 });
             }
 
@@ -208,6 +228,7 @@ exports.uploadRunCv = async (req, res) => {
             { runId },
             {
                 $set: {
+                    status: 'CV_UPLOADED',
                     'cvSnapshot.cvUploadId': newCv._id,
                     'cvSnapshot.cvUrl': newCv.cvUrl,
                     'cvSnapshot.parsedData': newCv.parsedCvData,

@@ -16,8 +16,18 @@ const RunsSchema = new mongoose.Schema({
     playbookVersionId: { type: String, required: true },
     status: {
         type: String,
-        enum: ['IN_PROGRESS', 'COMPLETED', 'FAILED', 'REPORT_COMPLETE', 'REPORT_FAILED'],
-        default: 'IN_PROGRESS'
+        enum: [
+            'CREATED',
+            'CV_UPLOADED',
+            'PROFILE_CONFIRMED',
+            'QUESTIONS_CONFIRMED',
+            'SIGNALS_COLLECTED',
+            'CASE_FILE_LOCKED',
+            'INTEGRITY_COMPLETE',
+            'REPORT_COMPLETE',
+            'EXPERT_ASSIGNED'
+        ],
+        default: 'CREATED'
     },
     finalReport: { type: mongoose.Schema.Types.Mixed, default: null },
     verdict:     { type: String, enum: ['PROCEED', 'PAUSE', 'ABORT'], default: null },

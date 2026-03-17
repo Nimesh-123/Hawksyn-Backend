@@ -36,5 +36,12 @@ db.RiskAuditorRegistry = require('./RiskAuditorRegistry.model');
 db.MandatoryObjectiveInput = require('./MandatoryObjectiveInput.model');
 db.MoiQuestionMapping = require('./MoiQuestionMapping.model');
 db.Ras = require('./Ras.model');
+db.CaseFile = require('./CaseFile.model');
+
+// Command Center — Trend & Clock Models
+db.MarketPulse = require('./MarketPulse.model');
+db.UserClocks = require('./UserClocks.model');
+db.ClockHistory = require('./ClockHistory.model');
+db.UserCredits  = require('./UserCredits.model');
 
 module.exports = { db };

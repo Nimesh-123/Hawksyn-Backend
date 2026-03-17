@@ -5,6 +5,8 @@ const cvController = require('../controllers/cvController');
 const integrityController = require('../controllers/integrityController');
 const reportController = require('../controllers/reportController');
 const expertController = require('../controllers/expertController');
+const signalsController = require('../controllers/signalsController');
+const caseFileController = require('../controllers/caseFileController');
 const auth = require('../../middleware/auth');
 const upload = require('../../middleware/multer.js');
 
@@ -179,6 +181,66 @@ router.get('/:runId/questions/status', questionsController.getQuestionsStatus);
  *         description: Integrity audit completed successfully
  */
 router.post('/:runId/integrity/run', integrityController.runIntegrityEngine);
+
+/**
+ * @swagger
+ * /runs/{runId}/signals/collect:
+ *   post:
+ *     summary: Collect external market signals for this run
+ *     tags: [5. Run Operations (Specific Actions)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: External signals collected successfully
+ */
+router.post('/:runId/signals/collect', signalsController.collectSignals);
+
+/**
+ * @swagger
+ * /runs/{runId}/case-file/build:
+ *   post:
+ *     summary: Build an immutable Case File combining all parsed data, objective inputs, and signals
+ *     tags: [5. Run Operations (Specific Actions)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Case File built and locked successfully
+ */
+router.post('/:runId/case-file/build', caseFileController.buildCaseFile);
+
+/**
+ * @swagger
+ * /runs/{runId}/case-file:
+ *   get:
+ *     summary: Retrieve the locked Case File for this run 
+ *     tags: [5. Run Operations (Specific Actions)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: A fully built Case File object returned
+ */
+router.get('/:runId/case-file', caseFileController.getCaseFile);
 
 /**
  * --- Step 5: Report Generation ---

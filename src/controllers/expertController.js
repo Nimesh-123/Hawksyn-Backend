@@ -5,13 +5,115 @@
 
 const { db } = require('../models/index.model.js');
 
+// ── Clock Refresh Helper (non-blocking) ──────────────────────────
+// Case complete hone ke baad clocks 30 days activate karta hai.
+// Doc point 10: Case run → clocks automatically refresh → 30 days valid
+async function refreshClocksAfterCase(userId, runId) {
+    try {
+        if (!userId) return;
+
+        // ── 1. Load INTEGRITY_PACK RAS for this run ──
+        const integrityRas = await db.Ras.findOne({
+            runId,
+            artifactType: 'INTEGRITY_PACK',
+            status: 'FINAL'
+        });
+
+        // ── 2. Load latest active MarketPulse (for market-level data) ──
+        const pulse = await db.MarketPulse.findOne({ isActive: true })
+            .sort({ createdAt: -1 });
+
+        // ── 3. Extract constraint scores from integrity pack ──
+        const constraints = integrityRas?.artifactJson?.constraints?.results || [];
+
+        const cons001 = constraints.find(c => c.constraintId === 'CONS_AI_001'); // Role Automation Exposure
+        const cons002 = constraints.find(c => c.constraintId === 'CONS_AI_002'); // Financial Resilience
+        const cons003 = constraints.find(c => c.constraintId === 'CONS_AI_003'); // Role Uniqueness
+        const cons004 = constraints.find(c => c.constraintId === 'CONS_AI_004'); // Company AI Policy
+
+        // ── 4. Derive clock scores from user's actual constraint scores ──
+        // aiExposureScore:
+        //   CONS_AI_001 score high (90) = low automation = low AI exposure risk. Inverse mapping.
+        const aiExposureScore = cons001
+            ? Math.round(100 - cons001.score)
+            : (pulse?.aiExposureScore || 50);
+
+        // careerMomentumScore: CONS_AI_003 = Role Uniqueness — high uniqueness = high momentum
+        const careerMomentumScore = cons003
+            ? cons003.score
+            : (pulse?.careerMomentumScore || 50);
+
+        // skillRelevanceScore: CONS_AI_001 = Automation Exposure — high score = skills still relevant
+        const skillRelevanceScore = cons001
+            ? cons001.score
+            : (pulse?.skillRelevanceScore || 50);
+
+        // opportunityWindowScore: CONS_AI_002 = Financial Resilience — more runway = more opportunity window
+        const opportunityWindowScore = cons002
+            ? cons002.score
+            : (pulse?.opportunityWindowScore || 50);
+
+        // ── 5. Months and years from MarketPulse (market-level, not user-specific) ──
+        const careerMomentumMonths   = pulse?.careerMomentumMonths   || 18;
+        const opportunityWindowYears = pulse?.opportunityWindowYears || 2;
+
+        // ── 6. Insight text — use pulse insight or generate based on risk ──
+        let insightText = pulse?.insightText || '';
+        if (cons004 && cons004.band === 'CRITICAL') {
+            insightText = 'Company is actively adopting AI. Focus on skills that complement automation.';
+        } else if (cons001 && cons001.band === 'CRITICAL') {
+            insightText = 'High automation overlap detected. Upskilling recommended immediately.';
+        }
+
+        // ── 7. Set validity ──
+        const caseValidUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+        // ── 8. Update UserClocks ──
+        await db.UserClocks.findOneAndUpdate(
+            { userId },
+            {
+                $set: {
+                    validityState:           'ACTIVE_CASE',
+                    caseValidUntil,
+                    clockValidUntil:         null,
+                    effectiveValidUntil:     caseValidUntil,
+                    daysLeft:                30,
+                    lastCalculatedBy:        'CASE_RUN',
+                    lastCalculatedAt:        new Date(),
+                    pulseId:                 pulse?.pulseId || null,
+
+                    // User-specific scores from integrity pack
+                    aiExposureScore,
+                    careerMomentumScore,
+                    skillRelevanceScore,
+                    opportunityWindowScore,
+
+                    // Market-level data from pulse
+                    careerMomentumMonths,
+                    opportunityWindowYears,
+                    insightText,
+
+                    updatedAt: new Date()
+                }
+            },
+            { upsert: true, new: true }
+        );
+
+        console.log(`[Expert] ✅ Clocks refreshed for user ${userId} (runId: ${runId})`);
+        console.log(`[Expert]    aiExposure: ${aiExposureScore} | momentum: ${careerMomentumScore} | skill: ${skillRelevanceScore} | opportunity: ${opportunityWindowScore}`);
+
+    } catch (clockErr) {
+        console.warn(`[Expert] ⚠️ Clock refresh failed for user ${userId}:`, clockErr.message);
+    }
+}
+
 // ─────────────────────────────────────────────────────────
 // HELPER — scoreExpert
 // Expert ko specialization + load ke basis pe score karta hai
 // ─────────────────────────────────────────────────────────
 function scoreExpert(expert, redFlags, constraints) {
     let specializationScore = 0;
-    const specializations   = expert.specializations || [];
+    const specializations = expert.specializations || [];
 
     // Check redFlag remediationCodes against expert specializations
     for (const flag of redFlags) {
@@ -35,12 +137,12 @@ function scoreExpert(expert, redFlags, constraints) {
     specializationScore = Math.min(specializationScore, 60);
 
     // Load score — lower load = higher score (40% weight)
-    const maxLoad   = expert.maxCaseload   || 20;
-    const currLoad  = expert.currentCaseload || 0;
+    const maxLoad = expert.maxCaseload || 20;
+    const currLoad = expert.currentCaseload || 0;
     const loadScore = Math.round(((maxLoad - currLoad) / maxLoad) * 40);
 
     return {
-        totalScore:        specializationScore + loadScore,
+        totalScore: specializationScore + loadScore,
         specializationScore,
         loadScore,
         availableCapacity: maxLoad - currLoad
@@ -92,7 +194,7 @@ exports.assignExpert = async (req, res) => {
         const reportRas = await db.Ras.findOne({
             runId,
             artifactType: 'FINAL_REPORT',
-            status:       'FINAL'
+            status: 'FINAL'
         });
 
         if (!reportRas)
@@ -105,8 +207,8 @@ exports.assignExpert = async (req, res) => {
 
         // ── C. Check if expert assignment needed ──
         const needsExpert = finalReport.hasTerminalFailure ||
-                            finalReport.requiresEscalation ||
-                            finalReport.verdict !== 'PROCEED';
+            finalReport.requiresEscalation ||
+            finalReport.verdict !== 'PROCEED';
 
         if (!needsExpert) {
             // Auto-complete — no expert needed
@@ -114,21 +216,21 @@ exports.assignExpert = async (req, res) => {
 
             const autoArtifact = {
                 runId,
-                assignedExpert:    null,
+                assignedExpert: null,
                 escalationRequired: false,
-                assignmentStatus:  'NOT_REQUIRED',
-                reason:            `Verdict is PROCEED with no terminal failures. Expert review not required.`,
-                assignedAt:        new Date()
+                assignmentStatus: 'NOT_REQUIRED',
+                reason: `Verdict is PROCEED with no terminal failures. Expert review not required.`,
+                assignedAt: new Date()
             };
 
             await db.Ras.create({
-                rasId:           autoRasId,
+                rasId: autoRasId,
                 runId,
-                stepNo:          6,
-                artifactType:    'EXPERT_ASSIGNED',
+                stepNo: 6,
+                artifactType: 'EXPERT_ASSIGNED',
                 artifactVersion: 1,
-                artifactJson:    autoArtifact,
-                status:          'FINAL'
+                artifactJson: autoArtifact,
+                status: 'FINAL'
             });
 
             await db.Runs.updateOne(
@@ -136,20 +238,22 @@ exports.assignExpert = async (req, res) => {
                 { $set: { status: 'EXPERT_ASSIGNED' } }
             );
 
+            await refreshClocksAfterCase(run.userId, runId);
+
             return res.status(200).json({
                 success: true,
                 data: {
                     runId,
-                    rasId:            autoRasId,
+                    rasId: autoRasId,
                     assignmentStatus: 'NOT_REQUIRED',
-                    message:          'Expert assignment not required. Run is complete.'
+                    message: 'Expert assignment not required. Run is complete.'
                 }
             });
         }
 
         // ── D. Load available experts ──
         const experts = await db.RiskAuditorRegistry.find({
-            caseId:   run.caseId,
+            caseId: run.caseId,
             isActive: true,
             $expr: { $lt: ['$currentCaseload', '$maxCaseload'] }
         });
@@ -160,21 +264,21 @@ exports.assignExpert = async (req, res) => {
 
             const noExpertArtifact = {
                 runId,
-                assignedExpert:    null,
+                assignedExpert: null,
                 escalationRequired: true,
-                assignmentStatus:  'PENDING_MANUAL',
-                reason:            'No expert available with sufficient capacity. Manual assignment required.',
-                assignedAt:        new Date()
+                assignmentStatus: 'PENDING_MANUAL',
+                reason: 'No expert available with sufficient capacity. Manual assignment required.',
+                assignedAt: new Date()
             };
 
             await db.Ras.create({
-                rasId:           noExpertRasId,
+                rasId: noExpertRasId,
                 runId,
-                stepNo:          6,
-                artifactType:    'EXPERT_ASSIGNED',
+                stepNo: 6,
+                artifactType: 'EXPERT_ASSIGNED',
                 artifactVersion: 1,
-                artifactJson:    noExpertArtifact,
-                status:          'FINAL'
+                artifactJson: noExpertArtifact,
+                status: 'FINAL'
             });
 
             await db.Runs.updateOne(
@@ -182,19 +286,21 @@ exports.assignExpert = async (req, res) => {
                 { $set: { status: 'EXPERT_ASSIGNED' } }
             );
 
+            await refreshClocksAfterCase(run.userId, runId);
+
             return res.status(200).json({
                 success: true,
                 data: {
                     runId,
-                    rasId:            noExpertRasId,
+                    rasId: noExpertRasId,
                     assignmentStatus: 'PENDING_MANUAL',
-                    message:          'No expert available. Manual assignment required.'
+                    message: 'No expert available. Manual assignment required.'
                 }
             });
         }
 
         // ── E. Score each expert ──
-        const redFlags   = finalReport.redFlags   || [];
+        const redFlags = finalReport.redFlags || [];
         const constraints = finalReport.sections
             ? [] // constraints not in report directly
             : [];
@@ -203,14 +309,14 @@ exports.assignExpert = async (req, res) => {
         const integrityRas = await db.Ras.findOne({
             runId,
             artifactType: 'INTEGRITY_PACK',
-            status:       'FINAL'
+            status: 'FINAL'
         });
         const integrityConstraints = integrityRas?.artifactJson?.constraints?.results || [];
 
         // Score all experts
         const scoredExperts = experts.map(expert => {
             const scoring = scoreExpert(expert, redFlags, integrityConstraints);
-            const reason  = buildAssignmentReason(expert, redFlags, integrityConstraints, scoring);
+            const reason = buildAssignmentReason(expert, redFlags, integrityConstraints, scoring);
             return { expert, scoring, reason };
         });
 
@@ -225,61 +331,63 @@ exports.assignExpert = async (req, res) => {
         );
 
         // ── G. Build assignment artifact ──
-        const assignedAt  = new Date();
-        const expRasId    = `RAS_EXP_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+        const assignedAt = new Date();
+        const expRasId = `RAS_EXP_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
 
         const assignmentArtifact = {
             runId,
             assignedExpert: {
-                auditorId:         best.expert.auditorId,
-                auditorName:       best.expert.auditorName,
-                specializations:   best.expert.specializations,
+                auditorId: best.expert.auditorId,
+                auditorName: best.expert.auditorName,
+                specializations: best.expert.specializations,
                 assignedAt,
-                assignmentReason:  best.reason,
+                assignmentReason: best.reason,
                 scoreBreakdown: {
-                    total:            best.scoring.totalScore,
-                    specialization:   best.scoring.specializationScore,
-                    load:             best.scoring.loadScore
+                    total: best.scoring.totalScore,
+                    specialization: best.scoring.specializationScore,
+                    load: best.scoring.loadScore
                 }
             },
-            verdict:           finalReport.verdict,
+            verdict: finalReport.verdict,
             escalationRequired: finalReport.requiresEscalation || finalReport.hasTerminalFailure,
-            assignmentStatus:  'ASSIGNED',
+            assignmentStatus: 'ASSIGNED',
             assignedAt
         };
 
         await db.Ras.create({
-            rasId:           expRasId,
+            rasId: expRasId,
             runId,
-            stepNo:          6,
-            artifactType:    'EXPERT_ASSIGNED',
+            stepNo: 6,
+            artifactType: 'EXPERT_ASSIGNED',
             artifactVersion: 1,
-            artifactJson:    assignmentArtifact,
-            status:          'FINAL'
+            artifactJson: assignmentArtifact,
+            status: 'FINAL'
         });
 
         // ── H. Update Run status ──
         await db.Runs.updateOne(
             { runId },
-            { $set: { status: 'EXPERT_ASSIGNED' } }
+            { $set: { status: 'REPORT_COMPLETE', completedAt: new Date() } }
         );
+
+        await refreshClocksAfterCase(run.userId, runId);
 
         return res.status(200).json({
             success: true,
             data: {
                 runId,
-                rasId:            expRasId,
+                rasId: expRasId,
                 assignmentStatus: 'ASSIGNED',
                 assignedExpert: {
-                    auditorId:        best.expert.auditorId,
-                    auditorName:      best.expert.auditorName,
-                    specializations:  best.expert.specializations,
+                    auditorId: best.expert.auditorId,
+                    auditorName: best.expert.auditorName,
+                    specializations: best.expert.specializations,
                     assignedAt,
                     assignmentReason: best.reason
                 },
-                verdict:           finalReport.verdict,
+                verdict: finalReport.verdict,
                 escalationRequired: assignmentArtifact.escalationRequired,
-                message:           'Expert assigned successfully.'
+                message: 'Expert assigned successfully.'
             }
         });
 

@@ -10,25 +10,24 @@ const { callLLM }  = require('../../utils/evaluationHelpers.js');
 // HELPER 1 — buildPlaceholderMap
 // Sab placeholder values ek jagah assemble karta hai
 // ─────────────────────────────────────────────────────────
-function buildPlaceholderMap(profileSnapshot, answersMap, questionsMap, integrityPack) {
+function buildPlaceholderMap(profileSnapshot, rasAnswers, questionsMap, integrityPack, externalSignals) {
 
     // MCQ answers ke liye option label resolve karo
     const answerLabelMap = {};
-    for (const [questionId, data] of Object.entries(answersMap)) {
-        const { value: answerValue, label: savedLabel } = 
-            typeof data === 'object' ? data : { value: data, label: null };
+    for (const ans of (rasAnswers || [])) {
+        const { answerValue, answerLabel, questionId } = ans;
 
-        if (savedLabel) {
-            answerLabelMap[questionId] = savedLabel;
+        if (answerLabel) {
+            answerLabelMap[questionId] = answerLabel;
             continue;
         }
 
         const q = questionsMap[questionId];
         if (q && q.questionType === 'MCQ' && Array.isArray(q.optionsJson)) {
-            const numericAnswer = Number(answerValue);
+            const numericValue = Number(answerValue);
             // Match by score (numeric) OR match by label (string)
             const opt = q.optionsJson.find(o => 
-                Number(o.score) === numericAnswer || 
+                Number(o.score) === numericValue || 
                 String(o.opt).toLowerCase() === String(answerValue).toLowerCase()
             );
             
@@ -78,7 +77,16 @@ function buildPlaceholderMap(profileSnapshot, answersMap, questionsMap, integrit
         ACCURACY_BAND:     integrityPack.accuracy?.band           || 'UNKNOWN',
         RED_FLAGS:         redFlagsSummary,
         CONTRADICTIONS:    contradictionsSummary,
-        TOTAL_PENALTY:     String(integrityPack.accuracy?.totalPenalty || 0)
+        TOTAL_PENALTY:     String(integrityPack.accuracy?.totalPenalty || 0),
+        // ── External Signal Placeholders (Doc Step 5) ──
+        'MARKET_DEMAND_SIGNAL':    externalSignals?.marketDemandSignal?.value    || 'NOT_AVAILABLE',
+        'MARKET_DEMAND_RATIONALE': externalSignals?.marketDemandSignal?.rationale || 'No market data available.',
+        'AI_DISPLACEMENT_RISK':    externalSignals?.aiDisplacementRisk?.value     || 'NOT_AVAILABLE',
+        'AI_DISPLACEMENT_RATIONALE': externalSignals?.aiDisplacementRisk?.rationale || 'No AI risk data available.',
+        'INDUSTRY_HIRING_TREND':   externalSignals?.industryHiringTrend?.value    || 'NOT_AVAILABLE',
+        'AUTOMATION_OVERLAP':      String(externalSignals?.automationOverlapScore?.value ?? 'NOT_AVAILABLE'),
+        'SIGNAL_DATA_QUALITY':     externalSignals?.dataQuality                   || 'INSUFFICIENT',
+        'ANALYST_NOTE':            externalSignals?.analystNote                   || 'Insufficient market data for this profile.',
     };
 }
 
@@ -98,22 +106,28 @@ function fillPrompt(template, placeholders) {
 // HELPER 3 — checkAnchors
 // Section ke required anchors coverage check karta hai
 // ─────────────────────────────────────────────────────────
-function checkAnchors(section, integrityPack) {
-    const coverageResults = integrityPack.coverage?.results || [];
+function checkAnchors(section, integrityPack, externalCoverage) {
+    const internalAnchors = section.requiredInternalAnchorsJson || [];
+    const externalAnchors = section.requiredExternalAnchorsJson || [];
 
-    const missingInternal = (section.requiredInternalAnchorsJson || []).filter(anchor => {
-        const result = coverageResults.find(c => c.anchor === anchor);
+    // Internal anchors → check integrityPack coverage
+    const internalResults = integrityPack.coverage?.results || [];
+    const missingInternal = internalAnchors.filter(anchor => {
+        const result = internalResults.find(c => c.anchor === anchor || c.anchorName === anchor);
         return !result || result.sufficiency === 'NOT_FOUND';
     });
 
-    const missingExternal = (section.requiredExternalAnchorsJson || []).filter(anchor => {
-        const result = coverageResults.find(c => c.anchor === anchor);
+    // External anchors → check externalCoverage (signals RAS)
+    // externalCoverage comes from EXTERNAL_SIGNALS_CAPTURED RAS artifact
+    const missingExternal = externalAnchors.filter(anchor => {
+        const result = (externalCoverage || []).find(c => c.anchor === anchor);
         return !result || result.sufficiency === 'NOT_FOUND';
     });
 
     return {
-        allCovered:  missingInternal.length === 0 && missingExternal.length === 0,
-        allMissing:  [...missingInternal, ...missingExternal]
+        allCovered:      missingInternal.length === 0 && missingExternal.length === 0,
+        missingInternal,
+        missingExternal
     };
 }
 
@@ -165,6 +179,17 @@ exports.generateReport = async (req, res) => {
         if (!run)
             return res.status(404).json({ success: false, message: 'Run not found' });
 
+        // ── Load Case File (Doc Step 6 output) ──
+        const caseFile = await db.CaseFile.findOne({
+            runId,
+            status: 'LOCKED'
+        });
+
+        // Log if Case File missing (non-blocking — report still generates)
+        if (!caseFile) {
+            console.warn(`[Report] No locked CaseFile for run ${runId}. Proceeding without it.`);
+        }
+
         // ── B. Load integrityPack from RAS (Step 4 output) ──
         const integrityRas = await db.Ras.findOne({
             runId,
@@ -180,6 +205,15 @@ exports.generateReport = async (req, res) => {
 
         const integrityPack = integrityRas.artifactJson;
 
+        // ── Load External Signals (Doc Step 5 output) ──
+        const signalsRas = await db.Ras.findOne({
+            runId,
+            artifactType: 'EXTERNAL_SIGNALS_CAPTURED',
+            status:       'FINAL'
+        });
+        const externalSignals = signalsRas?.artifactJson?.signals || null;
+        const externalCoverage = signalsRas?.artifactJson?.coverage || [];
+
         // ── C. Load profileSnapshot from RAS (Step 2 output) or Run (fallback) ──
         const profileRas = await db.Ras.findOne({
             runId,
@@ -194,20 +228,24 @@ exports.generateReport = async (req, res) => {
             || profileRas?.artifactJson
             || {};
 
-        // ── D. Load answers from RAS (Step 3 output) ──
-        const answersRas = await db.Ras.find({
+        // ── D. Load all answers from RAS (all batches) ──
+        const allObjectiveRas = await db.Ras.find({
             runId: runId,
             stepNo: 3,
             artifactType: 'OBJECTIVE_INPUTS_CAPTURED',
             status: 'FINAL'
         });
-        const answersMap = {};
-        answersRas.forEach(record => {
-            (record.artifactJson?.answers || []).forEach(a => {
-                // Store both value and label for mapping robustness
-                answersMap[a.questionId] = { value: a.answerValue, label: a.answerLabel };
-            });
+
+        // Merge all batches into single answers array
+        const rasAnswers = allObjectiveRas.flatMap(r => r.artifactJson?.answers || []);
+        
+        // Build questionsMap for label lookup
+        const questionIds = rasAnswers.map(a => a.questionId);
+        const questionDocs = await db.Questions.find({
+            questionId: { $in: questionIds }
         });
+        const questionsMap = {};
+        for (const q of questionDocs) questionsMap[q.questionId] = q;
 
         // ── E. Load ELR ──
         const elr = await db.EvaluationLibraryRegistry.findOne({
@@ -238,20 +276,13 @@ exports.generateReport = async (req, res) => {
         const promptsMap = {};
         for (const p of promptDocs) promptsMap[p.sectionId] = p;
 
-        // ── H. Load questions for answer label resolution ──
-        const questionIds  = Object.keys(answersMap);
-        const questionDocs = await db.Questions.find({
-            questionId: { $in: questionIds }
-        });
-        const questionsMap = {};
-        for (const q of questionDocs) questionsMap[q.questionId] = q;
-
         // ── I. Build shared placeholder map ──
         const placeholders = buildPlaceholderMap(
             profileSnapshot,
-            answersMap,
+            rasAnswers,
             questionsMap,
-            integrityPack
+            integrityPack,
+            externalSignals
         );
 
         // ── J. Process each section in PARALLEL — ⚡ FAST MODE ⚡ ──
@@ -268,13 +299,14 @@ exports.generateReport = async (req, res) => {
             };
 
             // J1. Anchor check
-            const anchorCheck = checkAnchors(section, integrityPack);
+            const anchorCheck = checkAnchors(section, integrityPack, externalCoverage);
             if (!anchorCheck.allCovered) {
-                sectionOut.missingAnchors = anchorCheck.allMissing;
+                const missing = [...anchorCheck.missingInternal, ...anchorCheck.missingExternal];
+                sectionOut.missingAnchors = missing;
 
                 if (section.fallbackPolicy === 'ESCALATE') {
                     sectionOut.status  = 'ESCALATED';
-                    sectionOut.content = `Human review required. Missing evidence: ${anchorCheck.allMissing.join(', ')}.`;
+                    sectionOut.content = `Human review required. Missing evidence: ${missing.join(', ')}.`;
                     return sectionOut;
                 }
 
@@ -295,7 +327,8 @@ exports.generateReport = async (req, res) => {
 
             // Add degraded note if anchors missing
             if (sectionOut.degraded) {
-                filledUserPrompt += `\n\n[NOTE: Some evidence is unavailable — Missing: ${anchorCheck.allMissing.join(', ')}. Acknowledge this gap explicitly in your response.]`;
+                const missing = [...anchorCheck.missingInternal, ...anchorCheck.missingExternal];
+                filledUserPrompt += `\n\n[NOTE: Some evidence is unavailable — Missing: ${missing.join(', ')}. Acknowledge this gap explicitly in your response.]`;
             }
 
             // J4. Call LLM

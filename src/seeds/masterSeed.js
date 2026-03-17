@@ -34,6 +34,8 @@ const DataPatternKeyTaxonomy = require('../models/DataPatternKeyTaxonomy.model')
 const RiskAuditorRegistry = require('../models/RiskAuditorRegistry.model');
 const MandatoryObjectiveInput = require('../models/MandatoryObjectiveInput.model');
 const MoiQuestionMapping = require('../models/MoiQuestionMapping.model');
+const MarketPulse = require('../models/MarketPulse.model');
+const UserCredits = require('../models/UserCredits.model');
 
 // ════════════════════════════════════════════════════════════
 // STEP 1 — case_registry
@@ -275,9 +277,9 @@ async function seedQuestions() {
             roundingRule: 'ROUND',
             validationJson: { min: 0, max: 60, unit: 'months' },
             scoringMapJson: [
-                { minVal: 0,  maxVal: 3,  normalizedScore: 5  },   // CRITICAL — less than 3 months
-                { minVal: 4,  maxVal: 6,  normalizedScore: 25 },   // FRAGILE  — 4 to 6 months
-                { minVal: 7,  maxVal: 12, normalizedScore: 55 },   // MODERATE — 7 to 12 months
+                { minVal: 0, maxVal: 3, normalizedScore: 5 },   // CRITICAL — less than 3 months
+                { minVal: 4, maxVal: 6, normalizedScore: 25 },   // FRAGILE  — 4 to 6 months
+                { minVal: 7, maxVal: 12, normalizedScore: 55 },   // MODERATE — 7 to 12 months
                 { minVal: 13, maxVal: 24, normalizedScore: 80 },   // STRONG   — 13 to 24 months
                 { minVal: 25, maxVal: 60, normalizedScore: 100 }   // VERY STRONG — 25+ months
             ],
@@ -1045,7 +1047,28 @@ async function seedPromptConfigRegistry() {
             temperature: 0.3,
             maxTokens: 600,
             systemPrompt: 'You are a structured risk analyst for Hawksyn. Write only what evidence supports. Do not introduce external facts. Do not use words like "definitely" or "certainly".',
-            userPrompt: 'Write a Profile Risk Summary for this user. Use only the evidence provided. Current Role: {{CURRENT_ROLE}}. Experience: {{EXPERIENCE_YEARS}} years. Skills: {{SKILLS}}. AI Exposure: {{AI_EXPOSURE}}. Accuracy Band: {{ACCURACY_BAND}}.',
+            userPrompt: `Write a 4-sentence Profile Risk Summary for this user.
+
+Profile:
+- Current Role: {{CURRENT_ROLE}}
+- Experience: {{EXPERIENCE_YEARS}} years at {{CURRENT_COMPANY}}
+- Domain: {{DOMAIN}}
+- Skills: {{SKILLS}}
+
+User's Own Risk Inputs:
+- AI Exposure in daily work: {{AI_EXPOSURE}}
+- Financial Runway: {{FINANCIAL_RUNWAY}}
+- Role Uniqueness: {{ROLE_UNIQUENESS}}
+- Company AI Policy: {{COMPANY_AI_POLICY}}
+
+Integrity Results:
+- Accuracy Score: {{ACCURACY_SCORE}} (Band: {{ACCURACY_BAND}})
+- Red Flags triggered: {{RED_FLAGS}}
+- Contradictions: {{CONTRADICTIONS}}
+
+Write based ONLY on this data. Reference the user's specific answers.
+Be direct. Mention the role name and actual risk signals.
+Do not give generic career advice.`,
             evidencePlaceholdersJson: {
                 CURRENT_ROLE: 'AEU_IDENTITY_002',
                 EXPERIENCE_YEARS: 'AEU_WORK_001',
@@ -1059,47 +1082,73 @@ async function seedPromptConfigRegistry() {
             isActive: true
         },
         {
-            promptId:          'PCR_SEC002_V1',
-            sectionId:         'SEC_002',
-            caseId:            'CASE_AI_JOB_RISK',
-            intentId:          'INT_STAY_12M_SAFE',
+            promptId: 'PCR_SEC002_V1',
+            sectionId: 'SEC_002',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'INT_STAY_12M_SAFE',
             playbookVersionId: 'PBV_000001',
-            promptVersion:     1,
-            modelFamily:       'GEMINI',
-            temperature:       0.3,
-            maxTokens:         600,
-            systemPrompt:      'You are a financial resilience analyst for Hawksyn. Assess the user\'s financial runway against career risk. Be factual and concise. Do not invent numbers not present in the evidence.',
-            userPrompt:        'Assess the financial resilience of this user.\nFinancial Runway: {{FINANCIAL_RUNWAY}} months.\nAccuracy Band: {{ACCURACY_BAND}}.\nRed Flags: {{RED_FLAGS}}.\n\nWrite 2-3 paragraphs covering:\n1. Is the current financial cushion adequate given AI risk?\n2. What happens if role is disrupted?\n3. What is the recommended immediate action?',
+            promptVersion: 1,
+            modelFamily: 'GEMINI',
+            temperature: 0.3,
+            maxTokens: 600,
+            systemPrompt: 'You are a financial resilience analyst for Hawksyn. Assess the user\'s financial runway against career risk. Be factual and concise. Do not invent numbers not present in the evidence.',
+            userPrompt: 'Assess the financial resilience of this user.\nFinancial Runway: {{FINANCIAL_RUNWAY}} months.\nAccuracy Band: {{ACCURACY_BAND}}.\nRed Flags: {{RED_FLAGS}}.\n\nWrite 2-3 paragraphs covering:\n1. Is the current financial cushion adequate given AI risk?\n2. What happens if role is disrupted?\n3. What is the recommended immediate action?',
             evidencePlaceholdersJson: {
                 FINANCIAL_RUNWAY: 'Q_FINANCIAL_RUNWAY_V1',
-                ACCURACY_BAND:    'integrityPack.accuracy.band',
-                RED_FLAGS:        'integrityPack.redFlags.triggered'
+                ACCURACY_BAND: 'integrityPack.accuracy.band',
+                RED_FLAGS: 'integrityPack.redFlags.triggered'
             },
             certaintyCapPercent: 85,
-            retryPolicy:         'RETRY_ON_SCHEMA_FAIL',
+            retryPolicy: 'RETRY_ON_SCHEMA_FAIL',
             outputSchemaReference: null,
             isActive: true
         },
         {
-            promptId:          'PCR_SEC003_V1',
-            sectionId:         'SEC_003',
-            caseId:            'CASE_AI_JOB_RISK',
-            intentId:          'INT_STAY_12M_SAFE',
+            promptId: 'PCR_SEC003_V1',
+            sectionId: 'SEC_003',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'INT_STAY_12M_SAFE',
             playbookVersionId: 'PBV_000001',
-            promptVersion:     1,
-            modelFamily:       'GEMINI',
-            temperature:       0.4,
-            maxTokens:         500,
-            systemPrompt:      'You are a market signals analyst for Hawksyn. Summarize external market conditions relevant to the user\'s role and domain. Only use the provided inputs. Do not fabricate statistics or cite external sources.',
-            userPrompt:        'Summarize market demand signals for this user.\nRole: {{CURRENT_ROLE}}.\nDomain: {{DOMAIN}}.\nCompany AI stance: {{COMPANY_AI_POLICY}}.\nAccuracy Band: {{ACCURACY_BAND}}.\n\nNote: External signal data may be limited. Acknowledge any data gaps explicitly.',
+            promptVersion: 1,
+            modelFamily: 'GEMINI',
+            temperature: 0.4,
+            maxTokens: 500,
+            systemPrompt: 'You are a market signals analyst for Hawksyn. Summarize external market conditions relevant to the user\'s role and domain. Only use the provided inputs. Do not fabricate statistics or cite external sources.',
+            userPrompt: `Analyze the external market conditions for this user's career risk assessment.
+
+User Profile:
+- Current Role: {{CURRENT_ROLE}}
+- Industry: {{DOMAIN}}
+- Experience: {{EXPERIENCE_YEARS}} years
+
+External Market Signals Collected:
+- Market Demand for this role type: {{MARKET_DEMAND_SIGNAL}}
+  Supporting data: {{MARKET_DEMAND_RATIONALE}}
+- AI/Automation Displacement Risk: {{AI_DISPLACEMENT_RISK}}
+  Supporting data: {{AI_DISPLACEMENT_RATIONALE}}
+- Industry Hiring Trend: {{INDUSTRY_HIRING_TREND}}
+- Role Automation Overlap: {{AUTOMATION_OVERLAP}}%
+- Signal Data Quality: {{SIGNAL_DATA_QUALITY}}
+
+Accuracy Band: {{ACCURACY_BAND}}
+
+Analyst Note: {{ANALYST_NOTE}}
+
+Instructions:
+- Write a 3-4 sentence market signals analysis for this user.
+- Use only the signal data provided above — do not invent statistics.
+- Clearly state market demand level, displacement risk, and hiring trend.
+- If SIGNAL_DATA_QUALITY is INSUFFICIENT or PARTIAL, note the limitation.
+- End with one direct implication for this user's decision.
+- Do not use phrases like "Based on my training data" — write as a market analyst would.`,
             evidencePlaceholdersJson: {
-                CURRENT_ROLE:      'parsedCvData.current_role',
-                DOMAIN:            'parsedCvData.domain',
+                CURRENT_ROLE: 'parsedCvData.current_role',
+                DOMAIN: 'parsedCvData.domain',
                 COMPANY_AI_POLICY: 'Q_COMPANY_AI_POLICY_V1',
-                ACCURACY_BAND:     'integrityPack.accuracy.band'
+                ACCURACY_BAND: 'integrityPack.accuracy.band'
             },
             certaintyCapPercent: 70,
-            retryPolicy:         'RETRY_ON_SCHEMA_FAIL',
+            retryPolicy: 'RETRY_ON_SCHEMA_FAIL',
             outputSchemaReference: null,
             isActive: true
         },
@@ -1245,34 +1294,84 @@ async function seedDataPatternKeyTaxonomy() {
 async function seedRiskAuditorRegistry() {
     await RiskAuditorRegistry.deleteMany({});
     await RiskAuditorRegistry.insertMany([
-        { 
-            auditorId: 'RAR_001', 
-            auditorName: 'Senior Risk Analyst', 
-            caseId: 'CASE_AI_JOB_RISK', 
-            specializations: ['AI_DISPLACEMENT', 'FINANCIAL_RISK', 'REM_SKILL_UPSKILL'], 
-            maxCaseload: 20, 
-            currentCaseload: 5, 
-            isActive: true 
+        {
+            auditorId: 'RAR_001',
+            auditorName: 'Senior Risk Analyst',
+            caseId: 'CASE_AI_JOB_RISK',
+            specializations: ['AI_DISPLACEMENT', 'FINANCIAL_RISK', 'REM_SKILL_UPSKILL'],
+            maxCaseload: 20,
+            currentCaseload: 5,
+            isActive: true
         },
-        { 
-            auditorId: 'RAR_002', 
-            auditorName: 'Neha Kapoor', 
-            caseId: 'CASE_AI_JOB_RISK', 
-            specializations: ['LABOUR_MARKET', 'POLICY'], 
-            maxCaseload: 20, 
-            currentCaseload: 2, 
-            isActive: true 
+        {
+            auditorId: 'RAR_002',
+            auditorName: 'Neha Kapoor',
+            caseId: 'CASE_AI_JOB_RISK',
+            specializations: ['LABOUR_MARKET', 'POLICY'],
+            maxCaseload: 20,
+            currentCaseload: 2,
+            isActive: true
         },
-        { 
-            auditorId: 'RAR_003', 
-            auditorName: 'Raghav Sharma', 
-            caseId: 'CASE_AI_JOB_RISK', 
-            specializations: ['FINANCIAL_RISK', 'RUNWAY_ANALYSIS'], 
-            maxCaseload: 20, 
-            currentCaseload: 8, 
-            isActive: true 
+        {
+            auditorId: 'RAR_003',
+            auditorName: 'Raghav Sharma',
+            caseId: 'CASE_AI_JOB_RISK',
+            specializations: ['FINANCIAL_RISK', 'RUNWAY_ANALYSIS'],
+            maxCaseload: 20,
+            currentCaseload: 8,
+            isActive: true
         }
     ]);
+}
+
+// ════════════════════════════════════════════════════════════
+// STEP 25 — command_center (MarketPulse + UserCredits)
+// ════════════════════════════════════════════════════════════
+async function seedCommandCenter() {
+    // 1. Initial Market Pulses
+    await MarketPulse.deleteMany({});
+    await MarketPulse.insertMany([
+        {
+            pulseId: 'MP_SEED_001',
+            role: 'Software Engineer',
+            industry: 'Technology',
+            aiExposureScore: 45,
+            careerMomentumScore: 85,
+            skillRelevanceScore: 90,
+            opportunityWindowScore: 80,
+            careerMomentumMonths: 24,
+            opportunityWindowYears: 3,
+            insightText: 'Engineers adding AI orchestration skills seeing 20% higher market demand.',
+            isActive: true,
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        },
+        {
+            pulseId: 'MP_SEED_002',
+            role: 'Product Manager',
+            industry: 'Technology',
+            aiExposureScore: 30,
+            careerMomentumScore: 75,
+            skillRelevanceScore: 80,
+            opportunityWindowScore: 70,
+            careerMomentumMonths: 18,
+            opportunityWindowYears: 2,
+            insightText: 'PMs focusing on AI product strategy are high in demand.',
+            isActive: true,
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        }
+    ]);
+
+    // 2. Initial Credits for Test User
+    // Note: Replace with actual test userId from your DB if needed
+    const testUserId = '69b3d07789aa8455b137e302'; // From your logs
+    await UserCredits.deleteMany({ userId: testUserId });
+    await UserCredits.create({
+        userId: testUserId,
+        checksBalance: 5,
+        transactions: [
+            { type: 'BONUS', amount: 5, balanceAfter: 5, note: 'Initial test credits' }
+        ]
+    });
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1309,6 +1408,7 @@ async function runSeed() {
             { name: 'risk_auditor_registry', fn: seedRiskAuditorRegistry },
             { name: 'mandatory_objective_inputs', fn: seedMandatoryObjectiveInputs },
             { name: 'moi_question_mapping', fn: seedMoiQuestionMapping },
+            { name: 'command_center', fn: seedCommandCenter },
         ];
 
         for (const step of steps) {

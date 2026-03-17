@@ -32,30 +32,7 @@ router.use(auth);
  */
 router.get('/product', paymentController.getProduct);
 
-/**
- * @swagger
- * /payment/status:
- *   get:
- *     summary: Check payment and run status for a case/intent
- *     tags: [4. Payments & Run Setup]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: caseId
- *         required: true
- *         schema:
- *           type: string
- *       - in: query
- *         name: intentId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Status details
- */
-router.get('/status', paymentController.getPaymentStatus);
+
 
 /**
  * @swagger
@@ -123,5 +100,28 @@ router.post('/initiate', paymentController.initiatePayment);
  *         description: Payment not found
  */
 router.post('/verify', paymentController.verifyPayment);
-
+/**
+ * @swagger
+ * /payment/status:
+ *   get:
+ *     summary: Check payment and run status for a case/intent
+ *     tags: [4. Payments & Run Setup]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: intentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Status details
+ */
+router.get('/status', paymentController.getPaymentStatus);
 module.exports = router;

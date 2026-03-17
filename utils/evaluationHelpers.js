@@ -133,31 +133,53 @@ function getConstraintBand(constraint, score) {
  * Handles MCQ_MAP and NUMERIC_RANGE
  * Used by: Step 4 constraint scoring
  */
-function calculateQuestionScore(question, rawAnswer) {
-    const { scoringType, scoringMapJson, numericMin, numericMax, outOfRangePolicy } = question;
+function calculateQuestionScore(question, answerValue) {
+    const { scoringType, scoringMapJson, numericMin, numericMax, outOfRangePolicy, optionsJson } = question;
 
     if (scoringType === 'MCQ_MAP') {
-        if (!Array.isArray(scoringMapJson)) return 0;
-        // scoringMapJson = [{ optionScore, normalizedScore }]
-        const match = scoringMapJson.find(m => m.optionScore == rawAnswer);
-        return match ? match.normalizedScore : 0;
+        let optionScoreId = null;
+
+        // Case 1: answerValue numeric hai (e.g. "3" ya 3)
+        // Score points directly saved (legacy or batch flow)
+        const parsed = Number(answerValue);
+        if (!isNaN(parsed) && parsed > 0 && String(answerValue).length < 5) {
+            optionScoreId = parsed;
+        }
+
+        // Case 2: answerValue string label hai
+        // e.g. "Somewhat unique — few people do this"
+        if (optionScoreId === null && Array.isArray(optionsJson)) {
+            const matched = optionsJson.find(
+                o => o.opt === String(answerValue).trim()
+            );
+            if (matched) optionScoreId = matched.score;
+        }
+
+        // Now get normalized score from scoringMapJson
+        if (optionScoreId !== null && Array.isArray(scoringMapJson)) {
+            const rule = scoringMapJson.find(
+                r => r.optionScore === optionScoreId
+            );
+            return rule ? rule.normalizedScore : 0;
+        }
+
+        return 0;
     }
 
     if (scoringType === 'NUMERIC_RANGE') {
-        let val = Number(rawAnswer);
-        if (isNaN(val)) return 0;
+        let num = parseFloat(answerValue);
+        if (isNaN(num)) return 0;
 
         // Apply CLAMP if outOfRangePolicy
         if (outOfRangePolicy === 'CLAMP') {
-            val = Math.max(numericMin || 0, Math.min(numericMax || 100, val));
+            num = Math.max(numericMin || 0, Math.min(numericMax || 100, num));
         }
 
-        // scoringMapJson = [{ minVal, maxVal, normalizedScore }]
         if (Array.isArray(scoringMapJson)) {
-            const band = scoringMapJson.find(
-                b => val >= b.minVal && val <= b.maxVal
+            const rule = scoringMapJson.find(
+                r => num >= r.minVal && num <= r.maxVal
             );
-            return band ? band.normalizedScore : 0;
+            return rule ? rule.normalizedScore : 0;
         }
         return 0;
     }
