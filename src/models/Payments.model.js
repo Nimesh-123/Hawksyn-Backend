@@ -33,6 +33,7 @@ const PaymentsSchema = new mongoose.Schema({
         default: 'PENDING'
     },
     isTestPayment: { type: Boolean, default: true },
+    paymentMethod: { type: String, default: 'test_gateway' },
     verifiedAt: { type: Date, default: null }
 }, {
     timestamps: true,

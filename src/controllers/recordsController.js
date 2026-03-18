@@ -190,6 +190,22 @@ exports.getRunDetail = async (req, res) => {
         const integrityPack = rasMap['INTEGRITY_PACK'] || null;
         const expertData    = rasMap['EXPERT_ASSIGNED'] || null;
         const profileData   = rasMap['PROFILE_CONFIRMED'] || null;
+        const objectiveRas  = rasMap['OBJECTIVE_INPUTS_CAPTURED'] || null;
+        const signalsRas    = rasMap['EXTERNAL_SIGNALS_CAPTURED'] || null;
+
+        // ── Enrich Interview Data with actual Question Text ──
+        let enrichedInterview = [];
+        if (objectiveRas && objectiveRas.answers) {
+            const qIds = objectiveRas.answers.map(a => a.questionId);
+            const questions = await db.Questions.find({ questionId: { $in: qIds } }).lean();
+            const qMap = {};
+            for (const q of questions) qMap[q.questionId] = q.questionText;
+
+            enrichedInterview = objectiveRas.answers.map(ans => ({
+                ...ans,
+                questionText: qMap[ans.questionId] || ans.questionId
+            }));
+        }
 
         const runDetail = {
             runId:             run.runId,
@@ -207,7 +223,13 @@ exports.getRunDetail = async (req, res) => {
                   || profileData
                   || null,
 
-            // Full integrity data
+            // Dashboard Tiles: Stage-1 Findings (Stage-1 Findings Tab)
+            insights: signalsRas?.signals || null,
+
+            // User Data: Raw Interview (Data Tab)
+            interviewData: enrichedInterview,
+
+            // Logic: Integrity data (Basis Tab)
             integrity: integrityPack ? {
                 accuracyScore:      integrityPack.accuracy?.score,
                 accuracyBand:       integrityPack.accuracy?.band,

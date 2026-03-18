@@ -290,4 +290,75 @@ router.post('/:runId/report/generate', reportController.generateReport);
  */
 router.post('/:runId/expert/assign', expertController.assignExpert);
 
+/**
+ * --- Slide 54: Expert Chat Query System ---
+ */
+
+/**
+ * @swagger
+ * /runs/experts/price:
+ *   get:
+ *     summary: Fetch price for N expert queries (Slide 54)
+ *     tags: [6. Expert Chat & Support]
+ *     parameters:
+ *       - in: query
+ *         name: count
+ *         schema:
+ *           type: integer
+ *         example: 2
+ *     responses:
+ *       200:
+ *         description: Price fetched
+ */
+router.get('/experts/price', expertController.getExpertQueryPrice);
+
+/**
+ * @swagger
+ * /runs/experts/ask:
+ *   post:
+ *     summary: Ask a specific query to the assigned expert (Consumes 2 Hawk Checks)
+ *     tags: [6. Expert Chat & Support]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [runId, queryText]
+ *             properties:
+ *               runId:
+ *                 type: string
+ *               queryText:
+ *                 type: string
+ *               queryType:
+ *                 type: string
+ *                 enum: [RISK_DEEP_DIVE, REMEDIATION_STRATEGY, MARKET_CLARITY, CUSTOM]
+ *     responses:
+ *       200:
+ *         description: Query sent. Credits deducted.
+ *       402:
+ *         description: Insufficient credits
+ */
+router.post('/experts/ask', expertController.askExpertQuery);
+
+/**
+ * @swagger
+ * /runs/experts/queries/{runId}:
+ *   get:
+ *     summary: Get all expert queries for a specific run
+ *     tags: [6. Expert Chat & Support]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.get('/experts/queries/:runId', expertController.getExpertQueries);
+
 module.exports = router;

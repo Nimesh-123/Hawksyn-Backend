@@ -8,6 +8,8 @@ const { uploadFile, deleteFile } = require('../../utils/s3');
 const { smartCVParser } = require('../../utils/aiParser');
 const { get_message } = require('../../utils/message.js');
 const { getUserActiveCv } = require('../../utils/cvHelper.js');
+const { detectRegionFromIP } = require('../../utils/regionHelper.js');
+
 
 const generateToken = (payload) => {
     /* 
@@ -94,12 +96,17 @@ exports.verifyOTP = async (req, res) => {
             user = new db.User({ email });
             isNewUser = true;
         }
+        // Auto-detect region for all logins (New or Returning)
+        const region = detectRegionFromIP(req.ip);
+        user.countryCode = region.countryCode;
+        user.preferredCurrency = region.currency;
         user.isEmailVerified = true;
-        await user.save();
 
         if (isNewUser) {
-            await createAuditLog(req, 'USER_CREATED', user._id, { email: user.email });
+            await createAuditLog(req, 'USER_CREATED', user._id, { email: user.email, country: region.countryCode });
         }
+
+
 
         // 5. Update OTP record instead of deleting (Logic Update)
         otpRecord.isUsed = true;
@@ -188,13 +195,18 @@ exports.loginWithPin = async (req, res) => {
             return RESPONSE.error(res, 401, 3004);
         }
 
-        // 2. Reset counters on success
+        // 2. Reset counters on success & Update region
         user.wrongPinCount = 0;
-        await user.save();
-
+        
+        // Always refresh region on login to handle travelers
+        const region = detectRegionFromIP(req.ip);
+        user.countryCode = region.countryCode;
+        user.preferredCurrency = region.currency;
+        
         const tokens = generateToken({ id: user._id, email: user.email, role: user.role });
         user.refreshToken = tokens.refreshToken;
         await user.save();
+
 
         const userActiveCv = await getUserActiveCv(user._id);
         const userResponse = user.toObject();

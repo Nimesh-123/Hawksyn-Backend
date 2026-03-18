@@ -3,7 +3,9 @@ const CaseIntentConfig = require('../models/CaseIntentConfig.model');
 const Playbooks = require('../models/Playbooks.model');
 const Payments = require('../models/Payments.model');
 const Runs = require('../models/Runs.model');
+const User = require('../models/user.model');
 const crypto = require('crypto');
+
 
 /**
  * Helper: Generate IDs in format TYPE_YYYYMMDD_XXXX
@@ -52,17 +54,31 @@ exports.getProduct = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Case not found' });
         }
 
+        const user = await User.findById(req.user.id);
+        const isInternational = user?.countryCode !== 'IN';
+        
+        let displayPrice = caseData.minPrice;
+        let currency = caseData.defaultCurrency || "INR";
+        
+        if (isInternational) {
+            // Assume 1 USD = 80 INR or fixed $7.99 for international
+            displayPrice = 7.99; 
+            currency = 'USD';
+        }
+
         return res.status(200).json({
             success: true,
             data: {
                 caseId: caseData.caseId,
                 caseName: caseData.caseName,
                 productId: "ai_job_risk_report",
-                price: caseData.minPrice,
-                currency: caseData.defaultCurrency || "INR",
+                price: displayPrice,
+                currency: currency,
+                gateway: isInternational ? 'STRIPE' : 'RAZORPAY',
                 isTestMode: true
             }
         });
+
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
@@ -73,7 +89,7 @@ exports.getProduct = async (req, res) => {
  */
 exports.initiatePayment = async (req, res) => {
     try {
-        const { caseId, intentId, platform = 'test' } = req.body;
+        const { caseId, intentId, platform = 'test', paymentMethod = 'test_gateway' } = req.body;
         const userId = req.user.id;
 
         if (!caseId || !intentId) {
@@ -127,6 +143,13 @@ exports.initiatePayment = async (req, res) => {
         const paymentId = await generateFormattedId(Payments, 'PAY', 'paymentId');
         const purchaseId = `TEST_PURCHASE_${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
+        // Detect region
+        const user = await User.findById(req.user.id);
+        const isInternational = user?.countryCode !== 'IN';
+        const amount = isInternational ? 7.99 : caseData.minPrice;
+        const currency = isInternational ? 'USD' : (caseData.defaultCurrency || 'INR');
+        const gateway = isInternational ? 'STRIPE' : 'RAZORPAY';
+
         const newPayment = new Payments({
             paymentId,
             userId,
@@ -135,10 +158,11 @@ exports.initiatePayment = async (req, res) => {
             platform,
             productId: 'ai_job_risk_report',
             purchaseId,
-            amount: caseData.minPrice,
-            currency: caseData.defaultCurrency || 'INR',
+            amount: amount,
+            currency: currency,
             status: 'PENDING',
-            isTestPayment: true
+            isTestPayment: true,
+            paymentMethod: gateway
         });
 
         await newPayment.save();
@@ -150,11 +174,13 @@ exports.initiatePayment = async (req, res) => {
                 purchaseId,
                 amount: newPayment.amount,
                 currency: newPayment.currency,
+                gateway: gateway,
                 status: "PENDING",
                 isTestMode: true,
-                message: "Test payment initiated. Call /verify to complete."
+                message: `Payment initiated via ${gateway}. Call /verify to complete.`
             }
         });
+
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
@@ -317,6 +343,200 @@ exports.getPaymentStatus = async (req, res) => {
                 hasPending: !!pendingPayment,
                 paymentId: pendingPayment ? pendingPayment.paymentId : null,
                 status: pendingPayment ? "PAYMENT_PENDING" : "NOT_PAID"
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+/**
+ * API 5 — GET /api/payment/detail/:paymentId
+ * Purpose: Get full receipt details for a specific payment
+ */
+exports.getPaymentDetail = async (req, res) => {
+    try {
+        const { paymentId } = req.params;
+        const userId = req.user.id;
+
+        const payment = await Payments.findOne({ paymentId, userId });
+        if (!payment) {
+            return res.status(404).json({ success: false, message: 'Payment record not found' });
+        }
+
+        // Fetch Case and Intent names for the receipt
+        const caseData = await CaseRegistry.findOne({ caseId: payment.caseId });
+        const intentData = await require('../models/IntentTaxonomy.model').findOne({ intentId: payment.intentId });
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                paymentId: payment.paymentId,
+                purchaseId: payment.purchaseId,
+                amount: payment.amount,
+                currency: payment.currency,
+                status: payment.status,
+                productId: payment.productId,
+                platform: payment.platform,
+                paymentMethod: payment.paymentMethod || 'N/A',
+                caseId: payment.caseId,
+                caseName: caseData ? caseData.caseName : "N/A",
+                intentId: payment.intentId,
+                intentName: intentData ? intentData.intentName : "N/A",
+                runId: payment.runId,
+                paidAt: payment.verifiedAt || payment.updatedAt,
+                isTestPayment: payment.isTestPayment
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * API 6 — GET /api/payment/list
+ * Purpose: Get list of all payments for the authenticated user
+ */
+exports.getAllPayments = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { status } = req.query;
+
+        const query = { userId };
+        if (status) query.status = status;
+
+        const payments = await Payments.find(query).sort({ createdAt: -1 });
+
+        // Map payments to include full details for each record in the list
+        const enrichedList = await Promise.all(payments.map(async (p) => {
+            const caseData = await CaseRegistry.findOne({ caseId: p.caseId });
+            const intentData = await require('../models/IntentTaxonomy.model').findOne({ intentId: p.intentId });
+
+            return {
+                paymentId: p.paymentId,
+                purchaseId: p.purchaseId,
+                amount: p.amount,
+                currency: p.currency,
+                status: p.status,
+                productId: p.productId,
+                platform: p.platform,
+                paymentMethod: p.paymentMethod || 'N/A',
+                caseId: p.caseId,
+                caseName: caseData ? caseData.caseName : "N/A",
+                intentId: p.intentId,
+                intentName: intentData ? intentData.intentName : "N/A",
+                runId: p.runId,
+                paidAt: p.verifiedAt || p.updatedAt,
+                isTestPayment: p.isTestPayment,
+                createdAt: p.createdAt
+            };
+        }));
+
+        return res.status(200).json({
+            success: true,
+            count: enrichedList.length,
+            data: enrichedList
+        });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * API 7 — POST /api/payment/experts/initiate
+ * Slide 54: Buy N number of expert queries.
+ */
+exports.initiateExpertQueryPayment = async (req, res) => {
+    try {
+        const { queryCount, platform = 'test', paymentMethod = 'test_gateway' } = req.body;
+        const userId = req.user.id;
+
+        if (!queryCount || queryCount < 1) {
+            return res.status(400).json({ success: false, message: 'queryCount is required' });
+        }
+
+        // Pricing logic matches Slide 54 image (2 queries = 100 INR)
+        const unitPrice = 50; 
+        const amount = queryCount * unitPrice;
+
+        const paymentId = await generateFormattedId(Payments, 'PAYQ', 'paymentId');
+        const purchaseId = `TEST_EXPERT_${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
+        const newPayment = new Payments({
+            paymentId,
+            userId,
+            platform,
+            productId: 'EXPERT_QUERY_SLOTS',
+            purchaseId,
+            amount,
+            currency: 'INR',
+            status: 'PENDING',
+            isTestPayment: true,
+            paymentMethod: paymentMethod,
+            metadata: { queryCount } // Store how many queries we are buying
+        });
+
+        await newPayment.save();
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                paymentId,
+                purchaseId,
+                amount,
+                queryCount,
+                message: "Expert Query payment initiated."
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * API 8 — POST /api/payment/experts/verify
+ */
+exports.verifyExpertQueryPayment = async (req, res) => {
+    try {
+        const { purchaseId } = req.body;
+        const userId = req.user.id;
+
+        const payment = await Payments.findOne({ purchaseId, userId, productId: 'EXPERT_QUERY_SLOTS' });
+        if (!payment) return res.status(404).json({ success: false, message: 'Payment record not found' });
+
+        if (payment.status === 'COMPLETED') {
+            return res.status(200).json({ success: true, message: 'Already credited.' });
+        }
+
+        const queryCount = payment.metadata?.queryCount || 1;
+
+        // 1. Update Payment
+        payment.status = 'COMPLETED';
+        payment.verifiedAt = new Date();
+        await payment.save();
+
+        // 2. Credit Chat Balance
+        const { db } = require('../models/index.model.js');
+        let credits = await db.UserCredits.findOne({ userId });
+        if (!credits) credits = new db.UserCredits({ userId });
+
+        credits.expertChatBalance += queryCount;
+        credits.transactions.push({
+            type: 'EXPERT_QUERY_PURCHASE',
+            amount: queryCount,
+            balanceAfter: credits.expertChatBalance,
+            note: `Purchased ${queryCount} expert query slots`,
+            createdAt: new Date()
+        });
+        await credits.save();
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                expertChatBalance: credits.expertChatBalance,
+                message: `${queryCount} query slots credited to your account.`
             }
         });
 

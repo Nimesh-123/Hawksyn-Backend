@@ -124,4 +124,77 @@ router.post('/verify', paymentController.verifyPayment);
  *         description: Status details
  */
 router.get('/status', paymentController.getPaymentStatus);
+/**
+ * @swagger
+ * /payment/list:
+ *   get:
+ *     summary: Get list of all payments for the user (Incl. Full Details)
+ *     tags: [4. Payments & Run Setup]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, COMPLETED, FAILED]
+ *         description: Filter by payment status
+ *     responses:
+ *       200:
+ *         description: Consolidated list of payments with full receipt data
+ */
+router.get('/list', paymentController.getAllPayments);
+
+/**
+ * --- Expert Query Payments (Slide 54) ---
+ */
+
+/**
+ * @swagger
+ * /payment/experts/initiate:
+ *   post:
+ *     summary: Initiate payment for buying N expert query slots
+ *     tags: [4. Payments & Run Setup]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [queryCount]
+ *             properties:
+ *               queryCount:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Init success
+ */
+router.post('/experts/initiate', auth, paymentController.initiateExpertQueryPayment);
+
+/**
+ * @swagger
+ * /payment/experts/verify:
+ *   post:
+ *     summary: Verify and credit expert query slots
+ *     tags: [4. Payments & Run Setup]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [purchaseId]
+ *             properties:
+ *               purchaseId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.post('/experts/verify', auth, paymentController.verifyExpertQueryPayment);
+
 module.exports = router;

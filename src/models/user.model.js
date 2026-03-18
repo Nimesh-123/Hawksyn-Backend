@@ -18,6 +18,11 @@ const userSchema = new mongoose.Schema(
         isBlocked: { type: Boolean, default: false },
         mPinSet: { type: Boolean, default: false },
         role: { type: String, enum: ['user', 'admin', 'expert'], default: 'user' },
+        
+        // Multi-region Support (Auto-detected from IP)
+        countryCode: { type: String, default: 'IN' }, 
+        preferredCurrency: { type: String, default: 'INR' },
+        
         refreshToken: { type: String } // Solution 1: Refresh Token support
     },
     { timestamps: true }

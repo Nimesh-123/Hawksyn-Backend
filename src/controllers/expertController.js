@@ -396,3 +396,124 @@ exports.assignExpert = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+/**
+ * API 2 — GET /api/v1/runs/experts/price
+ * Slide 54: Fetch dynamic price for N queries from backend.
+ */
+exports.getExpertQueryPrice = async (req, res) => {
+    try {
+        const { count = 1 } = req.query;
+        const numCount = Number(count);
+        
+        // Logical pricing: e.g. 1 Query = 60 INR, 2 Queries = 100 INR (Discounted)
+        // Image shows 2 queries = 100 INR
+        const unitPrice = 50; 
+        const totalPrice = numCount * unitPrice;
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                count: numCount,
+                price: totalPrice,
+                currency: 'INR',
+                displayLabel: `Pay = INR ${totalPrice}/-`
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * API 3 — POST /api/v1/runs/experts/ask
+ * Slide 54: Consumes purchased Expert Chat Balance (Slots)
+ */
+exports.askExpertQuery = async (req, res) => {
+    try {
+        const { runId, queryText, queryType = 'CUSTOM' } = req.body;
+        const userId = req.user.id;
+
+        // 1. Verify Run & Expert Assignment
+        const run = await db.Runs.findOne({ runId, userId });
+        if (!run) return res.status(404).json({ success: false, message: 'Run not found' });
+
+        const expertAssignment = await db.Ras.findOne({
+            runId,
+            artifactType: 'EXPERT_ASSIGNED',
+            status: 'FINAL'
+        });
+
+        if (!expertAssignment || !expertAssignment.artifactJson.assignedExpert) {
+            return res.status(400).json({ success: false, message: 'No expert has been assigned yet.' });
+        }
+
+        const expertId = expertAssignment.artifactJson.assignedExpert.auditorId;
+
+        // 2. Check & Deduct Expert Chat Balance
+        const userCredits = await db.UserCredits.findOne({ userId });
+        
+        if (!userCredits || userCredits.expertChatBalance < 1) {
+            return res.status(402).json({
+                success: false,
+                message: 'No available query slots. Please purchase query credits first.'
+            });
+        }
+
+        const newBalance = userCredits.expertChatBalance - 1;
+        await db.UserCredits.findOneAndUpdate(
+            { userId },
+            {
+                $set: { expertChatBalance: newBalance },
+                $push: {
+                    transactions: {
+                        type: 'EXPERT_QUERY_CONSUME',
+                        amount: -1,
+                        balanceAfter: newBalance,
+                        note: `Expert Slot Consumed: ${queryType} — Run ${runId}`,
+                        createdAt: new Date()
+                    }
+                }
+            }
+        );
+
+        // 3. Create Record
+        const queryId = `EXPQ_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        const expertQuery = await require('../models/ExpertQuery.model').create({
+            queryId, userId, runId, expertId, queryType, queryText,
+            status: 'PENDING'
+        });
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                queryId: expertQuery.queryId,
+                expertChatBalance: newBalance,
+                message: 'Query sent successfully.'
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * API 4 — GET /api/v1/experts/queries/:runId
+ * List all queries for a specific run chat history.
+ */
+exports.getExpertQueries = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const userId = req.user.id;
+
+        const queries = await require('../models/ExpertQuery.model').find({ runId, userId }).sort({ createdAt: 1 });
+
+        return res.status(200).json({
+            success: true,
+            data: queries
+        });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};

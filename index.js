@@ -14,6 +14,7 @@ require('./middleware/database/connectDatabase.js');
 
 // --- Cron Jobs ---
 require('./src/crons/trendEngine.cron.js');
+require('./src/crons/validityDecline.cron.js');
 
 // --- Global Logging & Request ID ---
 const requestLogger = require('./middleware/requestLogger.js');
