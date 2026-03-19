@@ -360,5 +360,7 @@ router.post('/experts/ask', expertController.askExpertQuery);
  *         description: Success
  */
 router.get('/experts/queries/:runId', expertController.getExpertQueries);
+router.get('/experts/auditor/inbox', expertController.getAuditorInbox);
+router.post('/experts/auditor/reply', expertController.replyToQuery);
 
 module.exports = router;

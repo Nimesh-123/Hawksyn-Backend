@@ -11,6 +11,13 @@ const UserClocksSchema = new mongoose.Schema({
     
     careerMomentumMonths: { type: Number, default: 0 },
     opportunityWindowYears: { type: Number, default: 0 },
+
+    // Justifications & Trends (Gemini derived)
+    aiExposureJustification: { type: String, default: null },
+    careerMomentumJustification: { type: String, default: null },
+    skillRelevanceJustification: { type: String, default: null },
+    opportunityWindowJustification: { type: String, default: null },
+    trendTrigger: { type: String, default: null },
     
     // Previous Scores (for change detection)
     previousAiExposureScore: { type: Number, default: null },

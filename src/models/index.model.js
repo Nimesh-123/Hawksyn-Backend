@@ -43,5 +43,6 @@ db.MarketPulse = require('./MarketPulse.model');
 db.UserClocks = require('./UserClocks.model');
 db.ClockHistory = require('./ClockHistory.model');
 db.UserCredits  = require('./UserCredits.model');
+db.ExpertQuery = require('./ExpertQuery.model');
 
 module.exports = { db };

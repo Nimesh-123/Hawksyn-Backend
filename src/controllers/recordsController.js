@@ -11,10 +11,8 @@ const { db } = require('../models/index.model.js');
 // Single run ka summary object banata hai for Slide 44
 // ─────────────────────────────────────────────────────────
 async function buildRunSummary(run) {
-    // 1. Fetch Case Name from Registry
     const caseData = await db.CaseRegistry.findOne({ caseId: run.caseId }).lean();
     
-    // 2. Load all RAS artifacts for this run
     const rasArtifacts = await db.Ras.find({
         runId:  run.runId,
         status: 'FINAL'
@@ -26,10 +24,12 @@ async function buildRunSummary(run) {
     }
 
     const finalReport   = rasMap['FINAL_REPORT']    || null;
-    const expertData    = rasMap['EXPERT_ASSIGNED']  || null;
+    const integrityPack = rasMap['INTEGRITY_PACK']   || null;
     const objectiveData = rasMap['OBJECTIVE_INPUTS_CAPTURED'] || run.objectiveInputs || null;
 
-    // 3. Duration Calculation (Slide 44)
+    // Accuracy Score Source (Step 4 or Step 5)
+    const accuracyScore = finalReport?.accuracyScore || integrityPack?.accuracy?.score || 50;
+
     let durationStr = '00:00:00';
     if (run.completedAt && run.createdAt) {
         const diffMs = new Date(run.completedAt) - new Date(run.createdAt);
@@ -40,8 +40,6 @@ async function buildRunSummary(run) {
         durationStr = `${h}:${m}:${s}`;
     }
 
-    // 4. Simplified User Quote (Slide 44)
-    // Extracting the main objective text provided by user
     const userObservation = objectiveData?.observation || objectiveData?.input || "Assessment Completed";
 
     return {
@@ -51,25 +49,15 @@ async function buildRunSummary(run) {
         status:            run.status,
         userObservation:   userObservation,
         duration:          durationStr,
-
-        // Verdict logic for Slide 44 (Secured vs Not Secured)
+        accuracyScore:     accuracyScore, // Added correctly from Ras
         verdict:           finalReport?.verdict || null,
         displayVerdict:    finalReport?.verdict === 'PROCEED' ? 'Secured' : 'Not Secured',
-        
-        // Dates
         createdAt:         run.createdAt,
         completedAt:       run.completedAt,
-        
-        // Recurrence placeholder (Logic: 180 days after completion)
         reRunInDays:       180 
     };
 }
 
-// ════════════════════════════════════════════════════════════
-// CONTROLLER 1 — getAllRecords
-// GET /api/v1/users/:userId/records
-// Supports Slide 44 (List) and Slide 45 (Comparison)
-// ════════════════════════════════════════════════════════════
 exports.getAllRecords = async (req, res) => {
     try {
         const { userId } = req.params;
@@ -89,43 +77,38 @@ exports.getAllRecords = async (req, res) => {
             return res.status(200).json({ success: true, data: { records: [], timeline: [] } });
         }
 
-        // ── 1. Build individual records with delta logic ──
-        const records = await Promise.all(runs.map(async (run, index) => {
-            const summary = await buildRunSummary(run);
-            
-            // Delta Logic for Slide 45
-            // Compare with the run immediately before it in chronological order
-            let delta = { riskChange: 0, verdictChanged: false, newAssumptions: false };
-            const nextRun = runs[index + 1]; // Since sorted latest first, index + 1 is the older run
-            
-            if (nextRun) {
-                const olderScore = (100 - (nextRun.finalReport?.accuracyScore || 50));
-                const newerScore = (100 - (run.finalReport?.accuracyScore || 50));
-                delta.riskChange = newerScore - olderScore;
-                delta.verdictChanged = run.verdict !== nextRun.verdict;
-            }
-
-            return {
-                ...summary,
-                delta,
-                isBaseline: (totalRuns > 1 && index === totalRuns - 1) // First run is baseline by default
-            };
+        const records = await Promise.all(runs.map(async (run) => {
+            return await buildRunSummary(run);
         }));
 
-        // ── 2. Build Timeline for "Decision Direction" (Slide 45 Top Box) ──
-        // We take the last 3 runs for the timeline
+        // ── 1. Apply Comparison (Delta) Logic ──
+        // chronologically compare each run with the one that followed it
+        records.forEach((run, index) => {
+            let delta = { riskChange: 0, verdictChanged: false, newAssumptions: false };
+            const olderRun = records[index + 1]; 
+            
+            if (olderRun) {
+                const olderRisk = (100 - (olderRun.accuracyScore || 50));
+                const newerRisk = (100 - (run.accuracyScore || 50));
+                delta.riskChange = newerRisk - olderRisk;
+                delta.verdictChanged = run.verdict !== olderRun.verdict;
+            }
+            
+            run.delta = delta;
+            run.isBaseline = (totalRuns > 1 && index === records.length - 1);
+        });
+
         const timeline = records.slice(0, 3).reverse().map(r => ({
-            date: r.createdAt,
-            riskScore: (100 - (r.accuracyScore || 50)),
-            verdict: r.verdict,
+            date:           r.createdAt,
+            riskScore:      (100 - (r.accuracyScore || 50)),
+            verdict:        r.verdict,
             displayVerdict: r.displayVerdict
         }));
 
-        // ── 3. AI Trend Interpretation (Blue Box in Slide 45) ──
         let trendStatement = "Insufficient data to establish a trend.";
         if (timeline.length >= 2) {
             const first = timeline[0].riskScore;
-            const last = timeline[timeline.length - 1].riskScore;
+            const last  = timeline[timeline.length - 1].riskScore;
             if (Math.abs(last - first) < 5) {
                 trendStatement = "Net position stable despite short-term fluctuation.";
             } else if (last > first) {
@@ -141,8 +124,8 @@ exports.getAllRecords = async (req, res) => {
                 userId,
                 totalRuns,
                 trendStatement,
-                timeline, // Top box Slide 45
-                records,  // Individual cards Slide 45
+                timeline,
+                records,
                 canRunNewCase: true
             }
         });
@@ -263,6 +246,8 @@ exports.getRunDetail = async (req, res) => {
                 assignedAt:         expertData.assignedAt
             } : null
         };
+
+        console.log(`[Records] Run detail response for user ${userId}, run ${runId}:`, JSON.stringify(runDetail, null, 2));
 
         return res.status(200).json({
             success: true,

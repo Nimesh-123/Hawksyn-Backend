@@ -3,16 +3,13 @@ const { uploadFile, deleteFile } = require('../../utils/s3');
 const { smartCVParser } = require('../../utils/aiParser');
 
 /**
- * NEW API — POST /api/runs/:runId/cv/keep-existing
- * Purpose: User chose "Continue with existing CV"
- * Attach most recent CV to this run
+ * Handle "Continue with existing CV" choice.
  */
 exports.keepExistingCv = async (req, res) => {
     try {
         const { runId } = req.params;
-        const userId = req.user.id; // Using id as per JWT payload
+        const userId = req.user.id;
 
-        // Step 1 — Validate run
         const run = await db.Runs.findOne({ runId });
         if (!run) {
             return res.status(404).json({ success: false, message: "Run not found" });
@@ -20,12 +17,12 @@ exports.keepExistingCv = async (req, res) => {
         if (run.userId.toString() !== userId) {
             return res.status(403).json({ success: false, message: "Unauthorized" });
         }
+
         const allowedStatuses = ['CREATED', 'CV_UPLOADED', 'PROFILE_CONFIRMED', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED'];
         if (!allowedStatuses.includes(run.status)) {
             return res.status(400).json({ success: false, message: `Run is not in a state for CV operations (${run.status})` });
         }
 
-        // Step 2 — Verify payment
         const payment = await db.Payments.findOne({
             runId: runId,
             userId: userId,
@@ -35,7 +32,6 @@ exports.keepExistingCv = async (req, res) => {
             return res.status(403).json({ success: false, message: "Payment not verified for this run" });
         }
 
-        // Step 3 — Check if CV already attached
         if (run.cvSnapshot && run.cvSnapshot.cvUrl) {
             return res.status(200).json({
                 success: true,
@@ -49,7 +45,6 @@ exports.keepExistingCv = async (req, res) => {
             });
         }
 
-        // Step 4 — Get confirmed UserProfile
         const userProfile = await db.UserProfile.findOne({
             userId,
             isConfirmed: true
@@ -63,7 +58,6 @@ exports.keepExistingCv = async (req, res) => {
             });
         }
 
-        // Step 5 — Attach profile data to run
         const updatedRun = await db.Runs.findOneAndUpdate(
             { runId },
             {
@@ -79,8 +73,6 @@ exports.keepExistingCv = async (req, res) => {
             { new: true }
         );
 
-        // ✅ Step 6 — Create PROFILE_CONFIRMED RAS artifact
-        // This is required for Doc Step 6 (Case File Formation)
         const rasId = `RAS_PROFILE_${runId}`;
         await db.Ras.findOneAndUpdate(
             { rasId },
@@ -96,7 +88,6 @@ exports.keepExistingCv = async (req, res) => {
             },
             { upsert: true }
         );
-
 
         return res.status(200).json({
             success: true,
@@ -116,15 +107,13 @@ exports.keepExistingCv = async (req, res) => {
 };
 
 /**
- * API — POST /api/runs/:runId/cv/upload
- * Purpose: Upload new CV for a specific run
+ * Upload new CV for a specific run.
  */
 exports.uploadRunCv = async (req, res) => {
     try {
         const { runId } = req.params;
         const userId = req.user.id;
 
-        // Add Check 1 — Run validation
         const run = await db.Runs.findOne({ runId });
         if (!run) {
             return res.status(404).json({ success: false, message: "Run not found" });
@@ -132,12 +121,12 @@ exports.uploadRunCv = async (req, res) => {
         if (run.userId.toString() !== userId) {
             return res.status(403).json({ success: false, message: "Unauthorized" });
         }
+
         const allowedStatuses = ['CREATED', 'CV_UPLOADED', 'PROFILE_CONFIRMED', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED'];
         if (!allowedStatuses.includes(run.status)) {
             return res.status(400).json({ success: false, message: `Run is not in a state for CV operations (${run.status})` });
         }
 
-        // Add Check 2 — Payment verification
         const payment = await db.Payments.findOne({
             runId,
             userId,
@@ -153,37 +142,30 @@ exports.uploadRunCv = async (req, res) => {
 
         const file = req.file;
 
-        // Validation - PDF only (Reusing logic from user controller)
         if (file.mimetype !== 'application/pdf') {
             return res.status(400).json({ success: false, message: "Invalid file type. Only PDF files are allowed." });
         }
 
-        // Size validation
         if (file.size > 10 * 1024 * 1024) {
             return res.status(400).json({ success: false, message: "File size exceeds the 10MB limit." });
         }
 
-        // Generate unique and sanitized filename
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const fileName = `resumes/${userId}-${uniqueSuffix}.pdf`;
 
-        // Upload to S3
         const fileUrl = await uploadFile(file.buffer, fileName, file.mimetype);
 
-        // AI Data Extraction
         let extractedData = null;
         let parserStatus = "FAILED";
 
         try {
             extractedData = await smartCVParser(file.buffer, file.originalname, file.mimetype);
 
-            // ✅ NEW: Reject if not a CV
             if (extractedData && extractedData.isCv === false) {
-                console.warn(`[CV Guard] User ${userId} uploaded a non-CV document during Step 1. Deleting from S3...`);
                 await deleteFile(fileName);
                 return res.status(400).json({
                     success: false,
-                    message: "The uploaded document does not appear to be a valid Resume/CV. Please upload a relevant professional document."
+                    message: "The uploaded document does not appear to be a valid Resume/CV."
                 });
             }
 
@@ -200,7 +182,6 @@ exports.uploadRunCv = async (req, res) => {
             console.error("[AI Extraction Failed]", aiError.message);
         }
 
-        // Deactivate previous CVs
         await db.DocumentUploads.updateMany(
             { userId },
             { $set: { isActive: false } }
@@ -213,7 +194,6 @@ exports.uploadRunCv = async (req, res) => {
             delete dbSafeParsedData.totalPipelineDuration;
         }
 
-        // Insert new CV record
         const newCv = await db.DocumentUploads.create({
             userId,
             fileName: file.originalname,
@@ -223,7 +203,6 @@ exports.uploadRunCv = async (req, res) => {
             isActive: true
         });
 
-        // Add Check 3 — After CV parsing completes: Update run.cvSnapshot
         await db.Runs.findOneAndUpdate(
             { runId },
             {
@@ -238,16 +217,15 @@ exports.uploadRunCv = async (req, res) => {
             }
         );
 
-        // ✅ NEW: Also update master UserProfile so user can edit new data
         await db.UserProfile.findOneAndUpdate(
             { userId },
             {
                 $set: {
                     lastCvUploadId: newCv._id,
                     cvUrl: newCv.cvUrl,
-                    originalParsedData: newCv.parsedCvData, // New baseline
-                    confirmedProfile: null,                 // Clear old confirmation
-                    isConfirmed: false,                    // Force re-confirmation
+                    originalParsedData: newCv.parsedCvData,
+                    confirmedProfile: null,
+                    isConfirmed: false,
                     'overrideMap.fieldsChanged': [],
                     'overrideMap.changeDetails': []
                 }

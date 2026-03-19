@@ -1,27 +1,8 @@
-// ═══════════════════════════════════════════════════════════════════
-// HAWKSYN — Doc Step 5: External Signal Collection
-// File: controllers/signalsController.js
-//
-// Route : POST /api/v1/runs/:runId/signals/collect
-// Trigger: AnalyzingScreen background (after Step 4 integrity/run)
-// PPT   : Slide 40 — "Hawksyn will continue validation process"
-//
-// Purpose:
-//   OpenAI ko role + industry context deke market signals collect karo.
-//   Result RAS artifact 'EXTERNAL_SIGNALS_CAPTURED' mein store karo.
-//   reportController.js ise padh ke SEC_003 fill karega.
-// ═══════════════════════════════════════════════════════════════════
-
-const { db }    = require('../models/index.model.js');
-const OpenAI    = require('openai');
+const { db } = require('../models/index.model.js');
+const OpenAI = require('openai');
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ─────────────────────────────────────────────────────────────────
-// HELPER 1 — buildSignalPrompt
-// Profile + intent se structured OpenAI prompt banata hai.
-// OpenAI ko sirf JSON return karne ki instruction hai — no markdown.
-// ─────────────────────────────────────────────────────────────────
 function buildSignalPrompt({ role, industry, orgSize, intentName, caseName }) {
     return `You are a professional career risk analyst with expertise in labour market intelligence.
 
@@ -73,42 +54,28 @@ Rules:
 - Base your assessment on your training knowledge about this role and industry.`;
 }
 
-// ─────────────────────────────────────────────────────────────────
-// HELPER 2 — callOpenAI
-// Clean OpenAI call — returns parsed JSON object or throws.
-// ─────────────────────────────────────────────────────────────────
 async function callOpenAI(prompt) {
     const response = await openai.chat.completions.create({
-        model:       'gpt-4o',
+        model: 'gpt-4o',
         temperature: 0.2,
-        max_tokens:  600,
+        max_tokens: 600,
         messages: [
             {
-                role:    'system',
+                role: 'system',
                 content: 'You are a JSON-only responder. Return only valid JSON. No markdown. No explanation. No preamble. Your entire response must be parseable by JSON.parse().'
             },
             {
-                role:    'user',
+                role: 'user',
                 content: prompt
             }
         ]
     });
 
     const raw = response.choices[0].message.content || '';
-
-    // Strip markdown fences if OpenAI adds them anyway
-    const clean = raw
-        .replace(/```json\s*/gi, '')
-        .replace(/```\s*/g, '')
-        .trim();
-
+    const clean = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
     return JSON.parse(clean);
 }
 
-// ─────────────────────────────────────────────────────────────────
-// HELPER 3 — validateSignals
-// Schema check — ensures all required fields present and typed correctly.
-// ─────────────────────────────────────────────────────────────────
 function validateSignals(parsed) {
     const required = [
         'marketDemandSignal',
@@ -118,18 +85,11 @@ function validateSignals(parsed) {
     ];
 
     for (const key of required) {
-        if (!parsed[key]) {
-            return { valid: false, reason: `Missing top-level key: ${key}` };
-        }
-        if (!parsed[key].value) {
-            return { valid: false, reason: `Missing value in: ${key}` };
-        }
-        if (!parsed[key].rationale) {
-            return { valid: false, reason: `Missing rationale in: ${key}` };
-        }
+        if (!parsed[key]) return { valid: false, reason: `Missing top-level key: ${key}` };
+        if (!parsed[key].value) return { valid: false, reason: `Missing value in: ${key}` };
+        if (!parsed[key].rationale) return { valid: false, reason: `Missing rationale in: ${key}` };
     }
 
-    // automationOverlapScore.value must be a number
     if (typeof parsed.automationOverlapScore.value !== 'number') {
         return { valid: false, reason: 'automationOverlapScore.value must be a number' };
     }
@@ -137,11 +97,6 @@ function validateSignals(parsed) {
     return { valid: true };
 }
 
-// ─────────────────────────────────────────────────────────────────
-// HELPER 4 — buildCoverage
-// Integrity engine ke coverage format se match karta hai.
-// reportController.js ise requiredExternalAnchors ke against check karta hai.
-// ─────────────────────────────────────────────────────────────────
 function buildCoverage(signals) {
     const mds = signals?.marketDemandSignal;
     const adr = signals?.aiDisplacementRisk;
@@ -152,50 +107,42 @@ function buildCoverage(signals) {
 
     return [
         {
-            anchor:      'Market Demand Signal',
+            anchor: 'Market Demand Signal',
             sufficiency: isFound(mds) ? 'FOUND' : 'NOT_FOUND',
-            evidence:    mds?.rationale || null
+            evidence: mds?.rationale || null
         },
         {
-            anchor:      'AI Displacement Risk Signal',
+            anchor: 'AI Displacement Risk Signal',
             sufficiency: isFound(adr) ? 'FOUND' : 'NOT_FOUND',
-            evidence:    adr?.rationale || null
+            evidence: adr?.rationale || null
         },
         {
-            anchor:      'Industry Hiring Trend',
+            anchor: 'Industry Hiring Trend',
             sufficiency: isFound(iht) ? 'FOUND' : 'NOT_FOUND',
-            evidence:    iht?.rationale || null
+            evidence: iht?.rationale || null
         },
         {
-            anchor:      'Automation Overlap Score',
+            anchor: 'Automation Overlap Score',
             sufficiency: isFound(aos) ? 'FOUND' : 'NOT_FOUND',
-            evidence:    aos?.rationale || null
+            evidence: aos?.rationale || null
         }
     ];
 }
 
-// ─────────────────────────────────────────────────────────────────
-// MAIN CONTROLLER — collectSignals
-// POST /api/v1/runs/:runId/signals/collect
-// ─────────────────────────────────────────────────────────────────
+/**
+ * API — POST /api/v1/runs/:runId/signals/collect
+ */
 exports.collectSignals = async (req, res) => {
     try {
         const { runId } = req.params;
 
-        // ── A. Load Run ──────────────────────────────────────────
         const run = await db.Runs.findOne({ runId });
-        if (!run) {
-            return res.status(404).json({
-                success: false,
-                message: `Run not found: ${runId}`
-            });
-        }
+        if (!run) return res.status(404).json({ success: false, message: `Run not found: ${runId}` });
 
-        // ── B. Idempotency check — already collected? ─────────────
         const existing = await db.Ras.findOne({
             runId,
             artifactType: 'EXTERNAL_SIGNALS_CAPTURED',
-            status:       'FINAL'
+            status: 'FINAL'
         });
 
         if (existing) {
@@ -203,112 +150,91 @@ exports.collectSignals = async (req, res) => {
                 success: true,
                 data: {
                     runId,
-                    rasId:            existing.rasId,
+                    rasId: existing.rasId,
                     collectionStatus: 'ALREADY_COLLECTED',
-                    dataQuality:      existing.artifactJson?.dataQuality || 'PARTIAL',
-                    coverage:         existing.artifactJson?.coverage    || [],
+                    dataQuality: existing.artifactJson?.dataQuality || 'PARTIAL',
+                    coverage: existing.artifactJson?.coverage || [],
                     signalsSummary: {
-                        marketDemandSignal:  existing.artifactJson?.signals?.marketDemandSignal?.value  || 'UNKNOWN',
-                        aiDisplacementRisk:  existing.artifactJson?.signals?.aiDisplacementRisk?.value  || 'UNKNOWN',
+                        marketDemandSignal: existing.artifactJson?.signals?.marketDemandSignal?.value || 'UNKNOWN',
+                        aiDisplacementRisk: existing.artifactJson?.signals?.aiDisplacementRisk?.value || 'UNKNOWN',
                         industryHiringTrend: existing.artifactJson?.signals?.industryHiringTrend?.value || 'UNKNOWN',
-                        automationOverlap:   existing.artifactJson?.signals?.automationOverlapScore?.value ?? 'UNKNOWN'
+                        automationOverlap: existing.artifactJson?.signals?.automationOverlapScore?.value ?? 'UNKNOWN'
                     },
                     message: 'Signals already collected for this run.'
                 }
             });
         }
 
-        // ── C. Load Profile (Step 2 RAS) ─────────────────────────
         const profileRas = await db.Ras.findOne({
             runId,
             artifactType: 'PROFILE_CONFIRMED',
-            status:       'FINAL'
+            status: 'FINAL'
         });
 
         const profileData = profileRas?.artifactJson || {};
-        const profile     = profileData.confirmedProfile
-                         || profileData.profile
-                         || profileData;
+        const profile = profileData.confirmedProfile || profileData.profile || profileData;
 
-        // ── D. Load Intent + Case names ───────────────────────────
         const [intent, caseReg] = await Promise.all([
             db.IntentTaxonomy.findOne({ intentId: run.intentId }),
             db.CaseRegistry.findOne({ caseId: run.caseId })
         ]);
 
         const promptContext = {
-            role:       profile?.currentRole       || profile?.role       || 'Professional',
-            industry:   profile?.industry                                  || 'Technology',
-            orgSize:    profile?.organizationSize  || profile?.orgSize    || 'Not specified',
-            intentName: intent?.intentName                                 || 'Assess risk',
-            caseName:   caseReg?.caseName                                 || 'Job Safety Assessment'
+            role: profile?.currentRole || profile?.role || 'Professional',
+            industry: profile?.industry || 'Technology',
+            orgSize: profile?.organizationSize || profile?.orgSize || 'Not specified',
+            intentName: intent?.intentName || 'Assess risk',
+            caseName: caseReg?.caseName || 'Job Safety Assessment'
         };
 
-        // ── E. Build prompt + call OpenAI ─────────────────────────
         const prompt = buildSignalPrompt(promptContext);
 
-        let signals          = null;
+        let signals = null;
         let collectionStatus = 'SUCCESS';
-        let validationError  = null;
+        let validationError = null;
 
         try {
-            const parsed     = await callOpenAI(prompt);
+            const parsed = await callOpenAI(prompt);
             const validation = validateSignals(parsed);
 
             if (!validation.valid) {
-                // One retry with explicit correction instruction
-                console.log(`[Signals] Validation failed (${validation.reason}) — retrying...`);
-
-                const retryPrompt = `${prompt}
-
-CORRECTION REQUIRED: Previous response failed validation.
-Reason: ${validation.reason}
-
-Return ONLY valid JSON. Fix the issue and try again.`;
-
-                const retried          = await callOpenAI(retryPrompt);
-                const retryValidation  = validateSignals(retried);
+                const retryPrompt = `${prompt}\n\nCORRECTION REQUIRED: Previous response failed validation.\nReason: ${validation.reason}\n\nReturn ONLY valid JSON.`;
+                const retried = await callOpenAI(retryPrompt);
+                const retryValidation = validateSignals(retried);
 
                 if (!retryValidation.valid) {
-                    // Use partial data, mark DEGRADED
-                    signals          = retried || {};
+                    signals = retried || {};
                     collectionStatus = 'DEGRADED';
-                    validationError  = retryValidation.reason;
-                    console.warn(`[Signals] Retry also failed: ${retryValidation.reason}`);
+                    validationError = retryValidation.reason;
                 } else {
                     signals = retried;
                 }
-
             } else {
                 signals = parsed;
             }
-
         } catch (llmErr) {
             console.error('[Signals] OpenAI call failed:', llmErr.message);
             collectionStatus = 'FAILED';
-            validationError  = llmErr.message;
-            signals          = {};
+            validationError = llmErr.message;
+            signals = {};
         }
 
-        // ── F. Build coverage array ───────────────────────────────
         const coverage = buildCoverage(signals);
-
-        // ── G. Build + save RAS artifact ──────────────────────────
         const rasId = `RAS_SIG_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
 
         const artifactJson = {
             runId,
-            caseId:           run.caseId,
-            intentId:         run.intentId,
+            caseId: run.caseId,
+            intentId: run.intentId,
             signals,
             coverage,
             collectionStatus,
-            validationError:  validationError || null,
-            dataQuality:      signals?.dataQuality || 'INSUFFICIENT',
+            validationError: validationError || null,
+            dataQuality: signals?.dataQuality || 'INSUFFICIENT',
             profileUsed: {
-                role:     promptContext.role,
+                role: promptContext.role,
                 industry: promptContext.industry,
-                orgSize:  promptContext.orgSize
+                orgSize: promptContext.orgSize
             },
             collectedAt: new Date()
         };
@@ -316,20 +242,15 @@ Return ONLY valid JSON. Fix the issue and try again.`;
         await db.Ras.create({
             rasId,
             runId,
-            stepNo:          5,
-            artifactType:    'EXTERNAL_SIGNALS_CAPTURED',
+            stepNo: 5,
+            artifactType: 'EXTERNAL_SIGNALS_CAPTURED',
             artifactVersion: 1,
             artifactJson,
-            status:          'FINAL'
+            status: 'FINAL'
         });
 
-        // ── H. Update run status ──────────────────────────────────
-        await db.Runs.updateOne(
-            { runId },
-            { $set: { status: 'SIGNALS_COLLECTED' } }
-        );
+        await db.Runs.updateOne({ runId }, { $set: { status: 'SIGNALS_COLLECTED' } });
 
-        // ── I. Response ───────────────────────────────────────────
         return res.status(200).json({
             success: true,
             data: {
@@ -339,23 +260,18 @@ Return ONLY valid JSON. Fix the issue and try again.`;
                 dataQuality: signals?.dataQuality || 'INSUFFICIENT',
                 coverage,
                 signalsSummary: {
-                    marketDemandSignal:  signals?.marketDemandSignal?.value  || 'UNKNOWN',
-                    aiDisplacementRisk:  signals?.aiDisplacementRisk?.value  || 'UNKNOWN',
+                    marketDemandSignal: signals?.marketDemandSignal?.value || 'UNKNOWN',
+                    aiDisplacementRisk: signals?.aiDisplacementRisk?.value || 'UNKNOWN',
                     industryHiringTrend: signals?.industryHiringTrend?.value || 'UNKNOWN',
-                    automationOverlap:   signals?.automationOverlapScore?.value ?? 'UNKNOWN'
+                    automationOverlap: signals?.automationOverlapScore?.value ?? 'UNKNOWN'
                 },
                 analystNote: signals?.analystNote || null,
-                message: collectionStatus === 'SUCCESS'
-                    ? 'External signals collected successfully.'
-                    : `Signals collected with status: ${collectionStatus}. SEC_003 may show partial data.`
+                message: 'External signals collected successfully.'
             }
         });
 
     } catch (error) {
         console.error('[Signals Controller Error]', error);
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
