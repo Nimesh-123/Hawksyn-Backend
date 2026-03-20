@@ -267,6 +267,46 @@ router.get('/:runId/case-file', caseFileController.getCaseFile);
 router.post('/:runId/report/generate', reportController.generateReport);
 
 /**
+ * @swagger
+ * /runs/{runId}/report/download:
+ *   get:
+ *     summary: Download the AI report in PDF format
+ *     tags: [5. Run Operations (Specific Actions)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: PDF file returned
+ */
+router.get('/:runId/report/download', reportController.downloadReport);
+
+/**
+ * @swagger
+ * /runs/{runId}/report/email:
+ *   post:
+ *     summary: Send the AI report PDF to the user's registered email
+ *     tags: [5. Run Operations (Specific Actions)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Email sent successfully
+ */
+router.post('/:runId/report/email', reportController.sendReportEmail);
+
+/**
  * --- Step 6: Expert Assignment ---
  */
 
