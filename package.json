@@ -40,6 +40,7 @@
     "openai": "^6.25.0",
     "path": "^0.12.7",
     "pdf-parse": "^1.1.1",
+    "puppeteer": "^24.40.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0",

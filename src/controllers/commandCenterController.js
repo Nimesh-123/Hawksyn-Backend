@@ -31,17 +31,35 @@ async function saveClockHistory(userId, scores, type, pulseId) {
 exports.getCommandCenter = async (req, res) => {
     try {
         const { userId } = req.params;
+        const mongoose = require('mongoose');
 
-        const user = await db.User.findById(userId);
+        // Cast to ObjectId to avoid mismatches
+        let userObjId;
+        try {
+            userObjId = new mongoose.Types.ObjectId(userId);
+        } catch (e) {
+            return res.status(400).json({ success: false, message: 'Invalid User ID format' });
+        }
+
+        const user = await db.User.findById(userObjId);
         if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-        const userProfile = await db.UserProfile.findOne({ userId });
+        const userProfile = await db.UserProfile.findOne({ userId: userObjId });
         const profile = userProfile?.confirmedProfile || userProfile?.originalParsedData?.structured || {};
 
         const role = profile.identity?.currentRoleTitle || null;
         const industry = profile.inferred?.domainIndicator || null;
 
-        const userClock = await db.UserClocks.findOne({ userId });
+        let userClock = await db.UserClocks.findOne({ userId: String(userId) });
+
+        // ✅ AUTO-FIX: If profile is confirmed but Clocks are missing (e.g., users from before the hook was added)
+        // Trigger recalibration immediately.
+        if (!userClock && userProfile?.isConfirmed === true) {
+            console.log(`[CommandCenter] Auto-fixing missing clocks for confirmed user: ${userId}`);
+            await require('../services/clockService').recalibrateForUser(String(userId), profile);
+            userClock = await db.UserClocks.findOne({ userId: String(userId) });
+        }
+
         if (!userClock) {
             return res.status(200).json({ 
                 success: true, 
@@ -55,16 +73,35 @@ exports.getCommandCenter = async (req, res) => {
         // Find active market pulse (for insight text only)
         const pulse = await findActivePulse(role, industry);
 
-        // Fetch assigned expert for the active run
-        const activeRun = await db.Runs.findOne({ userId }).sort({ createdAt: -1 });
-        const expertAssignment = activeRun ? await db.Ras.findOne({
-            runId: activeRun.runId,
-            artifactType: 'EXPERT_ASSIGNED',
-            status: 'FINAL'
-        }) : null;
-        const assignedExperts = expertAssignment?.artifactJson?.assignedExpert 
-            ? [expertAssignment.artifactJson.assignedExpert] 
-            : [];
+        // 1. Check for Assigned Expert (Run Priority)
+        const activeRun = await db.Runs.findOne({ userId: userObjId }).sort({ createdAt: -1 });
+        let assignedExperts = [];
+
+        if (activeRun) {
+            const expertAssignment = await db.Ras.findOne({
+                runId: activeRun.runId,
+                artifactType: 'EXPERT_ASSIGNED'
+            });
+
+            if (expertAssignment?.artifactJson?.assignedExpert) {
+                assignedExperts = [expertAssignment.artifactJson.assignedExpert];
+            }
+        }
+
+        // 2. Fallback to Discovery Experts if nothing assigned (Matching Slide 54)
+        if (assignedExperts.length === 0) {
+            const activeSpecialists = await db.RiskAuditorRegistry.find({ 
+                isActive: true,
+                status: 'ACTIVE'
+            }).limit(3).lean();
+
+            assignedExperts = activeSpecialists.map(specialist => ({
+                auditorId: specialist.auditorId,
+                auditorName: specialist.auditorName,
+                specializations: specialist.specializations,
+                displayRole: specialist.professionalBackground || 'Risk Specialist'
+            }));
+        }
 
         // Scores directly from UserClocks — NEVER recalculate on GET
         const clocksData = {
@@ -83,7 +120,7 @@ exports.getCommandCenter = async (req, res) => {
         } : null;
 
         const dashboardResponse = {
-            userId,
+            userId: String(userId),
             profile: {
                 role:       profile?.current_role || role || 'Professional',
                 industry:   profile?.domain       || profile?.industry || industry || 'Technology',
@@ -103,10 +140,8 @@ exports.getCommandCenter = async (req, res) => {
             significantChange: false,
             canRefresh:        userClock.validityState === 'FROZEN',
             experts:           assignedExperts,
-            message:           'Command center loaded.'
+            message:           'Command center loaded successfully.'
         };
-
-        console.log(`[CommandCenter] Dashboard response for user ${userId}:`, JSON.stringify(dashboardResponse, null, 2));
 
         return res.status(200).json({ success: true, data: dashboardResponse });
 

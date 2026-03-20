@@ -1,9 +1,5 @@
 /**
- * evaluateCondition — single condition evaluate karta hai
- * Handles UPPERCASE + lowercase + Excel format operators
- */
-/**
- * evaluateCondition — single condition evaluate karta hai
+ * evaluateCondition — evaluates a single condition
  * Handles dot-notation, operator normalization, and "Label:score" format.
  */
 function evaluateCondition(field, operator, value, dataMap) {
@@ -139,14 +135,14 @@ function calculateQuestionScore(question, answerValue) {
     if (scoringType === 'MCQ_MAP') {
         let optionScoreId = null;
 
-        // Case 1: answerValue numeric hai (e.g. "3" ya 3)
+        // Case 1: answerValue is numeric (e.g. "3" or 3)
         // Score points directly saved (legacy or batch flow)
         const parsed = Number(answerValue);
         if (!isNaN(parsed) && parsed > 0 && String(answerValue).length < 5) {
             optionScoreId = parsed;
         }
 
-        // Case 2: answerValue string label hai
+        // Case 2: answerValue is a string label
         // e.g. "Somewhat unique — few people do this"
         if (optionScoreId === null && Array.isArray(optionsJson)) {
             const matched = optionsJson.find(
@@ -192,7 +188,7 @@ const geminiClient = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
- * callLLM — Gemini ya OpenAI call karta hai promptConfig ke modelFamily ke basis pe
+ * callLLM — calls Gemini or OpenAI based on promptConfig modelFamily
  */
 async function callLLM({ modelFamily, systemPrompt, userPrompt, temperature = 0.3, maxTokens = 600 }) {
 

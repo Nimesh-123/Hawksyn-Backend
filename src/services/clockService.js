@@ -11,9 +11,7 @@ async function generateClockScoresFromGemini({ role, industry, skills, achieveme
 
     const skillsText = Array.isArray(skills) ? skills.join(', ') : (skills || 'Not specified');
     const achievementsText = Array.isArray(achievements) ? achievements.join(', ') : (achievements || 'Not specified');
-
-    const prompt = `You are a career risk analyst for Hawksyn Decision Assurance Platform.
-Calculate 4 clock scores for this professional based on current market conditions.
+const prompt = `You are a career risk analyst for Hawksyn Decision Assurance Platform.  Calculate 4 clock scores for this professional based on current market conditions.
 
 User Profile:
 - Role: ${role}
@@ -254,6 +252,93 @@ function buildClocksResponse(scores, userClock = {}) {
 /**
  * Clock Refresh Logic after case complete
  */
+/**
+ * Real-time recalibration for a specific user (Step 1 Hook)
+ */
+async function recalibrateForUser(userId, profile) {
+    try {
+        if (!userId || !profile) {
+            console.error('[ClockService] ❌ Recalibrate failed: Missing userId or profile');
+            return null;
+        }
+
+        const role = profile.identity?.currentRoleTitle || profile.current_role || 'Professional';
+        const industry = profile.inferred?.domainIndicator || profile.domain || profile.industry || 'Technology';
+        const skills = profile.composition?.skills?.technical || profile.skills || [];
+        const achievements = profile.work?.experience?.[0]?.achievements || profile.achievements || [];
+        const experienceYears = Number(profile.inferred?.totalExperienceYears || profile.experience_years || 0);
+
+        console.log(`[ClockService] ⏳ Starting Recalibration for ${role} in ${industry}...`);
+
+        let clockScores = null;
+        const pulse = await findActivePulse(role, industry);
+
+        if (pulse) {
+            console.log(`[ClockService] ✅ Found matching Pulse: ${pulse.pulseId}`);
+            clockScores = calculateClockScores(profile, pulse);
+        } else {
+            console.log(`[ClockService] 🔍 No cached pulse. Calling Gemini AI...`);
+            clockScores = await generateClockScoresFromGemini({
+                role,
+                industry,
+                skills,
+                achievements,
+                tenure: experienceYears
+            });
+            console.log(`[ClockService] 🤖 Gemini calculation complete for ${role}`);
+        }
+
+        if (!clockScores) {
+            throw new Error('Failed to generate clock scores.');
+        }
+
+        // 3. Save to UserClocks 
+        const validityDays = 7;
+        const clockValidUntil = new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000);
+
+        console.log(`[ClockService] 💾 Saving to UserClocks for user: ${userId}`);
+        const updatedClock = await db.UserClocks.findOneAndUpdate(
+            { userId: String(userId) },
+            {
+                $set: {
+                    validityState: 'ACTIVE_CLOCK',
+                    clockValidUntil,
+                    caseValidUntil: null,
+                    effectiveValidUntil: clockValidUntil,
+                    daysLeft: validityDays,
+                    lastCalculatedBy: 'PROFILE_CONFIRM',
+                    lastCalculatedAt: new Date(),
+                    ...clockScores,
+                    updatedAt: new Date()
+                }
+            },
+            { upsert: true, new: true }
+        );
+
+        // 4. Record in History
+        const historyId = `CLK_HIST_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+        console.log(`[ClockService] 💾 Logging to ClockHistory: ${historyId}`);
+        await db.ClockHistory.create({
+            historyId,
+            userId: String(userId),
+            aiExposureScore: clockScores.aiExposureScore,
+            careerMomentumScore: clockScores.careerMomentumScore,
+            skillRelevanceScore: clockScores.skillRelevanceScore,
+            opportunityWindowScore: clockScores.opportunityWindowScore,
+            careerMomentumMonths: clockScores.careerMomentumMonths || 0,
+            opportunityWindowYears: clockScores.opportunityWindowYears || 0,
+            triggeredBy: 'AUTO_OPEN',
+            calculatedAt: new Date()
+        });
+
+        console.log(`[ClockService] ✅ Successfully finished recalibration for ${userId}`);
+        return updatedClock;
+    } catch (err) {
+        console.error(`[ClockService] ❌ CRITICAL: Recalibrate for user failed:`, err.message);
+        return null;
+    }
+}
+
 async function refreshClocksAfterCase(userId, runId) {
     try {
         if (!userId) return;
@@ -335,5 +420,6 @@ module.exports = {
     detectSignificantChange,
     getPeerBenchmarks,
     buildClocksResponse,
-    refreshClocksAfterCase
+    refreshClocksAfterCase,
+    recalibrateForUser
 };

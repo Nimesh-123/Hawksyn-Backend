@@ -145,9 +145,6 @@ router.get('/status', paymentController.getPaymentStatus);
  */
 router.get('/list', paymentController.getAllPayments);
 
-/**
- * --- Expert Query Payments (Slide 54) ---
- */
 
 /**
  * @swagger

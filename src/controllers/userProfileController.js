@@ -1,4 +1,5 @@
 const { db } = require('../models/index.model.js');
+const clockService = require('../services/clockService.js');
 const { UserProfile } = db;
 
 /**
@@ -179,6 +180,11 @@ exports.updateUserProfile = async (req, res) => {
                 },
                 { upsert: true }
             );
+
+            // ✅ NEW: Trigger Clock Recalibration (Step 1 Hook)
+            // This is valid for 7 days per 'The Four Clocks Recalibration Logic'
+            // No need to wait/block the response, do it in background
+            clockService.recalibrateForUser(req.user.id, mergedProfile);
         }
 
         return res.status(200).json({

@@ -5,6 +5,10 @@
 
 const { db }       = require('../models/index.model.js');
 const { callLLM }  = require('../../utils/evaluationHelpers.js');
+const clockService = require('../services/clockService.js');
+const { buildReportHtml } = require('../templates/reportTemplate.js');
+const { generatePdfFromHtml } = require('../services/pdfService.js');
+const nodemailer = require('nodemailer');
 
 // ─────────────────────────────────────────────────────────
 // HELPER 1 — buildPlaceholderMap
@@ -412,6 +416,10 @@ exports.generateReport = async (req, res) => {
             }
         );
 
+        // ✅ NEW: Trigger Case Recalibration (30-Day Upgrade)
+        // This resets clocks to 'Live' for 30 days per 'The Four Clocks Recalibration Logic'
+        clockService.refreshClocksAfterCase(run.userId, runId);
+
         const duration = (Date.now() - startTime) / 1000;
         console.timeEnd("Report_Generation_Total");
         console.log(`[Report] Generated in ${duration}s for Run: ${runId}`);
@@ -431,5 +439,99 @@ exports.generateReport = async (req, res) => {
     } catch (error) {
         console.error('[Report Generation Error]', error);
         return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// ─────────────────────────────────────────────────────────
+// API 6 — GET /api/v1/runs/:runId/report/download
+// Generates and downloads the PDF report.
+// ─────────────────────────────────────────────────────────
+exports.downloadReport = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const reportRas = await db.Ras.findOne({ runId, artifactType: 'FINAL_REPORT' });
+        if (!reportRas) return res.status(404).json({ success: false, message: 'Report not found' });
+
+        const userProfile = await db.UserProfile.findOne({ userId: req.user.id });
+        const profile = userProfile?.confirmedProfile || {};
+
+        const html = buildReportHtml({
+            report: reportRas.artifactJson,
+            runId,
+            generatedAt: reportRas.createdAt,
+            verdict: reportRas.artifactJson.verdict,
+            accuracyScore: reportRas.artifactJson.accuracyScore,
+            accuracyBand: reportRas.artifactJson.accuracyBand,
+            role: profile.identity?.currentRoleTitle || profile.current_role || 'Professional'
+        });
+
+        const pdfBuffer = await generatePdfFromHtml(html);
+
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename=Hawksyn_Report_${runId}.pdf`,
+            'Content-Length': pdfBuffer.length,
+        });
+
+        return res.send(pdfBuffer);
+    } catch (err) {
+        console.error('[DownloadReport] Error:', err.message);
+        return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ─────────────────────────────────────────────────────────
+// API 7 — POST /api/v1/runs/:runId/report/email
+// Generates PDF and sends via NodeMailer.
+// ─────────────────────────────────────────────────────────
+exports.sendReportEmail = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const user = await db.User.findById(req.user.id);
+        const reportRas = await db.Ras.findOne({ runId, artifactType: 'FINAL_REPORT' });
+        if (!reportRas) return res.status(404).json({ success: false, message: 'Report not found' });
+
+        const userProfile = await db.UserProfile.findOne({ userId: req.user.id });
+        const profile = userProfile?.confirmedProfile || {};
+
+        // 1. Generate PDF
+        const html = buildReportHtml({
+            report: reportRas.artifactJson,
+            runId,
+            generatedAt: reportRas.createdAt,
+            verdict: reportRas.artifactJson.verdict,
+            accuracyScore: reportRas.artifactJson.accuracyScore,
+            accuracyBand: reportRas.artifactJson.accuracyBand,
+            role: profile.identity?.currentRoleTitle || profile.current_role || 'Professional'
+        });
+        const pdfBuffer = await generatePdfFromHtml(html);
+
+        // 2. Transporter Setup
+        const transporter = nodemailer.createTransport({
+            service: process.env.EMAIL_SERVICE || 'Gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        // 3. Send Email
+        await transporter.sendMail({
+            from: `"Hawksyn" <${process.env.EMAIL_USER}>`,
+            to: user.email,
+            subject: `Your Hawksyn Decision Assurance Report — ${runId}`,
+            text: `Hi ${user.name || 'Professional'},\n\nYour career risk assessment report is ready. Please find the attached PDF report.\n\nBest regards,\nTeam Hawksyn`,
+            attachments: [
+                {
+                    filename: `Hawksyn_Report_${runId}.pdf`,
+                    content: pdfBuffer
+                }
+            ]
+        });
+
+        return res.status(200).json({ success: true, message: `Report emailed successfully to ${user.email}` });
+    } catch (err) {
+        console.error('[EmailReport] Error:', err.message);
+        return res.status(500).json({ success: false, message: err.message });
     }
 };

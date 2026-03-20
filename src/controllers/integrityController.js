@@ -112,7 +112,8 @@ exports.runIntegrityEngine = async (req, res) => {
             const constraintScore = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
             const bandResult = getConstraintBand(constraint, constraintScore);
 
-            if (bandResult.isTerminal) {
+            if (bandResult.isTerminal && constraintScore < 20) {
+                console.log(`[Integrity] Terminal Failure Triggered by ${constraint.constraintId} (Score: ${constraintScore})`);
                 hasTerminalFailure = true;
                 terminalConstraints.push(constraint.constraintId);
             }

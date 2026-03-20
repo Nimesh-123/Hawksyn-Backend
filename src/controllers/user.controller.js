@@ -32,9 +32,8 @@ exports.sendOTP = async (req, res) => {
 
         // 1. Check if user is deleted or blocked
         const userCheck = await db.User.findOne({ email });
-        if (userCheck) {
-            if (userCheck.isDeleted) return RESPONSE.error(res, 403, 4444, "Account is deleted.");
-        }
+        // We no longer block in sendOTP for soft-deleted accounts. 
+        // We let them request an OTP to facilitate "Reactivation".
 
         // 2. Upsert OTP record
         await db.OTP.findOneAndUpdate(
@@ -101,6 +100,14 @@ exports.verifyOTP = async (req, res) => {
         user.countryCode = region.countryCode;
         user.preferredCurrency = region.currency;
         user.isEmailVerified = true;
+
+        // ✅ AUTO-REACTIVATE: If previously soft-deleted, bring them back.
+        if (user.isDeleted) {
+            user.isDeleted = false;
+            user.deletedAt = null;
+            console.log(`[Account Reactivation] User ${user._id} (${email}) has returned.`);
+            await createAuditLog(req, 'ACCOUNT_REACTIVATED', user._id, { email: user.email });
+        }
 
         if (isNewUser) {
             await createAuditLog(req, 'USER_CREATED', user._id, { email: user.email, country: region.countryCode });

@@ -724,8 +724,8 @@ async function seedCoverageRequirements() {
             gapType: 'MISSING',
             stackingMode: 'CAP',
             stackingCapPoints: 10,
-            escalationThreshold: null,                  // ✅ ADDED
-            escalationPenaltyPoints: null,              // ✅ ADDED
+            escalationThreshold: null,                
+            escalationPenaltyPoints: null,              
             displayOrder: 1,
             isActive: true
         },
@@ -744,8 +744,8 @@ async function seedCoverageRequirements() {
             gapType: 'MISSING',
             stackingMode: 'CAP',
             stackingCapPoints: 10,
-            escalationThreshold: null,                  // ✅ ADDED
-            escalationPenaltyPoints: null,              // ✅ ADDED
+            escalationThreshold: null,                 
+            escalationPenaltyPoints: null,             
             displayOrder: 2,
             isActive: true
         }

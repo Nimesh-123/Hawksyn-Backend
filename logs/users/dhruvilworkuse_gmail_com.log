@@ -1,0 +1,17 @@
+[2026-03-20 11:11:01] [WARN] [e376c744-37ae-4059-8af3-b436d876ec41] [User: 69bcdddecd140aa89281f0c1] GET /api/v1/user/profile -> 404 (51ms) [REASON: Please upload your CV first]
+[2026-03-20 11:11:11] [WARN] [a30ff14b-4ba0-4eff-8b86-bab4b832e27b] [User: 69bcdddecd140aa89281f0c1] GET /api/v1/user/profile -> 404 (58ms) [REASON: Please upload your CV first]
+[2026-03-20 11:11:33] [INFO] [a02c8d40-c6d7-4d18-a932-769831b2bf2e] [User: 69bcdddecd140aa89281f0c1] POST /api/v1/user/upload-cv -> 200 (464ms)
+[2026-03-20 11:11:33] [ERROR] [95ce1f44-09ec-4fe6-9416-ddd24a7ef6af] [User: 69bcdddecd140aa89281f0c1] GET /api/v1/user/profile -> 500 (47ms) [REASON: Cannot read properties of null (reading 'structured')]
+[2026-03-20 11:11:33] [ERROR] [54f420a3-67a1-411b-88da-0a3dcca6897e] [User: 69bcdddecd140aa89281f0c1] GET /api/v1/user/profile -> 500 (55ms) [REASON: Cannot read properties of null (reading 'structured')]
+[2026-03-20 11:12:24] [ERROR] [8c10526d-3600-4eed-a3a6-758b9254e635] [User: 69bcdddecd140aa89281f0c1] GET /api/v1/user/profile -> 500 (53ms) [REASON: Cannot read properties of null (reading 'structured')]
+[2026-03-20 11:12:25] [ERROR] [7e1db60f-ee94-4139-946d-78b1c537ce34] [User: 69bcdddecd140aa89281f0c1] GET /api/v1/user/profile -> 500 (56ms) [REASON: Cannot read properties of null (reading 'structured')]
+[2026-03-20 11:12:59] [INFO] [9f4cd9f2-7346-443b-9393-4d39b33d6a37] [User: 69bcdddecd140aa89281f0c1] DELETE /api/v1/user/account?hardDelete=true -> 200 (351ms)
+[2026-03-20 11:13:26] [WARN] [3686bd71-2a20-442d-939b-1158a2375a95] [User: 69bcde73cd140aa89281f105] GET /api/v1/user/profile -> 404 (53ms) [REASON: Please upload your CV first]
+[2026-03-20 11:13:29] [WARN] [b9308c80-9bcb-4c14-8dd2-e7f695f1b36c] [User: 69bcde73cd140aa89281f105] GET /api/v1/user/profile -> 404 (57ms) [REASON: Please upload your CV first]
+[2026-03-20 11:13:56] [INFO] [3eaa00bd-6de4-45be-abcb-149c6024ff8b] [User: 69bcde73cd140aa89281f105] POST /api/v1/user/upload-cv -> 200 (8601ms)
+[2026-03-20 11:13:57] [INFO] [c8195ed1-aa00-45c4-9ebd-b341288e8f01] [User: 69bcde73cd140aa89281f105] GET /api/v1/user/profile -> 200 (54ms)
+[2026-03-20 11:14:46] [INFO] [b6fa77c8-3414-40f3-8714-2ced191c374e] [User: 69bcde73cd140aa89281f105] PUT /api/v1/user/profile -> 200 (128ms)
+[2026-03-20 11:14:46] [INFO] [bfa83ba8-f3de-4925-a965-69239dcc28b5] [User: 69bcde73cd140aa89281f105] GET /api/v1/user/profile -> 200 (61ms)
+[2026-03-20 11:14:46] [INFO] [91f9eab6-a2bb-4d52-b576-2d3d75d848e2] [User: 69bcde73cd140aa89281f105] GET /api/v1/command-center/69bcde73cd140aa89281f105/credits -> 200 (40ms)
+[2026-03-20 11:14:46] [INFO] [6de3aaf3-5baf-409e-802c-4e2645e14740] [User: 69bcde73cd140aa89281f105] GET /api/v1/command-center/69bcde73cd140aa89281f105/command-center -> 200 (91ms)
+[2026-03-20 11:15:48] [INFO] [fdad4c0e-d564-4250-8bf9-3c0010fc55cf] [User: 69bcde73cd140aa89281f105] DELETE /api/v1/user/account?hardDelete=true -> 200 (321ms)
