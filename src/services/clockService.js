@@ -11,7 +11,7 @@ async function generateClockScoresFromGemini({ role, industry, skills, achieveme
 
     const skillsText = Array.isArray(skills) ? skills.join(', ') : (skills || 'Not specified');
     const achievementsText = Array.isArray(achievements) ? achievements.join(', ') : (achievements || 'Not specified');
-const prompt = `You are a career risk analyst for Hawksyn Decision Assurance Platform.  Calculate 4 clock scores for this professional based on current market conditions.
+    const prompt = `You are a career risk analyst for Hawksyn Decision Assurance Platform.  Calculate 4 clock scores for this professional based on current market conditions.
 
 User Profile:
 - Role: ${role}
@@ -245,12 +245,7 @@ function buildClocksResponse(scores, userClock = {}) {
             years: scores.opportunityWindowYears ?? 2,
             color: 'BLUE',
             justification: userClock.opportunityWindowJustification || scores.opportunityWindowJustification || null,
-            benchmarks: {
-                top20: Math.min(100, oppScore + 9),
-                median: oppScore,
-                bottom20: Math.max(0, oppScore - 12),
-                userState: 'Median'
-            }
+
         }
     };
 }
@@ -353,11 +348,11 @@ async function refreshClocksAfterCase(userId, runId) {
         const profile = profileRas?.artifactJson?.confirmedProfile || profileRas?.artifactJson?.profile || profileRas?.artifactJson || {};
 
         const data = {
-            role:         profile?.current_role                || 'Professional',
-            industry:     profile?.domain || profile?.industry || 'Technology',
-            skills:       profile?.skills                      || [],
+            role: profile?.current_role || 'Professional',
+            industry: profile?.domain || profile?.industry || 'Technology',
+            skills: profile?.skills || [],
             achievements: profile?.achievements || profile?.key_achievements || [],
-            tenure:       Number(profile?.experience_years     || 0)
+            tenure: Number(profile?.experience_years || 0)
         };
 
         let clockScores = null;
@@ -372,17 +367,17 @@ async function refreshClocksAfterCase(userId, runId) {
             const cons003 = constraints.find(c => c.constraintId === 'CONS_AI_003');
 
             clockScores = {
-                aiExposureScore:                cons001 ? Math.round(100 - cons001.score) : 50,
-                aiExposureJustification:        'Score based on integrity analysis — market data unavailable.',
-                careerMomentumScore:            cons003 ? cons003.score : 50,
-                careerMomentumJustification:    'Score based on role uniqueness — market data unavailable.',
-                careerMomentumMonths:           18,
-                skillRelevanceScore:            cons001 ? cons001.score : 50,
-                skillRelevanceJustification:    'Score based on automation exposure — market data unavailable.',
-                opportunityWindowScore:         cons002 ? cons002.score : 50,
+                aiExposureScore: cons001 ? Math.round(100 - cons001.score) : 50,
+                aiExposureJustification: 'Score based on integrity analysis — market data unavailable.',
+                careerMomentumScore: cons003 ? cons003.score : 50,
+                careerMomentumJustification: 'Score based on role uniqueness — market data unavailable.',
+                careerMomentumMonths: 18,
+                skillRelevanceScore: cons001 ? cons001.score : 50,
+                skillRelevanceJustification: 'Score based on automation exposure — market data unavailable.',
+                opportunityWindowScore: cons002 ? cons002.score : 50,
                 opportunityWindowJustification: 'Score based on financial resilience — market data unavailable.',
-                opportunityWindowYears:         2,
-                trendTrigger:                   null
+                opportunityWindowYears: 2,
+                trendTrigger: null
             };
         }
 
@@ -393,17 +388,17 @@ async function refreshClocksAfterCase(userId, runId) {
             { userId },
             {
                 $set: {
-                    validityState:       'ACTIVE_CASE',
+                    validityState: 'ACTIVE_CASE',
                     caseValidUntil,
-                    clockValidUntil:     null,
+                    clockValidUntil: null,
                     effectiveValidUntil: caseValidUntil,
-                    daysLeft:            30,
-                    lastCalculatedBy:    'CASE_RUN',
-                    lastCalculatedAt:    new Date(),
+                    daysLeft: 30,
+                    lastCalculatedBy: 'CASE_RUN',
+                    lastCalculatedAt: new Date(),
                     ...clockScores,
-                    previousAiExposureScore:        existingClock?.aiExposureScore        ?? null,
-                    previousCareerMomentumScore:    existingClock?.careerMomentumScore    ?? null,
-                    previousSkillRelevanceScore:    existingClock?.skillRelevanceScore    ?? null,
+                    previousAiExposureScore: existingClock?.aiExposureScore ?? null,
+                    previousCareerMomentumScore: existingClock?.careerMomentumScore ?? null,
+                    previousSkillRelevanceScore: existingClock?.skillRelevanceScore ?? null,
                     previousOpportunityWindowScore: existingClock?.opportunityWindowScore ?? null,
                     updatedAt: new Date()
                 }

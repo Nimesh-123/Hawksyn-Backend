@@ -293,3 +293,5 @@
 [2026-03-20 16:03:16] [INFO] [1b8b54b7-cc47-4a7c-af83-c3fbb313e178] [User: 69bd205b0a7b7b128b650fc6] GET /api/v1/runs/RUN_20260320_0002/report/download -> 200 (3216ms)
 [2026-03-20 16:14:57] [INFO] [3f4127dd-a057-4f9e-8442-a184e40ee87c] [User: 69bd205b0a7b7b128b650fc6] GET /api/v1/runs/RUN_20260320_0002/report/download -> 200 (3168ms)
 [2026-03-20 16:17:18] [INFO] [23966efd-fb9f-4d30-bdc1-2a3da395a4e4] [User: 69bd205b0a7b7b128b650fc6] POST /api/v1/runs/RUN_20260320_0002/report/email -> 200 (8945ms)
+[2026-03-20 18:38:08] [INFO] [5dd5f1ec-9148-46b6-beaa-2cf0c4f28f89] [User: 69bd205b0a7b7b128b650fc6] GET /api/v1/user/profile -> 200 (55ms)
+[2026-03-20 18:42:06] [INFO] [738ee0e9-2c0a-4ac4-843a-1d29d1644ce3] [User: 69bd205b0a7b7b128b650fc6] GET /api/v1/command-center/69bd205b0a7b7b128b650fc6/command-center -> 200 (210ms)
