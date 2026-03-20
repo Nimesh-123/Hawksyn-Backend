@@ -26,18 +26,18 @@ function evaluateCondition(field, operator, value, dataMap) {
     }
 
     const numericAnswer = Number(actual);
-    const numericValue  = Number(compareValue);
+    const numericValue = Number(compareValue);
 
     switch (op) {
         case 'EQ':
             return String(actual) === String(compareValue) ||
-                   String(actual) === String(value);
+                String(actual) === String(value);
         case 'NEQ':
             return String(actual) !== String(compareValue) &&
-                   String(actual) !== String(value);
-        case 'GT':  return numericAnswer >  numericValue;
+                String(actual) !== String(value);
+        case 'GT': return numericAnswer > numericValue;
         case 'GTE': return numericAnswer >= numericValue;
-        case 'LT':  return numericAnswer <  numericValue;
+        case 'LT': return numericAnswer < numericValue;
         case 'LTE': return numericAnswer <= numericValue;
         case 'IN':
             if (Array.isArray(value)) {
@@ -76,7 +76,7 @@ function evaluateRuleJson(ruleJson, answersMap) {
 
     const logic = (ruleJson.operator || 'AND').toUpperCase();
     if (logic === 'AND') return results.every(Boolean);
-    if (logic === 'OR')  return results.some(Boolean);
+    if (logic === 'OR') return results.some(Boolean);
     return false;
 }
 
@@ -95,7 +95,7 @@ function evaluateDependencyRule(ruleJson, profileMap) {
         ? true
         : (ruleJson.any || []).some(c =>
             evaluateCondition(c.field, c.op || c.operator, c.value, profileMap)
-          );
+        );
 
     return allPass && anyPass;
 }
@@ -105,22 +105,30 @@ function evaluateDependencyRule(ruleJson, profileMap) {
  * Used by: Step 4 Integrity Engine
  */
 function getConstraintBand(constraint, score) {
-    if (score >= constraint.strongMin   && score <= constraint.strongMax)
-        return { band: 'STRONG',   color: constraint.strongColor,
-                 priority: constraint.strongPriority,
-                 isTerminal: constraint.strongIsTerminal };
+    if (score >= constraint.strongMin && score <= constraint.strongMax)
+        return {
+            band: 'STRONG', color: constraint.strongColor,
+            priority: constraint.strongPriority,
+            isTerminal: constraint.strongIsTerminal
+        };
     if (score >= constraint.moderateMin && score <= constraint.moderateMax)
-        return { band: 'MODERATE', color: constraint.moderateColor,
-                 priority: constraint.moderatePriority,
-                 isTerminal: constraint.moderateIsTerminal };
-    if (score >= constraint.fragileMin  && score <= constraint.fragileMax)
-        return { band: 'FRAGILE',  color: constraint.fragileColor,
-                 priority: constraint.fragilePriority,
-                 isTerminal: constraint.fragileIsTerminal };
+        return {
+            band: 'MODERATE', color: constraint.moderateColor,
+            priority: constraint.moderatePriority,
+            isTerminal: constraint.moderateIsTerminal
+        };
+    if (score >= constraint.fragileMin && score <= constraint.fragileMax)
+        return {
+            band: 'FRAGILE', color: constraint.fragileColor,
+            priority: constraint.fragilePriority,
+            isTerminal: constraint.fragileIsTerminal
+        };
     if (score >= constraint.criticalMin && score <= constraint.criticalMax)
-        return { band: 'CRITICAL', color: constraint.criticalColor,
-                 priority: constraint.criticalPriority,
-                 isTerminal: constraint.criticalIsTerminal };
+        return {
+            band: 'CRITICAL', color: constraint.criticalColor,
+            priority: constraint.criticalPriority,
+            isTerminal: constraint.criticalIsTerminal
+        };
     return { band: 'UNKNOWN', color: null, priority: 99, isTerminal: false };
 }
 
@@ -193,9 +201,9 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 async function callLLM({ modelFamily, systemPrompt, userPrompt, temperature = 0.3, maxTokens = 600 }) {
 
     if (modelFamily === 'GEMINI') {
-        const model  = geminiClient.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const model = geminiClient.getGenerativeModel({ model: 'gemini-2.0-flash' });
         const prompt = `${systemPrompt}\n\n${userPrompt}`;
-        
+
         // ✅ Robust Retry logic for report sections (paid tier burst handling)
         let result = null;
         let attempts = 0;
@@ -222,11 +230,11 @@ async function callLLM({ modelFamily, systemPrompt, userPrompt, temperature = 0.
     if (modelFamily === 'OPENAI') {
         const OpenAI = require('openai');
         const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-        const resp   = await openai.chat.completions.create({
-            model:      'gpt-4o',
+        const resp = await openai.chat.completions.create({
+            model: 'gpt-4o',
             messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user',   content: userPrompt   }
+                { role: 'user', content: userPrompt }
             ],
             temperature,
             max_tokens: maxTokens

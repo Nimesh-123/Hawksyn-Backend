@@ -60,7 +60,10 @@ const compareFields = (orig, edited, builtOverrideMap, path = '') => {
 exports.getUserProfile = async (req, res) => {
     try {
         const userId = req.user.id;
-        const profile = await UserProfile.findOne({ userId });
+        const [profile, user] = await Promise.all([
+            UserProfile.findOne({ userId }),
+            db.User.findById(userId)
+        ]);
 
         if (!profile) return res.status(404).json({ success: false, message: "Please upload your CV first" });
 
@@ -71,6 +74,7 @@ exports.getUserProfile = async (req, res) => {
         const cleanResponse = {
             isConfirmed: profile.isConfirmed,
             confirmedAt: profile.confirmedAt,
+            mPinSet: user ? user.mPinSet : false, // Include M-PIN status
             personalInfo: {
                 fullName: p.identity?.fullName || "",
                 email: p.identity?.email || "",

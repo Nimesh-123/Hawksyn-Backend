@@ -927,3 +927,8 @@
 [2026-03-20 17:36:53] [INFO] [034c3181-b145-464e-b841-f8b53eebfa2e] [User: 69bd1d9ce7a2633ea0bc119d] GET /api/v1/command-center/69bd1d9ce7a2633ea0bc119d/credits -> 200 (51ms)
 [2026-03-20 17:36:53] [INFO] [083fc0d2-5dfa-4796-b623-3949eec41897] [User: 69bd1d9ce7a2633ea0bc119d] GET /api/v1/command-center/69bd1d9ce7a2633ea0bc119d/command-center -> 200 (205ms)
 [2026-03-20 17:36:53] [INFO] [fc219d89-eca0-4808-8a47-1eb77a3719da] [User: 69bd1d9ce7a2633ea0bc119d] GET /api/v1/command-center/69bd1d9ce7a2633ea0bc119d/command-center -> 200 (195ms)
+[2026-03-20 17:52:56] [INFO] [075826a8-ff0b-43a0-980e-1f3b128ae750] [User: 69bd1d9ce7a2633ea0bc119d] GET /api/v1/user/profile -> 200 (44ms)
+[2026-03-20 17:52:56] [INFO] [df334ddd-7709-411d-ae58-494b0e53328f] [User: 69bd1d9ce7a2633ea0bc119d] GET /api/v1/command-center/69bd1d9ce7a2633ea0bc119d/credits -> 200 (51ms)
+[2026-03-20 17:52:56] [INFO] [5104d12b-53c5-47bf-bb20-15893e682e64] [User: 69bd1d9ce7a2633ea0bc119d] GET /api/v1/command-center/69bd1d9ce7a2633ea0bc119d/credits -> 200 (43ms)
+[2026-03-20 17:52:56] [INFO] [0daee8f0-bd4b-4ce6-9574-f3455c9de7a6] [User: 69bd1d9ce7a2633ea0bc119d] GET /api/v1/command-center/69bd1d9ce7a2633ea0bc119d/command-center -> 200 (172ms)
+[2026-03-20 17:52:56] [INFO] [41bac5f7-4676-4d6b-9758-dd22cb55b099] [User: 69bd1d9ce7a2633ea0bc119d] GET /api/v1/command-center/69bd1d9ce7a2633ea0bc119d/command-center -> 200 (173ms)
