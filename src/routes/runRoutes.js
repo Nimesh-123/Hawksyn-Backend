@@ -290,9 +290,6 @@ router.post('/:runId/report/generate', reportController.generateReport);
  */
 router.post('/:runId/expert/assign', expertController.assignExpert);
 
-/**
- * --- Slide 54: Expert Chat Query System ---
- */
 
 /**
  * @swagger

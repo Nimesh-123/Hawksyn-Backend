@@ -15,7 +15,7 @@ const otpSchema = new mongoose.Schema(
         },
         isUsed: {
             type: Boolean,
-            default: false    // ✅ Sirf ye rakhna zaruri hai
+            default: false    
         },
         failCount: {
             type: Number,

@@ -1,8 +1,6 @@
 const { db } = require('../src/models/index.model.js');
 
-/**
- * Helper to log user activities to AuditLog collection
- */
+
 const createAuditLog = async (req, action, userId = null, metadata = {}) => {
     try {
         await db.AuditLog.create({

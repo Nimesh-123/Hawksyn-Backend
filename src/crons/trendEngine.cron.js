@@ -2,16 +2,16 @@
 // HAWKSYN — Trend Engine Cron
 // File: crons/trendEngine.cron.js
 //
-// Kya karta hai:
-//   1. Users table se unique role+industry pairs fetch karta hai
-//   2. Har pair ke liye Gemini se market scores generate karta hai
-//   3. MarketPulse table mein store karta hai
-//   4. Old pulses expire karta hai
-//   5. Affected users ko notify karta hai (log only — V1Light)
+// What it does:
+//   1. Fetches unique role+industry pairs from RAS table
+//   2. Generates market scores from Gemini for each pair
+//   3. Stores in MarketPulse table
+//   4. Expires old pulses
+//   5. Notifies affected users (log only — V1Light)
 //
 // Schedule:
-//   Testing  → har 2 minutes  (change karo production se pehle)
-//   Production → har Sunday 2AM
+//   Testing  → every 2 minutes (change before production)
+//   Production → every Sunday 2AM
 // ═══════════════════════════════════════════════════════════════════
 
 const cron = require('node-cron');
@@ -22,10 +22,10 @@ const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // ─────────────────────────────────────────────────────────────────
 // HELPER 1 — getUniqueRoleIndustryPairs
-// RAS table se PROFILE_CONFIRMED artifacts load karta hai
+// Loads PROFILE_CONFIRMED artifacts from RAS table
 // ─────────────────────────────────────────────────────────────────
 async function getUniqueRoleIndustryPairs() {
-    // Note: UserProfile table Hawksyn mein use nahi hota, sara data RAS mein hota hai.
+    // Note: UserProfile table is not used in Hawksyn, all data is in RAS.
     const profileRasList = await db.Ras.find({
         artifactType: 'PROFILE_CONFIRMED',
         status: 'FINAL'
@@ -53,7 +53,7 @@ async function getUniqueRoleIndustryPairs() {
 
         if (!role || !industry) continue;
 
-        // Duplicate avoid karo (case-insensitive)
+        // Avoid duplicates (case-insensitive)
         const exists = pairs.find(p =>
             p.role.toLowerCase() === role.toLowerCase() &&
             p.industry.toLowerCase() === industry.toLowerCase()
@@ -70,7 +70,7 @@ async function getUniqueRoleIndustryPairs() {
 
 // ─────────────────────────────────────────────────────────────────
 // HELPER 2 — generatePulseFromGemini
-// Ek role+industry ke liye Gemini se scores generate karta hai
+// Generates scores from Gemini for a role+industry pair
 // ─────────────────────────────────────────────────────────────────
 async function generatePulseFromGemini(role, industry) {
     const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
@@ -124,21 +124,21 @@ Rules:
 
 // ─────────────────────────────────────────────────────────────────
 // MAIN — runTrendEngine
-// Export kiya hai — cron + manual trigger dono use karte hain
+// Exported — used for both cron and manual trigger
 // ─────────────────────────────────────────────────────────────────
 async function runTrendEngine() {
     console.log('\n[TrendEngine] ⚙️  Starting run...');
     const startTime = Date.now();
 
     try {
-        // ── Step 1: Old pulses expire karo ──────────────────────
+        // ── Step 1: Expire old pulses ──────────────────────
         const expired = await db.MarketPulse.updateMany(
             { expiresAt: { $lt: new Date() }, isActive: true },
             { $set: { isActive: false } }
         );
         console.log(`[TrendEngine] Expired ${expired.modifiedCount} old pulses`);
 
-        // ── Step 2: Users se unique pairs fetch karo ────────────
+        // ── Step 2: Fetch unique pairs from users ────────────
         const pairs = await getUniqueRoleIndustryPairs();
 
         if (pairs.length === 0) {
@@ -146,7 +146,7 @@ async function runTrendEngine() {
             return;
         }
 
-        // ── Step 3: Har pair ke liye Gemini call ────────────────
+        // ── Step 3: Gemini call for each pair ────────────────
         const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
         let successCount = 0;
         let failCount = 0;
@@ -162,7 +162,7 @@ async function runTrendEngine() {
                 const pulseId = `MP_${today}_${roleSlug}_${industrySlug}`;
                 const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-                // Upsert — agar aaj ka pulse already hai to update karo
+                // Upsert — update if today's pulse already exists
                 await db.MarketPulse.findOneAndUpdate(
                     { pulseId },
                     {
@@ -191,7 +191,7 @@ async function runTrendEngine() {
                 successCount++;
 
                 // ── Step 4: Find affected users → notify ──
-                // UserProfile nahi — RAS PROFILE_CONFIRMED se runId nikalo
+                // Not UserProfile — get runId from RAS PROFILE_CONFIRMED
                 // FIX: Escape special characters (like '/') and expand search paths
                 const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const roleRegex = new RegExp(escapeRegExp(pair.role), 'i');
@@ -251,7 +251,7 @@ async function runTrendEngine() {
 // ─────────────────────────────────────────────────────────────────
 // CRON SCHEDULE
 //
-// Testing  → '*/2 * * * *'     (har 2 minutes)
+// Testing  → '*/2 * * * *'     (every 2 minutes)
 // Production → '0 2 * * 0'    (Sunday 2AM IST)
 // ─────────────────────────────────────────────────────────────────
 cron.schedule('0 2 * * 0', runTrendEngine, {
@@ -261,7 +261,7 @@ cron.schedule('0 2 * * 0', runTrendEngine, {
 console.log('[TrendEngine] Cron scheduled — running weekly (Sunday 2AM IST)');
 
 // ─────────────────────────────────────────────────────────────────
-// EXPORT — manual trigger ke liye
-// commandCenter.routes.js mein use hota hai
+// EXPORT — for manual trigger
+// Used in commandCenter.routes.js
 // ─────────────────────────────────────────────────────────────────
 module.exports = { runTrendEngine };

@@ -2,11 +2,11 @@
 // HAWKSYN — Validity Decline Cron
 // File: src/crons/validityDecline.cron.js
 //
-// Kya karta hai:
-//   1. Har raat 12 baje chalta hai
-//   2. UserClocks table mein har user ke 'daysLeft' ko recalculate karta hai
-//   3. Isse Admin dashboard aur backend reports mein sahi data dikhta hai
-//      bina user ke app open kiye.
+// What it does:
+//   1. Runs every day at 12:00 AM IST
+//   2. Recalculates 'daysLeft' for each user in UserClocks table
+//   3. This ensures correct data is shown in Admin dashboard and backend reports
+//      without the user opening the app.
 // ═══════════════════════════════════════════════════════════════════
 
 const cron = require('node-cron');

@@ -5,6 +5,7 @@
 
 const { db }       = require('../models/index.model.js');
 const { callLLM }  = require('../../utils/evaluationHelpers.js');
+const clockService = require('../services/clockService.js');
 
 // ─────────────────────────────────────────────────────────
 // HELPER 1 — buildPlaceholderMap
@@ -411,6 +412,10 @@ exports.generateReport = async (req, res) => {
                 }
             }
         );
+
+        // ✅ NEW: Trigger Case Recalibration (30-Day Upgrade)
+        // This resets clocks to 'Live' for 30 days per 'The Four Clocks Recalibration Logic'
+        clockService.refreshClocksAfterCase(run.userId, runId);
 
         const duration = (Date.now() - startTime) / 1000;
         console.timeEnd("Report_Generation_Total");
