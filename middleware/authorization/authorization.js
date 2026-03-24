@@ -49,9 +49,11 @@ exports.authenticate = async (req, res, next) => {
         try {
             const decoded = jwt.verify(token, secret);
 
-            // Handle cross-check for User or Admin depending on role in token
-            let entity;
-            if (decoded.role === 'admin') {
+            // --- Centralized Authorization Logic ---
+            const admin_roles = ['admin', 'sub_admin'];
+            const isAdminRoute = cleanPath.startsWith('/admin');
+
+            if (decoded.role?.includes('admin')) {
                 entity = await db.Admin.findById(decoded.id);
             } else {
                 entity = await db.User.findById(decoded.id);
@@ -59,18 +61,20 @@ exports.authenticate = async (req, res, next) => {
 
             if (!entity) return RESPONSE.error(res, 404, 3001, 'User not found');
 
-            // User specific checks
-            if (decoded.role !== 'admin') {
+            // User specific checks (only for normal users)
+            if (!decoded.role?.includes('admin')) {
                 if (entity.isDeleted) return RESPONSE.error(res, 404, 3001, 'Account is deleted');
                 if (entity.isBlocked) return RESPONSE.error(res, 403, 3003, 'Account is blocked');
             }
 
-            req.user = decoded; // Attach decoded payload {id, email, role}
+            req.user = { 
+                id: decoded.id, 
+                email: decoded.email, 
+                role: decoded.role || 'user',
+                ...decoded 
+            };
 
-            // --- Centralized Authorization Logic ---
-            const isAdminRoute = cleanPath.startsWith('/admin');
-
-            if (isAdminRoute && decoded.role !== 'admin') {
+            if (isAdminRoute && !admin_roles.includes(decoded.role)) {
                 return RESPONSE.error(res, 403, 4444, 'Permission Denied: Admin access required');
             }
             // --- End of Authorization Logic ---

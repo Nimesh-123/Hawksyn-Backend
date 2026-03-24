@@ -15,7 +15,17 @@ exports.adminSignup = async (req, res) => {
             return RESPONSE.error(res, 400, 1003, 'Admin already exists');
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        const admin = await db.Admin.create({ username, email, password: hashedPassword });
+        
+        // Auto-assign admin role to the VERY FIRST admin in the system
+        const adminCount = await db.Admin.countDocuments();
+        const role = adminCount === 0 ? 'admin' : 'sub_admin';
+
+        const admin = await db.Admin.create({ 
+            username, 
+            email, 
+            password: hashedPassword,
+            role: role
+        });
 
         /* 
         // Current Solution: 1 year expiry
@@ -277,3 +287,188 @@ exports.changeAdminPassword = async (req, res) => {
         return RESPONSE.error(res, 500, 9999, err.message);
     }
 };
+// --- Sub-Admin Management (Super Admin Only) ---
+
+// Create Sub-Admin
+exports.createSubAdmin = async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return RESPONSE.error(res, 403, 4444, 'Strict Permission Denied: Only primary Admin can carry out this action');
+        }
+
+        const { username, email, password } = req.body;
+        if (!username || !email || !password) {
+            return RESPONSE.error(res, 400, 1002, 'Username, email and password are required');
+        }
+
+        const existingAdmin = await db.Admin.findOne({ email });
+        if (existingAdmin) {
+            return RESPONSE.error(res, 400, 1003, 'Admin with this email already exists');
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const subAdmin = await db.Admin.create({
+            username,
+            email,
+            password: hashedPassword,
+            role: 'sub_admin'
+        });
+
+        const subAdminResponse = subAdmin.toObject();
+        delete subAdminResponse.password;
+
+        return RESPONSE.success(res, 201, 1004, { 
+            message: 'Sub-admin created successfully',
+            admin: subAdminResponse 
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+// Get All Sub-Admins
+exports.getSubAdmins = async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return RESPONSE.error(res, 403, 4444, 'Permission Denied: Only Admin can view sub-admin list');
+        }
+
+        const admins = await db.Admin.find({ role: 'sub_admin' }).select('-password -refreshToken');
+        return RESPONSE.success(res, 200, 1001, { subAdmins: admins });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+// Delete Sub-Admin
+exports.deleteSubAdmin = async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return RESPONSE.error(res, 403, 4444, 'Permission Denied: Only primary Admin can delete sub-admins');
+        }
+
+        const { id } = req.params;
+        const subAdmin = await db.Admin.findById(id);
+
+        if (!subAdmin) return RESPONSE.error(res, 404, 1005, 'Sub-admin not found');
+        if (subAdmin.role === 'admin') {
+            return RESPONSE.error(res, 400, 4444, 'Cannot delete a primary Admin account');
+        }
+
+        await db.Admin.findByIdAndDelete(id);
+        return RESPONSE.success(res, 200, 1001, { message: 'Sub-admin deleted successfully' });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+/**
+ * @swagger
+ * /admin/dashboard/stats:
+ *   get:
+ *     summary: Get overview stats for the Admin Dashboard
+ *     tags: [9. Admin Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics
+ *       403:
+ *         description: Permission denied
+ */
+exports.getDashboardStats = async (req, res) => {
+    try {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        // 1. User & Report Summaries
+        const totalUsers = await db.User.countDocuments();
+        const newUsersToday = await db.User.countDocuments({ createdAt: { $gte: todayStart } });
+        const totalRuns = await db.Runs.countDocuments();
+        const completedRuns = await db.Runs.countDocuments({ status: 'REPORT_COMPLETE' });
+        const processingRuns = await db.Runs.countDocuments({ status: { $nin: ['REPORT_COMPLETE'] } });
+
+        // 2. Financial Metrics (Total & Breakdown by Case)
+        const revenueResult = await db.Payments.aggregate([
+            { $match: { status: 'COMPLETED' } },
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]);
+        const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
+
+        const revenueByCase = await db.Payments.aggregate([
+            { $match: { status: 'COMPLETED' } },
+            { $group: { _id: "$caseId", revenue: { $sum: "$amount" } } },
+            {
+                $lookup: {
+                    from: 'case_registry',
+                    localField: '_id',
+                    foreignField: 'caseId',
+                    as: 'caseDetails'
+                }
+            },
+            {
+                $project: {
+                    caseId: "$_id",
+                    revenue: 1,
+                    caseName: { $arrayElemAt: ["$caseDetails.caseName", 0] }
+                }
+            },
+            { $sort: { revenue: -1 } }
+        ]);
+
+        // 3. Case Distribution (Pie Chart Data)
+        const caseMix = await db.Runs.aggregate([
+            { $group: { _id: "$caseId", count: { $sum: 1 } } },
+            {
+                $lookup: {
+                    from: 'case_registry',
+                    localField: '_id',
+                    foreignField: 'caseId',
+                    as: 'caseDetails'
+                }
+            },
+            {
+                $project: {
+                    caseId: "$_id",
+                    count: 1,
+                    caseName: { $arrayElemAt: ["$caseDetails.caseName", 0] }
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        // 4. Daily Activity Trend (Last 7 Days)
+        const dailyActivity = await db.Runs.aggregate([
+            { $match: { createdAt: { $gte: sevenDaysAgo } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    runs: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        return RESPONSE.success(res, 200, 1001, {
+            stats: {
+                summary: {
+                    users: { total: totalUsers, newToday: newUsersToday },
+                    reports: { total: totalRuns, completed: completedRuns, processing: processingRuns },
+                    revenue: { total: totalRevenue, currency: 'INR' }
+                },
+                charts: {
+                    caseDistribution: caseMix,
+                    last7DaysTrend: dailyActivity,
+                    revenueByCase: revenueByCase
+                }
+            }
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+ 

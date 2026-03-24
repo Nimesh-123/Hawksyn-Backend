@@ -26,7 +26,7 @@ const adminController = require('../../controllers/admin.controller.js');
  *               email:
  *                 type: string
  *                 format: email
- *                 example: admin@example.com
+ *                 example: admin@admin.com
  *               password:
  *                 type: string
  *                 example: Admin@123
@@ -76,7 +76,7 @@ route.post('/signup', adminController.adminSignup);
  *               email:
  *                 type: string
  *                 format: email
- *                 example: admin@example.com
+ *                 example: admin@admin.com
  *               password:
  *                 type: string
  *                 example: Admin@123

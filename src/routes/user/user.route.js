@@ -19,7 +19,7 @@ const upload = require('../../../middleware/multer.js');
  *             properties:
  *               email:
  *                 type: string
- *                 example: user@example.com
+ *                 example: developer01.app2026@gmail.com
  *     responses:
  *       200:
  *         description: Success
@@ -41,6 +41,7 @@ route.post('/send-otp', userController.sendOTP);
  *             properties:
  *               email:
  *                 type: string
+ *                 example: developer01.app2026@gmail.com
  *               otp:
  *                 type: string
  *                 example: "1234"
@@ -65,10 +66,13 @@ route.post('/verify-otp', userController.verifyOTP);
  *             properties:
  *               email:
  *                 type: string
+ *                 example: developer01.app2026@gmail.com
  *               mPin:
  *                 type: string
+ *                 example: "1234"
  *               confirmMPin:
  *                 type: string
+ *                 example: "1234"
  *     responses:
  *       200:
  *         description: Success
@@ -90,8 +94,10 @@ route.post('/set-pin', userController.setPin);
  *             properties:
  *               email:
  *                 type: string
+ *                 example: developer01.app2026@gmail.com
  *               mPin:
  *                 type: string
+ *                 example: "1234"
  *     responses:
  *       200:
  *         description: Login successful. Returns JWT Token.
