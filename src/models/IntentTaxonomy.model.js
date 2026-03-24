@@ -5,7 +5,7 @@ const IntentTaxonomySchema = new mongoose.Schema({
     intentName: { type: String, required: true },
     intentDescription: { type: String, default: null },
     intentHorizonDays: { type: Number },
-    intentType: { type: String, enum: ['STABILITY', 'SWITCH', 'UPSKILL'] },
+    intentType: { type: String, enum: ['STABILITY', 'SWITCH', 'UPSKILL', 'DECISION', 'PLANNING'] },
     primaryOutcome: { type: String },
     defaultVerdictMode: { type: String },
     isActive: { type: Boolean, default: true }
