@@ -11,8 +11,17 @@ const { generatePdfFromHtml } = require('../services/pdfService.js');
 const nodemailer = require('nodemailer');
 
 // ─────────────────────────────────────────────────────────
+// HELPER 0 — getDeepValue
+// Profile snapshot (e.g., identity.currentRole) se deep value nikalta hai
+// ─────────────────────────────────────────────────────────
+function getDeepValue(obj, path) {
+    if (!obj || !path) return null;
+    return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+}
+
+// ─────────────────────────────────────────────────────────
 // HELPER 1 — buildPlaceholderMap
-// Sab placeholder values ek jagah assemble karta hai
+// Global placeholders (common to all reports)
 // ─────────────────────────────────────────────────────────
 function buildPlaceholderMap(profileSnapshot, rasAnswers, questionsMap, integrityPack, externalSignals) {
 
@@ -67,16 +76,12 @@ function buildPlaceholderMap(profileSnapshot, rasAnswers, questionsMap, integrit
         ? profileSnapshot.skills.join(', ')
         : (profileSnapshot.skills || 'Not provided');
 
-    return {
+    const baseMap = {
         CURRENT_ROLE:      currentRole,
         EXPERIENCE_YEARS:  String(experienceYears),
         SKILLS:            skills,
         CURRENT_COMPANY:   profileSnapshot.current_company || profileSnapshot.work?.experience?.[0]?.company || 'Not provided',
         DOMAIN:            profileSnapshot.domain          || profileSnapshot.parsedData?.domain || 'Not provided',
-        AI_EXPOSURE:       answerLabelMap['Q_AI_ROLE_EXPOSURE_V1']   || 'Not answered',
-        FINANCIAL_RUNWAY:  answerLabelMap['Q_FINANCIAL_RUNWAY_V1']   || 'Not answered',
-        ROLE_UNIQUENESS:   answerLabelMap['Q_ROLE_UNIQUENESS_V1']    || 'Not answered',
-        COMPANY_AI_POLICY: answerLabelMap['Q_COMPANY_AI_POLICY_V1'] || 'Not answered',
         ACCURACY_SCORE:    String(integrityPack.accuracy?.score  || 0),
         ACCURACY_BAND:     integrityPack.accuracy?.band           || 'UNKNOWN',
         RED_FLAGS:         redFlagsSummary,
@@ -92,6 +97,19 @@ function buildPlaceholderMap(profileSnapshot, rasAnswers, questionsMap, integrit
         'SIGNAL_DATA_QUALITY':     externalSignals?.dataQuality                   || 'INSUFFICIENT',
         'ANALYST_NOTE':            externalSignals?.analystNote                   || 'Insufficient market data for this profile.',
     };
+
+    // Case 1 Legacy Support (Maintain backward compatibility)
+    baseMap['AI_EXPOSURE']       = answerLabelMap['Q_AI_ROLE_EXPOSURE_V1']   || 'Not answered';
+    baseMap['FINANCIAL_RUNWAY']  = answerLabelMap['Q_FINANCIAL_RUNWAY_V1']   || 'Not answered';
+    baseMap['ROLE_UNIQUENESS']   = answerLabelMap['Q_ROLE_UNIQUENESS_V1']    || 'Not answered';
+    baseMap['COMPANY_AI_POLICY'] = answerLabelMap['Q_COMPANY_AI_POLICY_V1'] || 'Not answered';
+
+    // All available question answers (indexed by ID)
+    for (const [qId, label] of Object.entries(answerLabelMap)) {
+        baseMap[qId] = label;
+    }
+
+    return baseMap;
 }
 
 // ─────────────────────────────────────────────────────────
@@ -327,7 +345,28 @@ exports.generateReport = async (req, res) => {
             }
 
             // J3. Fill prompt with real values
-            let filledUserPrompt = fillPrompt(prompt.userPrompt, placeholders);
+            const sectionPlaceholders = { ...placeholders };
+
+            // Dynamic Evidence Placeholder Resolution
+            if (prompt.evidencePlaceholdersJson && typeof prompt.evidencePlaceholdersJson === 'object') {
+                for (const [phKey, evidenceRef] of Object.entries(prompt.evidencePlaceholdersJson)) {
+                    // Resolve from Answers (Already in global placeholders as qId)
+                    if (evidenceRef.startsWith('Q_')) {
+                        sectionPlaceholders[phKey] = placeholders[evidenceRef] || 'Not answered';
+                    }
+                    // Resolve from Profile Snapshot (e.g., identity.currentRole)
+                    else if (evidenceRef.includes('.') && !evidenceRef.startsWith('INTEGRITY.')) {
+                        sectionPlaceholders[phKey] = getDeepValue(profileSnapshot, evidenceRef) || 'Not provided';
+                    }
+                    // Resolve from Integrity Results (Already available in global but specifically mapped here)
+                    else if (evidenceRef === 'INTEGRITY.score') sectionPlaceholders[phKey] = placeholders['ACCURACY_SCORE'];
+                    else if (evidenceRef === 'INTEGRITY.band')  sectionPlaceholders[phKey] = placeholders['ACCURACY_BAND'];
+                    else if (evidenceRef === 'INTEGRITY.redFlags') sectionPlaceholders[phKey] = placeholders['RED_FLAGS'];
+                    else if (evidenceRef === 'INTEGRITY.contradictions') sectionPlaceholders[phKey] = placeholders['CONTRADICTIONS'];
+                }
+            }
+
+            let filledUserPrompt = fillPrompt(prompt.userPrompt, sectionPlaceholders);
 
             // Add degraded note if anchors missing
             if (sectionOut.degraded) {
