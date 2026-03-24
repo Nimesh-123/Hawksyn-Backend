@@ -6,7 +6,7 @@ const mammoth = require('mammoth');
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-const MAX_CHARS = 30000;
+const MAX_CHARS = 15000;
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // const AEU_SCHEMA_PROMPT = `

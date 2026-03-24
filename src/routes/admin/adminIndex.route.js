@@ -1,20 +1,13 @@
 const express = require('express');
 const route = express.Router();
 
-const adminController = require('../../controllers/admin.controller.js');
+const adminUserRoute = require('./adminUser.route.js');
+const adminAuditRoute = require('./adminAudit.route.js');
+const adminProfileRoute = require('./adminProfile.route.js');
 
-const { authorize } = require('../../../middleware/authorization/authorization.js');
-
-/**
- * @swagger
- * /admin/logs:
- *   get:
- *     summary: Get all audit logs (Admin only)
- *     tags: [6. Admin]
- *     responses:
- *       200:
- *         description: List of audit logs
- */
-route.get('/logs', adminController.getAuditLogs);
+// Mount Sub-Routes
+route.use('/users', adminUserRoute);
+route.use('/audit', adminAuditRoute);
+route.use('/profile', adminProfileRoute);
 
 module.exports = route;

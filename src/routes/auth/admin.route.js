@@ -7,7 +7,7 @@ const adminController = require('../../controllers/admin.controller.js');
  * /auth/admin/signup:
  *   post:
  *     summary: Register a new admin
- *     tags: [6. Admin]
+ *     tags: [1. Authentication & Security]
  *     description: Register a new admin user with username, email, and password.
  *     requestBody:
  *       required: true
@@ -61,7 +61,7 @@ route.post('/signup', adminController.adminSignup);
  * /auth/admin/login:
  *   post:
  *     summary: Admin login
- *     tags: [6. Admin]
+ *     tags: [1. Authentication & Security]
  *     description: Login with email and password and receive a token.
  *     requestBody:
  *       required: true

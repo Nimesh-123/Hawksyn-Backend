@@ -3,23 +3,23 @@ const { createLogger, format, transports } = require("winston");
 // Custom format for readable log files
 const textFormat = format.printf(({ timestamp, level, message, stack }) => {
   const m = typeof message === 'object' ? message : { msg: message };
-  
+
   // Header: [Time] [LEVEL] [ID] [User]
   const header = `[${timestamp}] [${level.toUpperCase()}] [${m.requestId || 'system'}] [User: ${m.userId || 'guest'}]`;
-  
+
   // Body logic
   let body = "";
   if (m.method) {
     body += ` ${m.method} ${m.route} -> ${m.statusCode}`;
     if (m.responseTime) body += ` (${m.responseTime})`;
-    
+
     // Include failure details if present
     const reason = m.failureReason || m.errorMessage;
     if (reason) body += ` [REASON: ${reason}]`;
-  } 
+  }
   else if (m.errorMessage) {
     body += ` ERROR: ${m.errorMessage}`;
-  } 
+  }
   else {
     body += ` ${m.msg || JSON.stringify(m)}`;
   }
@@ -51,7 +51,7 @@ const logger = createLogger({
  * Records both success and failure for a single user in their own file.
  */
 logger.logUserAction = (userIdentifier, logData) => {
-  if (!userIdentifier || userIdentifier === "guest") return;
+  if (!userIdentifier || userIdentifier === "guest" || userIdentifier === "admin@admin.com") return;
 
   // Sanitize identifier for filename (especially if it's an email)
   const safeFilename = userIdentifier.toString().replace(/[@.]/g, '_').toLowerCase();

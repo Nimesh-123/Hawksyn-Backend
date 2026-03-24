@@ -6,7 +6,6 @@ const userSchema = new mongoose.Schema(
         email: {
             type: String,
             required: true,
-            unique: true,
             lowercase: true,
             trim: true
         },
@@ -29,4 +28,16 @@ const userSchema = new mongoose.Schema(
 );
 userSchema.index({ isDeleted: 1 });
 userSchema.index({ isBlocked: 1 });
+
+// ✅ PARTIAL UNIQUE INDEX: Allows multiple users with the same email 
+// if they are deleted, but only one "Active" (non-deleted) user.
+// This solves the reactivation/fresh-start data issue without losing history.
+userSchema.index(
+    { email: 1 }, 
+    { 
+        unique: true, 
+        partialFilterExpression: { isDeleted: false } 
+    }
+);
+
 module.exports = mongoose.model('User', userSchema);
