@@ -55,45 +55,6 @@ async function seedCaseRegistry() {
             documentRequired: true,
             isActive: true,
             logoSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><path d="M50 5 L88 20 L88 52 C88 72 70 88 50 95 C30 88 12 72 12 52 L12 20 Z" fill="#1E1E2E" stroke="#FFA500" stroke-width="2.5"/><line x1="30" y1="40" x2="50" y2="40" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="50" y1="40" x2="70" y2="40" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="35" y1="55" x2="50" y2="55" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="50" y1="55" x2="65" y2="55" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="50" y1="40" x2="50" y2="55" stroke="#FFA500" stroke-width="1.5" opacity="0.7"/><line x1="35" y1="40" x2="35" y2="55" stroke="#FFA500" stroke-width="1.2" opacity="0.5"/><line x1="65" y1="40" x2="65" y2="55" stroke="#FFA500" stroke-width="1.2" opacity="0.5"/><circle cx="30" cy="40" r="3" fill="#FFA500"/><circle cx="50" cy="40" r="3.5" fill="#FFA500"/><circle cx="70" cy="40" r="3" fill="#FFA500"/><circle cx="35" cy="55" r="3" fill="#FFA500" opacity="0.8"/><circle cx="50" cy="55" r="3.5" fill="#FFA500"/><circle cx="65" cy="55" r="3" fill="#FFA500" opacity="0.8"/><circle cx="50" cy="47" r="5" fill="none" stroke="#FFA500" stroke-width="1.5" opacity="0.6"/><circle cx="50" cy="47" r="2.5" fill="#FFA500"/><circle cx="50" cy="70" r="5" fill="#FFA500" opacity="0.9"/><path d="M42 82 Q50 76 58 82" fill="none" stroke="#FFA500" stroke-width="2" stroke-linecap="round" opacity="0.9"/></svg>`
-        },
-        {
-            caseId: 'CASE_AI_JOB_RISK_V2',
-            caseName: 'AI Job Risk Assessment (Advanced)',
-            caseCategory: 'AUDIT',
-            caseDescription: 'Comprehensive assessment of AI impact on your career, including future trends and strategic recommendations.',
-            launchStage: 'BETA',
-            defaultCurrency: 'USD',
-            minPrice: 199,
-            maxPrice: 499,
-            documentRequired: true,
-            isActive: true,
-            logoSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="10" width="80" height="80" rx="10" ry="10" fill="#282C34" stroke="#61DAFB" stroke-width="2.5"/><circle cx="50" cy="50" r="20" fill="#61DAFB" opacity="0.7"/><path d="M50 30 L65 45 L50 70 L35 45 Z" fill="#282C34"/><circle cx="50" cy="50" r="5" fill="#282C34"/><text x="50" y="85" font-family="Arial" font-size="12" fill="#61DAFB" text-anchor="middle">AI</text></svg>`
-        },
-        {
-            caseId: 'CASE_CAREER_PATH_ADVISOR',
-            caseName: 'Career Path Advisor',
-            caseCategory: 'ADVISORY',
-            caseDescription: 'Provides personalized career path recommendations based on skills, market demand, and AI trends.',
-            launchStage: 'ALPHA',
-            defaultCurrency: 'EUR',
-            minPrice: 149,
-            maxPrice: 399,
-            documentRequired: true,
-            isActive: false,
-            logoSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><path d="M50 10 L70 40 L60 90 L40 90 L30 40 Z" fill="#FFD700" stroke="#DAA520" stroke-width="2.5"/><circle cx="50" cy="30" r="15" fill="#DAA520"/><path d="M50 50 Q60 60 50 70 Q40 60 50 50 Z" fill="#FFFFFF"/><text x="50" y="85" font-family="Arial" font-size="12" fill="#DAA520" text-anchor="middle">Path</text></svg>`
-        },
-        {
-            caseId: 'CASE_SKILL_GAP_ANALYSIS',
-            caseName: 'Skill Gap Analysis',
-            caseCategory: 'ANALYSIS',
-            caseDescription: 'Identifies critical skill gaps for your desired career trajectory and suggests learning resources.',
-            launchStage: 'ALPHA',
-            defaultCurrency: 'GBP',
-            minPrice: 79,
-            maxPrice: 199,
-            documentRequired: false,
-            isActive: false,
-            logoSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><rect x="20" y="20" width="60" height="60" rx="5" ry="5" fill="#32CD32" stroke="#228B22" stroke-width="2.5"/><line x1="30" y1="40" x2="70" y2="40" stroke="#FFFFFF" stroke-width="2"/><line x1="30" y1="50" x2="60" y2="50" stroke="#FFFFFF" stroke-width="2"/><line x1="30" y1="60" x2="50" y2="60" stroke="#FFFFFF" stroke-width="2"/><circle cx="75" cy="25" r="8" fill="#FF4500"/><text x="75" y="28" font-family="Arial" font-size="10" fill="#FFFFFF" text-anchor="middle">!</text></svg>`
         }
     ]);
 }
@@ -203,44 +164,10 @@ async function seedCaseIntentConfig() {
             playbookVersionId: 'PBV_000001',
             isDefault: true,
             displayOrder: 1,
-            minAgeYears: null,
-            maxAgeYears: null,
-            minExperienceYears: null,
-            maxExperienceYears: null,
             effectiveFrom: new Date('2026-01-01'),
             effectiveTo: null,
             isActive: true,
             notes: 'Primary intent for MVP launch'
-        },
-        {
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'INT_SWITCH_ROLE_SAFE',
-            playbookVersionId: 'PBV_000002',
-            isDefault: false,
-            displayOrder: 2,
-            minAgeYears: null,
-            maxAgeYears: null,
-            minExperienceYears: null,
-            maxExperienceYears: null,
-            effectiveFrom: new Date('2026-01-01'),
-            effectiveTo: null,
-            isActive: false,
-            notes: 'Switch role intent — Phase 2'
-        },
-        {
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'INT_UPSKILL_AI_PROOF',
-            playbookVersionId: 'PBV_000003',
-            isDefault: false,
-            displayOrder: 3,
-            minAgeYears: null,
-            maxAgeYears: null,
-            minExperienceYears: null,
-            maxExperienceYears: null,
-            effectiveFrom: new Date('2026-01-01'),
-            effectiveTo: null,
-            isActive: false,
-            notes: 'Upskill intent — Phase 3'
         }
     ]);
 }
@@ -403,26 +330,6 @@ async function seedMandatoryObjectiveInputs() {
             isActive: true
         },
         {
-            moiId: 'MOI_AI_SWITCH_V1',
-            moiName: 'AI Job Risk – Switch – Mandatory Inputs',
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'INT_SWITCH_ROLE_SAFE',          // ✅ FIXED: was INT_SWITCH_ROLE_6M
-            playbookVersionId: 'PBV_000002',
-            version: 'v1.0',
-            description: 'Mandatory inputs for transition evaluation',
-            isActive: true
-        },
-        {
-            moiId: 'MOI_AI_UPSKILL_V1',
-            moiName: 'AI Job Risk – Upskill – Mandatory Inputs',
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'INT_UPSKILL_AI_PROOF',          // ✅ FIXED: was INT_UPSKILL_90D
-            playbookVersionId: 'PBV_000003',
-            version: 'v1.0',
-            description: 'Mandatory inputs for skill improvement plan',
-            isActive: true
-        },
-        {
             moiId: 'MOI_MBA_V1',
             moiName: 'MBA Decision – Mandatory Inputs',
             caseId: 'CASE_MBA_BREAK',
@@ -430,16 +337,6 @@ async function seedMandatoryObjectiveInputs() {
             playbookVersionId: 'PBV_000004',
             version: 'v1.0',
             description: 'Inputs required for MBA decision validation',
-            isActive: true
-        },
-        {
-            moiId: 'MOI_AUDIT_V1',
-            moiName: 'Annual Career Audit – Mandatory Inputs',
-            caseId: 'CASE_ANNUAL_CAREER_AUDIT',
-            intentId: 'INT_FULL_YEAR_AUDIT',
-            playbookVersionId: 'PBV_000005',
-            version: 'v1.0',
-            description: 'Inputs required for full career audit',
             isActive: true
         }
     ]);
@@ -1325,29 +1222,38 @@ async function seedRiskAuditorRegistry() {
     await RiskAuditorRegistry.insertMany([
         {
             auditorId: 'RAR_001',
-            auditorName: 'Senior Risk Analyst',
+            auditorName: 'Senior AI Risk Analyst',
             caseId: 'CASE_AI_JOB_RISK',
-            specializations: ['AI_DISPLACEMENT', 'FINANCIAL_RISK', 'REM_SKILL_UPSKILL'],
-            maxCaseload: 20,
+            specializations: ['AI_DISPLACEMENT', 'FINANCIAL_RISK'],
+            maxCaseload: 50,
             currentCaseload: 5,
             isActive: true
         },
         {
-            auditorId: 'RAR_002',
-            auditorName: 'Neha Kapoor',
-            caseId: 'CASE_AI_JOB_RISK',
-            specializations: ['LABOUR_MARKET', 'POLICY'],
+            auditorId: 'RAR_004',
+            auditorName: 'MBA Education Consultant',
+            caseId: 'CASE_MBA_BREAK',
+            specializations: ['MBA_ADVISORY', 'FINANCIAL_PLANNING'],
             maxCaseload: 20,
-            currentCaseload: 2,
+            currentCaseload: 0,
             isActive: true
         },
         {
-            auditorId: 'RAR_003',
-            auditorName: 'Raghav Sharma',
-            caseId: 'CASE_AI_JOB_RISK',
-            specializations: ['FINANCIAL_RISK', 'RUNWAY_ANALYSIS'],
+            auditorId: 'RAR_005',
+            auditorName: 'Freelance & Gig Economy Specialist',
+            caseId: 'CASE_FREELANCE_SWITCH',
+            specializations: ['FREELANCE_MARKETS', 'ENTREPRENEURSHIP'],
             maxCaseload: 20,
-            currentCaseload: 8,
+            currentCaseload: 0,
+            isActive: true
+        },
+        {
+            auditorId: 'RAR_006',
+            auditorName: 'Strategic Career Transition Lead',
+            caseId: 'CASE_ROLE_SWITCH',
+            specializations: ['ROLE_TRANSITION', 'SKILL_ANALYSIS'],
+            maxCaseload: 20,
+            currentCaseload: 0,
             isActive: true
         }
     ]);
@@ -1918,75 +1824,51 @@ async function seedCase_MBA() {
         {
             promptId: 'PCR_MBA_SEC001_V1', sectionId: 'MBA_SEC_001', caseId: 'CASE_MBA_BREAK', intentId: 'INT_MBA_2026_YESNO', playbookVersionId: 'PBV_000002', promptVersion: 1, modelFamily: 'OPENAI', temperature: 0.3, maxTokens: 600,
             systemPrompt: 'You are a career decision analyst for Hawksyn. Write only what evidence supports. Do not introduce external facts.',
-            userPrompt: `Write a 4-sentence Profile and Readiness Summary for this user considering an MBA.
-
-Profile:
-- Current Role: {{CURRENT_ROLE}}
-- Experience: {{EXPERIENCE_YEARS}} years at {{CURRENT_COMPANY}}
-- Domain: {{DOMAIN}}
-- Skills: {{SKILLS}}
-
-User's Inputs:
-- Savings Runway: {{MBA_SAVINGS_RUNWAY}}
-- Employer Support: {{MBA_EMPLOYER_SUPPORT}}
-- ROI Clarity: {{MBA_ROI_CLARITY}}
-- Work Experience: {{MBA_EXPERIENCE_YEARS}} years
-
-Integrity Results:
-- Accuracy Score: {{ACCURACY_SCORE}} (Band: {{ACCURACY_BAND}})
-- Red Flags: {{RED_FLAGS}}
-
-Write based ONLY on this data. Be direct and specific. Do not give generic MBA advice.`,
-            evidencePlaceholdersJson: { CURRENT_ROLE: 'AEU_IDENTITY_002', EXPERIENCE_YEARS: 'AEU_WORK_001' },
+            userPrompt: `Write a 4-sentence Profile and Readiness Summary for this user considering an MBA.\n\nProfile:\n- Current Role: {{CURRENT_ROLE}}\n- Experience: {{EXPERIENCE_YEARS}} years at {{CURRENT_COMPANY}}\n- Domain: {{DOMAIN}}\n- Skills: {{SKILLS}}\n\nUser's Inputs:\n- Savings Runway: {{MBA_SAVINGS_RUNWAY}}\n- Employer Support: {{MBA_EMPLOYER_SUPPORT}}\n- ROI Clarity: {{MBA_ROI_CLARITY}}\n- Work Experience: {{MBA_EXPERIENCE_YEARS}} years\n\nIntegrity Results:\n- Accuracy Score: {{ACCURACY_SCORE}} (Band: {{ACCURACY_BAND}})\n- Red Flags: {{RED_FLAGS}}\n\nWrite based ONLY on this data. Be direct and specific. Do not give generic MBA advice.`,
+            evidencePlaceholdersJson: { 
+                CURRENT_ROLE: 'identity.currentRole', 
+                EXPERIENCE_YEARS: 'work.totalYearsExperience',
+                CURRENT_COMPANY: 'work.experience.0.company',
+                DOMAIN: 'identity.industry',
+                SKILLS: 'skills',
+                MBA_SAVINGS_RUNWAY: 'Q_MBA_SAVINGS_RUNWAY_V1',
+                MBA_EMPLOYER_SUPPORT: 'Q_MBA_EMPLOYER_SUPPORT_V1',
+                MBA_ROI_CLARITY: 'Q_MBA_ROI_CLARITY_V1',
+                MBA_EXPERIENCE_YEARS: 'Q_MBA_EXPERIENCE_YEARS_V1'
+            },
             certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true
         },
         {
             promptId: 'PCR_MBA_SEC002_V1', sectionId: 'MBA_SEC_002', caseId: 'CASE_MBA_BREAK', intentId: 'INT_MBA_2026_YESNO', playbookVersionId: 'PBV_000002', promptVersion: 1, modelFamily: 'GEMINI', temperature: 0.3, maxTokens: 600,
             systemPrompt: 'You are a financial feasibility analyst for Hawksyn. Assess MBA financial viability. Be factual. Do not invent numbers.',
-            userPrompt: `Assess the financial feasibility of this user's MBA plan.
-
-Savings Runway: {{MBA_SAVINGS_RUNWAY}}
-Employer Support: {{MBA_EMPLOYER_SUPPORT}}
-Accuracy Band: {{ACCURACY_BAND}}
-Red Flags: {{RED_FLAGS}}
-
-Write 2-3 paragraphs:
-1. Is the financial position adequate for an MBA break?
-2. What happens if the user goes ahead without adequate savings?
-3. What immediate action is recommended?`,
-            evidencePlaceholdersJson: { MBA_SAVINGS_RUNWAY: 'Q_MBA_SAVINGS_RUNWAY_V1' },
+            userPrompt: `Assess the financial feasibility of this user's MBA plan.\n\nSavings Runway: {{MBA_SAVINGS_RUNWAY}}\nEmployer Support: {{MBA_EMPLOYER_SUPPORT}}\nAccuracy Band: {{ACCURACY_BAND}}\nRed Flags: {{RED_FLAGS}}\n\nWrite 2-3 paragraphs:\n1. Is the financial position adequate for an MBA break?\n2. What happens if the user goes ahead without adequate savings?\n3. What immediate action is recommended?`,
+            evidencePlaceholdersJson: { 
+                MBA_SAVINGS_RUNWAY: 'Q_MBA_SAVINGS_RUNWAY_V1',
+                MBA_EMPLOYER_SUPPORT: 'Q_MBA_EMPLOYER_SUPPORT_V1'
+            },
             certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true
         },
         {
             promptId: 'PCR_MBA_SEC003_V1', sectionId: 'MBA_SEC_003', caseId: 'CASE_MBA_BREAK', intentId: 'INT_MBA_2026_YESNO', playbookVersionId: 'PBV_000002', promptVersion: 1, modelFamily: 'GEMINI', temperature: 0.4, maxTokens: 500,
             systemPrompt: 'You are a market signals analyst for Hawksyn. Summarize MBA market ROI conditions. Use only provided data.',
-            userPrompt: `Analyze market conditions for MBA ROI for this user.
-
-User: {{CURRENT_ROLE}} in {{DOMAIN}} with {{EXPERIENCE_YEARS}} years experience
-Market Demand Signal: {{MARKET_DEMAND_SIGNAL}}
-AI Displacement Risk: {{AI_DISPLACEMENT_RISK}}
-Industry Hiring Trend: {{INDUSTRY_HIRING_TREND}}
-Accuracy Band: {{ACCURACY_BAND}}
-Analyst Note: {{ANALYST_NOTE}}
-
-Write 3-4 sentences on MBA ROI signals for this profile. End with one direct implication.`,
-            evidencePlaceholdersJson: { CURRENT_ROLE: 'parsedCvData.current_role' },
+            userPrompt: `Analyze market conditions for MBA ROI for this user.\n\nUser: {{CURRENT_ROLE}} in {{DOMAIN}} with {{EXPERIENCE_YEARS}} years experience\nMarket Demand Signal: {{MARKET_DEMAND_SIGNAL}}\nAI Displacement Risk: {{AI_DISPLACEMENT_RISK}}\nIndustry Hiring Trend: {{INDUSTRY_HIRING_TREND}}\nAccuracy Band: {{ACCURACY_BAND}}\nAnalyst Note: {{ANALYST_NOTE}}\n\nWrite 3-4 sentences on MBA ROI signals for this profile. End with one direct implication.`,
+            evidencePlaceholdersJson: { 
+                CURRENT_ROLE: 'identity.currentRole',
+                DOMAIN: 'identity.industry',
+                EXPERIENCE_YEARS: 'work.totalYearsExperience'
+            },
             certaintyCapPercent: 70, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true
         },
         {
             promptId: 'PCR_MBA_SEC004_V1', sectionId: 'MBA_SEC_004', caseId: 'CASE_MBA_BREAK', intentId: 'INT_MBA_2026_YESNO', playbookVersionId: 'PBV_000002', promptVersion: 1, modelFamily: 'OPENAI', temperature: 0.2, maxTokens: 400,
             systemPrompt: 'You are the verdict engine for Hawksyn MBA decisions. Deliver PROCEED, PAUSE, or ABORT. Base verdict solely on provided integrity data.',
-            userPrompt: `Deliver a verdict on whether this user should pursue MBA now.
-
-Accuracy Score: {{ACCURACY_SCORE}}
-Accuracy Band: {{ACCURACY_BAND}}
-Red Flags: {{RED_FLAGS}}
-Contradictions: {{CONTRADICTIONS}}
-
-Your first line MUST be: PROCEED, PAUSE, or ABORT
-Then 3-4 sentences explaining the verdict.
-End with one clear recommendation.`,
-            evidencePlaceholdersJson: { ACCURACY_SCORE: 'AEU_INT_001' },
+            userPrompt: `Deliver a verdict on whether this user should pursue MBA now.\n\nAccuracy Score: {{ACCURACY_SCORE}}\nAccuracy Band: {{ACCURACY_BAND}}\nRed Flags: {{RED_FLAGS}}\nContradictions: {{CONTRADICTIONS}}\n\nYour first line MUST be: PROCEED, PAUSE, or ABORT\nThen 3-4 sentences explaining the verdict.\nEnd with one clear recommendation.`,
+            evidencePlaceholdersJson: { 
+                ACCURACY_SCORE: 'INTEGRITY.score',
+                ACCURACY_BAND: 'INTEGRITY.band',
+                RED_FLAGS: 'INTEGRITY.redFlags',
+                CONTRADICTIONS: 'INTEGRITY.contradictions'
+            },
             certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true
         }
     ]);
@@ -2220,10 +2102,55 @@ async function seedCase_Freelance() {
 
     await PromptConfigRegistry.deleteMany({ caseId: 'CASE_FREELANCE_SWITCH' });
     await PromptConfigRegistry.insertMany([
-        { promptId: 'PCR_FL_SEC001_V1', sectionId: 'FL_SEC_001', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'OPENAI', temperature: 0.3, maxTokens: 600, systemPrompt: 'You are a career decision analyst for Hawksyn. Write only what evidence supports.', userPrompt: `Write a 4-sentence Freelance Readiness Summary for this user.\n\nProfile:\n- Current Role: {{CURRENT_ROLE}}\n- Experience: {{EXPERIENCE_YEARS}} years at {{CURRENT_COMPANY}}\n- Domain: {{DOMAIN}}\n- Skills: {{SKILLS}}\n\nUser Inputs:\n- Savings Runway: {{FL_SAVINGS_RUNWAY}}\n- Client Network: {{FL_CLIENT_NETWORK}}\n- Skill Marketability: {{FL_SKILL_MARKETABILITY}}\n- Financial Obligations: {{FL_DEPENDENTS}}\n\nIntegrity:\n- Accuracy Score: {{ACCURACY_SCORE}} (Band: {{ACCURACY_BAND}})\n- Red Flags: {{RED_FLAGS}}\n\nBe direct. Reference specific answers. No generic advice.`, evidencePlaceholdersJson: { CURRENT_ROLE: 'AEU_IDENTITY_002' }, certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true },
-        { promptId: 'PCR_FL_SEC002_V1', sectionId: 'FL_SEC_002', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'GEMINI', temperature: 0.3, maxTokens: 600, systemPrompt: 'You are a financial resilience analyst for Hawksyn. Assess freelance financial safety.', userPrompt: `Assess financial readiness for freelance switch.\n\nSavings Runway: {{FL_SAVINGS_RUNWAY}}\nClient Network: {{FL_CLIENT_NETWORK}}\nFinancial Obligations: {{FL_DEPENDENTS}}\nAccuracy Band: {{ACCURACY_BAND}}\nRed Flags: {{RED_FLAGS}}\n\nWrite 2-3 paragraphs:\n1. Is the financial cushion adequate?\n2. What happens with zero income for 3-6 months?\n3. Recommended immediate action?`, evidencePlaceholdersJson: { FL_SAVINGS_RUNWAY: 'Q_FL_SAVINGS_RUNWAY_V1' }, certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true },
-        { promptId: 'PCR_FL_SEC003_V1', sectionId: 'FL_SEC_003', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'GEMINI', temperature: 0.4, maxTokens: 500, systemPrompt: 'You are a market signals analyst for Hawksyn. Analyze freelance market conditions.', userPrompt: `Analyze freelance market for: {{CURRENT_ROLE}} in {{DOMAIN}}\n\nMarket Demand: {{MARKET_DEMAND_SIGNAL}}\nAI Risk: {{AI_DISPLACEMENT_RISK}}\nHiring Trend: {{INDUSTRY_HIRING_TREND}}\nAccuracy Band: {{ACCURACY_BAND}}\n\nWrite 3-4 sentences. End with direct implication for this user.`, evidencePlaceholdersJson: { CURRENT_ROLE: 'parsedCvData.current_role' }, certaintyCapPercent: 70, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true },
-        { promptId: 'PCR_FL_SEC004_V1', sectionId: 'FL_SEC_004', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'OPENAI', temperature: 0.2, maxTokens: 400, systemPrompt: 'You are the verdict engine for Hawksyn freelance decisions. PROCEED, PAUSE, or ABORT only.', userPrompt: `Verdict on freelance switch:\n\nAccuracy Score: {{ACCURACY_SCORE}}\nAccuracy Band: {{ACCURACY_BAND}}\nRed Flags: {{RED_FLAGS}}\nContradictions: {{CONTRADICTIONS}}\n\nFirst line: PROCEED, PAUSE, or ABORT\nThen 3-4 sentences with reasoning.\nEnd with one recommendation.`, evidencePlaceholdersJson: { ACCURACY_SCORE: 'AEU_INT_001' }, certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true }
+        { 
+            promptId: 'PCR_FL_SEC001_V1', sectionId: 'FL_SEC_001', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'OPENAI', temperature: 0.3, maxTokens: 600, 
+            systemPrompt: 'You are a career decision analyst for Hawksyn. Write only what evidence supports.', 
+            userPrompt: `Write a 4-sentence Freelance Readiness Summary for this user.\n\nProfile:\n- Current Role: {{CURRENT_ROLE}}\n- Experience: {{EXPERIENCE_YEARS}} years at {{CURRENT_COMPANY}}\n- Domain: {{DOMAIN}}\n- Skills: {{SKILLS}}\n\nUser Inputs:\n- Savings Runway: {{FL_SAVINGS_RUNWAY}}\n- Client Network: {{FL_CLIENT_NETWORK}}\n- Skill Marketability: {{FL_SKILL_MARKETABILITY}}\n- Financial Obligations: {{FL_DEPENDENTS}}\n\nIntegrity:\n- Accuracy Score: {{ACCURACY_SCORE}} (Band: {{ACCURACY_BAND}})\n- Red Flags: {{RED_FLAGS}}\n\nBe direct. Reference specific answers. No generic advice.`, 
+            evidencePlaceholdersJson: {
+                CURRENT_ROLE: 'identity.currentRole',
+                EXPERIENCE_YEARS: 'work.totalYearsExperience',
+                CURRENT_COMPANY: 'work.experience.0.company',
+                DOMAIN: 'identity.industry',
+                SKILLS: 'skills',
+                FL_SAVINGS_RUNWAY: 'Q_FL_SAVINGS_RUNWAY_V1',
+                FL_CLIENT_NETWORK: 'Q_FL_CLIENT_NETWORK_V1',
+                FL_SKILL_MARKETABILITY: 'Q_FL_SKILL_MARKETABILITY_V1',
+                FL_DEPENDENTS: 'Q_FL_DEPENDENTS_V1'
+            }, 
+            certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true 
+        },
+        { 
+            promptId: 'PCR_FL_SEC002_V1', sectionId: 'FL_SEC_002', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'GEMINI', temperature: 0.3, maxTokens: 600, 
+            systemPrompt: 'You are a financial resilience analyst for Hawksyn. Assess freelance financial safety.', 
+            userPrompt: `Assess financial readiness for freelance switch.\n\nSavings Runway: {{FL_SAVINGS_RUNWAY}}\nClient Network: {{FL_CLIENT_NETWORK}}\nFinancial Obligations: {{FL_DEPENDENTS}}\nAccuracy Band: {{ACCURACY_BAND}}\nRed Flags: {{RED_FLAGS}}\n\nWrite 2-3 paragraphs:\n1. Is the financial cushion adequate?\n2. What happens with zero income for 3-6 months?\n3. Recommended immediate action?`, 
+            evidencePlaceholdersJson: {
+                FL_SAVINGS_RUNWAY: 'Q_FL_SAVINGS_RUNWAY_V1',
+                FL_CLIENT_NETWORK: 'Q_FL_CLIENT_NETWORK_V1',
+                FL_DEPENDENTS: 'Q_FL_DEPENDENTS_V1'
+            }, 
+            certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true 
+        },
+        { 
+            promptId: 'PCR_FL_SEC003_V1', sectionId: 'FL_SEC_003', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'GEMINI', temperature: 0.4, maxTokens: 500, 
+            systemPrompt: 'You are a market signals analyst for Hawksyn. Analyze freelance market conditions.', 
+            userPrompt: `Analyze freelance market for: {{CURRENT_ROLE}} in {{DOMAIN}}\n\nMarket Demand: {{MARKET_DEMAND_SIGNAL}}\nAI Risk: {{AI_DISPLACEMENT_RISK}}\nHiring Trend: {{INDUSTRY_HIRING_TREND}}\nAccuracy Band: {{ACCURACY_BAND}}\n\nWrite 3-4 sentences. End with direct implication for this user.`, 
+            evidencePlaceholdersJson: {
+                CURRENT_ROLE: 'identity.currentRole',
+                DOMAIN: 'identity.industry'
+            }, 
+            certaintyCapPercent: 70, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true 
+        },
+        { 
+            promptId: 'PCR_FL_SEC004_V1', sectionId: 'FL_SEC_004', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'OPENAI', temperature: 0.2, maxTokens: 400, 
+            systemPrompt: 'You are the verdict engine for Hawksyn freelance decisions. PROCEED, PAUSE, or ABORT only.', 
+            userPrompt: `Verdict on freelance switch:\n\nAccuracy Score: {{ACCURACY_SCORE}}\nAccuracy Band: {{ACCURACY_BAND}}\nRed Flags: {{RED_FLAGS}}\nContradictions: {{CONTRADICTIONS}}\n\nFirst line: PROCEED, PAUSE, or ABORT\nThen 3-4 sentences with reasoning.\nEnd with one recommendation.`, 
+            evidencePlaceholdersJson: {
+                ACCURACY_SCORE: 'INTEGRITY.score',
+                ACCURACY_BAND: 'INTEGRITY.band',
+                RED_FLAGS: 'INTEGRITY.redFlags'
+            }, 
+            certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true 
+        }
     ]);
 
     await EvaluationLibraryRegistry.deleteMany({ caseId: 'CASE_FREELANCE_SWITCH' });
