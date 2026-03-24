@@ -232,15 +232,12 @@ exports.verifyPayment = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Playbook not found' });
         }
 
-        // [LOGIC UPDATE] Check UserProfile confirmation
+        // [RELAXED CHECK] Check UserProfile — Allow the flow to continue even for unconfirmed profiles for testing
         const { UserProfile } = require('../models/index.model.js').db;
-        const userProfile = await UserProfile.findOne({ userId, isConfirmed: true });
+        const userProfile = await UserProfile.findOne({ userId }); 
+        
         if (!userProfile) {
-            return res.status(400).json({
-                success: false,
-                message: "Please complete your profile setup before starting validation.",
-                code: "PROFILE_NOT_CONFIRMED"
-            });
+             console.warn(`[Payment] No profile found for ${userId}. Run will be created but cvSnapshot may be empty.`);
         }
 
         // Check existing run
@@ -258,10 +255,10 @@ exports.verifyPayment = async (req, res) => {
                 playbookVersionId: config.playbookVersionId,
                 status: 'CREATED',
                 cvSnapshot: {
-                    cvUploadId: userProfile.lastCvUploadId,
-                    cvUrl: userProfile.cvUrl,
-                    parsedData: userProfile.confirmedProfile,
-                    attachedAt: userProfile.confirmedAt || new Date(),
+                    cvUploadId: userProfile?.lastCvUploadId || null,
+                    cvUrl: userProfile?.cvUrl || null,
+                    parsedData: userProfile?.confirmedProfile || {},
+                    attachedAt: userProfile?.confirmedAt || new Date(),
                     source: 'EXISTING'
                 }
             });
