@@ -8,7 +8,7 @@ const auth              = require('../../middleware/auth');
  * /users/{userId}/records:
  *   get:
  *     summary: Get all run records for a user
- *     tags: [7. My Records]
+ *     tags: [6. My Records & Reports]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -34,7 +34,7 @@ router.get('/:userId/records', auth, recordsController.getAllRecords);
  * /users/{userId}/records/{runId}:
  *   get:
  *     summary: Get full detail for a specific run
- *     tags: [7. My Records]
+ *     tags: [6. My Records & Reports]
  *     security:
  *       - bearerAuth: []
  *     parameters:

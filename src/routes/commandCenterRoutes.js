@@ -3,12 +3,6 @@ const router = express.Router();
 const cc = require('../controllers/commandCenterController');
 const auth = require('../../middleware/auth');
 
-/**
- * @swagger
- * tags:
- *   name: 6. Command Center & Trends
- *   description: Real-time career clocks, market trends, and recalibration
- */
 
 // All routes require authentication
 router.use(auth);
@@ -18,7 +12,7 @@ router.use(auth);
  * /command-center/{userId}/command-center:
  *   get:
  *     summary: Get user-specific command center data (clocks, insights, validity)
- *     tags: [6. Command Center & Trends]
+ *     tags: [8. Command Center & Trends]
  *     parameters:
  *       - in: path
  *         name: userId
@@ -40,7 +34,7 @@ router.get('/:userId/command-center', cc.getCommandCenter);
  * /command-center/{userId}/hawk:
  *   post:
  *     summary: Run Hawk recalibration (Manual refresh, consumes 1 credit if no active case)
- *     tags: [6. Command Center & Trends]
+ *     tags: [8. Command Center & Trends]
  *     parameters:
  *       - in: path
  *         name: userId
@@ -60,7 +54,7 @@ router.post('/:userId/hawk', cc.runHawk);
  * /command-center/{userId}/clock-refresh-from-case:
  *   post:
  *     summary: (Internal) Refresh clocks when a case expert is assigned
- *     tags: [6. Command Center & Trends]
+ *     tags: [8. Command Center & Trends]
  *     parameters:
  *       - in: path
  *         name: userId
@@ -80,7 +74,7 @@ router.post('/:userId/clock-refresh-from-case', cc.refreshClocksFromCase);
  * /command-center/{userId}/credits:
  *   get:
  *     summary: Get user's recalibration (Hawk) credit balance
- *     tags: [6. Command Center & Trends]
+ *     tags: [8. Command Center & Trends]
  *     parameters:
  *       - in: path
  *         name: userId
@@ -100,7 +94,7 @@ const { runTrendEngine } = require('../crons/trendEngine.cron.js');
  * /command-center/admin/run-trend-engine:
  *   get:
  *     summary: (Admin) Manually trigger the Trend Engine
- *     tags: [6. Command Center & Trends]
+ *     tags: [8. Command Center & Trends]
  *     responses:
  *       200:
  *         description: Trend engine triggered

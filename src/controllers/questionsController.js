@@ -13,7 +13,7 @@ exports.getNextQuestions = async (req, res) => {
         if (!run) {
             return res.status(404).json({ success: false, message: "Run not found" });
         }
-        
+
         // Status validation: Allow fetching questions if run is in any early state
         const allowedStatuses = ['CREATED', 'CV_UPLOADED', 'PROFILE_CONFIRMED', 'QUESTIONS_CONFIRMED', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED'];
         if (!allowedStatuses.includes(run.status)) {
@@ -379,8 +379,8 @@ exports.getQuestionsStatus = async (req, res) => {
                     questionCount: r.artifactJson.answers?.length || 0,
                     confirmedAt: r.createdAt
                 })),
-                message: answeredCount >= allMappings.length 
-                    ? "Your answers have been successfully recorded and locked." 
+                message: answeredCount >= allMappings.length
+                    ? "Your answers have been successfully recorded and locked."
                     : "Some questions are still pending."
             }
         });

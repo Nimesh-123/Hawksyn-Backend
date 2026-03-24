@@ -245,7 +245,12 @@ function buildClocksResponse(scores, userClock = {}) {
             years: scores.opportunityWindowYears ?? 2,
             color: 'BLUE',
             justification: userClock.opportunityWindowJustification || scores.opportunityWindowJustification || null,
-
+            benchmarks: {
+                top20: Math.min(100, oppScore + 9),
+                median: oppScore,
+                bottom20: Math.max(0, oppScore - 12),
+                userState: 'Median'
+            }
         }
     };
 }

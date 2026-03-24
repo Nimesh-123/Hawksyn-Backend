@@ -37,11 +37,11 @@ async function buildAeuManifest(runId) {
     }
 
     manifest.push({
-        artifactType:  'PROFILE_CONFIRMED',
-        rasId:         profileRas?.rasId         || null,
-        stepNo:        2,
-        evidenceIds:   [],
-        isAvailable:   !!profileRas,
+        artifactType: 'PROFILE_CONFIRMED',
+        rasId: profileRas?.rasId || null,
+        stepNo: 2,
+        evidenceIds: [],
+        isAvailable: !!profileRas,
         missingReason: profileRas ? null : 'Step 2 not completed'
     });
 
@@ -52,11 +52,11 @@ async function buildAeuManifest(runId) {
         status: 'FINAL'
     });
     manifest.push({
-        artifactType:  'OBJECTIVE_INPUTS_CAPTURED',
-        rasId:         objectiveRas?.rasId       || null,
-        stepNo:        3,
-        evidenceIds:   [],
-        isAvailable:   !!objectiveRas,
+        artifactType: 'OBJECTIVE_INPUTS_CAPTURED',
+        rasId: objectiveRas?.rasId || null,
+        stepNo: 3,
+        evidenceIds: [],
+        isAvailable: !!objectiveRas,
         missingReason: objectiveRas ? null : 'Step 3 not completed'
     });
 
@@ -67,11 +67,11 @@ async function buildAeuManifest(runId) {
         status: 'FINAL'
     });
     manifest.push({
-        artifactType:  'INTEGRITY_PACK',
-        rasId:         integrityRas?.rasId       || null,
-        stepNo:        4,
-        evidenceIds:   [],
-        isAvailable:   !!integrityRas,
+        artifactType: 'INTEGRITY_PACK',
+        rasId: integrityRas?.rasId || null,
+        stepNo: 4,
+        evidenceIds: [],
+        isAvailable: !!integrityRas,
         missingReason: integrityRas ? null : 'Step 4 (Integrity Engine) not run'
     });
 
@@ -82,11 +82,11 @@ async function buildAeuManifest(runId) {
         status: 'FINAL'
     });
     manifest.push({
-        artifactType:  'EXTERNAL_SIGNALS_CAPTURED',
-        rasId:         signalsRas?.rasId         || null,
-        stepNo:        5,
-        evidenceIds:   [],
-        isAvailable:   !!signalsRas,
+        artifactType: 'EXTERNAL_SIGNALS_CAPTURED',
+        rasId: signalsRas?.rasId || null,
+        stepNo: 5,
+        evidenceIds: [],
+        isAvailable: !!signalsRas,
         missingReason: signalsRas ? null : 'Step 5 (External Signals) not run'
     });
 
@@ -97,15 +97,15 @@ async function buildAeuManifest(runId) {
  * Builds coverage summary for required artifacts.
  */
 function buildCoverageSummary(manifest) {
-    const missing   = manifest.filter(m => !m.isAvailable).map(m => m.artifactType);
+    const missing = manifest.filter(m => !m.isAvailable).map(m => m.artifactType);
     const available = manifest.filter(m => m.isAvailable).length;
 
     return {
         totalArtifactsRequired: 4,
-        totalArtifactsFound:    available,
-        missingArtifacts:       missing,
-        isComplete:             missing.length === 0,
-        degradedArtifacts:      []
+        totalArtifactsFound: available,
+        missingArtifacts: missing,
+        isComplete: missing.length === 0,
+        degradedArtifacts: []
     };
 }
 
@@ -135,18 +135,18 @@ function buildExternalSignalSummary(signalsRas) {
 async function loadTaxonomyVersions(run) {
     try {
         const elr = await db.EvaluationLibraryRegistry.findOne({
-            caseId:   run.caseId,
+            caseId: run.caseId,
             intentId: run.intentId,
             isActive: true
         });
 
         return {
-            playbookVersionId:  run.playbookVersionId || 'PBV_000001',
-            constraintSetId:    elr?.constraintSetId   || 'CT_AI_STAY_V1',
-            contradictionSetId: elr?.contradictionSetId|| 'CONTR_AI_STAY_V1',
-            coverageSetId:      elr?.coverageSetId     || 'CRT_AI_STAY_V1',
-            redFlagSetId:       elr?.redFlagSetId      || 'RFT_AI_STAY_V1',
-            accuracyPolicyId:   elr?.accuracyPolicyId  || 'ASP_AI_V1',
+            playbookVersionId: run.playbookVersionId || 'PBV_000001',
+            constraintSetId: elr?.constraintSetId || 'CT_AI_STAY_V1',
+            contradictionSetId: elr?.contradictionSetId || 'CONTR_AI_STAY_V1',
+            coverageSetId: elr?.coverageSetId || 'CRT_AI_STAY_V1',
+            redFlagSetId: elr?.redFlagSetId || 'RFT_AI_STAY_V1',
+            accuracyPolicyId: elr?.accuracyPolicyId || 'ASP_AI_V1',
             externalSignalTaxonomyVersion: 'v1'
         };
     } catch {

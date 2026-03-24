@@ -145,7 +145,7 @@ route.post('/forgot-pin', userController.forgotPin);
  * /user/upload-cv:
  *   post:
  *     summary: Upload and Parse User CV (PDF only, max 10MB)
- *     tags: [2. Onboarding (Persistent Profile)]
+ *     tags: [2. Onboarding (Profile Setup)]
  *     security:
  *       - bearerAuth: []
  *     parameters: []

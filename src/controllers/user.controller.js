@@ -30,10 +30,10 @@ exports.sendOTP = async (req, res) => {
         const otpHash = await bcrypt.hash(otp, 10);
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-        // 1. Check if user is deleted or blocked
-        const userCheck = await db.User.findOne({ email });
+        // 1. Check if user is active (non-deleted)
+        const userCheck = await db.User.findOne({ email, isDeleted: false });
         // We no longer block in sendOTP for soft-deleted accounts. 
-        // We let them request an OTP to facilitate "Reactivation".
+        // Returning users will be treated as "New" users during verifyOTP.
 
         // 2. Upsert OTP record
         await db.OTP.findOneAndUpdate(
@@ -88,8 +88,8 @@ exports.verifyOTP = async (req, res) => {
             return RESPONSE.error(res, 400, 3002);
         }
 
-        // 4. On Success: Mark user as verified or create user
-        let user = await db.User.findOne({ email });
+        // 4. On Success: Search for active user or create new one
+        let user = await db.User.findOne({ email, isDeleted: false });
         let isNewUser = false;
         if (!user) {
             user = new db.User({ email });
@@ -101,14 +101,10 @@ exports.verifyOTP = async (req, res) => {
         user.preferredCurrency = region.currency;
         user.isEmailVerified = true;
 
-        // ✅ AUTO-REACTIVATE: If previously soft-deleted, bring them back.
-        if (user.isDeleted) {
-            user.isDeleted = false;
-            user.deletedAt = null;
-            console.log(`[Account Reactivation] User ${user._id} (${email}) has returned.`);
-            await createAuditLog(req, 'ACCOUNT_REACTIVATED', user._id, { email: user.email });
-        }
-
+        // [Logic Update] Reactivation logic removed.
+        // If a user was previously soft-deleted, their email would have been renamed,
+        // so findOne({ email }) would not have found them, and they are treated as a new user.
+        
         if (isNewUser) {
             await createAuditLog(req, 'USER_CREATED', user._id, { email: user.email, country: region.countryCode });
         }
@@ -148,7 +144,7 @@ exports.setPin = async (req, res) => {
 
         if (mPin !== confirmMPin) return RESPONSE.error(res, 400, 3005);
 
-        const user = await db.User.findOne({ email });
+        const user = await db.User.findOne({ email, isDeleted: false });
         if (!user) return RESPONSE.error(res, 404, 3001);
         if (!user.isEmailVerified) return RESPONSE.error(res, 400, 4444, "Please verify your email first.");
 
@@ -184,10 +180,9 @@ exports.setPin = async (req, res) => {
 exports.loginWithPin = async (req, res) => {
     try {
         const { email, mPin } = req.body;
-        const user = await db.User.findOne({ email });
+        const user = await db.User.findOne({ email, isDeleted: false });
 
         if (!user) return RESPONSE.error(res, 404, 3001);
-        if (user.isDeleted) return RESPONSE.error(res, 403, 4444, "Account is deleted.");
         if (user.isBlocked) return RESPONSE.error(res, 403, 3008);
         if (!user.mPin) return RESPONSE.error(res, 400, 3004, "M-PIN not set");
 
@@ -293,10 +288,9 @@ exports.deleteAccount = async (req, res) => {
 exports.forgotPin = async (req, res) => {
     try {
         const { email } = req.body;
-        const user = await db.User.findOne({ email });
+        const user = await db.User.findOne({ email, isDeleted: false });
 
         if (!user) return RESPONSE.error(res, 404, 3001);
-        if (user.isDeleted) return RESPONSE.error(res, 403, 4444, "Account is deleted.");
 
         await createAuditLog(req, 'FORGOT_PIN_REQUEST', user._id, { email: user.email });
 
