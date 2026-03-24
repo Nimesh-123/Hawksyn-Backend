@@ -69,21 +69,19 @@ async function seedIntentTaxonomy() {
             intentId: 'INT_STAY_12M_SAFE',
             intentName: 'Stay safe for 12 months in current role',
             intentDescription: 'Analyze whether your current role is safe from AI disruption for the next 12 months.',
-            intentHorizonDays: 365,
-            intentType: 'STABILITY',
-            primaryOutcome: 'DECISION_SAFETY',
-            defaultVerdictMode: 'PROCEED_PAUSE_ABORT',
-            isActive: true
+            intentHorizonDays: 365, intentType: 'STABILITY', primaryOutcome: 'DECISION_SAFETY', defaultVerdictMode: 'PROCEED_PAUSE_ABORT', isActive: true
         },
         {
             intentId: 'INT_UPSKILL_AI_PROOF',
             intentName: 'Upskill to AI-proof current role',
             intentDescription: 'Identify which skills you need to learn to remain relevant in your current company.',
-            intentHorizonDays: 180,
-            intentType: 'UPSKILL',
-            primaryOutcome: 'UPSKILL_PLAN',
-            defaultVerdictMode: 'PROCEED_PAUSE_ABORT',
-            isActive: false
+            intentHorizonDays: 180, intentType: 'UPSKILL', primaryOutcome: 'UPSKILL_PLAN', defaultVerdictMode: 'PROCEED_PAUSE_ABORT', isActive: true
+        },
+        {
+            intentId: 'INT_CAREER_PIVOT_AI',
+            intentName: 'Career Pivot due to AI Disruption',
+            intentDescription: 'Find better and more resilient career paths in the era of AI.',
+            intentHorizonDays: 365, intentType: 'SWITCH', primaryOutcome: 'TRANSITION_PLAN', defaultVerdictMode: 'PROCEED_PAUSE_ABORT', isActive: true
         }
     ]);
 }
@@ -159,15 +157,16 @@ async function seedCaseIntentConfig() {
     await CaseIntentConfig.deleteMany({});
     await CaseIntentConfig.insertMany([
         {
-            caseId: 'CASE_AI_JOB_RISK',
-            intentId: 'INT_STAY_12M_SAFE',
-            playbookVersionId: 'PBV_000001',
-            isDefault: true,
-            displayOrder: 1,
-            effectiveFrom: new Date('2026-01-01'),
-            effectiveTo: null,
-            isActive: true,
-            notes: 'Primary intent for MVP launch'
+            caseId: 'CASE_AI_JOB_RISK', intentId: 'INT_STAY_12M_SAFE', playbookVersionId: 'PBV_000001',
+            isDefault: true, displayOrder: 1, effectiveFrom: new Date('2026-01-01'), effectiveTo: null, isActive: true, notes: 'Primary intent'
+        },
+        {
+            caseId: 'CASE_AI_JOB_RISK', intentId: 'INT_UPSKILL_AI_PROOF', playbookVersionId: 'PBV_000001',
+            isDefault: false, displayOrder: 2, effectiveFrom: new Date('2026-01-01'), effectiveTo: null, isActive: false, notes: 'Coming soon'
+        },
+        {
+            caseId: 'CASE_AI_JOB_RISK', intentId: 'INT_CAREER_PIVOT_AI', playbookVersionId: 'PBV_000001',
+            isDefault: false, displayOrder: 3, effectiveFrom: new Date('2026-01-01'), effectiveTo: null, isActive: false, notes: 'Coming soon'
         }
     ]);
 }
@@ -1327,27 +1326,21 @@ async function seedCase_MBA() {
     }]);
 
     // ── IntentTaxonomy ──
-    await IntentTaxonomy.deleteMany({ intentId: { $in: ['INT_MBA_2026_YESNO', 'INT_MBA_DEFER_2Y'] } });
+    await IntentTaxonomy.deleteMany({ intentId: { $in: ['INT_MBA_2026_YESNO', 'INT_MBA_USA', 'INT_MBA_EUROPE'] } });
     await IntentTaxonomy.insertMany([
         {
             intentId: 'INT_MBA_2026_YESNO',
-            intentName: 'Decide whether to pursue MBA in the next 12 months',
+            intentName: 'Global MBA Decision (Next 12 Months)',
             intentDescription: 'Validate whether the financial, career, and personal conditions are right to pursue an MBA now.',
-            intentHorizonDays: 365,
-            intentType: 'DECISION',
-            primaryOutcome: 'DECISION_SAFETY',
-            defaultVerdictMode: 'PROCEED_PAUSE_ABORT',
-            isActive: true
+            intentHorizonDays: 365, intentType: 'DECISION', primaryOutcome: 'DECISION_SAFETY', defaultVerdictMode: 'PROCEED_PAUSE_ABORT', isActive: true
         },
         {
-            intentId: 'INT_MBA_DEFER_2Y',
-            intentName: 'Defer MBA by 2 years and prepare',
-            intentDescription: 'Evaluate whether deferring MBA by 2 years is a better strategy.',
-            intentHorizonDays: 730,
-            intentType: 'PLANNING',
-            primaryOutcome: 'TRANSITION_PLAN',
-            defaultVerdictMode: 'PROCEED_PAUSE_ABORT',
-            isActive: false
+            intentId: 'INT_MBA_USA', intentName: 'Top US Business Schools', intentDescription: 'Analyze your profile for Top 20 US Programs.',
+            intentHorizonDays: 730, intentType: 'DECISION', primaryOutcome: 'ADMISSION_GUIDANCE', defaultVerdictMode: 'PROCEED_PAUSE_ABORT', isActive: false
+        },
+        {
+            intentId: 'INT_MBA_EUROPE', intentName: 'Top European Schools', intentDescription: 'Analyze your profile for Top 10 European Programs.',
+            intentHorizonDays: 365, intentType: 'DECISION', primaryOutcome: 'ADMISSION_GUIDANCE', defaultVerdictMode: 'PROCEED_PAUSE_ABORT', isActive: false
         }
     ]);
 
@@ -1387,17 +1380,11 @@ async function seedCase_MBA() {
 
     // ── CaseIntentConfig ──
     await CaseIntentConfig.deleteMany({ caseId: 'CASE_MBA_BREAK' });
-    await CaseIntentConfig.insertMany([{
-        caseId: 'CASE_MBA_BREAK',
-        intentId: 'INT_MBA_2026_YESNO',
-        playbookVersionId: 'PBV_000002',
-        isDefault: true,
-        displayOrder: 1,
-        effectiveFrom: new Date('2026-01-01'),
-        effectiveTo: null,
-        isActive: true,
-        notes: 'Primary intent for MBA case'
-    }]);
+    await CaseIntentConfig.insertMany([
+        { caseId: 'CASE_MBA_BREAK', intentId: 'INT_MBA_2026_YESNO', playbookVersionId: 'PBV_000002', isDefault: true, displayOrder: 1, effectiveFrom: new Date('2026-01-01'), effectiveTo: null, isActive: true },
+        { caseId: 'CASE_MBA_BREAK', intentId: 'INT_MBA_USA', playbookVersionId: 'PBV_000002', isDefault: false, displayOrder: 2, effectiveFrom: new Date('2026-01-01'), effectiveTo: null, isActive: false },
+        { caseId: 'CASE_MBA_BREAK', intentId: 'INT_MBA_EUROPE', playbookVersionId: 'PBV_000002', isDefault: false, displayOrder: 3, effectiveFrom: new Date('2026-01-01'), effectiveTo: null, isActive: false }
+    ]);
 
     // ── Questions ──
     await Questions.deleteMany({ caseScope: 'CASE_MBA_BREAK' });
@@ -1923,6 +1910,26 @@ async function seedCase_Freelance() {
             primaryOutcome: 'TRANSITION_PLAN',
             defaultVerdictMode: 'PROCEED_PAUSE_ABORT',
             isActive: true
+        },
+        {
+            intentId: 'INT_FREELANCE_3M',
+            intentName: 'Immediate Switch (3 Months)',
+            intentDescription: 'High-speed transition to freelance.',
+            intentHorizonDays: 90,
+            intentType: 'SWITCH',
+            primaryOutcome: 'TRANSITION_PLAN',
+            defaultVerdictMode: 'PROCEED_PAUSE_ABORT',
+            isActive: true
+        },
+        {
+            intentId: 'INT_FREELANCE_SIDE',
+            intentName: 'Start as Side-Hustle First',
+            intentDescription: 'Build freelance while working full-time.',
+            intentHorizonDays: 180,
+            intentType: 'DECISION',
+            primaryOutcome: 'SIDE_HUSTLE_PLAN',
+            defaultVerdictMode: 'PROCEED_PAUSE_ABORT',
+            isActive: true
         }
     ]);
 
@@ -1949,10 +1956,11 @@ async function seedCase_Freelance() {
     }]);
 
     await CaseIntentConfig.deleteMany({ caseId: 'CASE_FREELANCE_SWITCH' });
-    await CaseIntentConfig.insertMany([{
-        caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003',
-        isDefault: true, displayOrder: 1, effectiveFrom: new Date('2026-01-01'), effectiveTo: null, isActive: true
-    }]);
+    await CaseIntentConfig.insertMany([
+        { caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', isDefault: true, displayOrder: 1, effectiveFrom: new Date('2026-01-01'), effectiveTo: null, isActive: true },
+        { caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_3M', playbookVersionId: 'PBV_000003', isDefault: false, displayOrder: 2, effectiveFrom: new Date('2026-01-01'), effectiveTo: null, isActive: false },
+        { caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_SIDE', playbookVersionId: 'PBV_000003', isDefault: false, displayOrder: 3, effectiveFrom: new Date('2026-01-01'), effectiveTo: null, isActive: false }
+    ]);
 
     await Questions.deleteMany({ caseScope: 'CASE_FREELANCE_SWITCH' });
     await Questions.insertMany([
@@ -2176,17 +2184,21 @@ async function seedCase_RoleSwitch() {
         logoSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><path d="M50 5 L88 20 L88 52 C88 72 70 88 50 95 C30 88 12 72 12 52 L12 20 Z" fill="#1E1E2E" stroke="#FFA500" stroke-width="2.5"/><circle cx="35" cy="45" r="10" fill="none" stroke="#FFA500" stroke-width="1.8"/><circle cx="65" cy="45" r="10" fill="none" stroke="#FFA500" stroke-width="1.8"/><path d="M45 45 L55 45" stroke="#FFA500" stroke-width="2" marker-end="url(#a)"/><path d="M50 38 L57 45 L50 52" fill="none" stroke="#FFA500" stroke-width="1.5" stroke-linejoin="round"/><line x1="35" y1="60" x2="65" y2="60" stroke="#FFA500" stroke-width="1" opacity="0.5" stroke-dasharray="3,2"/></svg>`
     }]);
 
-    await IntentTaxonomy.deleteMany({ intentId: 'INT_SWITCH_ROLE_SAFE' });
+    await IntentTaxonomy.deleteMany({ intentId: { $in: ['INT_SWITCH_ROLE_SAFE', 'INT_SWITCH_INDUSTRY', 'INT_SWITCH_VERTICAL'] } });
     await IntentTaxonomy.insertMany([
         {
             intentId: 'INT_SWITCH_ROLE_SAFE',
-            intentName: 'Switch to a different role in the next 12 months',
+            intentName: 'Switch to a different role (Same Industry)',
             intentDescription: 'Evaluate the feasibility and safety of transitioning to a new functional role within 12 months.',
-            intentHorizonDays: 365,
-            intentType: 'SWITCH',
-            primaryOutcome: 'DECISION_SAFETY',
-            defaultVerdictMode: 'PROCEED_PAUSE_ABORT',
-            isActive: true
+            intentHorizonDays: 365, intentType: 'SWITCH', primaryOutcome: 'DECISION_SAFETY', defaultVerdictMode: 'PROCEED_PAUSE_ABORT', isActive: true
+        },
+        {
+            intentId: 'INT_SWITCH_INDUSTRY', intentName: 'Pivot to a new Industry', intentDescription: 'Switch industries while maintaining your functional expertise.',
+            intentHorizonDays: 365, intentType: 'SWITCH', primaryOutcome: 'DECISION_SAFETY', defaultVerdictMode: 'PROCEED_PAUSE_ABORT', isActive: false
+        },
+        {
+            intentId: 'INT_SWITCH_VERTICAL', intentName: 'Career Jump (Vertical Move)', intentDescription: 'Aggressive switch to a higher-seniority role.',
+            intentHorizonDays: 180, intentType: 'SWITCH', primaryOutcome: 'PROMOTION_GUIDANCE', defaultVerdictMode: 'PROCEED_PAUSE_ABORT', isActive: false
         }
     ]);
 
@@ -2213,10 +2225,11 @@ async function seedCase_RoleSwitch() {
     }]);
 
     await CaseIntentConfig.deleteMany({ caseId: 'CASE_ROLE_SWITCH' });
-    await CaseIntentConfig.insertMany([{
-        caseId: 'CASE_ROLE_SWITCH', intentId: 'INT_SWITCH_ROLE_SAFE', playbookVersionId: 'PBV_000004',
-        isDefault: true, displayOrder: 1, effectiveFrom: new Date('2026-01-01'), effectiveTo: null, isActive: true
-    }]);
+    await CaseIntentConfig.insertMany([
+        { caseId: 'CASE_ROLE_SWITCH', intentId: 'INT_SWITCH_ROLE_SAFE', playbookVersionId: 'PBV_000004', isDefault: true, displayOrder: 1, effectiveFrom: new Date('2026-01-01'), effectiveTo: null, isActive: true },
+        { caseId: 'CASE_ROLE_SWITCH', intentId: 'INT_SWITCH_INDUSTRY', playbookVersionId: 'PBV_000004', isDefault: false, displayOrder: 2, effectiveFrom: new Date('2026-01-01'), effectiveTo: null, isActive: false },
+        { caseId: 'CASE_ROLE_SWITCH', intentId: 'INT_SWITCH_VERTICAL', playbookVersionId: 'PBV_000004', isDefault: false, displayOrder: 3, effectiveFrom: new Date('2026-01-01'), effectiveTo: null, isActive: false }
+    ]);
 
     await Questions.deleteMany({ caseScope: 'CASE_ROLE_SWITCH' });
     await Questions.insertMany([
