@@ -15,7 +15,7 @@ exports.detectRegionFromIP = (ip) => {
     let cleanIp = ip;
     if (ip === '::1' || ip === '127.0.0.1' || ip.includes('::ffff:')) {
         // Mock a real IP for local development (defaults to India)
-        cleanIp = '122.161.48.0'; 
+        cleanIp = '122.161.48.0';
     }
 
     // 2. Geolocation Lookup
