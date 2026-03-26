@@ -1,7 +1,6 @@
 const express           = require('express');
 const router            = express.Router();
 const recordsController = require('../controllers/recordsController');
-const auth              = require('../../middleware/auth');
 
 /**
  * @swagger
@@ -27,7 +26,7 @@ const auth              = require('../../middleware/auth');
  *       200:
  *         description: Success
  */
-router.get('/:userId/records', auth, recordsController.getAllRecords);
+router.get('/:userId/records', recordsController.getAllRecords);
 
 /**
  * @swagger
@@ -48,6 +47,6 @@ router.get('/:userId/records', auth, recordsController.getAllRecords);
  *       200:
  *         description: Success
  */
-router.get('/:userId/records/:runId', auth, recordsController.getRunDetail);
+router.get('/:userId/records/:runId', recordsController.getRunDetail);
 
 module.exports = router;

@@ -12,17 +12,19 @@ const requestLogger = (req, res, next) => {
 
   const start = Date.now();
 
-  // Intercept res.send and res.json to capture error reason for 4xx/5xx
+  // Intercept res.send and res.json to capture response body
   const originalSend = res.send;
   res.send = function (body) {
-    if (res.statusCode >= 400 && body) {
-      try {
+    try {
         const parsed = (typeof body === 'string') ? JSON.parse(body) : body;
-        // Hawksyn standard uses .message or .error for failure reasons
-        req.failureReason = parsed.message || parsed.error || (typeof body === 'string' ? body : null);
-      } catch (e) {
-        // Not JSON, skip
-      }
+        req.responseBody = parsed;
+        if (res.statusCode >= 400 && parsed) {
+          // Hawksyn standard uses .message or .error for failure reasons
+          req.failureReason = parsed.message || parsed.error || (typeof body === 'string' ? body : null);
+        }
+    } catch (e) {
+        // Not JSON or error parsing, store as string if string
+        req.responseBody = (typeof body === 'string') ? body : '[Non-string body]';
     }
     return originalSend.apply(res, arguments);
   };
@@ -36,10 +38,24 @@ const requestLogger = (req, res, next) => {
       method: req.method,
       route: req.originalUrl,
       statusCode: res.statusCode,
-      failureReason: req.failureReason || null, // Capture captured reason
+      requestBody: req.body || null,
+      responseBody: req.responseBody || null,
+      failureReason: req.appError?.message || req.failureReason || null,
+      stack: req.appError?.stack || null,
       ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress,
       responseTime: `${Date.now() - start}ms`
     };
+
+    // Log to terminal for easy visibility as requested by user
+    console.log(`\n--- REQUEST [${requestId}] ---`);
+    console.log(`Method: ${req.method} | Route: ${req.originalUrl}`);
+    if (req.body && Object.keys(req.body).length > 0) {
+      console.log('Body:', JSON.stringify(req.body, null, 2));
+    }
+    console.log(`--- RESPONSE [${requestId}] ---`);
+    console.log(`Status: ${res.statusCode} | Time: ${Date.now() - start}ms`);
+    console.log('Body:', JSON.stringify(req.responseBody, null, 2));
+    console.log(`-------------------------------\n`);
 
     if (res.statusCode >= 500) {
       logger.error(logData);

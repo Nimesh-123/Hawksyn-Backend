@@ -1,11 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const cc = require('../controllers/commandCenterController');
-const auth = require('../../middleware/auth');
 
 
-// All routes require authentication
-router.use(auth);
 
 /**
  * @swagger

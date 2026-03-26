@@ -3,31 +3,50 @@ const { createLogger, format, transports } = require("winston");
 // Custom format for readable log files
 const textFormat = format.printf(({ timestamp, level, message, stack }) => {
   const m = typeof message === 'object' ? message : { msg: message };
-
-  // Header: [Time] [LEVEL] [ID] [User]
-  const header = `[${timestamp}] [${level.toUpperCase()}] [${m.requestId || 'system'}] [User: ${m.userId || 'guest'}]`;
-
-  // Body logic
-  let body = "";
+  const border = "─".repeat(80);
+  
+  // 1. Primary Header: [Time] [LEVEL] METHOD ROUTE -> STATUS (Time)
+  let output = `\n${border}\n[${timestamp}] [${level.toUpperCase()}]`;
+  
   if (m.method) {
-    body += ` ${m.method} ${m.route} -> ${m.statusCode}`;
-    if (m.responseTime) body += ` (${m.responseTime})`;
+    output += ` ${m.method} ${m.route} -> ${m.statusCode}`;
+    if (m.responseTime) output += ` (${m.responseTime})`;
+    
+    // 2. Metadata
+    output += `\n  ID:   ${m.requestId || 'system'}`;
+    output += `\n  USER: ${m.userId || 'guest'} ${m.userEmail ? '(' + m.userEmail + ')' : ''}`;
 
-    // Include failure details if present
+    // 3. Request Body (Prettified)
+    if (m.requestBody && Object.keys(m.requestBody).length > 0) {
+      const reqStr = JSON.stringify(m.requestBody, null, 2);
+      const indentedReq = reqStr.split('\n').map(l => '    ' + l).join('\n');
+      output += `\n  REQ:\n${indentedReq}`;
+    }
+    
+    // 4. Response Body (Prettified & Truncated)
+    if (m.responseBody) {
+      const resStr = JSON.stringify(m.responseBody, null, 2);
+      // Keep it readable but prevent log floods (using 5000 chars as limit for prettified JSON)
+      const displayRes = resStr.length > 5000 ? resStr.substring(0, 5000) + "\n    ... [TRUNCATED]" : resStr;
+      
+      const indentedRes = displayRes.split('\n').map(l => '    ' + l).join('\n');
+      output += `\n  RES:\n${indentedRes}`;
+    }
+
+    // 5. Failure Reason
     const reason = m.failureReason || m.errorMessage;
-    if (reason) body += ` [REASON: ${reason}]`;
-  }
-  else if (m.errorMessage) {
-    body += ` ERROR: ${m.errorMessage}`;
-  }
-  else {
-    body += ` ${m.msg || JSON.stringify(m)}`;
+    if (reason) output += `\n  ERR:  ${reason}`;
+  } else {
+    // Non-request logs
+    output += ` ${m.msg || JSON.stringify(m)}`;
   }
 
-  // Stack trace for errors (only if present and significant)
-  const errorDetails = stack || m.stack ? `\nSTACK: ${stack || m.stack}` : "";
+  // 6. Stack Trace
+  if (stack || m.stack) {
+    output += `\n  STACK: ${stack || m.stack}`;
+  }
 
-  return `${header}${body}${errorDetails}`;
+  return output;
 });
 
 const logger = createLogger({

@@ -3,27 +3,8 @@ const logger = require("../utils/logger");
 const errorHandler = (err, req, res, next) => {
   const statusCode = err.status || res.statusCode >= 400 ? res.statusCode : 500;
 
-  const errorLogData = {
-    requestId: req.requestId || 'N/A',
-    time: new Date().toISOString(),
-    userId: req.user?.id || 'guest',
-    userEmail: req.user?.email || null,
-    method: req.method,
-    route: req.originalUrl,
-    errorMessage: err.message,
-    errorCode: err.code || 'UNKNOWN_ERROR',
-    stack: err.stack,
-    timestamp: new Date().getTime(),
-    statusCode: statusCode
-  };
-
-  logger.error(errorLogData);
-
-  // Record error in user-specific file using email as filename
-  const userIdentifier = req.user?.email || req.user?.id;
-  if (userIdentifier) {
-    logger.logUserAction(userIdentifier, errorLogData);
-  }
+  // Attach error details to request so the global requestLogger can capture them on 'finish'
+  req.appError = err;
 
   // Handle Multer Size Limit specifically if needed (already in index.js but here it's more centralized)
   if (err.code === 'LIMIT_FILE_SIZE') {

@@ -42,6 +42,17 @@ async function buildRunSummary(run) {
 
     const userObservation = objectiveData?.observation || objectiveData?.input || "Assessment Completed";
 
+    // ── Reversibility Mapping ──
+    // Checks if a constraint exists for Reversibility, or defaults to "Medium" for now
+    const reversibilityRes = run.finalReport?.sections?.find(s => s.sectionName.toLowerCase().includes('reversibility'))?.content
+        || integrityPack?.constraints?.results?.find(c => c.constraintName.toLowerCase().includes('reversibility'))?.band
+        || "Medium";
+
+    // ── Standard Re-Run Policy (Available Anytime) ──
+    let reRunInDays = 0;
+    // As per documentation, there is no restriction on re-run timing.
+    // Users can initiate a re-run at any time.
+
     return {
         runId: run.runId,
         caseId: run.caseId,
@@ -49,60 +60,94 @@ async function buildRunSummary(run) {
         status: run.status,
         userObservation: userObservation,
         duration: durationStr,
-        accuracyScore: accuracyScore, // Added correctly from Ras
-        verdict: finalReport?.verdict || null,
-        displayVerdict: finalReport?.verdict === 'PROCEED' ? 'Secured' : 'Not Secured',
+        accuracyScore: accuracyScore,
+        verdict: run.verdict, 
+        displayVerdict: run.verdict, // Added back for app visibility, keeping raw value
+        reversibility: reversibilityRes,
         createdAt: run.createdAt,
         completedAt: run.completedAt,
-        reRunInDays: 180
+        reRunInDays: reRunInDays
     };
 }
 
 exports.getAllRecords = async (req, res) => {
     try {
         const { userId } = req.params;
-        const { page = 1, limit = 10 } = req.query;
+        const { page = 1, limit = 10, filterBy = 'All', sortBy = 'Newest to oldest' } = req.query;
 
         const user = await db.User.findById(userId);
         if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
         const runFilter = { userId: user._id };
-        const totalRuns = await db.Runs.countDocuments(runFilter);
-        const runs = await db.Runs.find(runFilter)
-            .sort({ createdAt: -1 }) // latest first
-            .skip((Number(page) - 1) * Number(limit))
-            .limit(Number(limit));
+        
+        // Load ALL runs to handle comparisons and filtering in-memory
+        let runs = await db.Runs.find(runFilter).sort({ createdAt: -1 });
+        const totalRuns = runs.length;
 
         if (!runs.length) {
             return res.status(200).json({ success: true, data: { records: [], timeline: [] } });
         }
 
-        const records = await Promise.all(runs.map(async (run) => {
+        // Process all runs to get base summaries + delta
+        let processed = await Promise.all(runs.map(async (run) => {
             return await buildRunSummary(run);
         }));
 
-        // ── 1. Apply Comparison (Delta) Logic ──
-        // chronologically compare each run with the one that followed it
-        records.forEach((run, index) => {
-            let delta = { riskChange: 0, verdictChanged: false, newAssumptions: false };
-            const olderRun = records[index + 1];
+        // ── Apply Comparison (Delta) Logic ──
+        processed.forEach((run, index) => {
+            let delta = { 
+                riskChange: 0, 
+                verdictChanged: false, 
+                newAssumptions: false,
+                isFresh: false 
+            };
+            const olderRun = processed[index + 1];
+
+            // Image 2 Logic: Only first run is baseline
+            run.isBaseline = (totalRuns > 1 && index === processed.length - 1) || (totalRuns === 1);
+            run.runLabel = run.isBaseline ? "Baseline" : "Re-run";
 
             if (olderRun) {
                 const olderRisk = (100 - (olderRun.accuracyScore || 50));
                 const newerRisk = (100 - (run.accuracyScore || 50));
                 delta.riskChange = newerRisk - olderRisk;
-                delta.verdictChanged = run.verdict !== olderRun.verdict;
+                delta.verdictChanged = String(run.verdict).toLowerCase() !== String(olderRun.verdict).toLowerCase();
+                
+                // Compare assumptions (Slide 54 logic)
+                delta.newAssumptions = run.accuracyScore !== olderRun.accuracyScore; 
+            } else {
+                delta.isFresh = true;
             }
 
             run.delta = delta;
-            run.isBaseline = (totalRuns > 1 && index === records.length - 1);
         });
 
-        const timeline = records.slice(0, 3).reverse().map(r => ({
+        // ── Apply Filtering ──
+        if (filterBy === 'Changes only') {
+            processed = processed.filter(r => r.delta.riskChange !== 0 || r.delta.verdictChanged);
+        } else if (filterBy === 'Baseline vs Latest') {
+             // Only keep the newest and the baseline
+             if (processed.length >= 2) {
+                 processed = [processed[0], processed[processed.length - 1]];
+             }
+        }
+
+        // ── Apply Sorting ──
+        if (sortBy === 'Oldest to newest') {
+            processed.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        } else {
+            processed.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        }
+
+        // Pagination (After filtering/sorting)
+        const paginated = processed.slice((Number(page) - 1) * Number(limit), Number(page) * Number(limit));
+
+        const timeline = processed.slice(0, 3).reverse().map(r => ({
             date: r.createdAt,
             riskScore: (100 - (r.accuracyScore || 50)),
             verdict: r.verdict,
-            displayVerdict: r.displayVerdict
+            displayVerdict: r.verdict, // Added back for app visibility
+            reversibility: r.reversibility
         }));
 
         let trendStatement = "Insufficient data to establish a trend.";
@@ -125,7 +170,7 @@ exports.getAllRecords = async (req, res) => {
                 totalRuns,
                 trendStatement,
                 timeline,
-                records,
+                records: paginated,
                 canRunNewCase: true
             }
         });
@@ -244,7 +289,10 @@ exports.getRunDetail = async (req, res) => {
                 assignedExpert: expertData.assignedExpert || null,
                 escalationRequired: expertData.escalationRequired || false,
                 assignedAt: expertData.assignedAt
-            } : null
+            } : null,
+
+            // Standard Re-Run Policy: Available Anytime
+            reRunInDays: 0
         };
 
         console.log(`[Records] Run detail response for user ${userId}, run ${runId}:`, JSON.stringify(runDetail, null, 2));
