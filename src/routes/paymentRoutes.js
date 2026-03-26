@@ -1,10 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/paymentController');
-const auth = require('../../middleware/auth');
 
-// All routes require JWT authentication
-router.use(auth);
 
 
 /**
@@ -168,7 +165,7 @@ router.get('/list', paymentController.getAllPayments);
  *       200:
  *         description: Init success
  */
-router.post('/experts/initiate', auth, paymentController.initiateExpertQueryPayment);
+router.post('/experts/initiate', paymentController.initiateExpertQueryPayment);
 
 /**
  * @swagger
@@ -192,6 +189,6 @@ router.post('/experts/initiate', auth, paymentController.initiateExpertQueryPaym
  *       200:
  *         description: Success
  */
-router.post('/experts/verify', auth, paymentController.verifyExpertQueryPayment);
+router.post('/experts/verify', paymentController.verifyExpertQueryPayment);
 
 module.exports = router;

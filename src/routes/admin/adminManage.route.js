@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../../controllers/admin.controller');
-const { authenticate } = require('../../../middleware/authorization/authorization');
 
 /**
  * @swagger
@@ -34,7 +33,7 @@ const { authenticate } = require('../../../middleware/authorization/authorizatio
  *       403:
  *         description: Permission denied
  */
-router.post('/create', authenticate, adminController.createSubAdmin);
+router.post('/create', adminController.createSubAdmin);
 
 /**
  * @swagger
@@ -50,7 +49,7 @@ router.post('/create', authenticate, adminController.createSubAdmin);
  *       403:
  *         description: Permission denied
  */
-router.get('/list', authenticate, adminController.getSubAdmins);
+router.get('/list', adminController.getSubAdmins);
 
 /**
  * @swagger
@@ -73,6 +72,6 @@ router.get('/list', authenticate, adminController.getSubAdmins);
  *       403:
  *         description: Permission denied
  */
-router.delete('/:id', authenticate, adminController.deleteSubAdmin);
+router.delete('/:id', adminController.deleteSubAdmin);
 
 module.exports = router;

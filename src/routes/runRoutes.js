@@ -7,11 +7,8 @@ const reportController = require('../controllers/reportController');
 const expertController = require('../controllers/expertController');
 const signalsController = require('../controllers/signalsController');
 const caseFileController = require('../controllers/caseFileController');
-const auth = require('../../middleware/auth');
 const upload = require('../../middleware/multer.js');
 
-// All routes require JWT authentication
-router.use(auth);
 
 /**
  * --- CV Related Routes ---

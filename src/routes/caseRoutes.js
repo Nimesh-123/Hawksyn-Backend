@@ -1,10 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const caseController = require('../controllers/caseController');
-const auth = require('../../middleware/auth');
 
-// All routes require JWT authentication
-router.use(auth);
 
 
 /**
