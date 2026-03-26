@@ -106,23 +106,8 @@ exports.initiatePayment = async (req, res) => {
             return res.status(400).json({ success: false, message: 'This intent is not available' });
         }
 
-        // Check for existing COMPLETED payment (Avoid double payment)
-        const completedPayment = await Payments.findOne({ userId, caseId, intentId, status: 'COMPLETED' });
-        if (completedPayment) {
-            return res.status(200).json({
-                success: true,
-                data: {
-                    paymentId: completedPayment.paymentId,
-                    purchaseId: completedPayment.purchaseId,
-                    status: "COMPLETED",
-                    runId: completedPayment.runId,
-                    isPaid: true,
-                    message: "You have already completed the payment for this case and intent."
-                }
-            });
-        }
-
-        // Check for existing PENDING payment
+        // ── Check for existing PENDING payment ──
+        // Only allow one active pending payment at a time to avoid spam
         const existingPayment = await Payments.findOne({ userId, caseId, intentId, status: 'PENDING' });
         if (existingPayment) {
             return res.status(200).json({
