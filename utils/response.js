@@ -12,7 +12,7 @@ RESPONSE.success = async function (res, status_code = 200, message_code = '', da
 RESPONSE.error = async function (res, status_code = 422, message_code = '', error = '', data) {
     let response = {};
     response.success = false;
-    response.code = message_code;
+    response.code = message_code;       
     response.message = get_message(message_code);
     response.error = error;
     response.data = data;

@@ -1,10 +1,5 @@
-// ════════════════════════════════════════════════════════════
-// HAWKSYN — Step 7: My Records
-// GET /api/v1/users/:userId/records
-// GET /api/v1/users/:userId/records/:runId
-// ════════════════════════════════════════════════════════════
-
 const { db } = require('../models/index.model.js');
+const { generateFormattedId } = require('../../utils/idGenerator');
 
 // ─────────────────────────────────────────────────────────
 // HELPER — buildRunSummary
@@ -53,6 +48,8 @@ async function buildRunSummary(run) {
     // As per documentation, there is no restriction on re-run timing.
     // Users can initiate a re-run at any time.
 
+    const canReRun = run.status === 'REPORT_COMPLETE' || run.status === 'EXPERT_ASSIGNED';
+
     return {
         runId: run.runId,
         caseId: run.caseId,
@@ -61,12 +58,13 @@ async function buildRunSummary(run) {
         userObservation: userObservation,
         duration: durationStr,
         accuracyScore: accuracyScore,
-        verdict: run.verdict, 
-        displayVerdict: run.verdict, // Added back for app visibility, keeping raw value
+        verdict: run.verdict,
+        displayVerdict: run.verdict,
         reversibility: reversibilityRes,
         createdAt: run.createdAt,
         completedAt: run.completedAt,
-        reRunInDays: reRunInDays
+        reRunInDays: reRunInDays,
+        canReRun: canReRun  // ✅ Flutter: sirf ye check karo button dikhane ke liye
     };
 }
 
@@ -79,7 +77,7 @@ exports.getAllRecords = async (req, res) => {
         if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
         const runFilter = { userId: user._id };
-        
+
         // Load ALL runs to handle comparisons and filtering in-memory
         let runs = await db.Runs.find(runFilter).sort({ createdAt: -1 });
         const totalRuns = runs.length;
@@ -95,11 +93,11 @@ exports.getAllRecords = async (req, res) => {
 
         // ── Apply Comparison (Delta) Logic ──
         processed.forEach((run, index) => {
-            let delta = { 
-                riskChange: 0, 
-                verdictChanged: false, 
+            let delta = {
+                riskChange: 0,
+                verdictChanged: false,
                 newAssumptions: false,
-                isFresh: false 
+                isFresh: false
             };
             const olderRun = processed[index + 1];
 
@@ -112,9 +110,9 @@ exports.getAllRecords = async (req, res) => {
                 const newerRisk = (100 - (run.accuracyScore || 50));
                 delta.riskChange = newerRisk - olderRisk;
                 delta.verdictChanged = String(run.verdict).toLowerCase() !== String(olderRun.verdict).toLowerCase();
-                
+
                 // Compare assumptions (Slide 54 logic)
-                delta.newAssumptions = run.accuracyScore !== olderRun.accuracyScore; 
+                delta.newAssumptions = run.accuracyScore !== olderRun.accuracyScore;
             } else {
                 delta.isFresh = true;
             }
@@ -126,10 +124,10 @@ exports.getAllRecords = async (req, res) => {
         if (filterBy === 'Changes only') {
             processed = processed.filter(r => r.delta.riskChange !== 0 || r.delta.verdictChanged);
         } else if (filterBy === 'Baseline vs Latest') {
-             // Only keep the newest and the baseline
-             if (processed.length >= 2) {
-                 processed = [processed[0], processed[processed.length - 1]];
-             }
+            // Only keep the newest and the baseline
+            if (processed.length >= 2) {
+                processed = [processed[0], processed[processed.length - 1]];
+            }
         }
 
         // ── Apply Sorting ──
@@ -295,7 +293,7 @@ exports.getRunDetail = async (req, res) => {
             reRunInDays: 0
         };
 
-        console.log(`[Records] Run detail response for user ${userId}, run ${runId}:`, JSON.stringify(runDetail, null, 2));
+        // console.log(`[Records] Run detail response for user ${userId}, run ${runId}:`, JSON.stringify(runDetail, null, 2));
 
         return res.status(200).json({
             success: true,
@@ -304,6 +302,84 @@ exports.getRunDetail = async (req, res) => {
 
     } catch (error) {
         console.error('[Run Detail Error]', error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * API 3 — POST /api/v1/users/:userId/records/initiate-rerun
+ * Purpose: Start a new assessment session for an existing completed run.
+ * Frontend only sends `runId` — backend auto-fetches caseId & intentId from it.
+ */
+exports.initiateReRun = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { runId: previousRunId } = req.body;
+
+        if (!previousRunId) {
+            return res.status(400).json({ success: false, message: 'runId of the previous run is required' });
+        }
+
+        // 1. Validate User
+        const user = await db.User.findById(userId);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+        // 2. Fetch the previous run to get caseId and intentId automatically
+        const previousRun = await db.Runs.findOne({ runId: previousRunId, userId });
+        if (!previousRun) return res.status(404).json({ success: false, message: 'Previous run not found' });
+
+        const { caseId, intentId } = previousRun;
+
+        // 3. Validate Case and Intent config
+        const caseRecord = await db.CaseRegistry.findOne({ caseId, isActive: true });
+        if (!caseRecord) return res.status(404).json({ success: false, message: 'Case not found' });
+
+        const config = await db.CaseIntentConfig.findOne({ caseId, intentId, isActive: true });
+        if (!config) return res.status(400).json({ success: false, message: 'Usecase/Intent configuration not found' });
+
+        // 4. Load latest Profile for CV Snapshot
+        const userProfile = await db.UserProfile.findOne({ userId });
+
+        // 5. Generate New runId
+        const newRunId = await generateFormattedId(db.Runs, 'RUN', 'runId');
+
+        // 6. Create Fresh Run (linked to the same case/intent as the previous run)
+        const newRun = new db.Runs({
+            runId: newRunId,
+            userId: user._id,
+            caseId,
+            intentId,
+            playbookVersionId: config.playbookVersionId,
+            previousRunId: previousRunId, // Link back to the old run for delta/comparison
+            status: 'CREATED',
+            cvSnapshot: {
+                cvUploadId: userProfile?.lastCvUploadId || null,
+                cvUrl: userProfile?.cvUrl || null,
+                parsedData: userProfile?.confirmedProfile || {},
+                attachedAt: userProfile?.confirmedAt || new Date(),
+                source: 'EXISTING'
+            }
+        });
+
+        await newRun.save();
+
+        console.log(`[Re-Run] New session ${newRunId} initiated from previous run ${previousRunId} for user ${userId}`);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                runId: newRun.runId,
+                caseId: newRun.caseId,
+                intentId: newRun.intentId,
+                caseName: caseRecord.caseName,
+                status: 'CREATED',
+                cvChoiceMandatory: true,
+                message: "Re-run initiated successfully."
+            }
+        });
+
+    } catch (error) {
+        console.error('[Re-Run Error]', error);
         return res.status(500).json({ success: false, message: error.message });
     }
 };
