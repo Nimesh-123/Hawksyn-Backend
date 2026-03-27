@@ -195,54 +195,60 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const geminiClient = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+const { aiSemaphore } = require('./concurrency.js');
+
 /**
  * callLLM — calls Gemini or OpenAI based on promptConfig modelFamily
  */
 async function callLLM({ modelFamily, systemPrompt, userPrompt, temperature = 0.3, maxTokens = 600 }) {
+    await aiSemaphore.acquire();
+    try {
+        if (modelFamily === 'GEMINI') {
+            const model = geminiClient.getGenerativeModel({ model: 'gemini-2.0-flash' });
+            const prompt = `${systemPrompt}\n\n${userPrompt}`;
 
-    if (modelFamily === 'GEMINI') {
-        const model = geminiClient.getGenerativeModel({ model: 'gemini-2.0-flash' });
-        const prompt = `${systemPrompt}\n\n${userPrompt}`;
+            // ✅ Robust Retry logic for report sections (paid tier burst handling)
+            let result = null;
+            let attempts = 0;
+            const maxAttempts = 3;
 
-        // ✅ Robust Retry logic for report sections (paid tier burst handling)
-        let result = null;
-        let attempts = 0;
-        const maxAttempts = 3;
-
-        while (attempts < maxAttempts) {
-            try {
-                attempts++;
-                result = await model.generateContent(prompt);
-                break;
-            } catch (err) {
-                const isRateLimit = err.message?.includes('429') || err.message?.includes('Resource exhausted');
-                if (isRateLimit && attempts < maxAttempts) {
-                    console.warn(`[LLM Helper] Gemini 429. Retrying in 2s (Attempt ${attempts})...`);
-                    await sleep(2000);
-                    continue;
+            while (attempts < maxAttempts) {
+                try {
+                    attempts++;
+                    result = await model.generateContent(prompt);
+                    break;
+                } catch (err) {
+                    const isRateLimit = err.message?.includes('429') || err.message?.includes('Resource exhausted');
+                    if (isRateLimit && attempts < maxAttempts) {
+                        console.warn(`[LLM Helper] Gemini 429. Retrying in 2s (Attempt ${attempts})...`);
+                        await sleep(2000);
+                        continue;
+                    }
+                    throw err;
                 }
-                throw err;
             }
+            return result.response.text();
         }
-        return result.response.text();
-    }
 
-    if (modelFamily === 'OPENAI') {
-        const OpenAI = require('openai');
-        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-        const resp = await openai.chat.completions.create({
-            model: 'gpt-4o',
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
-            ],
-            temperature,
-            max_tokens: maxTokens
-        });
-        return resp.choices[0].message.content;
-    }
+        if (modelFamily === 'OPENAI') {
+            const OpenAI = require('openai');
+            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+            const resp = await openai.chat.completions.create({
+                model: 'gpt-4o',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userPrompt }
+                ],
+                temperature,
+                max_tokens: maxTokens
+            });
+            return resp.choices[0].message.content;
+        }
 
-    throw new Error(`callLLM: unknown modelFamily "${modelFamily}"`);
+        throw new Error(`callLLM: unknown modelFamily "${modelFamily}"`);
+    } finally {
+        aiSemaphore.release();
+    }
 }
 
 module.exports = {

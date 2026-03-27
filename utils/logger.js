@@ -4,14 +4,14 @@ const { createLogger, format, transports } = require("winston");
 const textFormat = format.printf(({ timestamp, level, message, stack }) => {
   const m = typeof message === 'object' ? message : { msg: message };
   const border = "─".repeat(80);
-  
+
   // 1. Primary Header: [Time] [LEVEL] METHOD ROUTE -> STATUS (Time)
   let output = `\n${border}\n[${timestamp}] [${level.toUpperCase()}]`;
-  
+
   if (m.method) {
     output += ` ${m.method} ${m.route} -> ${m.statusCode}`;
     if (m.responseTime) output += ` (${m.responseTime})`;
-    
+
     // 2. Metadata
     output += `\n  ID:   ${m.requestId || 'system'}`;
     output += `\n  USER: ${m.userId || 'guest'} ${m.userEmail ? '(' + m.userEmail + ')' : ''}`;
@@ -22,13 +22,13 @@ const textFormat = format.printf(({ timestamp, level, message, stack }) => {
       const indentedReq = reqStr.split('\n').map(l => '    ' + l).join('\n');
       output += `\n  REQ:\n${indentedReq}`;
     }
-    
+
     // 4. Response Body (Prettified & Truncated)
     if (m.responseBody) {
       const resStr = JSON.stringify(m.responseBody, null, 2);
       // Keep it readable but prevent log floods (using 5000 chars as limit for prettified JSON)
       const displayRes = resStr.length > 5000 ? resStr.substring(0, 5000) + "\n    ... [TRUNCATED]" : resStr;
-      
+
       const indentedRes = displayRes.split('\n').map(l => '    ' + l).join('\n');
       output += `\n  RES:\n${indentedRes}`;
     }
@@ -65,11 +65,14 @@ const logger = createLogger({
   ]
 });
 
+const ENABLE_USER_LOGS = true; // Set to false to stop generating user-specific log files
+
 /**
  * Dynamic User-Specific Logger
  * Records both success and failure for a single user in their own file.
  */
 logger.logUserAction = (userIdentifier, logData) => {
+  if (!ENABLE_USER_LOGS) return; // Master Switch
   if (!userIdentifier || userIdentifier === "guest" || userIdentifier === "admin@admin.com") return;
 
   // Sanitize identifier for filename (especially if it's an email)

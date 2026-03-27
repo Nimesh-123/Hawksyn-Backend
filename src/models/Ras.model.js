@@ -31,4 +31,9 @@ const RasSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+// Indexes for high-performance scale (1-2 Lakh users)
+RasSchema.index({ runId: 1 });
+RasSchema.index({ runId: 1, artifactType: 1, status: 1 });
+RasSchema.index({ artifactType: 1 });
+
 module.exports = mongoose.model('Ras', RasSchema, 'ras');

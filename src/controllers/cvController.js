@@ -23,13 +23,17 @@ exports.keepExistingCv = async (req, res) => {
             return res.status(400).json({ success: false, message: `Run is not in a state for CV operations (${run.status})` });
         }
 
-        const payment = await db.Payments.findOne({
-            runId: runId,
-            userId: userId,
-            status: 'COMPLETED'
-        });
-        if (!payment) {
-            return res.status(403).json({ success: false, message: "Payment not verified for this run" });
+        // Re-run bypass: agar run previousRunId set hai to payment check nahi
+        const isReRun = !!run.previousRunId;
+        if (!isReRun) {
+            const payment = await db.Payments.findOne({
+                runId: runId,
+                userId: userId,
+                status: 'COMPLETED'
+            });
+            if (!payment) {
+                return res.status(403).json({ success: false, message: "Payment not verified for this run" });
+            }
         }
 
         if (run.cvSnapshot && run.cvSnapshot.cvUrl) {
@@ -127,13 +131,17 @@ exports.uploadRunCv = async (req, res) => {
             return res.status(400).json({ success: false, message: `Run is not in a state for CV operations (${run.status})` });
         }
 
-        const payment = await db.Payments.findOne({
-            runId,
-            userId,
-            status: 'COMPLETED'
-        });
-        if (!payment) {
-            return res.status(403).json({ success: false, message: "Payment not verified for this run" });
+        // Re-run bypass: agar run previousRunId set hai to payment check nahi
+        const isReRun = !!run.previousRunId;
+        if (!isReRun) {
+            const payment = await db.Payments.findOne({
+                runId,
+                userId,
+                status: 'COMPLETED'
+            });
+            if (!payment) {
+                return res.status(403).json({ success: false, message: "Payment not verified for this run" });
+            }
         }
 
         if (!req.file) {

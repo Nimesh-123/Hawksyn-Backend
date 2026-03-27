@@ -8,6 +8,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const MAX_CHARS = 15000;
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const { aiSemaphore } = require('./concurrency');
 
 // const AEU_SCHEMA_PROMPT = `
 // Act as a Precision CV Extraction Engine for Hawksyn. Your objective is ONLY to extract and structure data. DO NOT analyze, judge, or evaluate the candidate.
@@ -175,22 +176,23 @@ function cleanCVText(text) {
  * Extract text from file (PDF or DOCX)
  */
 const extractTextFromFile = async (buffer, mimetype) => {
-    console.time("File_Extraction");
     try {
         let result = "";
         if (mimetype === 'application/pdf') {
+            console.time("File_Extraction");
             const data = await pdf(buffer);
             result = data.text;
+            console.timeEnd("File_Extraction");
         } else if (mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+            console.time("File_Extraction");
             const { value } = await mammoth.extractRawText({ buffer });
             result = value;
+            console.timeEnd("File_Extraction");
         } else {
             throw new Error(`Unsupported file type: ${mimetype}`);
         }
-        console.timeEnd("File_Extraction");
         return result;
     } catch (error) {
-        try { console.timeEnd("File_Extraction"); } catch (e) { }
         console.error("File Extraction Error:", error);
         throw new Error("Failed to extract text: " + error.message);
     }
@@ -293,7 +295,6 @@ const parseWithOpenAI = async (text, fileName) => {
         const duration = (Date.now() - startTime) / 1000;
         const result = standardizeAeuResponse(resultData, duration, modelType);
 
-        console.timeEnd("OpenAI_Model_Time");
         return result;
     } catch (error) {
         console.error("[AI Parser] OpenAI Error:", error.message);
@@ -305,7 +306,6 @@ const parseWithOpenAI = async (text, fileName) => {
  * Gemini Parser (Bulk / Cheap)
  */
 const parseWithGemini = async (text, fileName) => {
-    console.time("Gemini_Model_Time");
     const startTime = Date.now();
     try {
         console.log("[AI Parser] Using Gemini 2.0 Flash for extraction...");
@@ -368,7 +368,6 @@ const parseWithGemini = async (text, fileName) => {
         }
 
         const duration = (Date.now() - startTime) / 1000;
-        console.timeEnd("Gemini_Model_Time");
         console.log(`[AI Parser] Gemini finished in ${duration}s`);
 
         let jsonData;
@@ -405,13 +404,18 @@ const smartCVParser = async (buffer, fileName, mimetype) => {
     const cleanedText = cleanCVText(rawText);
     const trimmedText = cleanedText.length > MAX_CHARS ? cleanedText.slice(0, MAX_CHARS) : cleanedText;
 
-    // Use Gemini 2.0 Flash (Fastest + Highest priority for Hawksyn)
-    result = await parseWithGemini(trimmedText, fileName);
+    await aiSemaphore.acquire();
+    try {
+        // Use Gemini 2.0 Flash (Fastest + Highest priority for Hawksyn)
+        result = await parseWithGemini(trimmedText, fileName);
 
-    // If Gemini fails, fallback to OpenAI Hyper-Speed
-    if (!result) {
-        console.warn("[AI Parser] Gemini failed. Falling back to OpenAI Turbo...");
-        result = await parseWithOpenAI(trimmedText, fileName);
+        // If Gemini fails, fallback to OpenAI Hyper-Speed
+        if (!result) {
+            console.warn("[AI Parser] Gemini failed. Falling back to OpenAI Turbo...");
+            result = await parseWithOpenAI(trimmedText, fileName);
+        }
+    } finally {
+        aiSemaphore.release();
     }
 
     const totalDuration = (Date.now() - totalStartTime) / 1000;
@@ -420,4 +424,10 @@ const smartCVParser = async (buffer, fileName, mimetype) => {
     return result;
 };
 
-module.exports = { smartCVParser, parseWithOpenAI, parseWithGemini, extractTextFromFile, cleanCVText };
+module.exports = { 
+    smartCVParser, 
+    parseWithOpenAI, 
+    parseWithGemini, 
+    extractTextFromFile, 
+    cleanCVText
+};

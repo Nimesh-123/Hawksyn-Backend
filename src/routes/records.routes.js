@@ -49,4 +49,34 @@ router.get('/:userId/records', recordsController.getAllRecords);
  */
 router.get('/:userId/records/:runId', recordsController.getRunDetail);
 
+/**
+ * @swagger
+ * /users/{userId}/records/initiate-rerun:
+ *   post:
+ *     summary: Initiate a new re-run session for an existing case
+ *     tags: [6. My Records & Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [caseId, intentId]
+ *             properties:
+ *               caseId:
+ *                 type: string
+ *               intentId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Run created
+ */
+router.post('/:userId/records/initiate-rerun', recordsController.initiateReRun);
+
 module.exports = router;

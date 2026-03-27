@@ -22,4 +22,10 @@ const ExpertQuerySchema = new mongoose.Schema({
     collection: 'expert_queries'
 });
 
+// Indexes
+ExpertQuerySchema.index({ userId: 1, status: 1 });
+ExpertQuerySchema.index({ runId: 1 });
+ExpertQuerySchema.index({ expertId: 1, status: 1 });
+ExpertQuerySchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('ExpertQuery', ExpertQuerySchema);

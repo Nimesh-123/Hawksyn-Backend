@@ -45,6 +45,7 @@ const RunsSchema = new mongoose.Schema({
     objectiveInputs: { type: mongoose.Schema.Types.Mixed, default: null },
     isImmutable: { type: Boolean, default: false },
     eligibleForComparison: { type: Boolean, default: false },
+    previousRunId: { type: String, default: null }, // Set for re-runs — used to bypass payment check
     completedAt: { type: Date, default: null }
 }, {
     timestamps: true,
@@ -55,5 +56,8 @@ const RunsSchema = new mongoose.Schema({
 
 RunsSchema.index({ userId: 1, status: 1 });
 RunsSchema.index({ caseId: 1, intentId: 1 });
+RunsSchema.index({ createdAt: -1 });
+RunsSchema.index({ status: 1 });
+RunsSchema.index({ runId: 1, userId: 1 });
 
 module.exports = mongoose.model('Runs', RunsSchema);
