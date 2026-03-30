@@ -12,6 +12,10 @@ const swaggerSpec = require('./utils/swagger.js');
 const route = require('./src/routes/index.route.js');
 require('./middleware/database/connectDatabase.js');
 
+// --- Real-time Chat ---
+const { Server } = require('socket.io');
+const { initChatSocket } = require('./src/sockets/chatSocket');
+
 // --- Cron Jobs ---
 require('./src/crons/trendEngine.cron.js');
 require('./src/crons/validityDecline.cron.js');
@@ -33,6 +37,7 @@ app.get('/', (req, res) => {
 // Test routes for logging verification
 
 app.use(`${process.env.API_COMMON_ROUTE}/uploads`, express.static(path.join(__dirname, 'uploads')));
+app.use(`${process.env.API_COMMON_ROUTE}/chat`, require('./src/routes/chat.route.js'));
 
 app.use(`${process.env.API_COMMON_ROUTE}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -46,6 +51,15 @@ const PORT = process.env.PORT || 3001;
 const server = app.listen(PORT, () => {
     console.log(`Magic happens on port ${PORT}`);
 });
+
+// --- Initialize Socket.io ---
+const io = new Server(server, {
+    cors: {
+        origin: "*", // Adjust for production
+        methods: ["GET", "POST"]
+    }
+});
+initChatSocket(io);
 
 // Set timeout to 2 minutes for AI processing
 server.timeout = 120000;

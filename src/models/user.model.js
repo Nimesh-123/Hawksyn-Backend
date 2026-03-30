@@ -3,6 +3,9 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema(
     {
         name: { type: String, trim: true },
+        fullName: { type: String, trim: true },
+        avatar: { type: String }, // User profile picture from Google/Social
+        googleId: { type: String }, // Unique identifier for Google login
         email: {
             type: String,
             required: true,

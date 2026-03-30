@@ -227,7 +227,8 @@ async function callLLM({ modelFamily, systemPrompt, userPrompt, temperature = 0.
                     throw err;
                 }
             }
-            return result.response.text();
+            const response = await result.response;
+            return response.text();
         }
 
         if (modelFamily === 'OPENAI') {

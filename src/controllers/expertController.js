@@ -1,6 +1,7 @@
 const { db } = require('../models/index.model.js');
 const { refreshClocksAfterCase } = require('../services/clockService');
 const { scoreExpert, buildAssignmentReason } = require('../services/expertService');
+const RESPONSE = require('../../utils/response.js');
 
 /**
  * API 1 — POST /api/v1/runs/:runId/expert/assign
@@ -231,32 +232,43 @@ exports.askExpertQuery = async (req, res) => {
             return res.status(400).json({ success: false, message: 'No expert has been assigned yet.' });
         }
 
-        const expertId = expertAssignment.artifactJson.assignedExpert.auditorId;
-        const userCredits = await db.UserCredits.findOne({ userId });
-        
-        if (!userCredits || userCredits.expertChatBalance < 1) {
-            return res.status(402).json({
-                success: false,
-                message: 'No available query slots. Please purchase query credits first.'
-            });
-        }
+        const assignedAt = expertAssignment.artifactJson.assignedExpert.assignedAt;
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const isFreeWindowActive = new Date(assignedAt) > sevenDaysAgo;
 
-        const newBalance = userCredits.expertChatBalance - 1;
-        await db.UserCredits.findOneAndUpdate(
-            { userId },
-            {
-                $set: { expertChatBalance: newBalance },
-                $push: {
-                    transactions: {
-                        type: 'EXPERT_QUERY_CONSUME',
-                        amount: -1,
-                        balanceAfter: newBalance,
-                        note: `Expert Slot Consumed: ${queryType} — Run ${runId}`,
-                        createdAt: new Date()
+        const expertId = expertAssignment.artifactJson.assignedExpert.auditorId;
+
+        let newBalance = null;
+
+        // Skip credit check if within 7 days of expert assignment
+        if (!isFreeWindowActive) {
+            const userCredits = await db.UserCredits.findOne({ userId });
+            
+            if (!userCredits || userCredits.expertChatBalance < 1) {
+                return res.status(402).json({
+                    success: false,
+                    message: 'Free chat window (7 days) has expired. Please purchase query credits to continue.'
+                });
+            }
+
+            newBalance = userCredits.expertChatBalance - 1;
+            await db.UserCredits.findOneAndUpdate(
+                { userId },
+                {
+                    $set: { expertChatBalance: newBalance },
+                    $push: {
+                        transactions: {
+                            type: 'EXPERT_QUERY_CONSUME',
+                            amount: -1,
+                            balanceAfter: newBalance,
+                            note: `Expert Slot Consumed: ${queryType} — Run ${runId} (After 7-day free window)`,
+                            createdAt: new Date()
+                        }
                     }
                 }
-            }
-        );
+            );
+        }
 
         const queryId = `EXPQ_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         const expertQuery = await db.ExpertQuery.create({
@@ -269,7 +281,8 @@ exports.askExpertQuery = async (req, res) => {
             data: {
                 queryId: expertQuery.queryId,
                 expertChatBalance: newBalance,
-                message: 'Query sent successfully.'
+                isFreeWindowActive,
+                message: isFreeWindowActive ? 'Query sent for free (7-day window active).' : 'Query sent successfully (paid credit used).'
             }
         });
     } catch (error) {
@@ -284,12 +297,41 @@ exports.askExpertQuery = async (req, res) => {
 exports.getExpertQueries = async (req, res) => {
     try {
         const { runId } = req.params;
-        const userId = req.user.id;
-        const queries = await db.ExpertQuery.find({ runId, userId }).sort({ createdAt: 1 });
+        const requesterId = req.user.id; 
+        const role = req.user.role;
+
+        // 1. Security Check: Ensure requester has access to this run
+        const run = await db.Runs.findOne({ runId }).populate('userId');
+        if (!run) return res.status(404).json({ success: false, message: 'Run not found' });
+
+        let hasAccess = false;
+
+        if (role === 'user') {
+            // User must own the run
+            if (run.userId._id.toString() === requesterId) hasAccess = true;
+        } else if (role === 'expert') {
+            // Expert must be assigned to this run
+            const expertRecord = await db.RiskAuditorRegistry.findById(requesterId);
+            const assignment = await db.Ras.findOne({
+                runId,
+                artifactType: 'EXPERT_ASSIGNED',
+                'artifactJson.assignedExpert.auditorId': expertRecord?.auditorId
+            });
+            if (assignment) hasAccess = true;
+        } else if (role === 'admin') {
+            hasAccess = true; // Admin has master access
+        }
+
+        if (!hasAccess) {
+            return res.status(403).json({ success: false, message: 'Unauthorized access to this chat.' });
+        }
+
+        // 2. Fetch all messages from ChatMessage model
+        const messages = await db.ChatMessage.find({ runId }).sort({ createdAt: 1 });
 
         return res.status(200).json({
             success: true,
-            data: queries
+            data: messages
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
@@ -301,15 +343,86 @@ exports.getExpertQueries = async (req, res) => {
  */
 exports.getAuditorInbox = async (req, res) => {
     try {
-        const auditorId = req.user.id;
-        const queries = await db.ExpertQuery.find({ expertId: auditorId, status: 'PENDING' }).sort({ createdAt: -1 });
+        const id = req.user.id; // MongoDB _id from token
+        
+        // 1. Get the Auditor's actual auditorId (e.g., RAR_001)
+        const expertRecord = await db.RiskAuditorRegistry.findById(id);
+        if (!expertRecord) return RESPONSE.error(res, 404, 1005, 'Expert not found');
+        
+        const auditorId = expertRecord.auditorId;
 
-        return res.status(200).json({
-            success: true,
-            data: queries
+        // 2. Find all Runs/Reports assigned to this expert from Ras artifacts
+        const assignments = await db.Ras.find({
+            artifactType: 'EXPERT_ASSIGNED',
+            'artifactJson.assignedExpert.auditorId': auditorId
+        }).select('runId');
+
+        const assignedRunIds = assignments.map(a => a.runId);
+
+        if (assignedRunIds.length === 0) {
+            return RESPONSE.success(res, 200, 1001, { total: 0, sessions: [] });
+        }
+
+        // 3. Aggregate Chat Sessions for these RunIds
+        const sessions = await db.ChatMessage.aggregate([
+            { $match: { runId: { $in: assignedRunIds } } },
+            { $sort: { createdAt: -1 } },
+            {
+                $group: {
+                    _id: '$runId',
+                    latestMessage: { $first: '$$ROOT' },
+                    unreadCount: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $eq: ['$senderType', 'USER'] }, { $ne: ['$status', 'READ'] }] },
+                                1,
+                                0
+                            ]
+                        }
+                    }
+                }
+            },
+            { $sort: { 'latestMessage.createdAt': -1 } }
+        ]);
+
+        // 4. Fetch User names/emails and attach to sessions
+        // We check cvSnapshot.parsedData for the AI-extracted name first
+        const runsWithDetails = await db.Runs.find({ runId: { $in: assignedRunIds } })
+            .populate('userId', 'email name')
+            .select('runId userId cvSnapshot.parsedData');
+
+        const runToUserMap = {};
+        runsWithDetails.forEach(r => {
+            // Priority 1: AI Extracted Name from CV
+            let displayName = r.cvSnapshot?.parsedData?.full_name || r.cvSnapshot?.parsedData?.name;
+            
+            // Priority 2: User profile name
+            if (!displayName && r.userId?.name) {
+                displayName = r.userId.name;
+            }
+
+            // Priority 3: Email (before @ symbol)
+            if (!displayName && r.userId?.email) {
+                displayName = r.userId.email.split('@')[0];
+            }
+
+            runToUserMap[r.runId] = displayName || 'Guest User';
         });
+
+        return RESPONSE.success(res, 200, 1001, {
+            total: sessions.length,
+            sessions: sessions.map(s => ({
+                runId: s._id,
+                userName: runToUserMap[s._id] || 'Unknown User',
+                latestMessage: s.latestMessage.content || 'File/Image',
+                latestMessageAt: s.latestMessage.createdAt,
+                senderName: s.latestMessage.senderName,
+                unreadCount: s.unreadCount
+            }))
+        });
+
     } catch (error) {
-        return res.status(500).json({ success: false, message: error.message });
+        return RESPONSE.error(res, 500, 9999, error.message);
     }
 };
 
@@ -318,24 +431,41 @@ exports.getAuditorInbox = async (req, res) => {
  */
 exports.replyToQuery = async (req, res) => {
     try {
-        const { queryId, answerText } = req.body;
-        const auditorId = req.user.id;
+        const { runId, content, type = 'TEXT' } = req.body;
+        const id = req.user.id;
 
-        const query = await db.ExpertQuery.findOne({ queryId });
-        if (!query) return res.status(404).json({ success: false, message: 'Query not found' });
+        if (!runId || !content) {
+            return RESPONSE.error(res, 400, 1002, 'RunId and content are required');
+        }
 
-        query.answerText = answerText;
-        query.status = 'ANSWERED';
-        query.answeredAt = new Date();
-        query.answeredBy = auditorId;
-        await query.save();
+        const expertRecord = await db.RiskAuditorRegistry.findById(id);
+        if (!expertRecord) return RESPONSE.error(res, 404, 1005, 'Expert not found');
 
-        return res.status(200).json({
-            success: true,
-            message: 'Reply sent successfully.',
-            data: query
+        // Create a new Chat Message
+        const messageId = `MSG_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        const newMessage = await db.ChatMessage.create({
+            messageId,
+            runId,
+            senderId: expertRecord.auditorId,
+            senderType: 'EXPERT',
+            senderName: expertRecord.auditorName,
+            content,
+            type,
+            status: 'SENT'
         });
+
+        // Mark all previous user messages in this run as READ
+        await db.ChatMessage.updateMany(
+            { runId, senderType: 'USER', status: { $ne: 'READ' } },
+            { $set: { status: 'READ' } }
+        );
+
+        return RESPONSE.success(res, 200, 1001, {
+            message: 'Reply sent and history updated',
+            data: newMessage
+        });
+
     } catch (error) {
-        return res.status(500).json({ success: false, message: error.message });
+        return RESPONSE.error(res, 500, 9999, error.message);
     }
 };

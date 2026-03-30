@@ -7,6 +7,7 @@
 // ════════════════════════════════════════════════════════════
 
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 // ── Import all models ──
@@ -1218,10 +1219,16 @@ async function seedDataPatternKeyTaxonomy() {
 // ════════════════════════════════════════════════════════════
 async function seedRiskAuditorRegistry() {
     await RiskAuditorRegistry.deleteMany({});
+    
+    // Hash a default password for all mock experts
+    const hashedPassword = await bcrypt.hash('expert123', 10);
+
     await RiskAuditorRegistry.insertMany([
         {
             auditorId: 'RAR_001',
             auditorName: 'Senior AI Risk Analyst',
+            email: 'rar_001@hawksyn.com',
+            password: hashedPassword,
             caseId: 'CASE_AI_JOB_RISK',
             specializations: ['AI_DISPLACEMENT', 'FINANCIAL_RISK'],
             maxCaseload: 50,
@@ -1231,6 +1238,8 @@ async function seedRiskAuditorRegistry() {
         {
             auditorId: 'RAR_004',
             auditorName: 'MBA Education Consultant',
+            email: 'rar_004@hawksyn.com',
+            password: hashedPassword,
             caseId: 'CASE_MBA_BREAK',
             specializations: ['MBA_ADVISORY', 'FINANCIAL_PLANNING'],
             maxCaseload: 20,
@@ -1240,6 +1249,8 @@ async function seedRiskAuditorRegistry() {
         {
             auditorId: 'RAR_005',
             auditorName: 'Freelance & Gig Economy Specialist',
+            email: 'rar_005@hawksyn.com',
+            password: hashedPassword,
             caseId: 'CASE_FREELANCE_SWITCH',
             specializations: ['FREELANCE_MARKETS', 'ENTREPRENEURSHIP'],
             maxCaseload: 20,
@@ -1249,6 +1260,8 @@ async function seedRiskAuditorRegistry() {
         {
             auditorId: 'RAR_006',
             auditorName: 'Strategic Career Transition Lead',
+            email: 'rar_006@hawksyn.com',
+            password: hashedPassword,
             caseId: 'CASE_ROLE_SWITCH',
             specializations: ['ROLE_TRANSITION', 'SKILL_ANALYSIS'],
             maxCaseload: 20,

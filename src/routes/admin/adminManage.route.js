@@ -74,4 +74,37 @@ router.get('/list', adminController.getSubAdmins);
  */
 router.delete('/:id', adminController.deleteSubAdmin);
 
+/**
+ * @swagger
+ * /admin/manage/experts/create:
+ *   post:
+ *     summary: Register a new Expert (Risk Auditor)
+ *     tags: [9. Admin Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/experts/create', adminController.createExpert);
+
+/**
+ * @swagger
+ * /admin/manage/experts/list:
+ *   get:
+ *     summary: List all registered experts
+ *     tags: [9. Admin Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get('/experts/list', adminController.getAllExperts);
+
+/**
+ * @swagger
+ * /admin/manage/experts/{id}:
+ *   delete:
+ *     summary: Delete an expert
+ *     tags: [9. Admin Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.delete('/experts/:id', adminController.deleteExpert);
+
 module.exports = router;

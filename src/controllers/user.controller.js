@@ -8,6 +8,8 @@ const { uploadFile, deleteFile } = require('../../utils/s3');
 const { smartCVParser } = require('../../utils/aiParser');
 const { get_message } = require('../../utils/message.js');
 const { getUserActiveCv } = require('../../utils/cvHelper.js');
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const { detectRegionFromIP } = require('../../utils/regionHelper.js');
 
 
@@ -223,6 +225,87 @@ exports.loginWithPin = async (req, res) => {
         await createAuditLog(req, 'LOGIN_WITH_PIN', user._id, { email: user.email });
 
         return RESPONSE.success(res, 200, 2001, { user: userResponse, ...tokens });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+exports.googleLogin = async (req, res) => {
+    try {
+        const { idToken } = req.body;
+
+        if (!idToken) {
+            return RESPONSE.error(res, 400, 3003, "Google ID Token is required");
+        }
+
+        // 1. Verify token with Google
+        let ticket;
+        try {
+            ticket = await client.verifyIdToken({
+                idToken: idToken,
+                audience: process.env.GOOGLE_CLIENT_ID,
+            });
+        } catch (verifyErr) {
+            return RESPONSE.error(res, 401, 3002, "Invalid Google Token. Please try again.");
+        }
+
+        const payload = ticket.getPayload();
+        const { email, name, picture, sub: googleId } = payload;
+
+        // 2. Search for user by email
+        let user = await db.User.findOne({ email });
+
+        if (user && user.isDeleted) {
+            // Reactivate soft-deleted user
+            user.isDeleted = false;
+            user.deletedAt = null;
+        }
+
+        if (!user) {
+            // New user Signup
+            user = new db.User({
+                email,
+                fullName: name,
+                avatar: picture,
+                googleId: googleId,
+                isEmailVerified: true
+            });
+
+            // Detect region
+            const region = detectRegionFromIP(req.ip);
+            user.countryCode = region.countryCode;
+            user.preferredCurrency = region.currency;
+
+            await user.save();
+            await createAuditLog(req, 'USER_CREATED_GOOGLE', user._id, { email: user.email });
+        } else {
+            // Link Google ID if not already linked
+            if (!user.googleId) {
+                user.googleId = googleId;
+                if (!user.avatar) user.avatar = picture;
+                await user.save();
+            }
+            await createAuditLog(req, 'LOGIN_WITH_GOOGLE', user._id, { email: user.email });
+        }
+
+        // 3. Generate Auth Tokens
+        const tokens = generateToken({ id: user._id, email: user.email, role: user.role });
+        user.refreshToken = tokens.refreshToken;
+        await user.save();
+
+        const userActiveCv = await getUserActiveCv(user._id);
+        const userResponse = user.toObject();
+        if (userActiveCv) {
+            userResponse.cvUrl = userActiveCv.cvUrl;
+            userResponse.cvUploadedAt = userActiveCv.cvUploadedAt;
+            userResponse.parsedCvData = userActiveCv.parsedCvData;
+        }
+
+        delete userResponse.mPin;
+        delete userResponse.refreshToken;
+
+        return RESPONSE.success(res, 200, 2001, { user: userResponse, ...tokens, isNewUser: !user.mPinSet });
+
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
     }

@@ -12,6 +12,7 @@ const PaymentsSchema = new mongoose.Schema({
         required: true
     },
     runId: { type: String, default: null },
+    previousRunId: { type: String, default: null }, // If payment is for a re-run
     caseId: { type: String, required: true },
     intentId: { type: String, required: true },
     platform: {

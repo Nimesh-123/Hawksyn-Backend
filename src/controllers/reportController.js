@@ -11,6 +11,48 @@ const { generatePdfFromHtml } = require('../services/pdfService.js');
 const nodemailer = require('nodemailer');
 
 // ─────────────────────────────────────────────────────────
+// RAG HELPER — getGoldStandardExamples
+// DB se top-rated (5-star) reports fetch karta hai taaki
+// AI ko few-shot context mil sake aur better reports generate ho.
+// ─────────────────────────────────────────────────────────
+async function getGoldStandardExamples(caseId, intentId, limit = 3) {
+    try {
+        const examples = await db.Ras.find({
+            artifactType:  'FINAL_REPORT',
+            status:        'FINAL',
+            qualityRating: 5,
+            'artifactJson.caseId':   caseId,
+            'artifactJson.intentId': intentId
+        })
+        .sort({ qualityRatedAt: -1 })
+        .limit(limit)
+        .lean();
+
+        return examples.map(ex => anonymizeReport(ex.artifactJson));
+    } catch (err) {
+        console.warn('[RAG] Could not fetch Gold Standard examples:', err.message);
+        return []; // Non-blocking — report generation jari rahega
+    }
+}
+
+// PII anonymization taaki Gold Standard data safe rahe
+function anonymizeReport(reportJson) {
+    try {
+        let str = JSON.stringify(reportJson);
+        // Names (e.g., "Rahul Sharma") → CANDIDATE_NAME
+        str = str.replace(/\b[A-Z][a-z]+ [A-Z][a-z]+\b/g, 'CANDIDATE_NAME');
+        // Emails
+        str = str.replace(/[\w._%+-]+@[\w.-]+\.[a-zA-Z]{2,}/g, 'candidate@example.com');
+        // Phone numbers
+        str = str.replace(/\b(\+91[\-\s]?)?[6-9]\d{9}\b/g, 'XXXXXXXX');
+        return JSON.parse(str);
+    } catch {
+        return {}; // Parse fail ho toh empty return karo
+    }
+}
+
+
+// ─────────────────────────────────────────────────────────
 // HELPER 0 — getDeepValue
 // Profile snapshot (e.g., identity.currentRole) se deep value nikalta hai
 // ─────────────────────────────────────────────────────────
@@ -307,7 +349,22 @@ exports.generateReport = async (req, res) => {
             externalSignals
         );
 
-        // ── J. Process each section in PARALLEL — ⚡ FAST MODE ⚡ ──
+        // ── I2. RAG — Fetch Gold Standard Examples (once, before section loop) ──
+        // Ye examples admin-rated 5-star reports hain jo AI ko better context dete hain.
+        const goldExamples = await getGoldStandardExamples(run.caseId, run.intentId, 3);
+        const goldContextBlock = goldExamples.length > 0
+            ? `\n\n--- GOLD STANDARD EXAMPLES (Admin-Approved, ${goldExamples.length} reports) ---\n` +
+              `These are real, high-quality reports from similar assessments. Use them as quality benchmarks for tone, depth, and structure:\n\n` +
+              goldExamples.map((ex, i) => `[Example ${i + 1}]\n${JSON.stringify(ex.sections?.map(s => ({ id: s.sectionId, content: s.content })) || ex, null, 2)}`).join('\n\n') +
+              `\n--- END OF EXAMPLES ---\n`
+            : ''; // Koi Gold Standard nahi hai — normal mode mein chalo
+
+        if (goldExamples.length > 0) {
+            console.log(`[RAG] Injecting ${goldExamples.length} Gold Standard example(s) for ${run.caseId}/${run.intentId}`);
+        } else {
+            console.log('[RAG] No Gold Standard examples found — generating without RAG context.');
+        }
+
         const sectionPromises = sections.map(async (section) => {
             const sectionOut = {
                 sectionId:     section.sectionId,
@@ -374,12 +431,15 @@ exports.generateReport = async (req, res) => {
                 filledUserPrompt += `\n\n[NOTE: Some evidence is unavailable — Missing: ${missing.join(', ')}. Acknowledge this gap explicitly in your response.]`;
             }
 
-            // J4. Call LLM
+            // J4. Call LLM — with RAG Gold Standard context injected into system prompt
             try {
                 console.time(`Section_${section.sectionId}`);
+                // Append gold standard examples to system prompt (only if available)
+                const enrichedSystemPrompt = prompt.systemPrompt + goldContextBlock;
+
                 let llmText = await callLLM({
                     modelFamily:  prompt.modelFamily,
-                    systemPrompt: prompt.systemPrompt,
+                    systemPrompt: enrichedSystemPrompt,
                     userPrompt:   filledUserPrompt,
                     temperature:  prompt.temperature || 0.3,
                     maxTokens:    prompt.maxTokens   || 600

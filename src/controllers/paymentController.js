@@ -57,7 +57,7 @@ exports.getProduct = async (req, res) => {
  */
 exports.initiatePayment = async (req, res) => {
     try {
-        const { caseId, intentId, platform = 'test', paymentMethod = 'test_gateway' } = req.body;
+        const { caseId, intentId, platform = 'test', paymentMethod = 'test_gateway', previousRunId } = req.body;
         const userId = req.user.id;
 
         if (!caseId || !intentId) {
@@ -99,9 +99,17 @@ exports.initiatePayment = async (req, res) => {
         // Detect region
         const user = await User.findById(req.user.id);
         const isInternational = user?.countryCode !== 'IN';
-        const amount = isInternational ? 7.99 : caseData.minPrice;
+        let amount = isInternational ? 7.99 : caseData.minPrice;
         const currency = isInternational ? 'USD' : (caseData.defaultCurrency || 'INR');
         const gateway = isInternational ? 'STRIPE' : 'RAZORPAY';
+
+        // Apply Re-run Price Override if applicable
+        if (previousRunId) {
+            const previousRun = await Runs.findOne({ runId: previousRunId });
+            if (previousRun?.reRunSetup?.reRunPriceOverride) {
+                amount = previousRun.reRunSetup.reRunPriceOverride;
+            }
+        }
 
         const newPayment = new Payments({
             paymentId,
@@ -115,7 +123,8 @@ exports.initiatePayment = async (req, res) => {
             currency: currency,
             status: 'PENDING',
             isTestPayment: true,
-            paymentMethod: gateway
+            paymentMethod: gateway,
+            previousRunId: previousRunId || null
         });
 
         await newPayment.save();
@@ -213,6 +222,12 @@ exports.verifyPayment = async (req, res) => {
                     parsedData: userProfile?.confirmedProfile || {},
                     attachedAt: userProfile?.confirmedAt || new Date(),
                     source: 'EXISTING'
+                },
+                previousRunId: payment.previousRunId || null, // Link to previous run if this was a re-run payment
+                reRunSetup: {
+                    eligibleForFreeReRun: false, // NEW: Defaults to false for new runs (re-runs too)
+                    freeReRunExpiryDate: null,
+                    reRunPriceOverride: null
                 }
             });
             await run.save();

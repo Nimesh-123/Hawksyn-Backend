@@ -23,16 +23,31 @@ exports.keepExistingCv = async (req, res) => {
             return res.status(400).json({ success: false, message: `Run is not in a state for CV operations (${run.status})` });
         }
 
-        // Re-run bypass: agar run previousRunId set hai to payment check nahi
-        const isReRun = !!run.previousRunId;
-        if (!isReRun) {
+        // Re-run bypass logic: Check if the previous run was marked as FREE by Admin
+        let isFreeReRun = false;
+        if (run.previousRunId) {
+            const previousRun = await db.Runs.findOne({ runId: run.previousRunId });
+            const setup = previousRun?.reRunSetup;
+            const eligible = setup?.eligibleForFreeReRun === true;
+            const notExpired = setup?.freeReRunExpiryDate ? (new Date() <= new Date(setup.freeReRunExpiryDate)) : false;
+
+            if (eligible && notExpired) {
+                isFreeReRun = true;
+            }
+        }
+
+        if (!isFreeReRun) {
+            // Standard check for payment if not a valid free re-run
             const payment = await db.Payments.findOne({
                 runId: runId,
                 userId: userId,
                 status: 'COMPLETED'
             });
             if (!payment) {
-                return res.status(403).json({ success: false, message: "Payment not verified for this run" });
+                const msg = run.previousRunId 
+                    ? "Free Re-run period has expired or is not eligible for this report. Payment required."
+                    : "Payment not verified for this run";
+                return res.status(403).json({ success: false, message: msg });
             }
         }
 
@@ -131,16 +146,31 @@ exports.uploadRunCv = async (req, res) => {
             return res.status(400).json({ success: false, message: `Run is not in a state for CV operations (${run.status})` });
         }
 
-        // Re-run bypass: agar run previousRunId set hai to payment check nahi
-        const isReRun = !!run.previousRunId;
-        if (!isReRun) {
+        // Re-run bypass logic: Check if the previous run was marked as FREE by Admin
+        let isFreeReRun = false;
+        if (run.previousRunId) {
+            const previousRun = await db.Runs.findOne({ runId: run.previousRunId });
+            const setup = previousRun?.reRunSetup;
+            const eligible = setup?.eligibleForFreeReRun === true;
+            const notExpired = setup?.freeReRunExpiryDate ? (new Date() <= new Date(setup.freeReRunExpiryDate)) : false;
+
+            if (eligible && notExpired) {
+                isFreeReRun = true;
+            }
+        }
+
+        if (!isFreeReRun) {
+            // Standard check for payment if not a valid free re-run
             const payment = await db.Payments.findOne({
                 runId,
                 userId,
                 status: 'COMPLETED'
             });
             if (!payment) {
-                return res.status(403).json({ success: false, message: "Payment not verified for this run" });
+                const msg = run.previousRunId 
+                    ? "Free Re-run period has expired or is not eligible for this report. Payment required."
+                    : "Payment not verified for this run";
+                return res.status(403).json({ success: false, message: msg });
             }
         }
 
@@ -196,11 +226,7 @@ exports.uploadRunCv = async (req, res) => {
         );
 
         const dbSafeParsedData = extractedData ? JSON.parse(JSON.stringify(extractedData)) : null;
-        if (dbSafeParsedData) {
-            delete dbSafeParsedData.parsingDuration;
-            delete dbSafeParsedData.modelUsed;
-            delete dbSafeParsedData.totalPipelineDuration;
-        }
+        // Keep metadata for auditing and token tracking
 
         const newCv = await db.DocumentUploads.create({
             userId,

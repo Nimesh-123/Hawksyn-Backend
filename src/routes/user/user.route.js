@@ -106,6 +106,29 @@ route.post('/login-with-pin', userController.loginWithPin);
 
 /**
  * @swagger
+ * /user/auth/google:
+ *   post:
+ *     summary: Social Login using Google ID Token
+ *     tags: [1. Authentication & Security]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [idToken]
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *                 description: Identity Token received from Google Auth on Frontend.
+ *     responses:
+ *       200:
+ *         description: Login successful. Returns JWT Token.
+ */
+route.post('/auth/google', userController.googleLogin);
+
+/**
+ * @swagger
  * /user/account:
  *   delete:
  *     summary: Delete user account (Soft or Hard)

@@ -46,6 +46,11 @@ const RunsSchema = new mongoose.Schema({
     isImmutable: { type: Boolean, default: false },
     eligibleForComparison: { type: Boolean, default: false },
     previousRunId: { type: String, default: null }, // Set for re-runs — used to bypass payment check
+    reRunSetup: {
+        eligibleForFreeReRun: { type: Boolean, default: false },
+        freeReRunExpiryDate: { type: Date, default: null },
+        reRunPriceOverride: { type: Number, default: null }
+    },
     completedAt: { type: Date, default: null }
 }, {
     timestamps: true,

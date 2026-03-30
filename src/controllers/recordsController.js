@@ -337,7 +337,27 @@ exports.initiateReRun = async (req, res) => {
         const config = await db.CaseIntentConfig.findOne({ caseId, intentId, isActive: true });
         if (!config) return res.status(400).json({ success: false, message: 'Usecase/Intent configuration not found' });
 
-        // 4. Load latest Profile for CV Snapshot
+        // 4. Check Re-Run Policy (Free vs Paid)
+        const setup = previousRun.reRunSetup;
+        const eligible = setup?.eligibleForFreeReRun === true;
+        const notExpired = setup?.freeReRunExpiryDate ? (new Date() <= new Date(setup.freeReRunExpiryDate)) : false;
+
+        if (!eligible || !notExpired) {
+            // Re-run is PAID or EXPIRED
+            return res.status(200).json({
+                success: false,
+                code: "PAYMENT_REQUIRED",
+                message: "This re-run requires a new payment as the free period has expired or policy is set to paid.",
+                data: {
+                    previousRunId: previousRunId,
+                    caseId,
+                    intentId,
+                    priceOverride: setup?.reRunPriceOverride || null
+                }
+            });
+        }
+
+        // 5. Load latest Profile for CV Snapshot
         const userProfile = await db.UserProfile.findOne({ userId });
 
         // 5. Generate New runId

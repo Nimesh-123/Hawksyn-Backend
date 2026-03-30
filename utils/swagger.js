@@ -34,6 +34,8 @@ const options = {
       { name: "7. Expert Support & Chat", description: "Expert query processing and chat interface" },
       { name: "8. Command Center & Trends", description: "Real-time career clocks and market signals" },
       { name: "9. Admin Dashboard", description: "User Management, Audit Logs, and System Oversight" },
+      { name: "10. Expert Panel Auth", description: "Auth and profile management for Expert panel" },
+      { name: "11. Expert Panel Ops", description: "Expert auditor inbox and query resolution" },
     ],
   },
 
