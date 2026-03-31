@@ -31,7 +31,7 @@ const upload = multer({
  * /chat/upload:
  *   post:
  *     summary: Upload chat attachment (Image/Audio/File) - Max 1MB
- *     tags: [11. Expert Chat]
+ *     tags: ["7. Expert Support & Chat"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -51,7 +51,7 @@ route.post('/upload', upload.single('file'), chatController.uploadAttachment);
  * /chat/history/{runId}:
  *   get:
  *     summary: Get chat history for a run
- *     tags: [11. Expert Chat]
+ *     tags: ["7. Expert Support & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -7,7 +7,7 @@ const recordsController = require('../controllers/recordsController');
  * /users/{userId}/records:
  *   get:
  *     summary: Get all run records for a user
- *     tags: [6. My Records & Reports]
+ *     tags: ["6. My Records & Reports"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -33,7 +33,7 @@ router.get('/:userId/records', recordsController.getAllRecords);
  * /users/{userId}/records/{runId}:
  *   get:
  *     summary: Get full detail for a specific run
- *     tags: [6. My Records & Reports]
+ *     tags: ["6. My Records & Reports"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -54,7 +54,7 @@ router.get('/:userId/records/:runId', recordsController.getRunDetail);
  * /users/{userId}/records/initiate-rerun:
  *   post:
  *     summary: Initiate a new re-run session for an existing case
- *     tags: [6. My Records & Reports]
+ *     tags: ["6. My Records & Reports"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -367,7 +367,7 @@ exports.deleteSubAdmin = async (req, res) => {
  * /admin/dashboard/stats:
  *   get:
  *     summary: Get overview stats for the Admin Dashboard
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     responses:

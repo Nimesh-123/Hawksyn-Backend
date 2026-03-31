@@ -7,7 +7,7 @@ const adminController = require('../../controllers/admin.controller');
  * /admin/manage/create:
  *   post:
  *     summary: Create a new Sub-Admin (Super Admin Only)
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -40,7 +40,7 @@ router.post('/create', adminController.createSubAdmin);
  * /admin/manage/list:
  *   get:
  *     summary: Get all Sub-Admins (Super Admin Only)
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -56,7 +56,7 @@ router.get('/list', adminController.getSubAdmins);
  * /admin/manage/{id}:
  *   delete:
  *     summary: Delete a Sub-Admin (Super Admin Only)
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -79,7 +79,7 @@ router.delete('/:id', adminController.deleteSubAdmin);
  * /admin/manage/experts/create:
  *   post:
  *     summary: Register a new Expert (Risk Auditor)
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  */
@@ -90,7 +90,7 @@ router.post('/experts/create', adminController.createExpert);
  * /admin/manage/experts/list:
  *   get:
  *     summary: List all registered experts
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  */
@@ -101,7 +101,7 @@ router.get('/experts/list', adminController.getAllExperts);
  * /admin/manage/experts/{id}:
  *   delete:
  *     summary: Delete an expert
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  */

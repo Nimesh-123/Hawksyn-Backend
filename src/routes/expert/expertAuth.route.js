@@ -9,7 +9,7 @@ const { authenticate } = require('../../../middleware/authorization/authorizatio
  * /expert/auth/login:
  *   post:
  *     summary: Expert login using email and password
- *     tags: [Expert Panel Auth]
+ *     tags: ["11. Expert Panel: Auth"]
  *     requestBody:
  *       required: true
  *       content:
@@ -35,7 +35,7 @@ router.get('/auth/profile', authenticate, expertAuthController.getExpertProfile)
  * /expert/inbox:
  *   get:
  *     summary: Get expert's pending query inbox
- *     tags: [Expert Panel Ops]
+ *     tags: ["12. Expert Panel: Operations"]
  *     security:
  *       - bearerAuth: []
  */
@@ -47,7 +47,7 @@ router.get('/queries/:runId', authenticate, expertController.getExpertQueries);
  * /expert/reply:
  *   post:
  *     summary: Reply to a specific user query
- *     tags: [Expert Panel Ops]
+ *     tags: ["12. Expert Panel: Operations"]
  *     security:
  *       - bearerAuth: []
  */

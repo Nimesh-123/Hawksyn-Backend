@@ -9,7 +9,7 @@ const caseController = require('../controllers/caseController');
  * /cases:
  *   get:
  *     summary: Get all active cases with pagination and sorting
- *     tags: [3. Discovery (Explore Cases)]
+ *     tags: ["3. Discovery (Explore Cases)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -101,7 +101,7 @@ router.get('/', caseController.getCases);
  * /cases/{caseId}/intents:
  *   get:
  *     summary: Get valid intents for a case with pagination
- *     tags: [3. Discovery (Explore Cases)]
+ *     tags: ["3. Discovery (Explore Cases)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -183,7 +183,7 @@ router.get('/:caseId/intents', caseController.getCaseIntents);
  * /cases/{caseId}/intents/{intentId}/playbook:
  *   get:
  *     summary: Load active playbook for case + intent
- *     tags: [3. Discovery (Explore Cases)]
+ *     tags: ["3. Discovery (Explore Cases)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

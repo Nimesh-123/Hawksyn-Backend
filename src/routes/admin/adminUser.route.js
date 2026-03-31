@@ -7,7 +7,7 @@ const adminController = require('../../controllers/admin.controller.js');
  * /admin/users/all:
  *   get:
  *     summary: Get all users (Active + Deleted)
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -28,7 +28,7 @@ const adminController = require('../../controllers/admin.controller.js');
  * /admin/users/active:
  *   get:
  *     summary: Get only active users
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -49,7 +49,7 @@ const adminController = require('../../controllers/admin.controller.js');
  * /admin/users/deleted:
  *   get:
  *     summary: Get only soft-deleted users
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -70,7 +70,7 @@ const adminController = require('../../controllers/admin.controller.js');
  * /admin/users/{userId}/details:
  *   get:
  *     summary: Get full user details and history
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -86,7 +86,7 @@ const adminController = require('../../controllers/admin.controller.js');
  * /admin/users/{userId}/block:
  *   patch:
  *     summary: Block or unblock a user
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

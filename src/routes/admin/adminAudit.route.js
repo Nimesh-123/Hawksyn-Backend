@@ -7,7 +7,7 @@ const adminController = require('../../controllers/admin.controller.js');
  * /admin/audit/logs:
  *   get:
  *     summary: Get all audit logs (Admin only)
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -7,7 +7,7 @@ const RESPONSE = require('../../utils/response.js');
  * /auth/refresh-token:
  *   post:
  *     summary: Get new Access Token using Refresh Token
- *     tags: [1. Authentication & Security]
+ *     tags: ["1. Authentication & Security"]
  *     requestBody:
  *       required: true
  *       content:

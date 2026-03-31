@@ -9,7 +9,7 @@ const paymentController = require('../controllers/paymentController');
  * /payment/product:
  *   get:
  *     summary: Get product and price details for a case
- *     tags: [4. Payments & Run Initiation]
+ *     tags: ["4. Payments & Run Initiation"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -36,7 +36,7 @@ router.get('/product', paymentController.getProduct);
  * /payment/initiate:
  *   post:
  *     summary: Initiate a mock payment
- *     tags: [4. Payments & Run Initiation]
+ *     tags: ["4. Payments & Run Initiation"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -68,7 +68,7 @@ router.post('/initiate', paymentController.initiatePayment);
  * /payment/verify:
  *   post:
  *     summary: Verify mock payment and create a Run
- *     tags: [4. Payments & Run Initiation]
+ *     tags: ["4. Payments & Run Initiation"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -102,7 +102,7 @@ router.post('/verify', paymentController.verifyPayment);
  * /payment/status:
  *   get:
  *     summary: Check payment and run status for a case/intent
- *     tags: [4. Payments & Run Initiation]
+ *     tags: ["4. Payments & Run Initiation"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -126,7 +126,7 @@ router.get('/status', paymentController.getPaymentStatus);
  * /payment/list:
  *   get:
  *     summary: Get list of all payments for the user (Incl. Full Details)
- *     tags: [4. Payments & Run Initiation]
+ *     tags: ["4. Payments & Run Initiation"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -148,7 +148,7 @@ router.get('/list', paymentController.getAllPayments);
  * /payment/experts/initiate:
  *   post:
  *     summary: Initiate payment for buying N expert query slots
- *     tags: [4. Payments & Run Initiation]
+ *     tags: ["4. Payments & Run Initiation"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -172,7 +172,7 @@ router.post('/experts/initiate', paymentController.initiateExpertQueryPayment);
  * /payment/experts/verify:
  *   post:
  *     summary: Verify and credit expert query slots
- *     tags: [4. Payments & Run Initiation]
+ *     tags: ["4. Payments & Run Initiation"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:

@@ -8,7 +8,7 @@ const adminController = require('../../controllers/admin.controller.js');
  * /admin/reports/runs:
  *   get:
  *     summary: List all completed runs (with rating status)
- *     tags: [10. AI Training Data]
+ *     tags: ["10. Admin: AI Training Data"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -39,7 +39,7 @@ route.get('/runs', adminController.getAllCompletedRuns);
  * /admin/reports/{runId}/review:
  *   get:
  *     summary: Get complete review package for a run (CV + Answers + Report)
- *     tags: [10. AI Training Data]
+ *     tags: ["10. Admin: AI Training Data"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -61,7 +61,7 @@ route.get('/:runId/review', adminController.getReportForReview);
  * /admin/reports/rated:
  *   get:
  *     summary: Get all admin-rated reports (AI Training Data Leaderboard)
- *     tags: [10. AI Training Data]
+ *     tags: ["10. Admin: AI Training Data"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -92,7 +92,7 @@ route.get('/rated', adminController.getRatedReports);
  * /admin/reports/{rasId}/rate:
  *   post:
  *     summary: Rate a completed report (1–5 stars) for AI training
- *     tags: [10. AI Training Data]
+ *     tags: ["10. Admin: AI Training Data"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -127,7 +127,7 @@ route.post('/:rasId/rate', adminController.rateReport);
  * /admin/reports/{runId}/re-run-policy:
  *   patch:
  *     summary: Update Re-run policy (Free/Paid/Expiry/Price) for a specific run
- *     tags: [10. AI Training Data]
+ *     tags: ["10. Admin: AI Training Data"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
