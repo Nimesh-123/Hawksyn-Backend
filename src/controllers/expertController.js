@@ -1,12 +1,10 @@
 const { db } = require('../models/index.model.js');
 const { refreshClocksAfterCase } = require('../services/clockService');
 const { scoreExpert, buildAssignmentReason } = require('../services/expertService');
+const { generateFormattedId } = require('../../utils/idGenerator');
+const crypto = require('crypto');
 const RESPONSE = require('../../utils/response.js');
 
-/**
- * API 1 — POST /api/v1/runs/:runId/expert/assign
- * Handles expert assignment logic, scoring, and run completion.
- */
 exports.assignExpert = async (req, res) => {
     try {
         const { runId } = req.params;
@@ -185,10 +183,6 @@ exports.assignExpert = async (req, res) => {
     }
 };
 
-/**
- * API 2 — GET /api/v1/runs/experts/price
- * Fetch dynamic price for N queries from backend.
- */
 exports.getExpertQueryPrice = async (req, res) => {
     try {
         const { count = 1 } = req.query;
@@ -210,10 +204,6 @@ exports.getExpertQueryPrice = async (req, res) => {
     }
 };
 
-/**
- * API 3 — POST /api/v1/runs/experts/ask
- * Consumes purchased Expert Chat Balance (Slots)
- */
 exports.askExpertQuery = async (req, res) => {
     try {
         const { runId, queryText, queryType = 'CUSTOM' } = req.body;
@@ -241,7 +231,6 @@ exports.askExpertQuery = async (req, res) => {
 
         let newBalance = null;
 
-        // Skip credit check if within 7 days of expert assignment
         if (!isFreeWindowActive) {
             const userCredits = await db.UserCredits.findOne({ userId });
             
@@ -290,27 +279,20 @@ exports.askExpertQuery = async (req, res) => {
     }
 };
 
-/**
- * API 4 — GET /api/v1/experts/queries/:runId
- * List all queries for a specific run chat history.
- */
 exports.getExpertQueries = async (req, res) => {
     try {
         const { runId } = req.params;
         const requesterId = req.user.id; 
         const role = req.user.role;
 
-        // 1. Security Check: Ensure requester has access to this run
         const run = await db.Runs.findOne({ runId }).populate('userId');
         if (!run) return res.status(404).json({ success: false, message: 'Run not found' });
 
         let hasAccess = false;
 
         if (role === 'user') {
-            // User must own the run
             if (run.userId._id.toString() === requesterId) hasAccess = true;
         } else if (role === 'expert') {
-            // Expert must be assigned to this run
             const expertRecord = await db.RiskAuditorRegistry.findById(requesterId);
             const assignment = await db.Ras.findOne({
                 runId,
@@ -319,14 +301,13 @@ exports.getExpertQueries = async (req, res) => {
             });
             if (assignment) hasAccess = true;
         } else if (role === 'admin') {
-            hasAccess = true; // Admin has master access
+            hasAccess = true;
         }
 
         if (!hasAccess) {
             return res.status(403).json({ success: false, message: 'Unauthorized access to this chat.' });
         }
 
-        // 2. Fetch all messages from ChatMessage model
         const messages = await db.ChatMessage.find({ runId }).sort({ createdAt: 1 });
 
         return res.status(200).json({
@@ -338,20 +319,15 @@ exports.getExpertQueries = async (req, res) => {
     }
 };
 
-/**
- * API 5 — GET /api/v1/experts/auditor/inbox
- */
 exports.getAuditorInbox = async (req, res) => {
     try {
-        const id = req.user.id; // MongoDB _id from token
+        const id = req.user.id; 
         
-        // 1. Get the Auditor's actual auditorId (e.g., RAR_001)
         const expertRecord = await db.RiskAuditorRegistry.findById(id);
         if (!expertRecord) return RESPONSE.error(res, 404, 1005, 'Expert not found');
         
         const auditorId = expertRecord.auditorId;
 
-        // 2. Find all Runs/Reports assigned to this expert from Ras artifacts
         const assignments = await db.Ras.find({
             artifactType: 'EXPERT_ASSIGNED',
             'artifactJson.assignedExpert.auditorId': auditorId
@@ -363,7 +339,6 @@ exports.getAuditorInbox = async (req, res) => {
             return RESPONSE.success(res, 200, 1001, { total: 0, sessions: [] });
         }
 
-        // 3. Aggregate Chat Sessions for these RunIds
         const sessions = await db.ChatMessage.aggregate([
             { $match: { runId: { $in: assignedRunIds } } },
             { $sort: { createdAt: -1 } },
@@ -385,23 +360,18 @@ exports.getAuditorInbox = async (req, res) => {
             { $sort: { 'latestMessage.createdAt': -1 } }
         ]);
 
-        // 4. Fetch User names/emails and attach to sessions
-        // We check cvSnapshot.parsedData for the AI-extracted name first
         const runsWithDetails = await db.Runs.find({ runId: { $in: assignedRunIds } })
             .populate('userId', 'email name')
             .select('runId userId cvSnapshot.parsedData');
 
         const runToUserMap = {};
         runsWithDetails.forEach(r => {
-            // Priority 1: AI Extracted Name from CV
             let displayName = r.cvSnapshot?.parsedData?.full_name || r.cvSnapshot?.parsedData?.name;
             
-            // Priority 2: User profile name
             if (!displayName && r.userId?.name) {
                 displayName = r.userId.name;
             }
 
-            // Priority 3: Email (before @ symbol)
             if (!displayName && r.userId?.email) {
                 displayName = r.userId.email.split('@')[0];
             }
@@ -426,9 +396,6 @@ exports.getAuditorInbox = async (req, res) => {
     }
 };
 
-/**
- * API 6 — POST /api/v1/experts/auditor/reply
- */
 exports.replyToQuery = async (req, res) => {
     try {
         const { runId, content, type = 'TEXT' } = req.body;
@@ -441,7 +408,6 @@ exports.replyToQuery = async (req, res) => {
         const expertRecord = await db.RiskAuditorRegistry.findById(id);
         if (!expertRecord) return RESPONSE.error(res, 404, 1005, 'Expert not found');
 
-        // Create a new Chat Message
         const messageId = `MSG_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         const newMessage = await db.ChatMessage.create({
             messageId,
@@ -454,7 +420,6 @@ exports.replyToQuery = async (req, res) => {
             status: 'SENT'
         });
 
-        // Mark all previous user messages in this run as READ
         await db.ChatMessage.updateMany(
             { runId, senderType: 'USER', status: { $ne: 'READ' } },
             { $set: { status: 'READ' } }
@@ -467,5 +432,95 @@ exports.replyToQuery = async (req, res) => {
 
     } catch (error) {
         return RESPONSE.error(res, 500, 9999, error.message);
+    }
+};
+
+exports.initiateExpertQueryPayment = async (req, res) => {
+    try {
+        const { queryCount, platform = 'test', paymentMethod = 'test_gateway' } = req.body;
+        const userId = req.user.id;
+
+        if (!queryCount || queryCount < 1) {
+            return res.status(400).json({ success: false, message: 'queryCount is required' });
+        }
+
+        const unitPrice = 50; 
+        const amount = queryCount * unitPrice;
+
+        const paymentId = await generateFormattedId(db.Payments, 'PAYQ', 'paymentId');
+        const purchaseId = `TEST_EXPERT_${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
+        const newPayment = new db.Payments({
+            paymentId,
+            userId,
+            platform,
+            productId: 'EXPERT_QUERY_SLOTS',
+            purchaseId,
+            amount,
+            currency: 'INR',
+            status: 'PENDING',
+            isTestPayment: true,
+            paymentMethod: paymentMethod,
+            metadata: { queryCount } 
+        });
+
+        await newPayment.save();
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                paymentId,
+                purchaseId,
+                amount,
+                queryCount,
+                message: "Expert Query payment initiated."
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.verifyExpertQueryPayment = async (req, res) => {
+    try {
+        const { purchaseId } = req.body;
+        const userId = req.user.id;
+
+        const payment = await db.Payments.findOne({ purchaseId, userId, productId: 'EXPERT_QUERY_SLOTS' });
+        if (!payment) return res.status(404).json({ success: false, message: 'Payment record not found' });
+
+        if (payment.status === 'COMPLETED') {
+            return res.status(200).json({ success: true, message: 'Already credited.' });
+        }
+
+        const queryCount = payment.metadata?.queryCount || 1;
+
+        payment.status = 'COMPLETED';
+        payment.verifiedAt = new Date();
+        await payment.save();
+
+        let credits = await db.UserCredits.findOne({ userId });
+        if (!credits) credits = new db.UserCredits({ userId });
+
+        credits.expertChatBalance += queryCount;
+        credits.transactions.push({
+            type: 'EXPERT_QUERY_PURCHASE',
+            amount: queryCount,
+            balanceAfter: credits.expertChatBalance,
+            note: `Purchased ${queryCount} expert query slots`,
+            createdAt: new Date()
+        });
+        await credits.save();
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                expertChatBalance: credits.expertChatBalance,
+                message: `${queryCount} query slots credited to your account.`
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
     }
 };

@@ -27,10 +27,7 @@ exports.adminSignup = async (req, res) => {
             role: role
         });
 
-        /* 
-        // Current Solution: 1 year expiry
-        const token = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET, { expiresIn: '365d' });
-        */
+
 
         // Active Solution 1: Refresh Token support
         const accessToken = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
@@ -64,10 +61,7 @@ exports.adminLogin = async (req, res) => {
         if (!isMatch) {
             return RESPONSE.error(res, 401, 1005, 'Invalid email or password');
         }
-        /* 
-        // Current Solution: 1 year expiry
-        const token = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET, { expiresIn: '365d' });
-        */
+
 
         // Active Solution 1: Refresh Token support
         const accessToken = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
@@ -86,16 +80,19 @@ exports.adminLogin = async (req, res) => {
     }
 };
 
-// Get All Users (Active + Deleted)
+// Get All Users (Role: User only, Active + Deleted)
 exports.getAllUsers = async (req, res) => {
     try {
         const { page = 1, limit = 10 } = req.query;
-        const users = await db.User.find()
+        // Filter by role: 'user' to exclude Experts/Admins from the customer list
+        const query = { role: 'user' };
+        
+        const users = await db.User.find(query)
             .sort({ createdAt: -1 })
             .skip((Number(page) - 1) * Number(limit))
             .limit(Number(limit));
 
-        const total = await db.User.countDocuments();
+        const total = await db.User.countDocuments(query);
 
         return RESPONSE.success(res, 200, 1001, { users, total, page: Number(page) });
     } catch (err) {
@@ -103,16 +100,19 @@ exports.getAllUsers = async (req, res) => {
     }
 };
 
-// Get Only Active Users
+// Get Only Active Users (Role: User)
 exports.getActiveUsers = async (req, res) => {
     try {
         const { page = 1, limit = 10 } = req.query;
-        const users = await db.User.find({ isDeleted: false })
+        // Exclude Experts/Admins AND Deleted users
+        const query = { isDeleted: false, role: 'user' };
+        
+        const users = await db.User.find(query)
             .sort({ createdAt: -1 })
             .skip((Number(page) - 1) * Number(limit))
             .limit(Number(limit));
 
-        const total = await db.User.countDocuments({ isDeleted: false });
+        const total = await db.User.countDocuments(query);
 
         return RESPONSE.success(res, 200, 1001, { users, total, page: Number(page) });
     } catch (err) {
@@ -120,16 +120,19 @@ exports.getActiveUsers = async (req, res) => {
     }
 };
 
-// Get Soft-Deleted Users (History)
+// Get Soft-Deleted Users (Role: User)
 exports.getDeletedUsers = async (req, res) => {
     try {
         const { page = 1, limit = 10 } = req.query;
-        const users = await db.User.find({ isDeleted: true })
+        // Search deleted users who were previously 'user' role
+        const query = { isDeleted: true, role: 'user' };
+        
+        const users = await db.User.find(query)
             .sort({ deletedAt: -1 })
             .skip((Number(page) - 1) * Number(limit))
             .limit(Number(limit));
 
-        const total = await db.User.countDocuments({ isDeleted: true });
+        const total = await db.User.countDocuments(query);
 
         return RESPONSE.success(res, 200, 1001, { users, total, page: Number(page) });
     } catch (err) {
@@ -175,6 +178,76 @@ exports.blockUser = async (req, res) => {
 
         const status = isBlocked ? 'Blocked' : 'Unblocked';
         return RESPONSE.success(res, 200, 1001, { message: `User successfully ${status}` });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+// Toggle User as Expert (Promote/Demote)
+exports.toggleUserExpertStatus = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { 
+            isExpert, 
+            caseId, 
+            specializations, 
+            maxCaseload 
+        } = req.body; // Accept professional details from admin
+
+        const user = await db.User.findById(userId);
+        if (!user) return RESPONSE.error(res, 404, 3001, 'User not found');
+
+        // Check if user is already an expert and we're trying to set to false
+        if (!isExpert && user.isExpert) {
+            return RESPONSE.error(res, 400, 1007, 'Expert status cannot be removed once granted. Please use the Block User feature if you wish to restrict access.');
+        }
+
+        // Update User Role/Flag
+        user.isExpert = !!isExpert;
+        user.role = isExpert ? 'expert' : 'user';
+        await user.save();
+
+        if (isExpert) {
+            // Check if they already exist in RiskAuditorRegistry
+            let expert = await db.RiskAuditorRegistry.findOne({ email: user.email });
+            
+            // --- Basic Mapping (Manual Admin Data) ---
+            const auditorName = user.fullName || user.name || 'Expert Auditor';
+            const finalSpecializations = specializations || ["Generalist"];
+
+            const expertConfig = {
+                auditorName, 
+                email: user.email,
+                caseId: caseId || 'GENERAL', 
+                specializations: finalSpecializations,
+                maxCaseload: maxCaseload || 20,
+                isActive: true,
+                status: 'ACTIVE'
+            };
+
+            if (!expert) {
+                // Generate a skeleton expert record (ID: EXP_timestamp_rand)
+                expertConfig.auditorId = `EXP_${Math.floor(Date.now() / 1000)}_${Math.floor(1000 + Math.random() * 9000)}`;
+                
+                // Set default placeholder password
+                expertConfig.password = await bcrypt.hash('Expert@Hks123!', 10); 
+
+                await db.RiskAuditorRegistry.create(expertConfig);
+            } else {
+                // Update and reactive existing expert record with new settings
+                await db.RiskAuditorRegistry.updateOne(
+                    { email: user.email },
+                    { $set: expertConfig }
+                );
+            }
+        }
+
+        const msg = isExpert ? 'Promoted to Expert with specific Case/Specialization' : 'Expert status confirmed';
+        return RESPONSE.success(res, 200, 1001, { 
+            message: `User role updated. ${msg}`,
+            userId: user._id,
+            isExpert: user.isExpert
+        });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
     }
@@ -362,20 +435,7 @@ exports.deleteSubAdmin = async (req, res) => {
     }
 };
 
-/**
- * @swagger
- * /admin/dashboard/stats:
- *   get:
- *     summary: Get overview stats for the Admin Dashboard
- *     tags: ["9. Admin: Dashboard"]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Dashboard statistics
- *       403:
- *         description: Permission denied
- */
+
 exports.getDashboardStats = async (req, res) => {
     try {
         const todayStart = new Date();
@@ -895,5 +955,109 @@ exports.deleteExpert = async (req, res) => {
         return RESPONSE.success(res, 200, 1001, { message: 'Expert removed successfully' });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+// Update Existing Expert
+exports.updateExpert = async (req, res) => {
+    try {
+        const { id } = req.params; // Expert's MongoDB _id
+        const { auditorName, caseId, specializations, maxCaseload, isActive, status } = req.body;
+
+        const expert = await db.RiskAuditorRegistry.findById(id);
+        if (!expert) return RESPONSE.error(res, 404, 1005, 'Expert not found');
+
+        // Build update object
+        const updateData = {};
+        if (auditorName) updateData.auditorName = auditorName;
+        if (caseId) updateData.caseId = caseId;
+        if (specializations) updateData.specializations = specializations;
+        if (maxCaseload !== undefined) updateData.maxCaseload = maxCaseload;
+        if (isActive !== undefined) updateData.isActive = isActive;
+        if (status) updateData.status = status;
+
+        const updatedExpert = await db.RiskAuditorRegistry.findByIdAndUpdate(
+            id,
+            { $set: updateData },
+            { new: true }
+        ).select('-password -refreshToken');
+
+        return RESPONSE.success(res, 200, 1001, {
+            message: 'Expert details updated successfully',
+            expert: updatedExpert
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+/**
+ * GET — CV Processing Audit Logs for Admin
+ * Supports: Pagination, Status filter, Search by Email
+ */
+exports.getCvAuditLogs = async (req, res) => {
+    try {
+        const { status, email, page = 1, limit = 20 } = req.query;
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        // Using global db import from top of file
+        
+        let query = {};
+        
+
+        if (status) {
+            query.parserStatus = status;
+        }
+
+
+        if (email) {
+            const user = await db.User.findOne({ email: new RegExp(email, 'i') });
+            if (user) {
+                query.userId = user._id;
+            } else {
+                return res.status(200).json({
+                    success: true,
+                    data: {
+                        logs: [],
+                        pagination: { total: 0, page: parseInt(page), pages: 0 }
+                    }
+                });
+            }
+        }
+
+        const total = await db.DocumentUploads.countDocuments(query);
+        const logs = await db.DocumentUploads.find(query)
+            .populate('userId', 'name email mobile')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit))
+            .lean();
+
+
+        const formattedLogs = logs.map(l => ({
+            id: l._id,
+            userName: l.userId?.name || 'Deleted User',
+            email: l.userId?.email || 'N/A',
+            fileName: l.fileName,
+            status: l.parserStatus,
+            errorReason: l.errorReason,
+            metadata: l.parserMetadata,
+            uploadedAt: l.uploadedAt || l.createdAt
+        }));
+
+        const response = {
+            logs: formattedLogs,
+            pagination: {
+                total,
+                page: parseInt(page),
+                pages: Math.ceil(total / parseInt(limit))
+            }
+        };
+
+        return res.status(200).json({ success: true, data: response });
+
+    } catch (error) {
+        console.error('[Admin CV Audit Error]', error);
+        return res.status(500).json({ success: false, message: "Failed to fetch CV audit logs." });
     }
 };

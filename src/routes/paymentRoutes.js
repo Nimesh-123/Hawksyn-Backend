@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/paymentController');
+const expertController = require('../controllers/expertController');
 
 
 
@@ -165,7 +166,7 @@ router.get('/list', paymentController.getAllPayments);
  *       200:
  *         description: Init success
  */
-router.post('/experts/initiate', paymentController.initiateExpertQueryPayment);
+router.post('/experts/initiate', expertController.initiateExpertQueryPayment);
 
 /**
  * @swagger
@@ -189,6 +190,6 @@ router.post('/experts/initiate', paymentController.initiateExpertQueryPayment);
  *       200:
  *         description: Success
  */
-router.post('/experts/verify', paymentController.verifyExpertQueryPayment);
+router.post('/experts/verify', expertController.verifyExpertQueryPayment);
 
 module.exports = router;

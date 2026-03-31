@@ -15,7 +15,20 @@ route.use('/profile', adminProfileRoute);
 route.use('/manage', adminManageRoute);
 route.use('/reports', adminReportsRoute); // AI Training Data — Report Rating
 
-// Dashboard Stats
+/**
+ * @swagger
+ * /admin/dashboard/stats:
+ *   get:
+ *     summary: Get overview stats for the Admin Dashboard
+ *     tags: ["9. Admin: Dashboard"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics
+ *       403:
+ *         description: Permission denied
+ */
 route.get('/dashboard/stats', adminController.getDashboardStats);
 
 module.exports = route;

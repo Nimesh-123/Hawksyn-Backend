@@ -2,11 +2,9 @@ const { db } = require('../models/index.model.js');
 const clockService = require('../services/clockService.js');
 const { UserProfile } = db;
 
-/**
- * --- INTERNAL HELPERS ---
- */
 
-// Purane data aur naye user updates ko merge karne ke liye
+
+
 const deepMerge = (target, source) => {
     if (!source || !target) return target;
     for (const key in source) {
@@ -17,7 +15,7 @@ const deepMerge = (target, source) => {
             if (!(key in target)) target[key] = {};
             deepMerge(target[key], sourceVal);
         } else {
-            // Empty arrays ko ignore karte hain existing data bachane ke liye
+
             if (Array.isArray(sourceVal) && sourceVal.length === 0 && Array.isArray(targetVal) && targetVal.length > 0) continue;
             target[key] = sourceVal;
         }
@@ -25,7 +23,7 @@ const deepMerge = (target, source) => {
     return target;
 };
 
-// Original CV aur user-edited data ke beech ke changes track karne ke liye
+
 const compareFields = (orig, edited, builtOverrideMap, path = '') => {
     if (!orig || !edited) return;
     for (const key in edited) {
@@ -53,9 +51,7 @@ const compareFields = (orig, edited, builtOverrideMap, path = '') => {
     }
 };
 
-/**
- * --- EXPORTED CONTROLLERS ---
- */
+
 
 exports.getUserProfile = async (req, res) => {
     try {
@@ -74,7 +70,7 @@ exports.getUserProfile = async (req, res) => {
         const cleanResponse = {
             isConfirmed: profile.isConfirmed,
             confirmedAt: profile.confirmedAt,
-            mPinSet: user ? user.mPinSet : false, // Include M-PIN status
+            mPinSet: user ? user.mPinSet : false,
             personalInfo: {
                 fullName: p.identity?.fullName || "",
                 email: p.identity?.email || "",
@@ -158,7 +154,7 @@ exports.updateUserProfile = async (req, res) => {
         userProfile.markModified('overrideMap');
         await userProfile.save();
 
-        // ✅ NEW: Sync with active Run if exists
+
         const activeRun = await db.Runs.findOne({ userId: req.user.id, status: { $in: ['CV_UPLOADED', 'PROFILE_CONFIRMED'] } });
         if (activeRun) {
             await db.Runs.updateOne(
@@ -167,8 +163,7 @@ exports.updateUserProfile = async (req, res) => {
             );
 
 
-            // ✅ NEW: Create/Update RAS artifact for Integrity Engine (Step 4)
-            // Points #2 and #4.3 of manual require PROFILE_CONFIRMED in evaluation dataset
+
             const rasId = `RAS_PROFILE_${activeRun.runId}`;
             await db.Ras.findOneAndUpdate(
                 { rasId },
@@ -185,8 +180,7 @@ exports.updateUserProfile = async (req, res) => {
                 { upsert: true }
             );
 
-            // ✅ NEW: Trigger Clock Recalibration (Step 1 Hook)
-            // This is valid for 7 days per 'The Four Clocks Recalibration Logic'
+
             // No need to wait/block the response, do it in background
             clockService.recalibrateForUser(req.user.id, mergedProfile);
         }

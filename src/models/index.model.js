@@ -46,4 +46,5 @@ db.UserCredits  = require('./UserCredits.model');
 db.ExpertQuery = require('./ExpertQuery.model');
 db.ChatMessage = require('./ChatMessage.model');
 
+
 module.exports = { db };

@@ -13,9 +13,7 @@ function shouldTriggerWarning(warning, currentAccuracyBand) {
     return (SEVERITY_ORDER[currentAccuracyBand] || 0) >= (SEVERITY_ORDER[warning.minSeverityBand] || 0);
 }
 
-/**
- * Main Integrity Engine Entry Point.
- */
+
 exports.runIntegrityEngine = async (req, res) => {
     try {
         const { runId } = req.params;
@@ -113,7 +111,7 @@ exports.runIntegrityEngine = async (req, res) => {
             const bandResult = getConstraintBand(constraint, constraintScore);
 
             if (bandResult.isTerminal && constraintScore < 20) {
-                console.log(`[Integrity] Terminal Failure Triggered by ${constraint.constraintId} (Score: ${constraintScore})`);
+        // Logic for terminal failure constraint check
                 hasTerminalFailure = true;
                 terminalConstraints.push(constraint.constraintId);
             }

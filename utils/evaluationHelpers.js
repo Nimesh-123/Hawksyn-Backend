@@ -204,7 +204,8 @@ async function callLLM({ modelFamily, systemPrompt, userPrompt, temperature = 0.
     await aiSemaphore.acquire();
     try {
         if (modelFamily === 'GEMINI') {
-            const model = geminiClient.getGenerativeModel({ model: 'gemini-2.0-flash' });
+            const modelName = 'gemini-2.0-flash';
+            const model = geminiClient.getGenerativeModel({ model: modelName });
             const prompt = `${systemPrompt}\n\n${userPrompt}`;
 
             // ✅ Robust Retry logic for report sections (paid tier burst handling)
@@ -228,14 +229,24 @@ async function callLLM({ modelFamily, systemPrompt, userPrompt, temperature = 0.
                 }
             }
             const response = await result.response;
-            return response.text();
+            
+            return {
+                text: response.text(),
+                usageMetadata: {
+                    promptTokens: response.usageMetadata?.promptTokenCount || 0,
+                    completionTokens: response.usageMetadata?.candidatesTokenCount || 0,
+                    totalTokens: response.usageMetadata?.totalTokenCount || 0
+                },
+                modelUsed: modelName
+            };
         }
 
         if (modelFamily === 'OPENAI') {
+            const modelName = 'gpt-4o';
             const OpenAI = require('openai');
             const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
             const resp = await openai.chat.completions.create({
-                model: 'gpt-4o',
+                model: modelName,
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt }
@@ -243,7 +254,16 @@ async function callLLM({ modelFamily, systemPrompt, userPrompt, temperature = 0.
                 temperature,
                 max_tokens: maxTokens
             });
-            return resp.choices[0].message.content;
+
+            return {
+                text: resp.choices[0].message.content,
+                usageMetadata: {
+                    promptTokens: resp.usage?.prompt_tokens || 0,
+                    completionTokens: resp.usage?.completion_tokens || 0,
+                    totalTokens: resp.usage?.total_tokens || 0
+                },
+                modelUsed: modelName
+            };
         }
 
         throw new Error(`callLLM: unknown modelFamily "${modelFamily}"`);

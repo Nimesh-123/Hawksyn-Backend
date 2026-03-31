@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema(
         isBlocked: { type: Boolean, default: false },
         mPinSet: { type: Boolean, default: false },
         role: { type: String, enum: ['user', 'admin', 'expert'], default: 'user' },
+        isExpert: { type: Boolean, default: false },
         
         // Multi-region Support (Auto-detected from IP)
         countryCode: { type: String, default: 'IN' }, 

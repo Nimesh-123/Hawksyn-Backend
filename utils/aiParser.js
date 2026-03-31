@@ -6,7 +6,7 @@ const mammoth = require('mammoth');
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-const MAX_CHARS = 15000;
+const MAX_CHARS = 100000;
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const { aiSemaphore } = require('./concurrency');
 
@@ -137,7 +137,12 @@ const standardizeAeuResponse = (jsonData, duration, modelUsed) => {
         },
         parsingDuration: `${duration}s`,
         modelUsed: modelUsed,
-        isCv: jsonData.isCv !== undefined ? jsonData.isCv : true // Default to true if not explicitly false
+        tokenUsage: jsonData.tokenUsage || null,
+        isCv: jsonData.isCv !== undefined ? jsonData.isCv : true,
+        flags: {
+            isInputTruncated: jsonData.isInputTruncated || false,
+            isOutputTruncated: jsonData.isOutputTruncated || false
+        }
     };
 
     // Extra polish: ensure identity fields are top-level if nested in response
@@ -237,17 +242,28 @@ const parseWithOpenAI = async (text, fileName) => {
                 ],
                 response_format: { type: "json_object" }, // Ensures valid JSON structure
                 temperature: 0,
-                max_tokens: 1500, // Increased to prevent truncation errors
+                max_tokens: 4096, // Increased to prevent truncation errors
             });
 
             try {
                 resultData = JSON.parse(response.choices[0].message.content.trim());
+                resultData.tokenUsage = {
+                    promptTokens: response.usage?.prompt_tokens || 0,
+                    completionTokens: response.usage?.completion_tokens || 0,
+                    totalTokens: response.usage?.total_tokens || 0
+                };
+                resultData.isOutputTruncated = response.choices[0].finish_reason === "length";
             } catch (jsonErr) {
                 console.error("[AI Parser] Turbo JSON Parse Error. Retrying with loose mode.");
-                // Loose recovery if JSON mode fails for some reason
                 let content = response.choices[0].message.content.trim();
                 if (content.startsWith("```json")) content = content.replace(/```json|```/g, "").trim();
                 resultData = JSON.parse(content);
+                resultData.tokenUsage = {
+                    promptTokens: response.usage?.prompt_tokens || 0,
+                    completionTokens: response.usage?.completion_tokens || 0,
+                    totalTokens: response.usage?.total_tokens || 0
+                };
+                resultData.isOutputTruncated = response.choices[0].finish_reason === "length";
             }
         } else {
             console.log(`[AI Parser] Using Accuracy-Mode: Dual-Specialist (${charCount} chars)...`);
@@ -275,19 +291,32 @@ const parseWithOpenAI = async (text, fileName) => {
                 })
             ]);
 
-            const bgJson = JSON.parse(backgroundPart.choices[0].message.content);
-            const projJson = JSON.parse(projectsPart.choices[0].message.content);
+            const bgFull = JSON.parse(backgroundPart.choices[0].message.content);
+            const projFull = JSON.parse(projectsPart.choices[0].message.content);
+
+            const bgJson = bgFull.structured || bgFull;
+            const projJson = projFull.structured || projFull;
 
             resultData = {
-                identity: bgJson.identity || {},
-                work: {
-                    experience: bgJson.work?.experience || bgJson.experience || [],
-                    projects: projJson.work?.projects || projJson.projects || []
+                aeuList: [...(bgFull.aeuList || []), ...(projFull.aeuList || [])],
+                structured: {
+                    identity: bgJson.identity || {},
+                    work: {
+                        experience: bgJson.work?.experience || bgJson.experience || [],
+                        projects: projJson.work?.projects || projJson.projects || []
+                    },
+                    composition: bgJson.composition || {
+                        education: bgJson.education || [],
+                        skills: bgJson.skills || {},
+                        languages: bgJson.languages || []
+                    },
+                    inferred: bgJson.inferred || {}
                 },
-                composition: bgJson.composition || {
-                    education: bgJson.education || [],
-                    skills: bgJson.skills || {},
-                    languages: bgJson.languages || []
+                isCv: bgFull.isCv !== undefined ? bgFull.isCv : true,
+                tokenUsage: {
+                    promptTokens: (backgroundPart.usage?.prompt_tokens || 0) + (projectsPart.usage?.prompt_tokens || 0),
+                    completionTokens: (backgroundPart.usage?.completion_tokens || 0) + (projectsPart.usage?.completion_tokens || 0),
+                    totalTokens: (backgroundPart.usage?.total_tokens || 0) + (projectsPart.usage?.total_tokens || 0)
                 }
             };
         }
@@ -315,7 +344,7 @@ const parseWithGemini = async (text, fileName) => {
             generationConfig: {
                 responseMimeType: "application/json",
                 temperature: 0.0,
-                maxOutputTokens: 2000,
+                maxOutputTokens: 8192,
             }
         });
 
@@ -344,9 +373,10 @@ const parseWithGemini = async (text, fileName) => {
         }
 
         const response = await result.response;
+        const candidate = response.candidates && response.candidates[0];
 
         // Safety check for empty or blocked response
-        if (!response) {
+        if (!response || !candidate) {
             throw new Error("Empty response from Gemini");
         }
 
@@ -355,10 +385,8 @@ const parseWithGemini = async (text, fileName) => {
             cleanText = response.text().trim();
         } catch (textErr) {
             console.error("[AI Parser] Gemini Response Error (possibly blocked):", textErr.message);
-            // Fallback: check if there's a reason for failure
-            const candidates = response.candidates || [];
-            if (candidates.length > 0 && candidates[0].finishReason) {
-                throw new Error(`Gemini failed to generate content. Reason: ${candidates[0].finishReason}`);
+            if (candidate.finishReason) {
+                throw new Error(`Gemini failed to generate content. Reason: ${candidate.finishReason}`);
             }
             throw textErr;
         }
@@ -373,6 +401,12 @@ const parseWithGemini = async (text, fileName) => {
         let jsonData;
         try {
             jsonData = JSON.parse(cleanText);
+            jsonData.tokenUsage = {
+                promptTokens: response.usageMetadata?.promptTokenCount || 0,
+                completionTokens: response.usageMetadata?.candidatesTokenCount || 0,
+                totalTokens: response.usageMetadata?.totalTokenCount || 0
+            };
+            jsonData.isOutputTruncated = candidate.finishReason === "MAX_TOKENS" || candidate.finishReason === "TOTAL_TOKENS_EXCEEDED";
         } catch (parseErr) {
             console.error("[AI Parser] Gemini returned invalid JSON. Content preview:", cleanText.substring(0, 100));
             throw new Error("Failed to parse Gemini JSON response");
@@ -419,15 +453,21 @@ const smartCVParser = async (buffer, fileName, mimetype) => {
     }
 
     const totalDuration = (Date.now() - totalStartTime) / 1000;
-    if (result) result.totalPipelineDuration = `${totalDuration}s`;
+    if (result) {
+        result.totalPipelineDuration = `${totalDuration}s`;
+        result.flags = {
+            ...result.flags,
+            isInputTruncated: rawText.length > MAX_CHARS
+        };
+    }
 
     return result;
 };
 
-module.exports = { 
-    smartCVParser, 
-    parseWithOpenAI, 
-    parseWithGemini, 
-    extractTextFromFile, 
+module.exports = {
+    smartCVParser,
+    parseWithOpenAI,
+    parseWithGemini,
+    extractTextFromFile,
     cleanCVText
 };

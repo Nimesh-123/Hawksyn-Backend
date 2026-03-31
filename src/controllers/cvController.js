@@ -36,20 +36,7 @@ exports.keepExistingCv = async (req, res) => {
             }
         }
 
-        if (!isFreeReRun) {
-            // Standard check for payment if not a valid free re-run
-            const payment = await db.Payments.findOne({
-                runId: runId,
-                userId: userId,
-                status: 'COMPLETED'
-            });
-            if (!payment) {
-                const msg = run.previousRunId 
-                    ? "Free Re-run period has expired or is not eligible for this report. Payment required."
-                    : "Payment not verified for this run";
-                return res.status(403).json({ success: false, message: msg });
-            }
-        }
+
 
         if (run.cvSnapshot && run.cvSnapshot.cvUrl) {
             return res.status(200).json({
@@ -159,20 +146,7 @@ exports.uploadRunCv = async (req, res) => {
             }
         }
 
-        if (!isFreeReRun) {
-            // Standard check for payment if not a valid free re-run
-            const payment = await db.Payments.findOne({
-                runId,
-                userId,
-                status: 'COMPLETED'
-            });
-            if (!payment) {
-                const msg = run.previousRunId 
-                    ? "Free Re-run period has expired or is not eligible for this report. Payment required."
-                    : "Payment not verified for this run";
-                return res.status(403).json({ success: false, message: msg });
-            }
-        }
+
 
         if (!req.file) {
             return res.status(400).json({ success: false, message: "No file provided. Please upload your CV." });
@@ -219,6 +193,16 @@ exports.uploadRunCv = async (req, res) => {
         } catch (aiError) {
             console.error("[AI Extraction Failed]", aiError.message);
         }
+
+        const isExtractionBlank = !extractedData || 
+                                (extractedData.aeuList.length < 3 && 
+                                 (!extractedData.structured.work?.experience?.length) && 
+                                 (!extractedData.structured.composition?.skills?.technical?.length));
+
+        if (isExtractionBlank && parserStatus !== "FAILED") {
+            parserStatus = "EMPTY";
+        }
+
 
         await db.DocumentUploads.updateMany(
             { userId },
@@ -267,10 +251,14 @@ exports.uploadRunCv = async (req, res) => {
             { upsert: true }
         );
 
+        let finalMessage = "CV uploaded and parsed successfully";
+        if (parserStatus === "FAILED") finalMessage = "CV uploaded but AI parsing failed";
+        else if (parserStatus === "EMPTY") finalMessage = "CV uploaded but we couldn't extract any meaningful data. Please ensure it's a readable PDF.";
+
         return res.status(200).json({
             success: true,
             data: {
-                message: extractedData ? "CV uploaded and parsed successfully" : "CV uploaded but AI parsing failed",
+                message: finalMessage,
                 cvUrl: fileUrl,
                 parsedData: extractedData,
                 source: "REUPLOADED"
