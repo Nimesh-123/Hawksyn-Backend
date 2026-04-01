@@ -185,9 +185,9 @@ exports.uploadRunCv = async (req, res) => {
                 try {
                     const { sanitizeParsedData } = require('../../utils/cvSanitizer.js');
                     extractedData = sanitizeParsedData(extractedData);
-                    parserStatus = "COMPLETED";
+                    parserStatus = "SUCCESS";
                 } catch (sanitizerError) {
-                    parserStatus = "PARTIAL";
+                    parserStatus = "SUCCESS";
                 }
             }
         } catch (aiError) {

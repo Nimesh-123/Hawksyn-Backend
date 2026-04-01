@@ -124,6 +124,7 @@ exports.generateReport = async (req, res) => {
                 sectionOut.content = applyCertaintyCap(llmResult.text, prompt.certaintyCapPercent || 85, integrityPack.accuracy?.band);
                 sectionOut.status = anchorCheck.allCovered ? 'COMPLETE' : 'DEGRADED';
                 sectionOut.tokenUsage = llmResult.usageMetadata;
+                sectionOut.duration = llmResult.duration;
             } catch (llmErr) {
                 sectionOut.status = 'LLM_ERROR';
                 sectionOut.content = 'Generation failed.';
@@ -132,6 +133,7 @@ exports.generateReport = async (req, res) => {
         }
 
         // 5. Final Assembly & Aggregation
+        const totalDuration = (Date.now() - startTime) / 1000;
         const totalTokenUsage = reportSections.reduce((acc, s) => {
             if (s.tokenUsage) {
                 acc.promptTokens += s.tokenUsage.promptTokens;
@@ -150,6 +152,7 @@ exports.generateReport = async (req, res) => {
             accuracyScore: integrityPack.accuracy?.score || 0,
             accuracyBand: integrityPack.accuracy?.band || 'UNKNOWN',
             tokenUsage: totalTokenUsage,
+            totalDuration: `${totalDuration.toFixed(2)}s`,
             generatedAt: new Date()
         };
 

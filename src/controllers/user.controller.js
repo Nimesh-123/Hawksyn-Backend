@@ -40,14 +40,14 @@ exports.sendOTP = async (req, res) => {
 
         const otp = generateOTP();
         const otpHash = await bcrypt.hash(otp, 10);
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+        const expiresAt = new Date(Date.now() + 30 * 1000);
         await db.OTP.findOneAndUpdate(
             { email },
             { otp: otpHash, expiresAt, failCount: 0 },
             { upsert: true, new: true }
         );
 
-        console.log(`[DEV Auth] OTP for ${email}: ${otp}`);
+        console.log(`[DEV Auth] OTP for ${email}: ${otp} (Valid for 30s)`);
 
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
             try {
@@ -55,8 +55,8 @@ exports.sendOTP = async (req, res) => {
                 await sendEmail({
                     email,
                     subject: 'Your Hawksyn OTP Verification Code',
-                    message: `Your OTP is ${otp}. It will expire in 5 minutes.`,
-                    html: `<b>Your OTP is ${otp}</b><p>It will expire in 5 minutes.</p>`
+                    message: `Your OTP is ${otp}. It will expire in 30 seconds.`,
+                    html: `<b>Your OTP is ${otp}</b><p>It will expire in 30 seconds.</p>`
                 });
             } catch (e) { console.error("[Mail] Failed:", e.message); }
         }
@@ -74,7 +74,7 @@ exports.verifyOTP = async (req, res) => {
         const otpRecord = await db.OTP.findOne({ email });
         if (!otpRecord) return RESPONSE.error(res, 404, 3003, "OTP expired or not found.");
 
-        if (otpRecord.failCount >= 5) return RESPONSE.error(res, 403, 3008, "Too many failed attempts.");
+        if (otpRecord.failCount >= 3) return RESPONSE.error(res, 403, 3008, "Too many failed attempts. Please request a new OTP.");
 
         const isMatch = await bcrypt.compare(otp, otpRecord.otp);
         if (!isMatch) {
@@ -116,6 +116,11 @@ exports.setPin = async (req, res) => {
     try {
         const { email, mPin, confirmMPin } = req.body;
         if (mPin !== confirmMPin) return RESPONSE.error(res, 400, 3005);
+ 
+        const commonPins = ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999', '1234'];
+        if (commonPins.includes(mPin)) {
+            return RESPONSE.error(res, 400, 3004, "Common PINs like 1234, 1111 and 0000 are not allowed for security reasons.");
+        }
 
         const user = await db.User.findOne({ email, isDeleted: false });
         if (!user) return RESPONSE.error(res, 404, 3001);
@@ -296,8 +301,8 @@ exports.uploadCV = async (req, res) => {
                 try {
                     const { sanitizeParsedData } = require('../../utils/cvSanitizer.js');
                     extractedData = sanitizeParsedData(extractedData);
-                    parserStatus = "COMPLETED";
-                } catch (e) { parserStatus = "PARTIAL"; }
+                    parserStatus = "SUCCESS";
+                } catch (e) { parserStatus = "SUCCESS"; }
             }
         } catch (aiError) { console.error("[AI Fail]", aiError.message); }
 

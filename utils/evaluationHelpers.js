@@ -191,82 +191,23 @@ function calculateQuestionScore(question, answerValue) {
     return 0;
 }
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const geminiClient = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
+const { generateText } = require('../src/services/aiProvider.js');
 const { aiSemaphore } = require('./concurrency.js');
 
 /**
- * callLLM — calls Gemini or OpenAI based on promptConfig modelFamily
+ * callLLM — calls model in hierarchy: Claude -> Gemini -> OpenAI
+ * modelFamily param is legacy/ignored now to follow tiered instructions
  */
-async function callLLM({ modelFamily, systemPrompt, userPrompt, temperature = 0.3, maxTokens = 600 }) {
+async function callLLM({ systemPrompt, userPrompt }) {
     await aiSemaphore.acquire();
     try {
-        if (modelFamily === 'GEMINI') {
-            const modelName = 'gemini-2.0-flash';
-            const model = geminiClient.getGenerativeModel({ model: modelName });
-            const prompt = `${systemPrompt}\n\n${userPrompt}`;
-
-            // ✅ Robust Retry logic for report sections (paid tier burst handling)
-            let result = null;
-            let attempts = 0;
-            const maxAttempts = 3;
-
-            while (attempts < maxAttempts) {
-                try {
-                    attempts++;
-                    result = await model.generateContent(prompt);
-                    break;
-                } catch (err) {
-                    const isRateLimit = err.message?.includes('429') || err.message?.includes('Resource exhausted');
-                    if (isRateLimit && attempts < maxAttempts) {
-                        console.warn(`[LLM Helper] Gemini 429. Retrying in 2s (Attempt ${attempts})...`);
-                        await sleep(2000);
-                        continue;
-                    }
-                    throw err;
-                }
-            }
-            const response = await result.response;
-            
-            return {
-                text: response.text(),
-                usageMetadata: {
-                    promptTokens: response.usageMetadata?.promptTokenCount || 0,
-                    completionTokens: response.usageMetadata?.candidatesTokenCount || 0,
-                    totalTokens: response.usageMetadata?.totalTokenCount || 0
-                },
-                modelUsed: modelName
-            };
-        }
-
-        if (modelFamily === 'OPENAI') {
-            const modelName = 'gpt-4o';
-            const OpenAI = require('openai');
-            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-            const resp = await openai.chat.completions.create({
-                model: modelName,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
-                ],
-                temperature,
-                max_tokens: maxTokens
-            });
-
-            return {
-                text: resp.choices[0].message.content,
-                usageMetadata: {
-                    promptTokens: resp.usage?.prompt_tokens || 0,
-                    completionTokens: resp.usage?.completion_tokens || 0,
-                    totalTokens: resp.usage?.total_tokens || 0
-                },
-                modelUsed: modelName
-            };
-        }
-
-        throw new Error(`callLLM: unknown modelFamily "${modelFamily}"`);
+        const { content, usage, provider, duration } = await generateText(userPrompt, systemPrompt);
+        return {
+            text: content,
+            usageMetadata: usage,
+            modelUsed: provider,
+            duration
+        };
     } finally {
         aiSemaphore.release();
     }

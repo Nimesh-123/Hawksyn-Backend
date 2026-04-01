@@ -37,6 +37,8 @@ exports.collectSignals = async (req, res) => {
                         industryHiringTrend: existing.artifactJson?.signals?.industryHiringTrend?.value || 'UNKNOWN',
                         automationOverlap: existing.artifactJson?.signals?.automationOverlapScore?.value ?? 'UNKNOWN'
                     },
+                    analystNote: existing.artifactJson?.signals?.analystNote || null,
+                    collectionDuration: existing.artifactJson?.collectionDuration || 'Unknown',
                     message: 'Signals already collected for this run.'
                 }
             });
@@ -69,11 +71,13 @@ exports.collectSignals = async (req, res) => {
         let signals = null;
         let collectionStatus = 'SUCCESS';
         let validationError = null;
+        let totalDuration = 0;
 
         try {
             const initialCall = await callOpenAI(prompt);
             let parsed = initialCall.data;
             let usage = initialCall.usage;
+            totalDuration = parseFloat(initialCall.duration);
 
             const validation = validateSignals(parsed);
 
@@ -81,10 +85,11 @@ exports.collectSignals = async (req, res) => {
                 const retryPrompt = `${prompt}\n\nCORRECTION REQUIRED: Previous response failed validation.\nReason: ${validation.reason}\n\nReturn ONLY valid JSON.`;
                 const retryCall = await callOpenAI(retryPrompt);
                 
-                // Add tokens for both attempts
+                // Add tokens & duration for both attempts
                 usage.promptTokens += retryCall.usage.promptTokens;
                 usage.completionTokens += retryCall.usage.completionTokens;
                 usage.totalTokens += retryCall.usage.totalTokens;
+                totalDuration += parseFloat(retryCall.duration);
 
                 const retryValidation = validateSignals(retryCall.data);
 
@@ -99,13 +104,14 @@ exports.collectSignals = async (req, res) => {
                 signals = parsed;
             }
 
-            // Save tokens for artifact metadata (Budget tracking)
+            // Save tokens & duration for artifact metadata
             if (signals) {
                 signals.tokenUsage = usage;
+                signals.collectionDuration = `${totalDuration.toFixed(2)}s`;
             }
 
         } catch (llmErr) {
-            console.error('[Signals] OpenAI call failed:', llmErr.message);
+            console.error('[Signals] AI call failed:', llmErr.message);
             collectionStatus = 'FAILED';
             validationError = llmErr.message;
             signals = {};
@@ -128,6 +134,7 @@ exports.collectSignals = async (req, res) => {
                 industry: promptContext.industry,
                 orgSize: promptContext.orgSize
             },
+            collectionDuration: `${totalDuration.toFixed(2)}s`,
             collectedAt: new Date()
         };
 
@@ -158,6 +165,7 @@ exports.collectSignals = async (req, res) => {
                     automationOverlap: signals?.automationOverlapScore?.value ?? 'UNKNOWN'
                 },
                 analystNote: signals?.analystNote || null,
+                collectionDuration: `${totalDuration.toFixed(2)}s`,
                 message: 'External signals collected successfully.'
             }
         });

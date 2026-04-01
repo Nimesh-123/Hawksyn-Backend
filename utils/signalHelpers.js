@@ -1,12 +1,16 @@
-const OpenAI = require('openai');
+const { generateJSON } = require('../src/services/aiProvider.js');
 
 /**
  * 1. PROMPT HELPER — Generate market signal analysis prompt
  */
 function buildSignalPrompt({ role, industry, orgSize, intentName, caseName }) {
     return `You are a professional career risk analyst with expertise in labour market intelligence.
+Goal: Provide a fact-based assessment of current market conditions.
 
-Based on the following profile, provide a factual assessment of current market conditions.
+STRICT PRECISION RULE:
+- DO NOT provide generic sector advice (e.g. "Technology is growing").
+- DO provide specific insights for the EXACT ROLE (${role}) AND SUB-INDUSTRY (${industry}).
+- If you have limited data on the niche, perform cross-industry reasoning but label the dataQuality as "PARTIAL".
 
 Profile:
 - Current Role: ${role}
@@ -15,34 +19,31 @@ Profile:
 - Assessment Type: ${caseName}
 - User Intent: ${intentName}
 
-Return ONLY a JSON object. No markdown. No explanation. No text before or after.
-The entire response must be directly parseable by JSON.parse().
-
-Required JSON structure:
+Return ONLY a JSON object. No markdown. No explanation.
 {
   "marketDemandSignal": {
     "value": "HIGH | MEDIUM | LOW | DECLINING",
-    "rationale": "One factual sentence about current demand for this role type.",
+    "rationale": "One specific factual sentence about demand for ${role} in ${industry}.",
     "confidence": "HIGH | MEDIUM | LOW"
   },
   "aiDisplacementRisk": {
     "value": "HIGH | MEDIUM | LOW",
-    "rationale": "One factual sentence about AI impact risk for this role type.",
+    "rationale": "One specific factual sentence about AI impact risk for ${role}.",
     "confidence": "HIGH | MEDIUM | LOW",
     "timelineMonths": 24
   },
   "industryHiringTrend": {
     "value": "GROWING | STABLE | CONTRACTING",
-    "rationale": "One factual sentence about hiring in this industry.",
+    "rationale": "One factual sentence about hiring specifically in ${industry}.",
     "confidence": "HIGH | MEDIUM | LOW"
   },
   "automationOverlapScore": {
     "value": 45,
-    "rationale": "One factual sentence about automatable tasks in this role.",
+    "rationale": "One specific factual sentence about automatable tasks in ${role}.",
     "confidence": "HIGH | MEDIUM | LOW"
   },
   "dataQuality": "COMPLETE | PARTIAL | INSUFFICIENT",
-  "analystNote": "One overall sentence summarising the market position for this profile."
+  "analystNote": "One overall sentence summarising the market position for this specific ${role} profile."
 }
 
 Rules:
@@ -50,44 +51,21 @@ Rules:
 - automationOverlapScore.value must be a number 0-100 (no quotes).
 - aiDisplacementRisk.timelineMonths must be a number (no quotes).
 - rationale must be exactly one sentence.
-- dataQuality: COMPLETE if all 4 signals are well-supported, PARTIAL if some uncertainty, INSUFFICIENT if very limited data.
-- Base your assessment on your training knowledge about this role and industry.`;
+- dataQuality: COMPLETE if specific to role/industry, PARTIAL if broad sector only.
+- Base your assessment on real-world trends for this specific profile.`;
 }
 
 /**
- * 2. LLM HELPER — Call OpenAI and return cleaned JSON + usage
+ * 2. LLM HELPER — Call AI Provider and return cleaned JSON + usage
  */
 async function callOpenAI(prompt) {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const modelName = 'gpt-4o';
-    
-    const response = await openai.chat.completions.create({
-        model: modelName,
-        temperature: 0.2,
-        max_tokens: 600,
-        messages: [
-            {
-                role: 'system',
-                content: 'You are a JSON-only responder. Return only valid JSON. No markdown. No explanation. No preamble. Your entire response must be parseable by JSON.parse().'
-            },
-            {
-                role: 'user',
-                content: prompt
-            }
-        ]
-    });
-
-    const raw = response.choices[0].message.content || '';
-    const clean = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const { data, usage, provider, duration } = await generateJSON(prompt);
     
     return {
-        data: JSON.parse(clean),
-        usage: {
-            promptTokens: response.usage?.prompt_tokens || 0,
-            completionTokens: response.usage?.completion_tokens || 0,
-            totalTokens: response.usage?.total_tokens || 0
-        },
-        model: modelName
+        data,
+        usage,
+        model: provider,
+        duration
     };
 }
 

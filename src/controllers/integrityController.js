@@ -15,6 +15,7 @@ function shouldTriggerWarning(warning, currentAccuracyBand) {
 
 
 exports.runIntegrityEngine = async (req, res) => {
+    const startTime = Date.now();
     try {
         const { runId } = req.params;
 
@@ -111,7 +112,6 @@ exports.runIntegrityEngine = async (req, res) => {
             const bandResult = getConstraintBand(constraint, constraintScore);
 
             if (bandResult.isTerminal && constraintScore < 20) {
-        // Logic for terminal failure constraint check
                 hasTerminalFailure = true;
                 terminalConstraints.push(constraint.constraintId);
             }
@@ -280,6 +280,8 @@ exports.runIntegrityEngine = async (req, res) => {
 
         await db.Runs.updateOne({ runId }, { $set: { status: 'INTEGRITY_COMPLETE' } });
 
+        const totalDuration = (Date.now() - startTime) / 1000;
+
         return res.status(200).json({
             success: true,
             data: {
@@ -293,6 +295,7 @@ exports.runIntegrityEngine = async (req, res) => {
                 warnings: integrityPack.warnings,
                 hasTerminalFailure,
                 requiresEscalation: integrityPack.requiresEscalation,
+                processingDuration: `${totalDuration}s`,
                 message: 'Integrity engine completed successfully.'
             }
         });
