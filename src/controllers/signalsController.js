@@ -31,12 +31,7 @@ exports.collectSignals = async (req, res) => {
                     collectionStatus: 'ALREADY_COLLECTED',
                     dataQuality: existing.artifactJson?.dataQuality || 'PARTIAL',
                     coverage: existing.artifactJson?.coverage || [],
-                    signalsSummary: {
-                        marketDemandSignal: existing.artifactJson?.signals?.marketDemandSignal?.value || 'UNKNOWN',
-                        aiDisplacementRisk: existing.artifactJson?.signals?.aiDisplacementRisk?.value || 'UNKNOWN',
-                        industryHiringTrend: existing.artifactJson?.signals?.industryHiringTrend?.value || 'UNKNOWN',
-                        automationOverlap: existing.artifactJson?.signals?.automationOverlapScore?.value ?? 'UNKNOWN'
-                    },
+                    signalsSummary: existing.artifactJson?.signals?.signals ? Object.entries(existing.artifactJson.signals.signals).slice(0, 4).reduce((acc, [k, v]) => ({ ...acc, [k]: v.value }), {}) : {},
                     analystNote: existing.artifactJson?.signals?.analystNote || null,
                     collectionDuration: existing.artifactJson?.collectionDuration || 'Unknown',
                     message: 'Signals already collected for this run.'
@@ -66,7 +61,13 @@ exports.collectSignals = async (req, res) => {
             caseName: caseReg?.caseName || 'Job Safety Assessment'
         };
 
-        const prompt = buildSignalPrompt(promptContext);
+        // --- NEW: Fetch Dynamic Taxonomy (Task 8) ---
+        const taxonomy = await db.ExternalSignalTaxonomy.find({ 
+            $or: [{ caseId: run.caseId }, { caseId: 'ALL' }],
+            isActive: true 
+        });
+
+        const prompt = buildSignalPrompt({ ...promptContext, taxonomy });
 
         let signals = null;
         let collectionStatus = 'SUCCESS';
@@ -79,19 +80,18 @@ exports.collectSignals = async (req, res) => {
             let usage = initialCall.usage;
             totalDuration = parseFloat(initialCall.duration);
 
-            const validation = validateSignals(parsed);
+            const validation = validateSignals(parsed, taxonomy);
 
             if (!validation.valid) {
-                const retryPrompt = `${prompt}\n\nCORRECTION REQUIRED: Previous response failed validation.\nReason: ${validation.reason}\n\nReturn ONLY valid JSON.`;
+                const retryPrompt = `${prompt}\n\nCORRECTION REQUIRED: Previous response failed validation.\nReason: ${validation.reason}\n\nReturn ONLY valid JSON matching the taxonomy.`;
                 const retryCall = await callOpenAI(retryPrompt);
                 
-                // Add tokens & duration for both attempts
                 usage.promptTokens += retryCall.usage.promptTokens;
                 usage.completionTokens += retryCall.usage.completionTokens;
                 usage.totalTokens += retryCall.usage.totalTokens;
                 totalDuration += parseFloat(retryCall.duration);
 
-                const retryValidation = validateSignals(retryCall.data);
+                const retryValidation = validateSignals(retryCall.data, taxonomy);
 
                 if (!retryValidation.valid) {
                     signals = retryCall.data || {};
@@ -104,7 +104,6 @@ exports.collectSignals = async (req, res) => {
                 signals = parsed;
             }
 
-            // Save tokens & duration for artifact metadata
             if (signals) {
                 signals.tokenUsage = usage;
                 signals.collectionDuration = `${totalDuration.toFixed(2)}s`;
@@ -117,7 +116,7 @@ exports.collectSignals = async (req, res) => {
             signals = {};
         }
 
-        const coverage = buildCoverage(signals);
+        const coverage = buildCoverage(signals, taxonomy);
         const rasId = `RAS_SIG_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
 
         const artifactJson = {
@@ -148,6 +147,66 @@ exports.collectSignals = async (req, res) => {
             status: 'FINAL'
         });
 
+        // --- NEW: Persist to ExternalEvidenceDataPool (EEDP) with dynamic signals ---
+        const eedpEntries = [];
+        const sourceConfigs = await db.SourceRegistry.find({ isActive: true });
+
+        if (signals && signals.signals) {
+            for (const t of taxonomy) {
+                const sig = signals.signals[t.signalId];
+                if (!sig || sig.value === undefined || sig.value === 'UNKNOWN') continue;
+
+                // 1. Deduplication (Task 11)
+                const exists = await db.ExternalEvidenceDataPool.findOne({ runId, signalId: t.signalId });
+                if (exists) continue;
+
+                // 2. Dynamic Expiry (Task 13)
+                const recencyDays = t.recencyDaysMax || 180;
+                const expiresAt = new Date(Date.now() + recencyDays * 24 * 60 * 60 * 1000);
+
+                // 3. Source Reliability Weighting (Task 12)
+                // Default to a general AI source if no specific source mapped
+                let sourceWeight = 0.7; // Default 70%
+                let sourceId = 'AI_ADAPTER_OPENAI';
+
+                // Try to find a matching source from taxonomy suggested source or registry
+                const matchingSource = sourceConfigs.find(s => 
+                    sig.rationale?.toLowerCase().includes(s.sourceName.toLowerCase()) || 
+                    s.sourceName.toLowerCase().includes(t.signalCategory.toLowerCase())
+                );
+
+                if (matchingSource) {
+                    sourceWeight = (matchingSource.minConfidenceWeight || 70) / 100;
+                    sourceId = matchingSource.sourceId;
+                }
+
+                const aiConfidenceLevel = sig.confidence === 'HIGH' ? 1.0 : (sig.confidence === 'MEDIUM' ? 0.7 : 0.4);
+                // Weighted Score = (AI Confidence * 0.4) + (Source Reliability * 0.6)
+                const finalConfidence = (aiConfidenceLevel * 0.4) + (sourceWeight * 0.6);
+
+                eedpEntries.push({
+                    eedpId: `EEDP_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+                    signalId: t.signalId,
+                    sourceId,
+                    caseId: run.caseId,
+                    runId,
+                    signalValue: String(sig.value),
+                    confidenceScore: parseFloat(finalConfidence.toFixed(2)),
+                    freshnessExpiresAt: expiresAt,
+                    geoScope: t.geoScope || 'GLOBAL',
+                    geoValue: profile?.location || 'GLOBAL',
+                    sourceUrl: matchingSource?.sourceUrl || 'https://hawksyn.com/evidence',
+                    citationText: sig.rationale || `Market signal for ${t.signalId} via ${sourceId}`,
+                    aeuId: `AEU_${runId}`,
+                    isValidated: collectionStatus === 'SUCCESS' && sourceWeight >= 0.8
+                });
+            }
+        }
+
+        if (eedpEntries.length > 0) {
+            await db.ExternalEvidenceDataPool.insertMany(eedpEntries);
+        }
+
         await db.Runs.updateOne({ runId }, { $set: { status: 'SIGNALS_COLLECTED' } });
 
         return res.status(200).json({
@@ -158,12 +217,7 @@ exports.collectSignals = async (req, res) => {
                 collectionStatus,
                 dataQuality: signals?.dataQuality || 'INSUFFICIENT',
                 coverage,
-                signalsSummary: {
-                    marketDemandSignal: signals?.marketDemandSignal?.value || 'UNKNOWN',
-                    aiDisplacementRisk: signals?.aiDisplacementRisk?.value || 'UNKNOWN',
-                    industryHiringTrend: signals?.industryHiringTrend?.value || 'UNKNOWN',
-                    automationOverlap: signals?.automationOverlapScore?.value ?? 'UNKNOWN'
-                },
+                signalsSummary: signals?.signals ? Object.entries(signals.signals).slice(0, 4).reduce((acc, [k, v]) => ({ ...acc, [k]: v.value }), {}) : {},
                 analystNote: signals?.analystNote || null,
                 collectionDuration: `${totalDuration.toFixed(2)}s`,
                 message: 'External signals collected successfully.'

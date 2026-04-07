@@ -54,9 +54,9 @@ async function generateJSON(prompt, systemPrompt = 'You are a JSON-only responde
 
     // --- Step 1: ANTHROPIC HAIKU (Primary - High Speed Claude) ---
     try {
-        console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-Haiku-4-5) [High-Speed]...');
+        console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Haiku) [High-Speed]...');
         const message = await anthropic.messages.create({
-            model: 'claude-haiku-4-5-20251001',
+            model: 'claude-3-5-haiku-latest',
             max_tokens: 4096,
             system: systemPrompt,
             messages: [{ role: 'user', content: prompt }]
@@ -105,9 +105,9 @@ async function generateJSON(prompt, systemPrompt = 'You are a JSON-only responde
 
             // --- Step 3: ANTHROPIC SONNET (Fallback 2) ---
             try {
-                console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-Sonnet-4-6) [High Accuracy]...');
+                console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Sonnet) [High Accuracy]...');
                 const message = await anthropic.messages.create({
-                    model: 'claude-sonnet-4-6',
+                    model: 'claude-3-5-sonnet-latest',
                     max_tokens: 8192,
                     system: systemPrompt,
                     messages: [{ role: 'user', content: prompt }]
@@ -191,9 +191,9 @@ async function generateText(prompt, systemPrompt = 'You are a helpful assistant.
     const startTime = Date.now();
     // --- Step 1: ANTHROPIC HAIKU (Primary) ---
     try {
-        console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-Haiku-4-5) [Text]...');
+        console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Haiku) [Text]...');
         const message = await anthropic.messages.create({
-            model: 'claude-haiku-4-5-20251001',
+            model: 'claude-3-5-haiku-latest',
             max_tokens: 4096,
             system: systemPrompt,
             messages: [{ role: 'user', content: prompt }]
@@ -235,9 +235,9 @@ async function generateText(prompt, systemPrompt = 'You are a helpful assistant.
 
             // --- Step 3: ANTHROPIC SONNET (Fallback 2) ---
             try {
-                console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-Sonnet-4-6) [Text]...');
+                console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Sonnet) [Text]...');
                 const message = await anthropic.messages.create({
-                    model: 'claude-sonnet-4-6',
+                    model: 'claude-3-5-sonnet-latest',
                     max_tokens: 4096,
                     system: systemPrompt,
                     messages: [{ role: 'user', content: prompt }]

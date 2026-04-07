@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const MandatoryObjectiveInputSchema = new mongoose.Schema({
-    moiId: { type: String, required: true, unique: true },
+    moiId: { type: String, required: true },
     moiName: { type: String, required: true },
     caseId: { type: String, required: true },
     intentId: { type: String, required: true },

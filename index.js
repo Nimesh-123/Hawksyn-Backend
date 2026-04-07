@@ -19,6 +19,8 @@ const { initChatSocket } = require('./src/sockets/chatSocket');
 // --- Cron Jobs ---
 require('./src/crons/trendEngine.cron.js');
 require('./src/crons/validityDecline.cron.js');
+require('./src/crons/signalArchive.cron.js');
+require('./src/crons/slaBreach.cron.js');
 
 // --- Global Logging & Request ID ---
 const requestLogger = require('./middleware/requestLogger.js');

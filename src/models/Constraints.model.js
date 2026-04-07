@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const ConstraintsSchema = new mongoose.Schema({
-    constraintId: { type: String, required: true, unique: true },
+    constraintId: { type: String, required: true },
     constraintSetId: { type: String, required: true },
     caseId: { type: String, required: true },
     intentId: { type: String, required: true },

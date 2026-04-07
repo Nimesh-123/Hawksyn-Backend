@@ -48,14 +48,14 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         }
     }
 
-    const currentRole = profileSnapshot.current_role 
-        || profileSnapshot.identity?.currentRole 
-        || profileSnapshot.identity?.fullName 
+    const currentRole = profileSnapshot?.current_role 
+        || profileSnapshot?.identity?.currentRole 
+        || profileSnapshot?.identity?.fullName 
         || 'Not provided';
 
-    const experienceYears = profileSnapshot.experience_years 
-        || profileSnapshot.work?.totalYearsExperience 
-        || (profileSnapshot.work?.experience?.[0]?.duration)
+    const experienceYears = profileSnapshot?.experience_years 
+        || profileSnapshot?.work?.totalYearsExperience 
+        || (profileSnapshot?.work?.experience?.[0]?.duration)
         || 'Not provided';
 
     const redFlagsSummary = (integrityPack.redFlags?.triggered || [])
@@ -66,9 +66,9 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         .map(c => c.contradictionName)
         .join(', ') || 'None';
 
-    const skills = Array.isArray(profileSnapshot.skills)
-        ? profileSnapshot.skills.join(', ')
-        : (profileSnapshot.skills || 'Not provided');
+    const skills = Array.isArray(profileSnapshot?.skills)
+        ? profileSnapshot?.skills.join(', ')
+        : (profileSnapshot?.skills || 'Not provided');
 
     const baseMap = {
         CURRENT_ROLE:      currentRole,
@@ -80,16 +80,25 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         ACCURACY_BAND:     integrityPack.accuracy?.band           || 'UNKNOWN',
         RED_FLAGS:         redFlagsSummary,
         CONTRADICTIONS:    contradictionsSummary,
+        COMPOSITE_SCORE:   String(integrityPack.compositeScore || 0),
+        VERDICT:           integrityPack.verdict || 'PAUSE',
+        CONFIDENCE:        integrityPack.confidence || 'MEDIUM',
         TOTAL_PENALTY:     String(integrityPack.accuracy?.totalPenalty || 0),
-        'MARKET_DEMAND_SIGNAL':    externalSignals?.marketDemandSignal?.value    || 'NOT_AVAILABLE',
-        'MARKET_DEMAND_RATIONALE': externalSignals?.marketDemandSignal?.rationale || 'No market data available.',
-        'AI_DISPLACEMENT_RISK':    externalSignals?.aiDisplacementRisk?.value     || 'NOT_AVAILABLE',
-        'AI_DISPLACEMENT_RATIONALE': externalSignals?.aiDisplacementRisk?.rationale || 'No AI risk data available.',
-        'INDUSTRY_HIRING_TREND':   externalSignals?.industryHiringTrend?.value    || 'NOT_AVAILABLE',
-        'AUTOMATION_OVERLAP':      String(externalSignals?.automationOverlapScore?.value ?? 'NOT_AVAILABLE'),
-        'SIGNAL_DATA_QUALITY':     externalSignals?.dataQuality                   || 'INSUFFICIENT',
-        'ANALYST_NOTE':            externalSignals?.analystNote                   || 'Insufficient market data for this profile.',
+        SIGNAL_DATA_QUALITY: externalSignals?.dataQuality || 'INSUFFICIENT',
+        ANALYST_NOTE:      externalSignals?.analystNote || 'Insufficient market data for this profile.'
     };
+
+    // --- NEW: Dynamic Signals Mapping (Task 8/12) ---
+    if (externalSignals && externalSignals.signals) {
+        for (const [sId, sig] of Object.entries(externalSignals.signals)) {
+            baseMap[`${sId}_VALUE`] = String(sig.value || 'N/A');
+            baseMap[`${sId}_RATIONALE`] = sig.rationale || 'No data provided.';
+            baseMap[`${sId}_CONFIDENCE`] = sig.confidence || 'LOW';
+            // Also keep a generic reference if LLM is prompted via Signal Name
+            const sanitisedName = (sig.name || sId).toUpperCase().replace(/\s+/g, '_');
+            baseMap[`SIGNAL_${sanitisedName}_VALUE`] = String(sig.value || 'N/A');
+        }
+    }
 
     // Legacy Question IDs mapping
     for (const [qId, label] of Object.entries(answerLabelMap)) {
@@ -103,6 +112,7 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
  * fillPrompt — Placeholder replacement engine.
  */
 const fillPrompt = (template, placeholders) => {
+    if (!template || typeof template !== 'string') return 'No prompt template provided.';
     let result = template;
     for (const [key, val] of Object.entries(placeholders)) {
         result = result.replaceAll(`{{${key}}}`, val ?? 'Not provided');
@@ -117,7 +127,7 @@ const checkAnchors = (section, integrityPack, externalCoverage) => {
     const internalAnchors = section.requiredInternalAnchorsJson || [];
     const externalAnchors = section.requiredExternalAnchorsJson || [];
 
-    const internalResults = integrityPack.coverage?.results || [];
+    const internalResults = integrityPack?.coverage?.results || [];
     const missingInternal = internalAnchors.filter(anchor => {
         const result = internalResults.find(c => c.anchor === anchor || c.anchorName === anchor);
         return !result || result.sufficiency === 'NOT_FOUND';

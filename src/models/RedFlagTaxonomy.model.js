@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const RedFlagTaxonomySchema = new mongoose.Schema({
-    redFlagId: { type: String, required: true, unique: true },
+    redFlagId: { type: String, required: true },
     redFlagSetId: { type: String },
     caseId: { type: String, required: true },
     intentId: { type: String, required: true },

@@ -3,8 +3,10 @@ const {
     getConstraintBand,
     evaluateRuleJson,
     calculateQuestionScore,
-    evaluateCondition
+    evaluateCondition,
+    calculateVltVerdict
 } = require('../../utils/evaluationHelpers.js');
+
 
 const SEVERITY_ORDER = { LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 };
 
@@ -89,7 +91,7 @@ exports.runIntegrityEngine = async (req, res) => {
 
         const constraints = await db.Constraints.find({
             caseId: run.caseId,
-            intentId: run.intentId,
+            intentId: { $in: [run.intentId, 'ALL'] },
             isActive: true
         });
 
@@ -210,8 +212,16 @@ exports.runIntegrityEngine = async (req, res) => {
             }
         }
 
-        const policy = await db.AccuracyScoringPolicy.findOne({ caseId: run.caseId, intentId: run.intentId, isActive: true });
-        if (!policy) return res.status(404).json({ success: false, message: 'Accuracy policy not found' });
+        let policy = await db.AccuracyScoringPolicy.findOne({ caseId: run.caseId, intentId: run.intentId });
+        if (!policy) {
+            // Fallback to "ALL" if specific intent policy is missing
+            policy = await db.AccuracyScoringPolicy.findOne({ caseId: run.caseId, intentId: 'ALL' });
+        }
+
+        if (!policy) {
+            console.error(`[Integrity Engine] Accuracy policy not found for Case: ${run.caseId}, Intent: ${run.intentId} or ALL`);
+            return res.status(404).json({ success: false, message: 'Accuracy policy not found' });
+        }
 
         let accuracyScore = policy.baseScore || 100;
         const totalPenalty = Math.min(
@@ -242,11 +252,22 @@ exports.runIntegrityEngine = async (req, res) => {
             }
         }
         warningResults.sort((a, b) => a.displayPriority - b.displayPriority);
+        
+        // --- Deterministic VLT Verdict Calculation ---
+        const { verdict, compositeScore, confidence } = await calculateVltVerdict(db, {
+            caseId: run.caseId,
+            intentId: run.intentId,
+            constraintResults,
+            accuracyScore
+        });
 
         const integrityPackId = `RAS_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
         const integrityPack = {
             runId,
             stepNo: 4,
+            verdict,
+            compositeScore,
+            confidence,
             accuracy: {
                 score: accuracyScore,
                 band: accuracyBand,

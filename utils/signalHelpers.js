@@ -1,16 +1,31 @@
 const { generateJSON } = require('../src/services/aiProvider.js');
 
 /**
- * 1. PROMPT HELPER — Generate market signal analysis prompt
+ * 1. PROMPT HELPER — Generate dynamic market signal analysis prompt based on taxonomy
  */
-function buildSignalPrompt({ role, industry, orgSize, intentName, caseName }) {
+function buildSignalPrompt({ role, industry, orgSize, intentName, caseName, taxonomy = [] }) {
+    const signalInstructions = taxonomy.map(t => {
+        let options = "HIGH | MEDIUM | LOW";
+        if (t.valueFormat === 'PERCENT') options = "0-100 number";
+        else if (t.valueFormat === 'BOOLEAN') options = "TRUE | FALSE";
+        else if (t.valueFormat === 'NUMERIC') options = "Number";
+        
+        return `  "${t.signalId}": {
+    "name": "${t.signalName}",
+    "category": "${t.signalCategory}",
+    "value": "${options}",
+    "rationale": "One specific factual sentence about this signal for ${role} in ${industry}.",
+    "confidence": "HIGH | MEDIUM | LOW"
+  }`;
+    }).join(',\n');
+
     return `You are a professional career risk analyst with expertise in labour market intelligence.
-Goal: Provide a fact-based assessment of current market conditions.
+Goal: Provide a fact-based assessment of current market conditions for the specific profile below.
 
 STRICT PRECISION RULE:
-- DO NOT provide generic sector advice (e.g. "Technology is growing").
+- DO NOT provide generic sector advice.
 - DO provide specific insights for the EXACT ROLE (${role}) AND SUB-INDUSTRY (${industry}).
-- If you have limited data on the niche, perform cross-industry reasoning but label the dataQuality as "PARTIAL".
+- Base your assessment on real-world trends for this specific profile.
 
 Profile:
 - Current Role: ${role}
@@ -21,38 +36,17 @@ Profile:
 
 Return ONLY a JSON object. No markdown. No explanation.
 {
-  "marketDemandSignal": {
-    "value": "HIGH | MEDIUM | LOW | DECLINING",
-    "rationale": "One specific factual sentence about demand for ${role} in ${industry}.",
-    "confidence": "HIGH | MEDIUM | LOW"
-  },
-  "aiDisplacementRisk": {
-    "value": "HIGH | MEDIUM | LOW",
-    "rationale": "One specific factual sentence about AI impact risk for ${role}.",
-    "confidence": "HIGH | MEDIUM | LOW",
-    "timelineMonths": 24
-  },
-  "industryHiringTrend": {
-    "value": "GROWING | STABLE | CONTRACTING",
-    "rationale": "One factual sentence about hiring specifically in ${industry}.",
-    "confidence": "HIGH | MEDIUM | LOW"
-  },
-  "automationOverlapScore": {
-    "value": 45,
-    "rationale": "One specific factual sentence about automatable tasks in ${role}.",
-    "confidence": "HIGH | MEDIUM | LOW"
+  "signals": {
+${signalInstructions}
   },
   "dataQuality": "COMPLETE | PARTIAL | INSUFFICIENT",
   "analystNote": "One overall sentence summarising the market position for this specific ${role} profile."
 }
 
 Rules:
-- value fields must use exactly the enum options listed.
-- automationOverlapScore.value must be a number 0-100 (no quotes).
-- aiDisplacementRisk.timelineMonths must be a number (no quotes).
+- value fields must match the format requested.
 - rationale must be exactly one sentence.
-- dataQuality: COMPLETE if specific to role/industry, PARTIAL if broad sector only.
-- Base your assessment on real-world trends for this specific profile.`;
+- dataQuality: COMPLETE if specific to role/industry, PARTIAL if broad sector only.`;
 }
 
 /**
@@ -70,24 +64,16 @@ async function callOpenAI(prompt) {
 }
 
 /**
- * 3. VALIDATION HELPER — Check if response matches expected schema
+ * 3. VALIDATION HELPER — Check if response matches expected taxonomy
  */
-function validateSignals(parsed) {
-    const required = [
-        'marketDemandSignal',
-        'aiDisplacementRisk',
-        'industryHiringTrend',
-        'automationOverlapScore'
-    ];
-
-    for (const key of required) {
-        if (!parsed[key]) return { valid: false, reason: `Missing top-level key: ${key}` };
-        if (!parsed[key].value) return { valid: false, reason: `Missing value in: ${key}` };
-        if (!parsed[key].rationale) return { valid: false, reason: `Missing rationale in: ${key}` };
-    }
-
-    if (typeof parsed.automationOverlapScore.value !== 'number') {
-        return { valid: false, reason: 'automationOverlapScore.value must be a number' };
+function validateSignals(parsed, taxonomy = []) {
+    if (!parsed.signals) return { valid: false, reason: 'Missing "signals" top-level key' };
+    
+    for (const t of taxonomy) {
+        const sig = parsed.signals[t.signalId];
+        if (!sig) return { valid: false, reason: `Missing required signal: ${t.signalId} (${t.signalName})` };
+        if (sig.value === undefined || sig.value === null) return { valid: false, reason: `Missing value for: ${t.signalId}` };
+        if (!sig.rationale) return { valid: false, reason: `Missing rationale for: ${t.signalId}` };
     }
 
     return { valid: true };
@@ -96,36 +82,20 @@ function validateSignals(parsed) {
 /**
  * 4. COVERAGE HELPER — Map signals to evidence coverage anchors
  */
-function buildCoverage(signals) {
-    const mds = signals?.marketDemandSignal;
-    const adr = signals?.aiDisplacementRisk;
-    const iht = signals?.industryHiringTrend;
-    const aos = signals?.automationOverlapScore;
-
-    const isFound = (sig) => sig && sig.value && sig.value !== 'UNKNOWN';
-
-    return [
-        {
-            anchor: 'Market Demand Signal',
-            sufficiency: isFound(mds) ? 'FOUND' : 'NOT_FOUND',
-            evidence: mds?.rationale || null
-        },
-        {
-            anchor: 'AI Displacement Risk Signal',
-            sufficiency: isFound(adr) ? 'FOUND' : 'NOT_FOUND',
-            evidence: adr?.rationale || null
-        },
-        {
-            anchor: 'Industry Hiring Trend',
-            sufficiency: isFound(iht) ? 'FOUND' : 'NOT_FOUND',
-            evidence: iht?.rationale || null
-        },
-        {
-            anchor: 'Automation Overlap Score',
-            sufficiency: isFound(aos) ? 'FOUND' : 'NOT_FOUND',
-            evidence: aos?.rationale || null
-        }
-    ];
+function buildCoverage(signalsData, taxonomy = []) {
+    const signals = signalsData?.signals || {};
+    
+    return taxonomy.map(t => {
+        const sig = signals[t.signalId];
+        const isFound = sig && sig.value !== undefined && sig.value !== 'UNKNOWN' && sig.value !== null;
+        
+        return {
+            signalId: t.signalId,
+            anchor: t.signalName,
+            sufficiency: isFound ? 'FOUND' : 'NOT_FOUND',
+            evidence: sig?.rationale || null
+        };
+    });
 }
 
 module.exports = {

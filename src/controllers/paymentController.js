@@ -202,15 +202,22 @@ exports.verifyPayment = async (req, res) => {
              console.warn(`[Payment] No profile found for ${userId}. Run will be created but cvSnapshot may be empty.`);
         }
 
-        // Check existing run
+        // --- NEW: Deterministic Idempotency Check (Task 1) ---
+        // We use purchaseId as a natural requestId for the run
+        const requestId = `REQ_${purchaseId}`;
+        let run = await Runs.findOne({ requestId });
 
-        let run = await Runs.findOne({ userId, caseId, intentId, status: 'CREATED' });
+        if (!run) {
+            // Check legacy weak match (same intent, just created, no requestId yet)
+            run = await Runs.findOne({ userId, caseId, intentId, status: 'CREATED', requestId: { $exists: false } });
+        }
 
         if (!run) {
             // Generate runId
             const runId = await generateFormattedId(Runs, 'RUN', 'runId');
             run = new Runs({
                 runId,
+                requestId, // Enforce uniqueness
                 userId,
                 caseId,
                 intentId,
@@ -223,13 +230,17 @@ exports.verifyPayment = async (req, res) => {
                     attachedAt: userProfile?.confirmedAt || new Date(),
                     source: 'EXISTING'
                 },
-                previousRunId: payment.previousRunId || null, // Link to previous run if this was a re-run payment
+                previousRunId: payment.previousRunId || null, 
                 reRunSetup: {
-                    eligibleForFreeReRun: false, // NEW: Defaults to false for new runs (re-runs too)
+                    eligibleForFreeReRun: false, 
                     freeReRunExpiryDate: null,
                     reRunPriceOverride: null
                 }
             });
+            await run.save();
+        } else if (!run.requestId) {
+            // Self-correction for legacy runs
+            run.requestId = requestId;
             await run.save();
         }
 

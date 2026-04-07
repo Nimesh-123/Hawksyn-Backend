@@ -3,6 +3,8 @@
  * Handles dot-notation, operator normalization, and "Label:score" format.
  */
 function evaluateCondition(field, operator, value, dataMap) {
+    if (!field || typeof field !== 'string') return false;
+
     // Support dot-notation for nested fields (Step 3)
     const actual = field.includes('.')
         ? field.split('.').reduce((obj, key) => obj?.[key], dataMap)
@@ -71,7 +73,7 @@ function evaluateRuleJson(ruleJson, answersMap) {
     if (!ruleJson || !Array.isArray(ruleJson.conditions)) return false;
 
     const results = ruleJson.conditions.map(c =>
-        evaluateCondition(c.field, c.operator, c.value, answersMap)
+        evaluateCondition(c.field || c.questionId || c.question_id, c.operator, c.value, answersMap)
     );
 
     const logic = (ruleJson.operator || 'AND').toUpperCase();
@@ -89,12 +91,12 @@ function evaluateDependencyRule(ruleJson, profileMap) {
     if (!ruleJson) return true;  // no rule = always show
 
     const allPass = (ruleJson.all || []).every(c =>
-        evaluateCondition(c.field, c.op || c.operator, c.value, profileMap)
+        evaluateCondition(c.field || c.questionId || c.question_id, c.op || c.operator, c.value, profileMap)
     );
     const anyPass = (ruleJson.any || []).length === 0
         ? true
         : (ruleJson.any || []).some(c =>
-            evaluateCondition(c.field, c.op || c.operator, c.value, profileMap)
+            evaluateCondition(c.field || c.questionId || c.question_id, c.op || c.operator, c.value, profileMap)
         );
 
     return allPass && anyPass;
@@ -213,11 +215,78 @@ async function callLLM({ systemPrompt, userPrompt }) {
     }
 }
 
+/**
+ * HELPER 6 — Verdict Logic Engine (Stage-based Deterministic Math)
+ * Used by: Step 4 Integrity Engine / Step 7 Report
+ * Processes formula, banding, and confidence stages.
+ */
+async function calculateVltVerdict(db, { caseId, intentId, constraintResults, accuracyScore }) {
+    const vltRules = await db.VerdictLogicTable.find({ caseId, intentId, isActive: true }).sort({ stage: 1, ruleId: 1 });
+    if (!vltRules.length) return { verdict: 'PAUSE', compositeScore: 0, confidence: 'UNKNOWN' };
+
+    const context = { accuracy_score: accuracyScore };
+    // Map constraints (C1, C2...) to scores
+    constraintResults.forEach((res, idx) => {
+        // Support both direct ID matching and positional (C1, C2...)
+        context[res.constraintId] = res.score;
+        context[`C${idx + 1}`] = res.score;
+    });
+
+    let compositeScore = 0;
+    let verdict = 'PAUSE';
+    let confidence = 'MEDIUM';
+
+    for (const rule of vltRules) {
+        const cond = rule.conditionJson || {};
+
+        // STAGE 1: Composite Score Formula
+        if (rule.stage === 'STAGE_1' && rule.ruleType === 'COMPOSITE_FORMULA') {
+            if (cond.formula) {
+                try {
+                    // Simple evaluation replacing placeholders like C1, C2 with values
+                    let formula = cond.formula;
+                    Object.keys(context).forEach(key => {
+                        const regex = new RegExp(`\\b${key}\\b`, 'g');
+                        formula = formula.replace(regex, context[key] || 0);
+                    });
+                    // Math evaluation (safe subset of JS math)
+                    compositeScore = eval(formula); 
+                    context['composite'] = compositeScore;
+                } catch (e) {
+                    console.error(`[VLT] Formula error in ${rule.ruleId}:`, e.message);
+                }
+            }
+        }
+
+        // STAGE 2: Verdict Selection
+        if (rule.stage === 'STAGE_2' && rule.outcomeType === 'VERDICT') {
+            let pass = true;
+            if (cond.composite_gte != null && compositeScore < cond.composite_gte) pass = false;
+            if (cond.composite_lt != null && compositeScore >= cond.composite_lt) pass = false;
+            
+            if (pass) verdict = rule.outcomeValue;
+        }
+
+        // STAGE 3: Confidence Banding
+        if (rule.stage === 'STAGE_3' && rule.outcomeType === 'CONFIDENCE') {
+            let pass = true;
+            if (cond.accuracy_score_gte != null && accuracyScore < cond.accuracy_score_gte) pass = false;
+            if (cond.accuracy_score_lt != null && accuracyScore >= cond.accuracy_score_lt) pass = false;
+
+            if (pass) confidence = rule.outcomeValue;
+        }
+    }
+
+    return { verdict, compositeScore: Math.round(compositeScore), confidence };
+}
+
 module.exports = {
     evaluateCondition,
     evaluateRuleJson,
     evaluateDependencyRule,
     getConstraintBand,
     calculateQuestionScore,
+    calculateVltVerdict,
     callLLM
 };
+

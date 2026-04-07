@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const PromptConfigRegistrySchema = new mongoose.Schema({
-    promptId: { type: String, required: true, unique: true },
+    promptId: { type: String, required: true },
     sectionId: { type: String },
     caseId: { type: String },
     intentId: { type: String },

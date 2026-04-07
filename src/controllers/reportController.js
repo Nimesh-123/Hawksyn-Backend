@@ -56,9 +56,9 @@ exports.generateReport = async (req, res) => {
 
         // 2. Load Configuration (ELR, Sections, Prompts)
         const [elr, sections, promptDocs] = await Promise.all([
-            db.EvaluationLibraryRegistry.findOne({ caseId: run.caseId, intentId: run.intentId, isActive: true }),
-            db.DecisionAssuranceSections.find({ caseId: run.caseId, intentId: run.intentId, isActive: true }).sort({ sectionOrder: 1 }),
-            db.PromptConfigRegistry.find({ caseId: run.caseId, intentId: run.intentId, isActive: true })
+            db.EvaluationLibraryRegistry.findOne({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] }, isActive: true }),
+            db.DecisionAssuranceSections.find({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] }, isActive: true }).sort({ sectionOrder: 1 }),
+            db.PromptConfigRegistry.find({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] }, isActive: true })
         ]);
 
         if (!sections.length) return res.status(404).json({ success: false, message: 'No sections configured.' });
@@ -71,33 +71,30 @@ exports.generateReport = async (req, res) => {
         const goldExamples = await getGoldStandardExamples(db, run.caseId, run.intentId, 3);
         const goldContextBlock = goldExamples.length > 0
             ? `\n\n--- GOLD STANDARD EXAMPLES (${goldExamples.length}) ---\n` +
-              goldExamples.map((ex, i) => `[Ex ${i + 1}]\n${JSON.stringify(ex.sections?.map(s => ({ id: s.sectionId, content: s.content })) || ex, null, 2)}`).join('\n\n')
+            goldExamples.map((ex, i) => `[Ex ${i + 1}]\n${JSON.stringify(ex.sections?.map(s => ({ id: s.sectionId, content: s.content })) || ex, null, 2)}`).join('\n\n')
             : '';
 
-        // 4. Section-wise Generation Pipeline (Serial Execution for Safety)
-        const reportSections = [];
-        for (const section of sections) {
-            const sectionOut = { 
-                sectionId: section.sectionId, 
-                sectionName: section.sectionName, 
-                sectionType: section.sectionType, 
+        // 4. Section-wise Generation Pipeline (Parallel Execution via Semaphore)
+        const reportSections = await Promise.all(sections.map(async (section) => {
+            const sectionOut = {
+                sectionId: section.sectionId,
+                sectionName: section.sectionName,
+                sectionType: section.sectionType,
                 sectionOrder: section.sectionOrder,
-                status: 'PENDING' 
+                status: 'PENDING'
             };
 
             const anchorCheck = checkAnchors(section, integrityPack, externalCoverage);
             if (!anchorCheck.allCovered && section.fallbackPolicy === 'ESCALATE') {
                 sectionOut.status = 'ESCALATED';
                 sectionOut.content = "Missing required evidence anchors.";
-                reportSections.push(sectionOut);
-                continue;
+                return sectionOut;
             }
 
             const prompt = promptsMap[section.sectionId];
             if (!prompt) {
                 sectionOut.status = 'SKIPPED';
-                reportSections.push(sectionOut);
-                continue;
+                return sectionOut;
             }
 
             // Resolve Dynamic Evidence for this section
@@ -115,7 +112,7 @@ exports.generateReport = async (req, res) => {
 
                 const llmResult = await callLLM({
                     modelFamily: prompt.modelFamily,
-                    systemPrompt: prompt.systemPrompt + goldContextBlock,
+                    systemPrompt: (prompt.systemPrompt || '') + goldContextBlock,
                     userPrompt,
                     temperature: prompt.temperature || 0.3,
                     maxTokens: prompt.maxTokens || 800
@@ -125,12 +122,14 @@ exports.generateReport = async (req, res) => {
                 sectionOut.status = anchorCheck.allCovered ? 'COMPLETE' : 'DEGRADED';
                 sectionOut.tokenUsage = llmResult.usageMetadata;
                 sectionOut.duration = llmResult.duration;
+                return sectionOut;
             } catch (llmErr) {
+                console.error(`[Report-Gen] CRITICAL SECTION FAILURE (${section.sectionId}):`, llmErr.message);
                 sectionOut.status = 'LLM_ERROR';
                 sectionOut.content = 'Generation failed.';
+                return sectionOut;
             }
-            reportSections.push(sectionOut);
-        }
+        }));
 
         // 5. Final Assembly & Aggregation
         const totalDuration = (Date.now() - startTime) / 1000;
@@ -143,12 +142,15 @@ exports.generateReport = async (req, res) => {
             return acc;
         }, { promptTokens: 0, completionTokens: 0, totalTokens: 0 });
 
-        const verdictSection = reportSections.find(s => s.sectionType === 'VERDICT');
-        const verdict = verdictSection ? extractVerdict(verdictSection.content) : 'PAUSE';
+        const verdict = integrityPack.verdict || 'PAUSE';
+
 
         const finalReport = {
             runId, caseId: run.caseId, intentId: run.intentId,
-            sections: reportSections, verdict,
+            sections: reportSections,
+            verdict,
+            compositeScore: integrityPack.compositeScore || 0,
+            confidence: integrityPack.confidence || 'MEDIUM',
             accuracyScore: integrityPack.accuracy?.score || 0,
             accuracyBand: integrityPack.accuracy?.band || 'UNKNOWN',
             tokenUsage: totalTokenUsage,

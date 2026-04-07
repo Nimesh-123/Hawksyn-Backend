@@ -1,6 +1,7 @@
 const MESSAGES = {
     // Basic
     1001: 'Success',
+    1003: 'Missing required parameters',
 
     // Login & Account
     2001: 'Login successfully',

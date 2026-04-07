@@ -175,6 +175,17 @@ exports.uploadRunCv = async (req, res) => {
 
             if (extractedData && extractedData.isCv === false) {
                 await deleteFile(fileName);
+                
+                // --- NEW: Log Failure Reason (User Request) ---
+                await db.auditLog.create({
+                    action: 'CV_PARSING_REJECTED',
+                    entityId: runId,
+                    entityType: 'RUN',
+                    performedBy: userId,
+                    severity: 'MEDIUM',
+                    details: `Document rejected: Not a valid Resume/CV. Original file: ${file.originalname}`
+                });
+
                 return res.status(400).json({
                     success: false,
                     message: "The uploaded document does not appear to be a valid Resume/CV."
@@ -192,6 +203,15 @@ exports.uploadRunCv = async (req, res) => {
             }
         } catch (aiError) {
             console.error("[AI Extraction Failed]", aiError.message);
+            // --- NEW: Log AI Pipeline Failure ---
+            await db.auditLog.create({
+                action: 'CV_PARSING_FAILED',
+                entityId: runId,
+                entityType: 'RUN',
+                performedBy: userId,
+                severity: 'HIGH',
+                details: `AI Extraction Crash: ${aiError.message}. File: ${file.originalname}`
+            });
         }
 
         const isExtractionBlank = !extractedData || 
@@ -201,6 +221,15 @@ exports.uploadRunCv = async (req, res) => {
 
         if (isExtractionBlank && parserStatus !== "FAILED") {
             parserStatus = "EMPTY";
+            // --- NEW: Log Empty Extraction ---
+            await db.auditLog.create({
+                action: 'CV_PARSING_EMPTY',
+                entityId: runId,
+                entityType: 'RUN',
+                performedBy: userId,
+                severity: 'MEDIUM',
+                details: `Document parsed but yielded no meaningful data. Likely scanned PDF or unreadable font. File: ${file.originalname}`
+            });
         }
 
 

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const AccuracyScoringPolicySchema = new mongoose.Schema({
-    accuracyPolicyId: { type: String, required: true, unique: true },
+    accuracyPolicyId: { type: String, required: true },
     policyName: { type: String, required: true },
     caseId: { type: String, required: true },
     intentId: { type: String, required: true },

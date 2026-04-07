@@ -1,15 +1,15 @@
 const mongoose = require('mongoose');
 
 const GuardrailRegistrySchema = new mongoose.Schema({
-    grRuleId: { type: String, required: true, unique: true },
-    ruleName: { type: String, required: true },
+    grRuleId: { type: String, required: true },
+    ruleName: { type: String },
     ruleScope: { type: String },
     applicableCasesJson: [{ type: String }],
     applicableIntentsJson: [{ type: String }],
     guardrailType: { type: String },
     ruleStatement: { type: String },
     enforcementMode: { type: String },
-    applicableSectionsJson: { type: [String], default: ['ALL'] },
+    applicableSectionsJson: { type: [String], default: ['ALL'] }, // Now supports: DRO, RCM
   applicableSignalsJson:  { type: [String], default: ['ALL'] },
   penaltyPoints:          { type: Number, default: 0 },
   violationAction:        { type: String, default: 'BLOCK' },

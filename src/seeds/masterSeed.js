@@ -37,6 +37,11 @@ const MandatoryObjectiveInput = require('../models/MandatoryObjectiveInput.model
 const MoiQuestionMapping = require('../models/MoiQuestionMapping.model');
 const MarketPulse = require('../models/MarketPulse.model');
 const UserCredits = require('../models/UserCredits.model');
+const VerdictLogicTable = require('../models/VerdictLogicTable.model');
+const DroMaster = require('../models/DroMaster.model');
+const RiskConstraintMap = require('../models/RiskConstraintMap.model');
+const IntegrityEligibilityRules = require('../models/IntegrityEligibilityRules.model');
+const ExternalEvidenceDataPool = require('../models/ExternalEvidenceDataPool.model');
 
 // ════════════════════════════════════════════════════════════
 // STEP 1 — case_registry
@@ -512,7 +517,8 @@ async function seedConstraintQuestionMapping() {
     await ConstraintQuestionMapping.deleteMany({});
     await ConstraintQuestionMapping.insertMany([
         {
-            cqmtId: 'CQMT_000001',                    // ✅ FIXED: was CQMT_0001
+            cqmtId: 'CQMT_000001',
+            caseId: 'CASE_AI_JOB_RISK', intentId: 'INT_STAY_12M_SAFE',
             constraintId: 'CONS_AI_001',
             questionId: 'Q_AI_ROLE_EXPOSURE_V1',
             scoringRuleId: 'SR_AI_ROLE_EXPOSURE_V1',
@@ -522,7 +528,8 @@ async function seedConstraintQuestionMapping() {
             isActive: true
         },
         {
-            cqmtId: 'CQMT_000002',                    // ✅ FIXED: was CQMT_0002
+            cqmtId: 'CQMT_000002',
+            caseId: 'CASE_AI_JOB_RISK', intentId: 'INT_STAY_12M_SAFE',
             constraintId: 'CONS_AI_001',
             questionId: 'Q_FINANCIAL_RUNWAY_V1',
             scoringRuleId: 'SR_FINANCIAL_RUNWAY_V1',
@@ -532,7 +539,8 @@ async function seedConstraintQuestionMapping() {
             isActive: true
         },
         {
-            cqmtId: 'CQMT_000003',                    // ✅ FIXED: was CQMT_0003
+            cqmtId: 'CQMT_000003',
+            caseId: 'CASE_AI_JOB_RISK', intentId: 'INT_STAY_12M_SAFE',
             constraintId: 'CONS_AI_002',
             questionId: 'Q_FINANCIAL_RUNWAY_V1',
             scoringRuleId: 'SR_FINANCIAL_RUNWAY_V1',
@@ -542,7 +550,8 @@ async function seedConstraintQuestionMapping() {
             isActive: true
         },
         {
-            cqmtId: 'CQMT_000004',                    // ✅ FIXED: was CQMT_0004
+            cqmtId: 'CQMT_000004',
+            caseId: 'CASE_AI_JOB_RISK', intentId: 'INT_STAY_12M_SAFE',
             constraintId: 'CONS_AI_003',
             questionId: 'Q_ROLE_UNIQUENESS_V1',
             scoringRuleId: 'SR_ROLE_UNIQUENESS_V1',
@@ -552,7 +561,8 @@ async function seedConstraintQuestionMapping() {
             isActive: true
         },
         {
-            cqmtId: 'CQMT_000005',                    // ✅ FIXED: was CQMT_0005
+            cqmtId: 'CQMT_000005',
+            caseId: 'CASE_AI_JOB_RISK', intentId: 'INT_STAY_12M_SAFE',
             constraintId: 'CONS_AI_004',
             questionId: 'Q_COMPANY_AI_POLICY_V1',
             scoringRuleId: 'SR_COMPANY_AI_POLICY_V1',
@@ -579,8 +589,8 @@ async function seedContradictions() {
             contradictionDescription: 'Company is actively deploying AI but user has very low financial buffer.',
             contradictionType: 'INPUT_VS_INPUT',
             involvedEntitiesJson: { questionIds: ['Q_COMPANY_AI_POLICY_V1', 'Q_FINANCIAL_RUNWAY_V1'] },
-            defaultSeverityBand: 'HIGH',                // ✅ ADDED
-            ruleName: 'Active AI + Low Runway Rule',     // ✅ ADDED
+            defaultSeverityBand: 'HIGH',                
+            ruleName: 'Active AI + Low Runway Rule',    
             ruleJson: {
                 operator: 'AND',
                 conditions: [
@@ -592,9 +602,9 @@ async function seedContradictions() {
             onMissingData: 'NOT_EVALUATED',
             severityBand: 'HIGH',
             accuracyPenaltyPoints: 15,
-            confidencePenaltyPoints: 0,                 // ✅ ADDED
+            confidencePenaltyPoints: 0,                
             isBlocking: false,
-            escalationTag: null,                        // ✅ ADDED
+            escalationTag: null,                      
             maxTriggerCount: 1,
             isActive: true
         },
@@ -607,8 +617,8 @@ async function seedContradictions() {
             contradictionDescription: 'User claims very low AI automation exposure but company is AI-first.',
             contradictionType: 'INPUT_VS_INPUT',
             involvedEntitiesJson: { questionIds: ['Q_AI_ROLE_EXPOSURE_V1', 'Q_COMPANY_AI_POLICY_V1'] },
-            defaultSeverityBand: 'MEDIUM',              // ✅ ADDED
-            ruleName: 'Low Exposure + AI First Rule',   // ✅ ADDED
+            defaultSeverityBand: 'MEDIUM',              
+            ruleName: 'Low Exposure + AI First Rule', 
             ruleJson: {
                 operator: 'AND',
                 conditions: [
@@ -620,9 +630,9 @@ async function seedContradictions() {
             onMissingData: 'NOT_EVALUATED',
             severityBand: 'MEDIUM',
             accuracyPenaltyPoints: 10,
-            confidencePenaltyPoints: 0,                 // ✅ ADDED
+            confidencePenaltyPoints: 0,                 
             isBlocking: false,
-            escalationTag: null,                        // ✅ ADDED
+            escalationTag: null,                        
             maxTriggerCount: 1,
             isActive: true
         }
@@ -772,7 +782,7 @@ async function seedWarnings() {
             warningMappingId: 'WMT_AI_V1',
             redFlagId: 'RF_0001',
             triggerMode: 'ALWAYS',
-            minSeverityBand: null,                      // ✅ ADDED
+            minSeverityBand: null,                      
             displayPriority: 1,
             warningTitle: 'Financial Cushion Is Weak',
             warningMessage: 'You have less than 6 months of financial runway. This is critically low in a period of AI-driven workforce change. If your role is disrupted, you will have very limited time to transition.',
@@ -781,7 +791,7 @@ async function seedWarnings() {
             ctaText: 'Build a 6-month emergency fund before making any career decisions.',
             humanValidationRecommended: false,
             displayType: 'TOP_BANNER',
-            expiresAfterDays: null,                     // ✅ ADDED
+            expiresAfterDays: null,                    
             isActive: true
         },
         {
@@ -789,7 +799,7 @@ async function seedWarnings() {
             warningMappingId: 'WMT_AI_V1',
             redFlagId: 'RF_0002',
             triggerMode: 'ALWAYS',
-            minSeverityBand: null,                      // ✅ ADDED
+            minSeverityBand: null,                      
             displayPriority: 2,
             warningTitle: 'Your Company Is Actively Deploying AI',
             warningMessage: 'Companies in active AI deployment phases typically reorganize roles and responsibilities within 6 to 12 months. This creates structural risk for roles with high automation overlap.',
@@ -798,7 +808,7 @@ async function seedWarnings() {
             ctaText: 'Map which of your tasks are being automated and identify which skills make you irreplaceable.',
             humanValidationRecommended: true,
             displayType: 'REPORT_SECTION',
-            expiresAfterDays: null,                     // ✅ ADDED
+            expiresAfterDays: null,                    
             isActive: true
         }
     ]);
@@ -900,8 +910,8 @@ async function seedDecisionAssuranceSections() {
             certaintyCapPercent: 85,
             minAccuracyRequired: 0,
             fallbackPolicy: 'DEGRADE',
-            requiredInternalAnchorsJson: [],            // ✅ ADDED
-            requiredExternalAnchorsJson: [],            // ✅ ADDED
+            requiredInternalAnchorsJson: [],          
+            requiredExternalAnchorsJson: [],          
             outputSchemaReference: null,
             isActive: true
         },
@@ -916,8 +926,8 @@ async function seedDecisionAssuranceSections() {
             certaintyCapPercent: 85,
             minAccuracyRequired: 0,
             fallbackPolicy: 'DEGRADE',
-            requiredInternalAnchorsJson: ['Financial Resilience'],  // ✅ already present
-            requiredExternalAnchorsJson: [],                        // ✅ ADDED
+            requiredInternalAnchorsJson: ['Financial Resilience'],  
+            requiredExternalAnchorsJson: [],                       
             outputSchemaReference: null,
             isActive: true
         },
@@ -932,8 +942,8 @@ async function seedDecisionAssuranceSections() {
             certaintyCapPercent: 70,
             minAccuracyRequired: 0,
             fallbackPolicy: 'DEGRADE',
-            requiredInternalAnchorsJson: [],                        // ✅ ADDED
-            requiredExternalAnchorsJson: ['Market Demand Signal'],  // ✅ already present
+            requiredInternalAnchorsJson: [],                        
+            requiredExternalAnchorsJson: ['Market Demand Signal'], 
             outputSchemaReference: null,
             isActive: true
         },
@@ -948,8 +958,8 @@ async function seedDecisionAssuranceSections() {
             certaintyCapPercent: 85,
             minAccuracyRequired: 0,
             fallbackPolicy: 'ESCALATE',
-            requiredInternalAnchorsJson: [],            // ✅ ADDED
-            requiredExternalAnchorsJson: [],            // ✅ ADDED
+            requiredInternalAnchorsJson: [],          
+            requiredExternalAnchorsJson: [],           
             outputSchemaReference: null,
             isActive: true
         }
@@ -1147,7 +1157,7 @@ async function seedDependencyRules() {
             dependencyRuleId: 'DRR_000004',
             moiId: 'MOI_AI_STAY_V1',
             ruleName: 'Ask company signals only if company size is mid/large',
-            targetQuestionId: 'Q_COMPANY_AI_POLICY_V1',  // ✅ FIXED: was Q_COMPANY_SIGNAL_V1
+            targetQuestionId: 'Q_COMPANY_AI_POLICY_V1',  
             ruleJson: {
                 all: [{ source: 'profile', field: 'inferred.companySize', op: 'in', value: ['MID', 'LARGE'] }],
                 any: []
@@ -2407,6 +2417,481 @@ async function seedCase_RoleSwitch() {
 }
 
 // ════════════════════════════════════════════════════════════
+// STEP 15 — verdict_logic_table (Table 37)
+// ════════════════════════════════════════════════════════════
+async function seedVerdictLogicTable() {
+    await VerdictLogicTable.deleteMany({});
+    await VerdictLogicTable.insertMany([
+        {
+            ruleId: 'VLT_RO_001', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 1,
+            ruleName: 'Compute composite score from all 7 constraints',
+            conditionJson: { formula: '(C1*1.5 + C2*1.5 + C3*1.0 + C4*1.5 + C5*1.0 + C6*1.0 + C7*1.5) / 9.0', blocking_weight: 1.5, non_blocking_weight: 1.0 },
+            actionType: 'COMPOSITE_SCORE', actionValueJson: { type: 'NUMERIC_0_TO_100' },
+            priority: 1, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_002', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 2,
+            ruleName: 'Composite 75 to 100: Verdict PROCEED',
+            conditionJson: { composite_gte: 75 },
+            actionType: 'VERDICT', actionValueJson: { verdict: 'PROCEED' },
+            priority: 1, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_003', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 2,
+            ruleName: 'Composite 50 to 74: Verdict PAUSE',
+            conditionJson: { composite_gte: 50, composite_lt: 75 },
+            actionType: 'VERDICT', actionValueJson: { verdict: 'PAUSE' },
+            priority: 2, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_004', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 2,
+            ruleName: 'Composite 0 to 49: Verdict STOP',
+            conditionJson: { composite_lt: 50 },
+            actionType: 'VERDICT', actionValueJson: { verdict: 'STOP' },
+            priority: 3, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_005', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 3,
+            ruleName: 'Accuracy 85 to 100: Confidence HIGH',
+            conditionJson: { accuracy_score_gte: 85 }, 
+            actionType: 'CONFIDENCE', actionValueJson: { band: 'HIGH' },
+            priority: 1, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_006', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 3,
+            ruleName: 'Accuracy 65 to 84: Confidence MEDIUM',
+            conditionJson: { accuracy_score_gte: 65, accuracy_score_lt: 85 }, 
+            actionType: 'CONFIDENCE', actionValueJson: { band: 'MEDIUM' },
+            priority: 2, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_007', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 3,
+            ruleName: 'Accuracy 40 to 64: Confidence LOW',
+            conditionJson: { accuracy_score_gte: 40, accuracy_score_lt: 65 }, 
+            actionType: 'CONFIDENCE', actionValueJson: { band: 'LOW' },
+            priority: 3, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_008', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 3,
+            ruleName: 'Accuracy 0 to 39: Confidence VERY LOW',
+            conditionJson: { accuracy_score_lt: 40 }, 
+            actionType: 'CONFIDENCE', actionValueJson: { band: 'VERY_LOW' },
+            priority: 4, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_009', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'C1 CRITICAL: Role Automation Exposure red flag',
+            conditionJson: { constraint: 'CONS_RO_001', op: 'lt', value: 40 }, 
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_001' },
+            priority: 1, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_010', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'C2 CRITICAL: Skill Depreciation red flag',
+            conditionJson: { constraint: 'CONS_RO_002', op: 'lt', value: 40 }, 
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_002' },
+            priority: 2, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_011', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'C4 CRITICAL: Financial Vulnerability red flag',
+            conditionJson: { constraint: 'CONS_RO_004', op: 'lt', value: 30 }, 
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_003' },
+            priority: 3, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_012', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'C7 CRITICAL: High Internal Replaceability red flag',
+            conditionJson: { constraint: 'CONS_RO_007', op: 'lt', value: 40 }, 
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_004' },
+            priority: 4, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_013', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'C3 CRITICAL: Company Instability red flag',
+            conditionJson: { constraint: 'CONS_RO_003', op: 'lt', value: 40 }, 
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_005' },
+            priority: 5, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_014', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'C5 CRITICAL: No Viable Exit Route red flag',
+            conditionJson: { constraint: 'CONS_RO_005', op: 'lt', value: 40 }, 
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_006' },
+            priority: 6, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_015', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'CONTR_RO_001 fires: Company trouble but claims critical',
+            conditionJson: { contradiction_id: 'CONTR_RO_001', status: 'TRIGGERED' }, 
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_007' },
+            priority: 7, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_016', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'CONTR_RO_002 fires: Long runway but salary dependent',
+            conditionJson: { contradiction_id: 'CONTR_RO_002', status: 'TRIGGERED' }, 
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_008' },
+            priority: 8, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_017', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'CONTR_RO_003 fires: Process work but irreplaceable claim',
+            conditionJson: { contradiction_id: 'CONTR_RO_003', status: 'TRIGGERED' }, 
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_009' },
+            priority: 9, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_018', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'CONTR_RO_004 fires: Course completed but nothing changed',
+            conditionJson: { contradiction_id: 'CONTR_RO_004', status: 'TRIGGERED' }, 
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_010' },
+            priority: 10, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_019', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'Triple Threat: C1, C2 and C7 all FRAGILE or below',
+            conditionJson: { all: [{ constraint: 'CONS_RO_001', op: 'lte', value: 59 }, { constraint: 'CONS_RO_002', op: 'lte', value: 59 }, { constraint: 'CONS_RO_007', op: 'lte', value: 59 }] },
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_011' },
+            priority: 11, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_020', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'No Escape Route: C4 and C5 both FRAGILE or below',
+            conditionJson: { all: [{ constraint: 'CONS_RO_004', op: 'lte', value: 59 }, { constraint: 'CONS_RO_005', op: 'lte', value: 59 }] },
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_012' },
+            priority: 12, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_021', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 5,
+            ruleName: 'Each CRITICAL blocking constraint: 15 point accuracy penalty',
+            conditionJson: { per_critical_blocking_constraint: 15, max_penalty_from_this_rule: 45 }, 
+            actionType: 'ACCURACY_DEDUCTION', actionValueJson: { formula: '15_PER_CRITICAL_BLOCKING' },
+            priority: 1, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_022', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 5,
+            ruleName: 'Each CRITICAL non-blocking constraint: 8 point accuracy penalty',
+            conditionJson: { per_critical_non_blocking_constraint: 8, max_penalty_from_this_rule: 24 }, 
+            actionType: 'ACCURACY_DEDUCTION', actionValueJson: { formula: '8_PER_CRITICAL_NON_BLOCKING' },
+            priority: 2, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_023', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 5,
+            ruleName: 'Each CRITICAL contradiction: 10 point accuracy penalty',
+            conditionJson: { per_critical_contradiction: 10, per_high_contradiction: 6, per_medium_contradiction: 3, max_penalty_from_this_rule: 40 }, 
+            actionType: 'ACCURACY_DEDUCTION', actionValueJson: { formula: 'VARIABLE_PER_SEVERITY' },
+            priority: 3, isActive: true
+        },
+        {
+            ruleId: 'VLT_RO_024', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 5,
+            ruleName: 'Total penalty cap 70. Floor 25.',
+            conditionJson: { max_total_penalty: 70, floor_score: 25 }, 
+            actionType: 'ACCURACY_BOUNDARY', actionValueJson: { formula: 'CAP_70_FLOOR_25' },
+            priority: 4, isActive: true
+        }
+    ]);
+    console.log('✅ VLT (Verdict Logic Table) seeded');
+}
+
+// ════════════════════════════════════════════════════════════
+// STEP 16 — dro_master (Table 25A)
+// ════════════════════════════════════════════════════════════
+async function seedDroMaster() {
+    await DroMaster.deleteMany({});
+    await DroMaster.insertMany([
+        {
+            droId: 'DRO_RO_001', riskTypeName: 'Task Routineness Risk', riskDomain: 'CAREER', riskNature: 'STRUCTURAL',
+            riskDescription: "The majority of the user's daily work follows fixed processes or checklists. Rule-based work is directly substitutable by automation tools. Higher routine task share equals higher automation risk.",
+            severityTier: 'MEDIUM', isCompoundRisk: false, detectionFingerprint: 'Q1 score below 50. ALM 2003 RTI framework. Routine task share above 50 percent.',
+            auditorExpertiseTag: 'ROLE_AUTOMATION', remediationHorizon: 'SHORT_90_DAYS', reportProminence: 'ANALYSIS_SECTION', userFacingLabel: 'Your Work Is Highly Processable',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_002', riskTypeName: 'Active Automation Risk', riskDomain: 'CAREER', riskNature: 'STRUCTURAL',
+            riskDescription: "Parts of the user's job have already been automated or replaced by tools in the last 2 years. This is not a future threat. It is a present reality. The role is already in the process of being reduced.",
+            severityTier: 'HIGH', isCompoundRisk: false, detectionFingerprint: 'Q2 score below 50. Frey Osborne 2017. Observed task automation is strongest leading indicator of full role automation.',
+            auditorExpertiseTag: 'ROLE_AUTOMATION', remediationHorizon: 'IMMEDIATE_30_DAYS', reportProminence: 'VERDICT_SECTION', userFacingLabel: 'Your Role Is Already Being Automated',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_003', riskTypeName: 'Skill Addition Lag Risk', riskDomain: 'CAREER', riskNature: 'STRUCTURAL',
+            riskDescription: "The user has not added a completely new skill to their actual work in over 12 months. Skills depreciate at 8 to 10 percent per year. A 12 month gap means skill value has already reduced meaningfully below the original level.",
+            severityTier: 'MEDIUM', isCompoundRisk: false, detectionFingerprint: 'Q3 score below 50. Walter Lee 2022. De Grip Van Loo 2002. Annual depreciation rate applied.',
+            auditorExpertiseTag: 'SKILL_DEVELOPMENT', remediationHorizon: 'SHORT_90_DAYS', reportProminence: 'ANALYSIS_SECTION', userFacingLabel: 'Your Skills Are Not Growing Fast Enough',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_004', riskTypeName: 'Economic Obsolescence Risk', riskDomain: 'CAREER', riskNature: 'STRUCTURAL',
+            riskDescription: "The user has not added a completely new skill in over 3 years. At 8 to 10 percent annual depreciation rate, skill value has fallen below 78 percent of its original level. The market no longer values these skills at the same level regardless of the user's subjective capability.",
+            severityTier: 'HIGH', isCompoundRisk: false, detectionFingerprint: 'Q3 score below 25. Walter Lee 2022 depreciation model. 3 year threshold maps to sub-78 percent skill value. Critical economic obsolescence territory.',
+            auditorExpertiseTag: 'SKILL_DEVELOPMENT', remediationHorizon: 'IMMEDIATE_30_DAYS', reportProminence: 'VERDICT_SECTION', userFacingLabel: 'Your Skills Have Lost Market Value',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_005', riskTypeName: 'Financial Runway Risk', riskDomain: 'CAREER', riskNature: 'FINANCIAL',
+            riskDescription: "The user has less than 6 months of financial runway if income stops today. Average Indian job search for mid-senior roles takes 3 to 6 months. This person cannot fund a quality career transition without immediate financial pressure.",
+            severityTier: 'MEDIUM', isCompoundRisk: false, detectionFingerprint: 'Q4 score below 50. CFPB 2022. Vanguard 2025. HDFC India 2025. Below minimum adequate threshold for career transition.',
+            auditorExpertiseTag: 'FINANCIAL_PLANNING', remediationHorizon: 'SHORT_90_DAYS', reportProminence: 'ANALYSIS_SECTION', userFacingLabel: 'Your Financial Buffer Is Too Thin',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_006', riskTypeName: 'Company Instability Risk', riskDomain: 'CAREER', riskNature: 'STRUCTURAL',
+            riskDescription: "The user's company is showing active distress signals. People are being let go, leadership is changing, or major restructuring is underway. These signals precede role eliminations by 3 to 9 months on average.",
+            severityTier: 'HIGH', isCompoundRisk: false, detectionFingerprint: 'Q5 score below 50. Arntz Gregory Zierahn 2016. Company instability is leading indicator of individual role risk. Haltiwanger job destruction research.',
+            auditorExpertiseTag: 'COMPANY_ANALYSIS', remediationHorizon: 'IMMEDIATE_30_DAYS', reportProminence: 'VERDICT_SECTION', userFacingLabel: 'Your Company Is in Trouble',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_007', riskTypeName: 'Market Isolation Risk', riskDomain: 'CAREER', riskNature: 'BEHAVIOURAL',
+            riskDescription: "The user has had zero external career conversations in the last 12 months. They have no active weak ties. No market intelligence. No option visibility. If their role disappears tomorrow they are starting from zero.",
+            severityTier: 'MEDIUM', isCompoundRisk: false, detectionFingerprint: 'Q6 score below 25. Granovetter 1973. Zero weak tie activation. No access to job market information or opportunity flow.',
+            auditorExpertiseTag: 'CAREER_TRANSITION', remediationHorizon: 'SHORT_90_DAYS', reportProminence: 'ANALYSIS_SECTION', userFacingLabel: 'You Are Invisible to the Market',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_008', riskTypeName: 'Passive Learning Risk', riskDomain: 'CAREER', riskNature: 'BEHAVIOURAL',
+            riskDescription: "The user's approach to staying relevant is limited to reading articles or watching content. Passive consumption does not reduce skill obsolescence. De Grip and Van Loo 2002 distinguish training participation from passive awareness. Only the former reduces depreciation rate.",
+            severityTier: 'MEDIUM', isCompoundRisk: false, detectionFingerprint: 'Q7 score below 50. De Grip Van Loo 2002. Passive consumption not classified as training participation.',
+            auditorExpertiseTag: 'SKILL_DEVELOPMENT', remediationHorizon: 'SHORT_90_DAYS', reportProminence: 'ANALYSIS_SECTION', userFacingLabel: 'Reading About Skills Is Not Building Them',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_009', riskTypeName: 'Learning Transfer Absence Risk', riskDomain: 'CAREER', riskNature: 'BEHAVIOURAL',
+            riskDescription: "The user cannot recall when learning last changed how they actually work. All prior learning has stayed at awareness level. No behaviour change has occurred. This means all claimed development is unverified.",
+            severityTier: 'HIGH', isCompoundRisk: false, detectionFingerprint: 'Q8 score below 25. Kirkpatrick 2006 Level 3 Transfer. No evidence of on-the-job behaviour change from any prior learning.',
+            auditorExpertiseTag: 'SKILL_DEVELOPMENT', remediationHorizon: 'IMMEDIATE_30_DAYS', reportProminence: 'VERDICT_SECTION', userFacingLabel: 'You Have Not Actually Grown From Your Learning',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_010', riskTypeName: 'Internal Replaceability Risk', riskDomain: 'CAREER', riskNature: 'STRUCTURAL',
+            riskDescription: "The user's company could replace them within a month or even this week. Zero firm-specific capital. The work is documented, transferable, and general. There is no institutional knowledge or judgment that makes this person hard to replace.",
+            severityTier: 'HIGH', isCompoundRisk: false, detectionFingerprint: 'Q9 score below 50. Becker 1964 firm-specific capital. ALM 2003 routine task dominance signal.',
+            auditorExpertiseTag: 'ROLE_AUTOMATION', remediationHorizon: 'SHORT_90_DAYS', reportProminence: 'VERDICT_SECTION', userFacingLabel: 'You Can Be Replaced Faster Than You Think',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_011', riskTypeName: 'Salary Dependency Risk', riskDomain: 'CAREER', riskNature: 'FINANCIAL',
+            riskDescription: "The user is mostly or fully dependent on their current salary level. High dependency means any income disruption creates immediate financial distress and severely constrains transition options.",
+            severityTier: 'MEDIUM', isCompoundRisk: false, detectionFingerprint: 'Q10 score below 50. CFPB Financial Well-Being Scale 2015. Vanguard 2025. Salary dependency is inverse of financial flexibility.',
+            auditorExpertiseTag: 'FINANCIAL_PLANNING', remediationHorizon: 'SHORT_90_DAYS', reportProminence: 'ANALYSIS_SECTION', userFacingLabel: 'Your Lifestyle Cannot Absorb a Pay Cut',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_012', riskTypeName: 'Transition Flexibility Absence Risk', riskDomain: 'CAREER', riskNature: 'FINANCIAL',
+            riskDescription: "The user is fully dependent on their exact current salary with zero flexibility. They cannot accept a lower paying role under any condition. This means a forced transition will always produce a bad decision because financial pressure eliminates choice.",
+            severityTier: 'HIGH', isCompoundRisk: false, detectionFingerprint: 'Q10 score below 25. CFPB 2022. Vanguard 2025. Zero lifestyle flexibility. Cannot fund quality transition.',
+            auditorExpertiseTag: 'FINANCIAL_PLANNING', remediationHorizon: 'IMMEDIATE_30_DAYS', reportProminence: 'VERDICT_SECTION', userFacingLabel: 'You Cannot Make a Free Choice Under Pressure',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_013', riskTypeName: 'Blind Safety Risk', riskDomain: 'CAREER', riskNature: 'BEHAVIOURAL',
+            riskDescription: "The user believes they are safe and irreplaceable while their company is actively eliminating roles. This is the most dangerous blind spot in this case. The person will be among the last to know they are at risk. No defensive action is being taken.",
+            severityTier: 'CRITICAL', isCompoundRisk: false, detectionFingerprint: 'CONTR_RO_001 triggered. Q5 CRITICAL company distress AND Q9 claims irreplaceable. Dunning-Kruger in high-stakes context.',
+            auditorExpertiseTag: 'ROLE_AUTOMATION', remediationHorizon: 'IMMEDIATE_30_DAYS', reportProminence: 'TOP_BANNER', userFacingLabel: 'You Feel Safe While Your Company Is Not',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_014', riskTypeName: 'False Resilience Risk', riskDomain: 'CAREER', riskNature: 'BEHAVIOURAL',
+            riskDescription: "The user believes they have financial runway but their lifestyle is fully tied to their current income level. The savings exist but cannot be used to fund a genuine transition. They have duration but not flexibility. A forced transition will require accepting a bad role quickly or depleting savings completely.",
+            severityTier: 'CRITICAL', isCompoundRisk: false, detectionFingerprint: 'CONTR_RO_002 triggered. Q4 claims 6 plus months AND Q10 fully or mostly salary dependent. CFPB 2022. Vanguard 2025.',
+            auditorExpertiseTag: 'FINANCIAL_PLANNING', remediationHorizon: 'IMMEDIATE_30_DAYS', reportProminence: 'TOP_BANNER', userFacingLabel: 'Your Financial Safety Net Has a Hole in It',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_015', riskTypeName: 'Replaceability Denial Risk', riskDomain: 'CAREER', riskNature: 'BEHAVIOURAL',
+            riskDescription: "The user believes they are hard to replace but most of their work follows a fixed process. Process driven work is documentable. Documentable work is transferable. The belief of irreplaceability is not supported by the evidence of how they actually work.",
+            severityTier: 'HIGH', isCompoundRisk: false, detectionFingerprint: 'CONTR_RO_003 triggered. Q1 process driven AND Q9 claims irreplaceable. ALM 2003. Becker 1964.',
+            auditorExpertiseTag: 'ROLE_AUTOMATION', remediationHorizon: 'SHORT_90_DAYS', reportProminence: 'VERDICT_SECTION', userFacingLabel: 'Your Uniqueness Belief Is Not Supported by Evidence',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_016', riskTypeName: 'Performative Learning Risk', riskDomain: 'CAREER', riskNature: 'BEHAVIOURAL',
+            riskDescription: "The user completed a course or certification but nothing about how they actually work has changed. The credential is real. The growth is not. This is the most common career self-deception for mid-career professionals. The certificate creates a false sense of having addressed the obsolescence risk.",
+            severityTier: 'HIGH', isCompoundRisk: false, detectionFingerprint: 'CONTR_RO_004 triggered. Q7 completed course AND Q8 nothing changed. Kirkpatrick 2006 Level 3. De Grip Van Loo 2002.',
+            auditorExpertiseTag: 'SKILL_DEVELOPMENT', remediationHorizon: 'SHORT_90_DAYS', reportProminence: 'ANALYSIS_SECTION', userFacingLabel: 'Your Course Did Not Actually Build a New Skill',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_017', riskTypeName: 'Silent Obsolescence Risk', riskDomain: 'CAREER', riskNature: 'STRUCTURAL',
+            riskDescription: "The user has been doing the same type of work for 4 or more years but believes their skills match current market demand. The market has moved. The person has not noticed because they are inside the role. Economic obsolescence happens externally and silently.",
+            severityTier: 'HIGH', isCompoundRisk: false, detectionFingerprint: 'CONTR_RO_005 triggered. Q2 same work 4 plus years AND Q7 no skill gap perceived. Walter Lee 2022. De Grip Van Loo 2002 economic obsolescence.',
+            auditorExpertiseTag: 'SKILL_DEVELOPMENT', remediationHorizon: 'SHORT_90_DAYS', reportProminence: 'ANALYSIS_SECTION', userFacingLabel: 'The Market Has Moved While You Were Not Looking',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_018', riskTypeName: 'Surface Transition Risk', riskDomain: 'CAREER', riskNature: 'BEHAVIOURAL',
+            riskDescription: "The user is actively exploring career opportunities outside their company but their learning has not changed their work in over a year. They are exploring options without building the capability to compete for those options. Market awareness without capability growth is not transition readiness.",
+            severityTier: 'MEDIUM', isCompoundRisk: false, detectionFingerprint: 'CONTR_RO_006 triggered. Q6 actively exploring AND Q8 no learning change. Granovetter 1973. Kirkpatrick 2006.',
+            auditorExpertiseTag: 'CAREER_TRANSITION', remediationHorizon: 'SHORT_90_DAYS', reportProminence: 'ANALYSIS_SECTION', userFacingLabel: 'You Are Exploring Options You Are Not Ready For',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_019', riskTypeName: 'Awareness Without Action Risk', riskDomain: 'CAREER', riskNature: 'BEHAVIOURAL',
+            riskDescription: "The user has had real career conversations outside their company but learning has not changed their work. They are aware of the problem. They are not solving it. Career conversations not backed by genuine development are signals without momentum.",
+            severityTier: 'MEDIUM', isCompoundRisk: false, detectionFingerprint: 'CONTR_RO_007 triggered. Q6 real career conversations AND Q8 no learning change. De Grip Van Loo 2002. Granovetter 1973.',
+            auditorExpertiseTag: 'CAREER_TRANSITION', remediationHorizon: 'SHORT_90_DAYS', reportProminence: 'ANALYSIS_SECTION', userFacingLabel: 'You Know What Needs to Change But Are Not Changing It',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_020', riskTypeName: 'Structural Collapse Risk', riskDomain: 'CAREER', riskNature: 'COMPOUND',
+            riskDescription: "The user's role is highly automatable, their skills are not growing with the market, and they are easily replaceable inside their company. All three structural dimensions are weak simultaneously. This is not three separate problems. It is one systemic failure where each weakness amplifies the others.",
+            severityTier: 'CRITICAL', isCompoundRisk: true, constituentRisksJson: ["DRO_RO_001", "DRO_RO_002", "DRO_RO_003", "DRO_RO_004", "DRO_RO_010"],
+            detectionFingerprint: 'RF_RO_011 Triple Threat. C1 AND C2 AND C7 all FRAGILE or below. Compounding structural failure.',
+            auditorExpertiseTag: 'ROLE_AUTOMATION', remediationHorizon: 'IMMEDIATE_30_DAYS', reportProminence: 'TOP_BANNER',
+            userFacingLabel: 'Your Role, Skills, and Uniqueness Are All at Risk Simultaneously',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        },
+        {
+            droId: 'DRO_RO_021', riskTypeName: 'Trapped Professional Risk', riskDomain: 'CAREER', riskNature: 'COMPOUND',
+            riskDescription: "The user has neither the financial buffer to survive a forced transition nor the market presence to execute one quickly. If their role is eliminated they are trapped between financial pressure and market unreadiness. Every decision made in this state will be a forced decision made under maximum pressure.",
+            severityTier: 'CRITICAL', isCompoundRisk: true, constituentRisksJson: ["DRO_RO_005", "DRO_RO_007", "DRO_RO_011", "DRO_RO_012"],
+            detectionFingerprint: 'RF_RO_012 No Escape Route. C4 AND C5 both FRAGILE or below. Financial and transition readiness simultaneously insufficient.',
+            auditorExpertiseTag: 'CAREER_TRANSITION', remediationHorizon: 'IMMEDIATE_30_DAYS', reportProminence: 'TOP_BANNER',
+            userFacingLabel: 'You Cannot Move and Cannot Stay Safely',
+            cooccurrencePatterns: null, verdictCorrelation: null, populationBenchmark: null,
+            isActive: true
+        }
+    ]);
+    console.log('✅ DRO (Decision Risk Ontology) seeded');
+}
+
+// ════════════════════════════════════════════════════════════
+// STEP 17 — risk_constraint_map (Table 25B)
+// ════════════════════════════════════════════════════════════
+async function seedRiskConstraintMap() {
+    await RiskConstraintMap.deleteMany({});
+    await RiskConstraintMap.insertMany([
+        {
+            rcmId: 'RCM_RO_001',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'ALL',
+            droId: 'DRO_RO_001',
+            constraintId: 'CONS_RO_001',
+            triggerSource: 'CONSTRAINT_THRESHOLD',
+            triggerReferenceId: 'CONS_RO_001',
+            triggerConditionJson: { op: 'lt', value: 40 },
+            activationMode: 'AUTOMATIC_ON_MATCH',
+            confidenceImpact: 'NONE',
+            displayOrder: 1,
+            isActive: true
+        },
+        {
+            rcmId: 'RCM_RO_002',
+            caseId: 'CASE_AI_JOB_RISK',
+            intentId: 'ALL',
+            droId: 'DRO_RO_002',
+            constraintId: 'CONS_RO_002',
+            triggerSource: 'CONSTRAINT_THRESHOLD',
+            triggerReferenceId: 'CONS_RO_002',
+            triggerConditionJson: { op: 'lt', value: 40 },
+            activationMode: 'AUTOMATIC_ON_MATCH',
+            confidenceImpact: 'HIGH_DEDUCTION',
+            displayOrder: 2,
+            isActive: true
+        }
+    ]);
+    console.log('✅ RCM (Risk Constraint Map) seeded');
+}
+
+// ════════════════════════════════════════════════════════════
+// STEP 18 — integrity_eligibility_rules (Table 24A)
+// ════════════════════════════════════════════════════════════
+async function seedIntegrityEligibilityRules() {
+    await IntegrityEligibilityRules.deleteMany({});
+    await ExternalEvidenceDataPool.deleteMany({});
+    console.log('🗑️  Cleaned IntegrityEligibilityRules and EEDP');
+    await IntegrityEligibilityRules.insertMany([
+        {
+            ierId: 'IER_FULL_V1',
+            caseId: 'ALL',
+            intentId: 'ALL',
+            integrityState: 'FULL',
+            requiredAnchorsJson: { all: [{ source: 'coverage', anchor: 'CRT_RO_001', status: 'FOUND' }, { source: 'coverage', anchor: 'CRT_RO_002', status_in: ['FOUND', 'PARTIAL'] }, { source: 'coverage', anchor: 'CRT_RO_003', status_in: ['FOUND', 'PARTIAL'] }, { source: 'questions', all_mandatory_answered: true }] },
+            accuracyThresholdMin: 75,
+            accuracyThresholdMax: 89,
+            sectionsBlockedJson: null,
+            certaintyCapOverride: null,
+            verdictDeliverable: true,
+            isActive: true
+        },
+        {
+            ierId: 'IER_TITLE_MISSING_V1',
+            caseId: 'ALL',
+            intentId: 'ALL',
+            integrityState: 'PARTIAL',
+            requiredAnchorsJson: { any: [{ source: 'coverage', anchor: 'CRT_RO_001', status: 'NOT_FOUND' }] },
+            accuracyThresholdMin: 50,
+            accuracyThresholdMax: 74,
+            sectionsBlockedJson: ["RS_SEC_001"],
+            certaintyCapOverride: 60,
+            verdictDeliverable: true,
+            isActive: true
+        },
+        {
+            ierId: 'IER_SKILLS_MISSING_V1',
+            caseId: 'ALL',
+            intentId: 'ALL',
+            integrityState: 'PARTIAL',
+            requiredAnchorsJson: { any: [{ source: 'coverage', anchor: 'CRT_RO_003', status: 'NOT_FOUND' }] },
+            accuracyThresholdMin: 50,
+            accuracyThresholdMax: 74,
+            sectionsBlockedJson: ["RS_SEC_002"],
+            certaintyCapOverride: 65,
+            verdictDeliverable: true,
+            isActive: true
+        },
+        {
+            ierId: 'IER_MINIMAL_V1',
+            caseId: 'ALL',
+            intentId: 'ALL',
+            integrityState: 'MINIMAL',
+            requiredAnchorsJson: { all: [{ source: 'coverage', anchor: 'CRT_RO_001', status: 'NOT_FOUND' }, { source: 'coverage', anchor: 'CRT_RO_003', status: 'NOT_FOUND' }] },
+            accuracyThresholdMin: 0,
+            accuracyThresholdMax: 49,
+            sectionsBlockedJson: ["RS_SEC_001", "RS_SEC_002"],
+            certaintyCapOverride: 40,
+            verdictDeliverable: true,
+            isActive: true
+        },
+        {
+            ierId: 'IER_COMPLETE_V1',
+            caseId: 'ALL',
+            intentId: 'ALL',
+            integrityState: 'COMPLETE',
+            requiredAnchorsJson: { all: [{ source: 'coverage', all_anchors_found: true }, { source: 'contradictions', count: 0 }] },
+            accuracyThresholdMin: 90,
+            accuracyThresholdMax: 100,
+            sectionsBlockedJson: null,
+            certaintyCapOverride: null,
+            verdictDeliverable: true,
+            isActive: true
+        }
+    ]);
+    console.log('✅ IER (Integrity Eligibility Rules) seeded');
+}
+
+// ════════════════════════════════════════════════════════════
 // RUN
 // ════════════════════════════════════════════════════════════
 async function runSeed() {
@@ -2444,6 +2929,10 @@ async function runSeed() {
             { name: 'case_mba', fn: seedCase_MBA },
             { name: 'case_freelance', fn: seedCase_Freelance },
             { name: 'case_role_switch', fn: seedCase_RoleSwitch },
+            { name: 'verdict_logic_table', fn: seedVerdictLogicTable },
+            { name: 'dro_master', fn: seedDroMaster },
+            { name: 'risk_constraint_map', fn: seedRiskConstraintMap },
+            { name: 'integrity_eligibility_rules', fn: seedIntegrityEligibilityRules },
         ];
 
         for (const step of steps) {

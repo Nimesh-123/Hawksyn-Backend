@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const CaseRegistrySchema = new mongoose.Schema({
-    caseId: { type: String, required: true, unique: true },
+    caseId: { type: String, required: true },
     caseName: { type: String, required: true },
     caseCategory: { type: String, required: true },
     caseDescription: { type: String },
