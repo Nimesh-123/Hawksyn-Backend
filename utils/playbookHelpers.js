@@ -1,85 +1,40 @@
 /**
- * Sheet to Model Configuration for Playbook Import
+ * Sheet to Model Configuration for Playbook Import/Export
+ * Combo Format: Number_ShortName_(FullName)
+ * Note: Excel sheet names are limited to 31 characters.
  */
 const PLAYBOOK_MAPPING = {
-    // Core Playbook
-    '01 CR': { model: 'CaseRegistry', idField: 'caseId' },
-    '04 CIPR': { model: 'CaseIntentConfig', idField: 'playbookVersionId' }, // Merged into CaseIntentConfig with CIMT
-    '05 PR': { model: 'Playbooks', idField: 'playbookId' },
-    '06 PV': { model: 'Playbooks', idField: 'playbookVersionId' }, // Merged into Playbooks
-    '07 CP': { model: 'Playbooks', idField: 'intentId' }, // Merged into Playbooks
+    // 1. Registry & Policy
+    '01_CR_(Case_Registry)': { model: 'CaseRegistry', idField: 'caseId' },
+    '02_CIMT_(Case_Intent_Map)': { model: 'CaseIntentConfig', idField: 'cimtId' },
+    '03_IT_(Intent_Master)': { model: 'IntentTaxonomy', idField: 'intentId' },
+    '04_CP_(Case_Policy)': { model: 'Playbooks', idField: 'caseId' },
 
-    // Taxonomy
-    '02 CIMT': { model: 'CaseIntentConfig', idField: 'intentId' },
-    '03 IT': { model: 'IntentTaxonomy', idField: 'intentId' },
+    // 2. Survey & Scoring
+    '05_MCQM_(Questions)': { model: 'Questions', idField: 'questionId' },
+    '06_QST_(Scoring)': { model: 'Questions', idField: 'questionId' },
+    '07_DRR_(Dep_Rules)': { model: 'DependencyRules', idField: 'dependencyRuleId' },
+    '08_CT_(Constraints)': { model: 'Constraints', idField: 'constraintId' },
+    '09_CQMT_(Constraint_Map)': { model: 'ConstraintQuestionMapping', idField: 'cqmtId' },
+    '10_CTT_(Thresholds)': { model: 'Constraints', idField: 'constraintId' },
 
-    // Questions (MCQM + QST merged)
-    '08 MCQM': { model: 'Questions', idField: 'questionId' },
-    '18 QST': { model: 'Questions', idField: 'scoringRuleId' }, // merged
+    // 3. Logic & Intelligence
+    '11_VLT_(Verdict_Logic)': { model: 'VerdictLogicTable', idField: 'ruleId' },
+    '12_ASP_(Accuracy_Policy)': { model: 'AccuracyScoringPolicy', idField: 'accuracyPolicyId' },
+    '13_RFT_(Red_Flags)': { model: 'RedFlagTaxonomy', idField: 'redFlagId' },
+    '14_CDT_(Contradictions)': { model: 'Contradictions', idField: 'contradictionId' },
+    '15_CCT_(Condition_Logic)': { model: 'Contradictions', idField: 'contradictionId' },
+    '16_CST_(Penalty_Rules)': { model: 'Contradictions', idField: 'contradictionId' },
+    '17_DRO_(Risk_Ontology)': { model: 'DroMaster', idField: 'droId' },
+    '18_RCM_(Risk_Map)': { model: 'RiskConstraintMap', idField: 'rcmId' },
 
-    // MOI
-    '12 MOI': { model: 'MandatoryObjectiveInput', idField: 'moiId' },
-    'MOI Master': { model: 'MandatoryObjectiveInput', idField: 'moiId' },
-    '13 MOIQM': { model: 'MoiQuestionMapping', idField: 'moiqmId' },
-
-    // Constraints (CT + CTT merged)
-    '16 CT': { model: 'Constraints', idField: 'constraintId' },
-    '19 CTT': { model: 'Constraints', idField: 'thresholdSetId' }, // merged
-
-    // Mapping (IMPORTANT - separate)
-    '17 CQMT': { model: 'ConstraintQuestionMapping', idField: 'cqmtId' },
-
-    // Risk Layer
-    '25A DRO': { model: 'DroMaster', idField: 'droId' },
-    'DRO Master': { model: 'DroMaster', idField: 'droId' },
-    '12 DRO': { model: 'DroMaster', idField: 'droId' },
-
-    '25B RCM': { model: 'RiskConstraintMap', idField: 'rcmId' },
-    '13 RCM': { model: 'RiskConstraintMap', idField: 'rcmId' },
-    'RCM': { model: 'RiskConstraintMap', idField: 'rcmId' },
-
-    // Integrity
-    '24A IER': { model: 'IntegrityEligibilityRules', idField: 'ierId' },
-    '41 IER': { model: 'IntegrityEligibilityRules', idField: 'ierId' },
-    '41  Integrity Eligibility Rules': { model: 'IntegrityEligibilityRules', idField: 'ierId' },
-
-    // Verdict
-    '37 VLT': { model: 'VerdictLogicTable', idField: 'ruleId' },
-    'VLT': { model: 'VerdictLogicTable', idField: 'ruleId' },
-
-    // Logic
-    '14 DRR': { model: 'DependencyRules', idField: 'dependencyRuleId' },
-    '25 RFT': { model: 'RedFlagTaxonomy', idField: 'redFlagId' },
-
-    '20 CDT': { model: 'Contradictions', idField: 'contradictionId' },
-    '21 CCT': { model: 'Contradictions', idField: 'contradictionId' },
-    '22 CST': { model: 'Contradictions', idField: 'contradictionId' },
-
-    // Accuracy
-    '23 CRT': { model: 'CoverageRequirements', idField: 'crtId' },
-    '24 CAT': { model: 'CoverageRequirements', idField: 'crtId' },
-    '26 ASP': { model: 'AccuracyScoringPolicy', idField: 'accuracyPolicyId' },
-
-    // Output
-    '33 DAST': { model: 'DecisionAssuranceSections', idField: 'sectionId' },
-    '30 GR': { model: 'GuardrailRegistry', idField: 'grRuleId' },
-    '34 PCR': { model: 'PromptConfigRegistry', idField: 'promptId' },
-
-    // External
-    '29 EST': { model: 'ExternalSignalTaxonomy', idField: 'signalId' },
-    '31 SR': { model: 'SourceRegistry', idField: 'sourceId' },
-    '32 DPKT': { model: 'DataPatternKeyTaxonomy', idField: 'patternKeyId' },
-
-    // Warnings
-    '27 WMT': { model: 'Warnings', idField: 'warningId' },
-    '28 WC': { model: 'Warnings', idField: 'warningId' },
-
-    // Eval
-    '15 ELR': { model: 'EvaluationLibraryRegistry', idField: 'elrId' },
-
-    // Fallback (IMPORTANT for Antigravity)
-    'CQMT': { model: 'ConstraintQuestionMapping', idField: 'cqmtId' },
-    'QST': { model: 'Questions', idField: 'scoringRuleId' }
+    // 4. Reporting & UI
+    '19_CONF_(Badges)': { model: 'VerdictLogicTable', idField: 'ruleId' },
+    '20_IM_(Threshold_Mods)': { model: 'AccuracyScoringPolicy', idField: 'intentId' },
+    '21_DAST_(Report_Prompts)': { model: 'DecisionAssuranceSections', idField: 'sectionId' },
+    '22_DPKT_(Placeholders)': { model: 'DataPatternKeyTaxonomy', idField: 'patternKeyId' },
+    '23_EST_(External_Signals)': { model: 'ExternalSignalTaxonomy', idField: 'signalId' },
+    '24_REMED_(Remediation)': { model: 'RedFlagTaxonomy', idField: 'remediationCode' }
 };
 
 /**
@@ -101,7 +56,23 @@ const parseSafeJson = (val) => {
     }
 };
 
+/**
+ * Utility: Convert camelCase to snake_case for Excel Headers
+ */
+const toSnakeCase = (str) => {
+    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+};
+
+/**
+ * Utility: Convert snake_case to camelCase for DB Keys
+ */
+const toCamelCase = (str) => {
+    return str.toLowerCase().replace(/_([a-z0-9])/g, (g) => g[1].toUpperCase());
+};
+
 module.exports = {
     PLAYBOOK_MAPPING,
-    parseSafeJson
+    parseSafeJson,
+    toSnakeCase,
+    toCamelCase
 };

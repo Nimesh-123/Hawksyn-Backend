@@ -4,14 +4,102 @@ const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 
 const { createAuditLog } = require('../../utils/auditLogger.js');
-const { PLAYBOOK_MAPPING, parseSafeJson } = require('../../utils/playbookHelpers.js');
+const { PLAYBOOK_MAPPING, parseSafeJson, toSnakeCase, toCamelCase } = require('../../utils/playbookHelpers.js');
 
 // --- In-Memory Temporary Storage (For Demo - In production use Redis or filesystem) ---
 const tempStorage = new Map();
 
 /**
- * Upload and Validate Excel/JSON File
+ * Download Excel Template (Pre-filled with Case data if provided)
+ * GET /api/v1/admin/template/download?caseId=CASE_ID
  */
+exports.downloadPlaybookTemplate = async (req, res) => {
+    try {
+        const { caseId } = req.query;
+        const workbook = XLSX.utils.book_new();
+
+        // 1. Iterate over our 24 Sheets
+        for (const sheetName of Object.keys(PLAYBOOK_MAPPING)) {
+            const config = PLAYBOOK_MAPPING[sheetName];
+            const Model = db[config.model];
+            
+            if (!Model) {
+                console.warn(`[Template Gen] Model ${config.model} not found for sheet ${sheetName}`);
+                continue;
+            }
+
+            // 2. Fetch Data (If no caseId, return empty for blank template)
+            let query = {};
+            if (caseId) {
+                const schema = Model.schema.paths;
+                if (schema.caseId) query.caseId = caseId;
+                else if (schema.caseScope) query.caseScope = caseId;
+                else if (schema.targetCaseId) query.targetCaseId = caseId;
+            } else {
+                // FORCE EMPTY: We only want headers for a new case
+                query = { _id: null }; 
+            }
+            const rawData = await Model.find(query).lean();
+
+            // 3. Inverse Transformation (Merged DB -> Separate Sheets)
+
+            const processedData = rawData.map(item => {
+                const row = {};
+                const { _id, __v, createdAt, updatedAt, ...cleanItem } = item;
+                
+                Object.keys(cleanItem).forEach(key => {
+                    let keep = true;
+
+                    // Example split logic
+                    if (sheetName.includes('Questions') && !sheetName.includes('Scoring') && key.toLowerCase().includes('score')) keep = false;
+                    if (sheetName.includes('Scoring') && !['questionId', 'questionText'].includes(key) && !key.toLowerCase().includes('score')) keep = false;
+
+                    if (keep) {
+                        const excelHeader = toSnakeCase(key);
+                        let val = cleanItem[key];
+                        if (val && typeof val === 'object') val = JSON.stringify(val);
+                        row[excelHeader] = val;
+                    }
+                });
+                return row;
+            });
+
+            // 4. Create Sheet (Ensure headers exist even if no data)
+            let worksheet;
+            if (processedData.length > 0) {
+                worksheet = XLSX.utils.json_to_sheet(processedData);
+            } else {
+                // Generate headers from Model Schema for Blank Template
+                const schemaPaths = Object.keys(Model.schema.paths).filter(p => !['_id', '__v', 'createdAt', 'updatedAt'].includes(p));
+                const headers = {};
+                schemaPaths.forEach(p => {
+                    // Filter headers based on sheet-specific merging logic
+                    let keep = true;
+                    if (sheetName.includes('Questions') && !sheetName.includes('Scoring') && p.toLowerCase().includes('score')) keep = false;
+                    if (sheetName.includes('Scoring') && !['questionId', 'questionText'].includes(p) && !p.toLowerCase().includes('score')) keep = false;
+                    
+                    if (keep) headers[toSnakeCase(p)] = ""; 
+                });
+                worksheet = XLSX.utils.json_to_sheet([headers]);
+            }
+            
+            XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+        }
+
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+        
+        res.setHeader('Content-Disposition', `attachment; filename=Hawksyn_Template_${caseId || 'Master'}.xlsx`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        
+        return res.send(buffer);
+
+    } catch (error) {
+        console.error('[DownloadTemplate Error]:', error);
+        return res.status(500).json({ success: false, message: 'Error generating template.', error: error.message });
+    }
+};
+
 exports.uploadPlaybook = async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ success: false, message: 'File is required.' });
@@ -32,14 +120,17 @@ exports.uploadPlaybook = async (req, res) => {
             }
 
             let config = PLAYBOOK_MAPPING[baseNameOrig];
+            
             if (!config) {
-                // Try stripping numeric prefix (e.g., "03 IT" -> "IT")
-                const parts = baseNameOrig.split(/[\s_]+/);
-                if (parts.length > 1 && /^\d+$/.test(parts[0])) {
-                    const stripped = parts.slice(1).join(' ');
-                    config = PLAYBOOK_MAPPING[stripped];
-                }
+                // Fuzzy Match: Does any mapping key "contain" this sheet name or vice versa?
+                // Or does the sheet name contain the short code (e.g. "CR")?
+                const foundKey = Object.keys(PLAYBOOK_MAPPING).find(key => {
+                    const shortCode = key.split('_')[1]; // Extracts 'CR' from '01_CR_(Case_Registry)'
+                    return baseNameOrig.includes(shortCode) || baseNameOrig.includes(key);
+                });
+                if (foundKey) config = PLAYBOOK_MAPPING[foundKey];
             }
+
 
             if (config) {
                 console.log(`[Validation] Scanning: ${sheetName} -> ${config.model}`);
@@ -55,8 +146,9 @@ exports.uploadPlaybook = async (req, res) => {
             const config = sheetConfigs[sheetName];
             if (!config) return;
 
-            // Robust baseName: Strip numbers and take first word (e.g., "18 QST" -> "QST")
-            const baseName = sheetName.replace(/^\d+[\s_]+/, '').split(/[\s_]+/)[0].trim();
+            // Robust baseName: Extracts 'CR' from '01_CR_(Case_Registry)' or '01 CR'
+            const baseName = sheetName.split('_')[1] || sheetName.split(' ')[1] || sheetName;
+
             let rows = parsedData[sheetName];
 
             rows = rows.map((row, index) => {
@@ -220,17 +312,25 @@ exports.uploadPlaybook = async (req, res) => {
                 Object.keys(normalizedRow).forEach(key => {
                     let val = normalizedRow[key];
 
-                    // Global NULL handler (for all strings including non-json)
+                    // Universal: Strip extra surrounding quotes if they exist
+                    if (typeof val === 'string' && val.startsWith('"') && val.endsWith('"')) {
+                        val = val.substring(1, val.length - 1).replace(/""/g, '"');
+                        normalizedRow[key] = val;
+                    }
+
+                    // Global NULL handler
                     if (typeof val === 'string' && (val.trim().toUpperCase() === 'NULL' || val.trim() === '')) {
                         normalizedRow[key] = null;
                         return;
                     }
+
 
                     // Boolean Normalization (Only if it is a string)
                     if (typeof val === 'string') {
                         if (val.toLowerCase() === 'true') normalizedRow[key] = true;
                         if (val.toLowerCase() === 'false') normalizedRow[key] = false;
                     }
+
 
                     // JSON Field Parsing (Ending in Json or specific names)
                     const lowerKey = key.toLowerCase();
@@ -386,10 +486,9 @@ exports.confirmImport = async (req, res) => {
                 // MERGE: Row-wise attribute union for shared models (e.g. CIMT+CIPR, MCQM+QST)
                 if (!modelToDataMap[config.model][mergeKey]) {
                     modelToDataMap[config.model][mergeKey] = row;
-                } else {
-                    // console.log(`[Merge] Consolidating attributes for ${config.model} - ${mergeKey}`);
                     modelToDataMap[config.model][mergeKey] = { ...modelToDataMap[config.model][mergeKey], ...row };
                 }
+
 
                 // Propagate missing ID context globally during merge
                 modelToDataMap[config.model][mergeKey].caseId = modelToDataMap[config.model][mergeKey].caseId || row.caseId || targetCaseId;
@@ -427,7 +526,7 @@ exports.confirmImport = async (req, res) => {
             if (mName === 'Questions') {
                 Object.keys(modelToDataMap[mName]).forEach(mergeKey => {
                     const q = modelToDataMap[mName][mergeKey];
-                    // Build optionsJson from optionA-D and scores
+                    // Build optionsJson
                     if (!q.optionsJson || (Array.isArray(q.optionsJson) && q.optionsJson.length === 0)) {
                         const opts = [];
                         if (q.optionA) opts.push({ id: 'A', opt: q.optionA, score: q.optionAScore || 0 });
@@ -436,9 +535,28 @@ exports.confirmImport = async (req, res) => {
                         if (q.optionD) opts.push({ id: 'D', opt: q.optionD, score: q.optionDScore || 0 });
                         if (opts.length > 0) q.optionsJson = opts;
                     }
+                    // Ensure boolean conversion for Excel
+                    if (q.isActive === undefined) q.isActive = true;
+                });
+            }
+
+            if (mName === 'Contradictions') {
+                Object.keys(modelToDataMap[mName]).forEach(mergeKey => {
+                    const c = modelToDataMap[mName][mergeKey];
+                    // CCT Logic mapping
+                    if (c.ruleJson && typeof c.ruleJson === 'string') c.ruleJson = parseSafeJson(c.ruleJson);
+                    if (c.involvedEntitiesJson && typeof c.involvedEntitiesJson === 'string') c.involvedEntitiesJson = parseSafeJson(c.involvedEntitiesJson);
+                });
+            }
+
+            if (mName === 'RedFlagTaxonomy') {
+                Object.keys(modelToDataMap[mName]).forEach(mergeKey => {
+                    const f = modelToDataMap[mName][mergeKey];
+                    if (f.triggerConditionJson && typeof f.triggerConditionJson === 'string') f.triggerConditionJson = parseSafeJson(f.triggerConditionJson);
                 });
             }
         }
+
 
         // Convert back to arrays for insertion
         const modelToInsertData = {};
