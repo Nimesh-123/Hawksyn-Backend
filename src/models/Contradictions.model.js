@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const ContradictionsSchema = new mongoose.Schema({
-    contradictionId: { type: String, required: true, unique: true },
+    contradictionId: { type: String, required: true },
     contradictionSetId: { type: String },
     caseId: { type: String, required: true },
     intentId: { type: String, required: true },

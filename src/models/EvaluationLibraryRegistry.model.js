@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const EvaluationLibraryRegistrySchema = new mongoose.Schema({
-    elrId: { type: String, required: true, unique: true },
+    elrId: { type: String, required: true },
     elrName: { type: String },
     caseId: { type: String, required: true },
     intentId: { type: String, required: true },
@@ -13,6 +13,7 @@ const EvaluationLibraryRegistrySchema = new mongoose.Schema({
     redFlagSetId: { type: String },
     accuracyPolicyId: { type: String },
     warningMappingId: { type: String },
+    verdictLogicId: { type: String, default: null },
     version: { type: String },
     isActive: { type: Boolean, default: true }
 }, {

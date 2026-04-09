@@ -16,9 +16,7 @@
 
 const cron = require('node-cron');
 const { db } = require('../models/index.model.js');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-
-const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const { generateJSON } = require('../services/aiProvider.js');
 
 // ─────────────────────────────────────────────────────────────────
 // HELPER 1 — getUniqueRoleIndustryPairs
@@ -68,13 +66,11 @@ async function getUniqueRoleIndustryPairs() {
     return pairs;
 }
 
-// ─────────────────────────────────────────────────────────────────
-// HELPER 2 — generatePulseFromGemini
-// Generates scores from Gemini for a role+industry pair
-// ─────────────────────────────────────────────────────────────────
-async function generatePulseFromGemini(role, industry) {
-    const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
+/**
+ * HELPER 2 — generatePulse
+ * Generates scores from AI Provider for a role+industry pair
+ */
+async function generatePulse(role, industry) {
     const prompt = `You are a career market analyst. Generate accurate current market trend scores for career risk assessment.
 
 Role: ${role}
@@ -98,14 +94,8 @@ Rules:
 - insightText must be one sentence only
 - Base your assessment on current AI adoption trends and job market conditions`;
 
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text();
-    const clean = raw
-        .replace(/```json\s*/gi, '')
-        .replace(/```\s*/g, '')
-        .trim();
-
-    const parsed = JSON.parse(clean);
+    const { data: parsed, duration, provider } = await generateJSON(prompt);
+    console.log(`[TrendEngine] AI Pulse generated in ${duration} via ${provider}`);
 
     // Basic validation
     const required = [
@@ -155,7 +145,7 @@ async function runTrendEngine() {
             try {
                 console.log(`[TrendEngine] Generating for: ${pair.role} / ${pair.industry}`);
 
-                const trends = await generatePulseFromGemini(pair.role, pair.industry);
+                const trends = await generatePulse(pair.role, pair.industry);
 
                 const roleSlug = pair.role.replace(/\s+/g, '_').toUpperCase();
                 const industrySlug = pair.industry.replace(/\s+/g, '_').toUpperCase();

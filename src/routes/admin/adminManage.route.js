@@ -7,7 +7,7 @@ const adminController = require('../../controllers/admin.controller');
  * /admin/manage/create:
  *   post:
  *     summary: Create a new Sub-Admin (Super Admin Only)
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -40,7 +40,7 @@ router.post('/create', adminController.createSubAdmin);
  * /admin/manage/list:
  *   get:
  *     summary: Get all Sub-Admins (Super Admin Only)
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -56,7 +56,7 @@ router.get('/list', adminController.getSubAdmins);
  * /admin/manage/{id}:
  *   delete:
  *     summary: Delete a Sub-Admin (Super Admin Only)
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -73,5 +73,60 @@ router.get('/list', adminController.getSubAdmins);
  *         description: Permission denied
  */
 router.delete('/:id', adminController.deleteSubAdmin);
+
+/**
+ * @swagger
+ * /admin/manage/experts/create:
+ *   post:
+ *     summary: Register a new Expert (Risk Auditor)
+ *     tags: ["9. Admin: Dashboard"]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/experts/create', adminController.createExpert);
+
+/**
+ * @swagger
+ * /admin/manage/experts/list:
+ *   get:
+ *     summary: List all registered experts
+ *     tags: ["9. Admin: Dashboard"]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get('/experts/list', adminController.getAllExperts);
+
+/**
+ * @swagger
+ * /admin/manage/experts/{id}:
+ *   patch:
+ *     summary: Update an expert
+ *     tags: ["9. Admin: Dashboard"]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.patch('/experts/:id', adminController.updateExpert);
+
+/**
+ * @swagger
+ * /admin/manage/experts/{id}:
+ *   delete:
+ *     summary: Delete an expert
+ *     tags: ["9. Admin: Dashboard"]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.delete('/experts/:id', adminController.deleteExpert);
+
+/**
+ * @swagger
+ * /admin/manage/cv-audit:
+ *   get:
+ *     summary: Audit CV Parsing successes and failures
+ *     tags: ["9. Admin: Dashboard"]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get('/cv-audit', adminController.getCvAuditLogs);
 
 module.exports = router;

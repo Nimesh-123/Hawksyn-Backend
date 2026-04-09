@@ -18,22 +18,27 @@ const documentUploadsSchema = new mongoose.Schema(
             required: true
         },
 
-        // Parser
+        // Parser & Audit Logic
         parserStatus: {
             type: String,
-            enum: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'],
+            enum: ['PENDING', 'SUCCESS', 'FAILED', 'EMPTY', 'INVALID_FORMAT', 'NOT_A_CV'],
             default: 'PENDING'
         },
         parsedCvData: {
             type: mongoose.Schema.Types.Mixed,
             default: null
         },
-        rejectionReason: {
+        errorReason: {
             type: String,
             default: null
         },
+        parserMetadata: {
+            modelUsed: { type: String },
+            duration: { type: String },
+            tokenUsage: { type: mongoose.Schema.Types.Mixed }
+        },
 
-        // Status
+        // Lifecycle Status
         isActive: {
             type: Boolean,
             default: true

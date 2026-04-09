@@ -3,6 +3,9 @@ const mongoose = require('mongoose');
 const RiskAuditorRegistrySchema = new mongoose.Schema({
     auditorId: { type: String, required: true, unique: true },
     auditorName: { type: String, required: true },
+    email: { type: String, required: true, unique: true }, // Restore Required
+    password: { type: String, required: true },           // Restore Required
+    refreshToken: { type: String },
     caseId: { type: String, required: true },
     specializations: { type: [String], default: [] },
     maxCaseload: { type: Number, default: 20 },

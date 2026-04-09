@@ -9,7 +9,7 @@ const userProfileController = require('../controllers/userProfileController');
  * /user/profile:
  *   get:
  *     summary: Load profile for onboarding review
- *     tags: [2. Onboarding (Profile Setup)]
+ *     tags: ["2. Onboarding (Profile Setup)"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -26,7 +26,7 @@ router.get('/profile', userProfileController.getUserProfile);
  *   put:
  *     summary: User edits + confirms profile during onboarding
  *     description: Submits edits (partial update supported - only send changed fields). Finalizes the persistent user profile.
- *     tags: [2. Onboarding (Profile Setup)]
+ *     tags: ["2. Onboarding (Profile Setup)"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:

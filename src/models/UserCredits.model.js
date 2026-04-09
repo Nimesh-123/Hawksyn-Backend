@@ -9,6 +9,7 @@ const UserCreditsSchema = new mongoose.Schema({
             type: { type: String, enum: ['PURCHASE', 'HAWK_CONSUME', 'EXPERT_QUERY_PURCHASE', 'EXPERT_QUERY_CONSUME', 'BONUS', 'REFUND'], required: true },
             amount: { type: Number, required: true },
             balanceAfter: { type: Number, required: true },
+            runId: { type: String },
             note: { type: String },
             createdAt: { type: Date, default: Date.now }
         }

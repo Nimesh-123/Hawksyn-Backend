@@ -17,7 +17,8 @@ exports.authenticate = async (req, res, next) => {
             '/user/verify-otp',
             '/user/set-pin',
             '/user/login-with-pin',
-            '/user/forgot-pin'
+            '/user/forgot-pin',
+            '/expert/auth/login'
         ];
 
         const fullPath = req.originalUrl || '';
@@ -54,6 +55,8 @@ exports.authenticate = async (req, res, next) => {
 
             if (decoded.role?.includes('admin')) {
                 entity = await db.Admin.findById(decoded.id);
+            } else if (decoded.role === 'expert') {
+                entity = await db.RiskAuditorRegistry.findById(decoded.id);
             } else {
                 entity = await db.User.findById(decoded.id);
             }

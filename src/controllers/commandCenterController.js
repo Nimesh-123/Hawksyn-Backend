@@ -24,10 +24,7 @@ async function saveClockHistory(userId, scores, type, pulseId) {
     }
 }
 
-/**
- * API 1 — GET /api/v1/users/:userId/command-center
- * Loads user dashboard data.
- */
+
 exports.getCommandCenter = async (req, res) => {
     try {
         const { userId } = req.params;
@@ -52,8 +49,7 @@ exports.getCommandCenter = async (req, res) => {
 
         let userClock = await db.UserClocks.findOne({ userId: String(userId) });
 
-        // ✅ AUTO-FIX: If profile is confirmed but Clocks are missing (e.g., users from before the hook was added)
-        // Trigger recalibration immediately.
+        // Recalibrate for confirmed user if clocks are missing
         if (!userClock && userProfile?.isConfirmed === true) {
             console.log(`[CommandCenter] Auto-fixing missing clocks for confirmed user: ${userId}`);
             await require('../services/clockService').recalibrateForUser(String(userId), profile);
@@ -151,10 +147,7 @@ exports.getCommandCenter = async (req, res) => {
     }
 };
 
-/**
- * API 2 — POST /api/v1/users/:userId/hawk
- * Manual recalibration — consumes 1 credit.
- */
+
 exports.runHawk = async (req, res) => {
     try {
         const { userId } = req.params;
@@ -253,9 +246,7 @@ exports.runHawk = async (req, res) => {
     }
 };
 
-/**
- * API 3 — POST /api/v1/users/:userId/clock-refresh-from-case
- */
+
 exports.refreshClocksFromCase = async (req, res) => {
     try {
         const { userId } = req.params;
@@ -277,7 +268,7 @@ exports.refreshClocksFromCase = async (req, res) => {
             daysLeft:            30,
             lastCalculatedAt:    new Date(),
             lastCalculatedBy:    'CASE_RUN',
-            // Pulse sirf insightText ke liye upgrade hota hai (scores expert ne pehle hi set kiye hain)
+            // Pulse refresh logic for insightText
             ...(pulse ? { insightText: pulse.insightText, pulseId: pulse.pulseId } : {}),
             updatedAt: new Date()
         };
@@ -290,9 +281,7 @@ exports.refreshClocksFromCase = async (req, res) => {
     }
 };
 
-/**
- * API 4 — GET /api/v1/users/:userId/credits
- */
+
 exports.getCredits = async (req, res) => {
     try {
         const { userId } = req.params;

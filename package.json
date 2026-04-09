@@ -30,6 +30,7 @@
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "geoip-lite": "^1.4.10",
+    "google-auth-library": "^10.6.2",
     "jsonwebtoken": "^9.0.2",
     "mammoth": "^1.11.0",
     "mongoose": "^8.17.1",
@@ -41,10 +42,12 @@
     "path": "^0.12.7",
     "pdf-parse": "^1.1.1",
     "puppeteer": "^24.40.0",
+    "socket.io": "^4.8.3",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0",
     "validatorjs": "^3.22.1",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "xlsx": "^0.18.5"
   }
 }

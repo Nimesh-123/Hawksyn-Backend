@@ -6,6 +6,7 @@ const RunsSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    requestId: { type: String, unique: true, sparse: true },
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -46,6 +47,16 @@ const RunsSchema = new mongoose.Schema({
     isImmutable: { type: Boolean, default: false },
     eligibleForComparison: { type: Boolean, default: false },
     previousRunId: { type: String, default: null }, // Set for re-runs — used to bypass payment check
+    reRunSetup: {
+        eligibleForFreeReRun: { type: Boolean, default: false },
+        freeReRunExpiryDate: { type: Date, default: null },
+        reRunPriceOverride: { type: Number, default: null }
+    },
+    // ── EXPERT / SLA TRACKING (Task 20) ──
+    expertId: { type: mongoose.Schema.Types.ObjectId, ref: 'RiskAuditorRegistry', default: null },
+    expertAssignedAt: { type: Date, default: null },
+    expertReviewedAt: { type: Date, default: null },
+    isSlaBreached: { type: Boolean, default: false },
     completedAt: { type: Date, default: null }
 }, {
     timestamps: true,

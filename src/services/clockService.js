@@ -1,14 +1,10 @@
 const { db } = require('../models/index.model.js');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-
-const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const { generateJSON } = require('./aiProvider.js');
 
 /**
  * AI Score Generator
  */
-async function generateClockScoresFromGemini({ role, industry, skills, achievements, tenure }) {
-    const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
+async function generateClockScores({ role, industry, skills, achievements, tenure }) {
     const skillsText = Array.isArray(skills) ? skills.join(', ') : (skills || 'Not specified');
     const achievementsText = Array.isArray(achievements) ? achievements.join(', ') : (achievements || 'Not specified');
     const prompt = `You are a career risk analyst for Hawksyn Decision Assurance Platform.  Calculate 4 clock scores for this professional based on current market conditions.
@@ -66,10 +62,9 @@ Rules:
 - trendTrigger = one specific market event
 - Base on real current AI adoption trends`;
 
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text();
-    const clean = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-    return JSON.parse(clean);
+    const { data, duration, provider } = await generateJSON(prompt);
+    console.log(`[ClockService] ✅ AI calculation complete in ${duration} via ${provider}`);
+    return { ...data, calculationDuration: duration };
 }
 
 /**
@@ -283,15 +278,15 @@ async function recalibrateForUser(userId, profile) {
             console.log(`[ClockService] ✅ Found matching Pulse: ${pulse.pulseId}`);
             clockScores = calculateClockScores(profile, pulse);
         } else {
-            console.log(`[ClockService] 🔍 No cached pulse. Calling Gemini AI...`);
-            clockScores = await generateClockScoresFromGemini({
+            console.log(`[ClockService] 🔍 No cached pulse. Calling AI Provider...`);
+            clockScores = await generateClockScores({
                 role,
                 industry,
                 skills,
                 achievements,
                 tenure: experienceYears
             });
-            console.log(`[ClockService] 🤖 Gemini calculation complete for ${role}`);
+            console.log(`[ClockService] 🤖 AI calculation complete for ${role}`);
         }
 
         if (!clockScores) {
@@ -362,9 +357,9 @@ async function refreshClocksAfterCase(userId, runId) {
 
         let clockScores = null;
         try {
-            clockScores = await generateClockScoresFromGemini(data);
-        } catch (geminiErr) {
-            console.warn(`[Expert] Gemini failed — using integrity pack fallback:`, geminiErr.message);
+            clockScores = await generateClockScores(data);
+        } catch (aiErr) {
+            console.warn(`[Expert] AI Provider failed — using integrity pack fallback:`, aiErr.message);
             const integrityRas = await db.Ras.findOne({ runId, artifactType: 'INTEGRITY_PACK', status: 'FINAL' });
             const constraints = integrityRas?.artifactJson?.constraints?.results || [];
             const cons001 = constraints.find(c => c.constraintId === 'CONS_AI_001');
@@ -419,7 +414,7 @@ async function refreshClocksAfterCase(userId, runId) {
 }
 
 module.exports = {
-    generateClockScoresFromGemini,
+    generateClockScores,
     computeValidityState,
     findActivePulse,
     calculateClockScores,

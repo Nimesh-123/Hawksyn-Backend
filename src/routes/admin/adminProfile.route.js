@@ -7,7 +7,7 @@ const adminController = require('../../controllers/admin.controller.js');
  * /admin/profile:
  *   get:
  *     summary: Get admin profile
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -15,7 +15,7 @@ const adminController = require('../../controllers/admin.controller.js');
  *         description: Admin profile data
  *   put:
  *     summary: Update admin profile
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -36,7 +36,7 @@ const adminController = require('../../controllers/admin.controller.js');
  * /admin/profile/change-password:
  *   patch:
  *     summary: Change admin password
- *     tags: [9. Admin Dashboard]
+ *     tags: ["9. Admin: Dashboard"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:

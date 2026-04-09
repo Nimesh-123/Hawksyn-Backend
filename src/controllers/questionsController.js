@@ -21,12 +21,20 @@ exports.getNextQuestions = async (req, res) => {
         }
 
         // 2. Find MOI
-        const moi = await db.MandatoryObjectiveInput.findOne({
+        let moi = await db.MandatoryObjectiveInput.findOne({
             caseId: run.caseId,
             intentId: run.intentId,
             playbookVersionId: run.playbookVersionId,
             isActive: true
         });
+        if (!moi) {
+            moi = await db.MandatoryObjectiveInput.findOne({
+                caseId: run.caseId,
+                intentId: run.intentId,
+                isActive: true
+            });
+        }
+
         if (!moi) {
             return res.status(404).json({ success: false, message: "Mandatory objective inputs config not found for this run" });
         }
@@ -95,6 +103,14 @@ exports.getNextQuestions = async (req, res) => {
                     dependsOn: 'multiple_conditions'
                 });
             }
+        }
+
+        // 6.5 Check if any mappings exist at all
+        if (allMappings.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No questions configured for this objective (MoiQuestionMapping is empty). Check database."
+            });
         }
 
         // 7. If no visible questions left
@@ -274,7 +290,7 @@ exports.saveAnswers = async (req, res) => {
         });
 
         // 5. Check if all questions are now answered to transition status
-        const moi = await db.MandatoryObjectiveInput.findOne({
+        let moi = await db.MandatoryObjectiveInput.findOne({
             caseId: run.caseId,
             intentId: run.intentId,
             playbookVersionId: run.playbookVersionId,
@@ -332,12 +348,21 @@ exports.getQuestionsStatus = async (req, res) => {
         }
 
         // 2. Find MOI
-        const moi = await db.MandatoryObjectiveInput.findOne({
+        let moi = await db.MandatoryObjectiveInput.findOne({
             caseId: run.caseId,
             intentId: run.intentId,
             playbookVersionId: run.playbookVersionId,
             isActive: true
         });
+
+        if (!moi) {
+            moi = await db.MandatoryObjectiveInput.findOne({
+                caseId: run.caseId,
+                intentId: run.intentId,
+                isActive: true
+            });
+        }
+
         if (!moi) {
             return res.status(404).json({ success: false, message: "Mandatory objective inputs config not found for this run" });
         }
@@ -348,7 +373,14 @@ exports.getQuestionsStatus = async (req, res) => {
             isActive: true
         });
 
-        // 4. Find all RAS records
+        if (allMappings.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No questions configured for this objective (MoiQuestionMapping is empty). Check database."
+            });
+        }
+
+        // 4. Find all RAS records & Build answer map for dependency evaluation
         const rasRecords = await db.Ras.find({
             runId: runId,
             stepNo: 3,
@@ -356,12 +388,42 @@ exports.getQuestionsStatus = async (req, res) => {
             status: 'FINAL'
         });
 
+        const answerMap = {};
         let answeredCount = 0;
         rasRecords.forEach(r => {
             if (r.artifactJson.answers) {
-                answeredCount += r.artifactJson.answers.length;
+                r.artifactJson.answers.forEach(a => {
+                    const resolvedValue = a.answerLabel || a.answerValue;
+                    answerMap[a.questionId] = resolvedValue;
+                    answeredCount++;
+                });
             }
         });
+
+        // 5. Evaluate Skips to find "Effective" total
+        const { evaluateDependencyRule } = require('../../utils/evaluationHelpers');
+        let skippedCount = 0;
+        const skippedQuestionIds = [];
+
+        for (const mapping of allMappings) {
+            if (answerMap[mapping.questionId] !== undefined) continue;
+
+            const rule = await db.DependencyRules.findOne({
+                targetQuestionId: mapping.questionId,
+                isActive: true
+            });
+
+            if (rule && rule.ruleJson) {
+                const isMet = evaluateDependencyRule(rule.ruleJson, answerMap);
+                if (!isMet) {
+                    skippedCount++;
+                    skippedQuestionIds.push(mapping.questionId);
+                }
+            }
+        }
+
+        const effectiveTotal = allMappings.length - skippedCount;
+        const isComplete = answeredCount >= effectiveTotal;
 
         return res.status(200).json({
             success: true,
@@ -369,17 +431,19 @@ exports.getQuestionsStatus = async (req, res) => {
                 runId,
                 totalQuestions: allMappings.length,
                 answeredCount,
-                remainingCount: Math.max(0, allMappings.length - answeredCount),
-                progressLabel: `${answeredCount}/${allMappings.length}`,
-                progressPercent: allMappings.length > 0 ? Math.round((answeredCount / allMappings.length) * 100) : 0,
-                isComplete: answeredCount >= allMappings.length,
+                skippedCount,
+                effectiveTotal,
+                remainingCount: Math.max(0, effectiveTotal - answeredCount),
+                progressLabel: `${answeredCount}/${effectiveTotal}`,
+                progressPercent: effectiveTotal > 0 ? Math.round((answeredCount / effectiveTotal) * 100) : 0,
+                isComplete,
                 batches: rasRecords.map(r => ({
                     batchNumber: r.artifactJson.batchNumber,
                     status: r.status,
                     questionCount: r.artifactJson.answers?.length || 0,
                     confirmedAt: r.createdAt
                 })),
-                message: answeredCount >= allMappings.length
+                message: isComplete
                     ? "Your answers have been successfully recorded and locked."
                     : "Some questions are still pending."
             }

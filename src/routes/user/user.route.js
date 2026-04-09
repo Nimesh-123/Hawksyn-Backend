@@ -9,7 +9,7 @@ const upload = require('../../../middleware/multer.js');
  * /user/send-otp:
  *   post:
  *     summary: Send OTP to email
- *     tags: [1. Authentication & Security]
+ *     tags: ["1. Authentication & Security"]
  *     requestBody:
  *       required: true
  *       content:
@@ -31,7 +31,7 @@ route.post('/send-otp', userController.sendOTP);
  * /user/verify-otp:
  *   post:
  *     summary: Verify OTP
- *     tags: [1. Authentication & Security]
+ *     tags: ["1. Authentication & Security"]
  *     requestBody:
  *       required: true
  *       content:
@@ -56,7 +56,7 @@ route.post('/verify-otp', userController.verifyOTP);
  * /user/set-pin:
  *   post:
  *     summary: Set M-PIN
- *     tags: [1. Authentication & Security]
+ *     tags: ["1. Authentication & Security"]
  *     requestBody:
  *       required: true
  *       content:
@@ -84,7 +84,7 @@ route.post('/set-pin', userController.setPin);
  * /user/login-with-pin:
  *   post:
  *     summary: Login using Email and M-PIN
- *     tags: [1. Authentication & Security]
+ *     tags: ["1. Authentication & Security"]
  *     requestBody:
  *       required: true
  *       content:
@@ -106,11 +106,34 @@ route.post('/login-with-pin', userController.loginWithPin);
 
 /**
  * @swagger
+ * /user/auth/google:
+ *   post:
+ *     summary: Social Login using Google ID Token
+ *     tags: ["1. Authentication & Security"]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [idToken]
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *                 description: Identity Token received from Google Auth on Frontend.
+ *     responses:
+ *       200:
+ *         description: Login successful. Returns JWT Token.
+ */
+route.post('/auth/google', userController.googleLogin);
+
+/**
+ * @swagger
  * /user/account:
  *   delete:
  *     summary: Delete user account (Soft or Hard)
  *     description: Default is soft delete. Pass hardDelete=true to permanently wipe all user data (runs, CVs, payments, profile).
- *     tags: [1. Authentication & Security]
+ *     tags: ["1. Authentication & Security"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -130,7 +153,7 @@ route.delete('/account', userController.deleteAccount);
  * /user/forgot-pin:
  *   post:
  *     summary: Request OTP for Forgot PIN
- *     tags: [1. Authentication & Security]
+ *     tags: ["1. Authentication & Security"]
  *     requestBody:
  *       required: true
  *       content:
@@ -151,7 +174,7 @@ route.post('/forgot-pin', userController.forgotPin);
  * /user/upload-cv:
  *   post:
  *     summary: Upload and Parse User CV (PDF only, max 10MB)
- *     tags: [2. Onboarding (Profile Setup)]
+ *     tags: ["2. Onboarding (Profile Setup)"]
  *     security:
  *       - bearerAuth: []
  *     parameters: []

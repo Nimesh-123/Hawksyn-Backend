@@ -20,6 +20,10 @@ db.CoverageRequirements = require('./CoverageRequirements.model');
 db.RedFlagTaxonomy = require('./RedFlagTaxonomy.model');
 db.AccuracyScoringPolicy = require('./AccuracyScoringPolicy.model');
 db.Warnings = require('./Warnings.model');
+db.IntegrityEligibilityRules = require('./IntegrityEligibilityRules.model');
+db.DroMaster = require('./DroMaster.model');
+db.RiskConstraintMap = require('./RiskConstraintMap.model');
+db.VerdictLogicTable = require('./VerdictLogicTable.model');
 db.EvaluationLibraryRegistry = require('./EvaluationLibraryRegistry.model');
 db.GuardrailRegistry = require('./GuardrailRegistry.model');
 db.DecisionAssuranceSections = require('./DecisionAssuranceSections.model');
@@ -37,6 +41,7 @@ db.MandatoryObjectiveInput = require('./MandatoryObjectiveInput.model');
 db.MoiQuestionMapping = require('./MoiQuestionMapping.model');
 db.Ras = require('./Ras.model');
 db.CaseFile = require('./CaseFile.model');
+db.ExternalEvidenceDataPool = require('./ExternalEvidenceDataPool.model');
 
 // Command Center — Trend & Clock Models
 db.MarketPulse = require('./MarketPulse.model');
@@ -44,5 +49,7 @@ db.UserClocks = require('./UserClocks.model');
 db.ClockHistory = require('./ClockHistory.model');
 db.UserCredits  = require('./UserCredits.model');
 db.ExpertQuery = require('./ExpertQuery.model');
+db.ChatMessage = require('./ChatMessage.model');
+
 
 module.exports = { db };

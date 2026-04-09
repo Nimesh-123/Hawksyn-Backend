@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const MoiQuestionMappingSchema = new mongoose.Schema({
-    moiqmId: { type: String, required: true, unique: true },
+    moiqmId: { type: String, required: true },
     moiId: { type: String, required: true },
     questionId: { type: String, required: true },
     isMandatory: { type: Boolean, default: true },

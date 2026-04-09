@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 
 const DecisionAssuranceSectionsSchema = new mongoose.Schema({
-    sectionId: { type: String, required: true, unique: true },
-    sectionName: { type: String, required: true },
+    sectionId: { type: String, required: true },
+    sectionName: { type: String },
     caseId: { type: String },
     intentId: { type: String },
     sectionOrder: { type: Number },
@@ -14,7 +14,7 @@ const DecisionAssuranceSectionsSchema = new mongoose.Schema({
       outputSchemaReference: { type: String, default: null },
 
     isActive: { type: Boolean, default: true },
-    requiredInternalAnchorsJson: [{ type: String }],
+    requiredInternalAnchorsJson: [{ type: String }], // Valid values: DRO_ACTIVATION, IER_OUTPUT
     requiredExternalAnchorsJson: [{ type: String }],
     
 }, {

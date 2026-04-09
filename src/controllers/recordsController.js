@@ -1,10 +1,7 @@
 const { db } = require('../models/index.model.js');
 const { generateFormattedId } = require('../../utils/idGenerator');
 
-// ─────────────────────────────────────────────────────────
-// HELPER — buildRunSummary
-// Single run ka summary object banata hai for Slide 44
-// ─────────────────────────────────────────────────────────
+
 async function buildRunSummary(run) {
     const caseData = await db.CaseRegistry.findOne({ caseId: run.caseId }).lean();
 
@@ -101,7 +98,7 @@ exports.getAllRecords = async (req, res) => {
             };
             const olderRun = processed[index + 1];
 
-            // Image 2 Logic: Only first run is baseline
+            // Unified baseline logic
             run.isBaseline = (totalRuns > 1 && index === processed.length - 1) || (totalRuns === 1);
             run.runLabel = run.isBaseline ? "Baseline" : "Re-run";
 
@@ -111,7 +108,7 @@ exports.getAllRecords = async (req, res) => {
                 delta.riskChange = newerRisk - olderRisk;
                 delta.verdictChanged = String(run.verdict).toLowerCase() !== String(olderRun.verdict).toLowerCase();
 
-                // Compare assumptions (Slide 54 logic)
+                // Compare assumptions
                 delta.newAssumptions = run.accuracyScore !== olderRun.accuracyScore;
             } else {
                 delta.isFresh = true;
@@ -293,7 +290,7 @@ exports.getRunDetail = async (req, res) => {
             reRunInDays: 0
         };
 
-        // console.log(`[Records] Run detail response for user ${userId}, run ${runId}:`, JSON.stringify(runDetail, null, 2));
+
 
         return res.status(200).json({
             success: true,
@@ -337,7 +334,10 @@ exports.initiateReRun = async (req, res) => {
         const config = await db.CaseIntentConfig.findOne({ caseId, intentId, isActive: true });
         if (!config) return res.status(400).json({ success: false, message: 'Usecase/Intent configuration not found' });
 
-        // 4. Load latest Profile for CV Snapshot
+        // 4. Check Re-Run Policy (Free vs Paid)
+
+
+        // 5. Load latest Profile for CV Snapshot
         const userProfile = await db.UserProfile.findOne({ userId });
 
         // 5. Generate New runId

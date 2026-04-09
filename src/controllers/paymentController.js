@@ -57,7 +57,7 @@ exports.getProduct = async (req, res) => {
  */
 exports.initiatePayment = async (req, res) => {
     try {
-        const { caseId, intentId, platform = 'test', paymentMethod = 'test_gateway' } = req.body;
+        const { caseId, intentId, platform = 'test', paymentMethod = 'test_gateway', previousRunId } = req.body;
         const userId = req.user.id;
 
         if (!caseId || !intentId) {
@@ -99,9 +99,17 @@ exports.initiatePayment = async (req, res) => {
         // Detect region
         const user = await User.findById(req.user.id);
         const isInternational = user?.countryCode !== 'IN';
-        const amount = isInternational ? 7.99 : caseData.minPrice;
+        let amount = isInternational ? 7.99 : caseData.minPrice;
         const currency = isInternational ? 'USD' : (caseData.defaultCurrency || 'INR');
         const gateway = isInternational ? 'STRIPE' : 'RAZORPAY';
+
+        // Apply Re-run Price Override if applicable
+        if (previousRunId) {
+            const previousRun = await Runs.findOne({ runId: previousRunId });
+            if (previousRun?.reRunSetup?.reRunPriceOverride) {
+                amount = previousRun.reRunSetup.reRunPriceOverride;
+            }
+        }
 
         const newPayment = new Payments({
             paymentId,
@@ -115,7 +123,8 @@ exports.initiatePayment = async (req, res) => {
             currency: currency,
             status: 'PENDING',
             isTestPayment: true,
-            paymentMethod: gateway
+            paymentMethod: gateway,
+            previousRunId: previousRunId || null
         });
 
         await newPayment.save();
@@ -193,15 +202,22 @@ exports.verifyPayment = async (req, res) => {
              console.warn(`[Payment] No profile found for ${userId}. Run will be created but cvSnapshot may be empty.`);
         }
 
-        // Check existing run
+        // --- NEW: Deterministic Idempotency Check (Task 1) ---
+        // We use purchaseId as a natural requestId for the run
+        const requestId = `REQ_${purchaseId}`;
+        let run = await Runs.findOne({ requestId });
 
-        let run = await Runs.findOne({ userId, caseId, intentId, status: 'CREATED' });
+        if (!run) {
+            // Check legacy weak match (same intent, just created, no requestId yet)
+            run = await Runs.findOne({ userId, caseId, intentId, status: 'CREATED', requestId: { $exists: false } });
+        }
 
         if (!run) {
             // Generate runId
             const runId = await generateFormattedId(Runs, 'RUN', 'runId');
             run = new Runs({
                 runId,
+                requestId, // Enforce uniqueness
                 userId,
                 caseId,
                 intentId,
@@ -213,8 +229,18 @@ exports.verifyPayment = async (req, res) => {
                     parsedData: userProfile?.confirmedProfile || {},
                     attachedAt: userProfile?.confirmedAt || new Date(),
                     source: 'EXISTING'
+                },
+                previousRunId: payment.previousRunId || null, 
+                reRunSetup: {
+                    eligibleForFreeReRun: false, 
+                    freeReRunExpiryDate: null,
+                    reRunPriceOverride: null
                 }
             });
+            await run.save();
+        } else if (!run.requestId) {
+            // Self-correction for legacy runs
+            run.requestId = requestId;
             await run.save();
         }
 
@@ -266,7 +292,12 @@ exports.getPaymentStatus = async (req, res) => {
             activeRun = await Runs.findOne({ userId, caseId, intentId }).sort({ createdAt: -1 });
         }
 
-        if (completedPayment || activeRun) {
+        // --- RE-RUN LOGIC ---
+        // If the latest run is already complete, we should NOT force a resume.
+        // Instead, we allow the user to start a new "Re-run" flow.
+        const isRunFinished = activeRun && ['REPORT_COMPLETE', 'EXPERT_ASSIGNED'].includes(activeRun.status);
+
+        if ((completedPayment || activeRun) && !isRunFinished) {
             return res.status(200).json({
                 success: true,
                 data: {
@@ -275,9 +306,23 @@ exports.getPaymentStatus = async (req, res) => {
                     runId: activeRun ? activeRun.runId : (completedPayment ? completedPayment.runId : null),
                     status: activeRun ? "RESUME_RUN" : "PAYMENT_DONE_RUN_NOT_STARTED",
                     runStatus: activeRun ? activeRun.status : null,
-                    message: activeRun && ['QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED', 'INTEGRITY_COMPLETE', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED'].includes(activeRun.status)
+                    message: activeRun && ['QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED', 'INTEGRITY_COMPLETE'].includes(activeRun.status)
                         ? "Questions already answered. Proceed to analysis."
                         : activeRun ? "Resume your current run." : "Payment complete. Start your run."
+                }
+            });
+        }
+
+        // If a run is finished, we tell the frontend that a Re-run is possible
+        if (isRunFinished) {
+            return res.status(200).json({
+                success: true,
+                data: {
+                    isPaid: true, // TEMPORARY BYPASS: Set to true so frontend shows Start button
+                    canReRun: true,
+                    previousRunId: activeRun.runId,
+                    status: "CAN_RE_RUN",
+                    message: "You have a completed report for this case. You can start a re-run."
                 }
             });
         }
@@ -394,103 +439,4 @@ exports.getAllPayments = async (req, res) => {
     }
 };
 
-/**
- * API 7 — POST /api/payment/experts/initiate
- * Slide 54: Buy N number of expert queries.
- */
-exports.initiateExpertQueryPayment = async (req, res) => {
-    try {
-        const { queryCount, platform = 'test', paymentMethod = 'test_gateway' } = req.body;
-        const userId = req.user.id;
 
-        if (!queryCount || queryCount < 1) {
-            return res.status(400).json({ success: false, message: 'queryCount is required' });
-        }
-
-        // Pricing logic matches Slide 54 image (2 queries = 100 INR)
-        const unitPrice = 50; 
-        const amount = queryCount * unitPrice;
-
-        const paymentId = await generateFormattedId(Payments, 'PAYQ', 'paymentId');
-        const purchaseId = `TEST_EXPERT_${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-
-        const newPayment = new Payments({
-            paymentId,
-            userId,
-            platform,
-            productId: 'EXPERT_QUERY_SLOTS',
-            purchaseId,
-            amount,
-            currency: 'INR',
-            status: 'PENDING',
-            isTestPayment: true,
-            paymentMethod: paymentMethod,
-            metadata: { queryCount } // Store how many queries we are buying
-        });
-
-        await newPayment.save();
-
-        return res.status(200).json({
-            success: true,
-            data: {
-                paymentId,
-                purchaseId,
-                amount,
-                queryCount,
-                message: "Expert Query payment initiated."
-            }
-        });
-    } catch (error) {
-        return res.status(500).json({ success: false, message: error.message });
-    }
-};
-
-/**
- * API 8 — POST /api/payment/experts/verify
- */
-exports.verifyExpertQueryPayment = async (req, res) => {
-    try {
-        const { purchaseId } = req.body;
-        const userId = req.user.id;
-
-        const payment = await Payments.findOne({ purchaseId, userId, productId: 'EXPERT_QUERY_SLOTS' });
-        if (!payment) return res.status(404).json({ success: false, message: 'Payment record not found' });
-
-        if (payment.status === 'COMPLETED') {
-            return res.status(200).json({ success: true, message: 'Already credited.' });
-        }
-
-        const queryCount = payment.metadata?.queryCount || 1;
-
-        // 1. Update Payment
-        payment.status = 'COMPLETED';
-        payment.verifiedAt = new Date();
-        await payment.save();
-
-        // 2. Credit Chat Balance
-        const { db } = require('../models/index.model.js');
-        let credits = await db.UserCredits.findOne({ userId });
-        if (!credits) credits = new db.UserCredits({ userId });
-
-        credits.expertChatBalance += queryCount;
-        credits.transactions.push({
-            type: 'EXPERT_QUERY_PURCHASE',
-            amount: queryCount,
-            balanceAfter: credits.expertChatBalance,
-            note: `Purchased ${queryCount} expert query slots`,
-            createdAt: new Date()
-        });
-        await credits.save();
-
-        return res.status(200).json({
-            success: true,
-            data: {
-                expertChatBalance: credits.expertChatBalance,
-                message: `${queryCount} query slots credited to your account.`
-            }
-        });
-
-    } catch (error) {
-        return res.status(500).json({ success: false, message: error.message });
-    }
-};

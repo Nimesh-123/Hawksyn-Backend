@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 
 const CoverageRequirementsSchema = new mongoose.Schema({
-    crtId: { type: String, required: true, unique: true },
+    crtId: { type: String, required: true },
+    catId: { type: String },
     coverageSetId: { type: String },
     caseId: { type: String, required: true },
     intentId: { type: String, required: true },

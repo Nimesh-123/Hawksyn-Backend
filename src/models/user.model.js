@@ -3,6 +3,9 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema(
     {
         name: { type: String, trim: true },
+        fullName: { type: String, trim: true },
+        avatar: { type: String }, // User profile picture from Google/Social
+        googleId: { type: String }, // Unique identifier for Google login
         email: {
             type: String,
             required: true,
@@ -17,6 +20,7 @@ const userSchema = new mongoose.Schema(
         isBlocked: { type: Boolean, default: false },
         mPinSet: { type: Boolean, default: false },
         role: { type: String, enum: ['user', 'admin', 'expert'], default: 'user' },
+        isExpert: { type: Boolean, default: false },
         
         // Multi-region Support (Auto-detected from IP)
         countryCode: { type: String, default: 'IN' }, 

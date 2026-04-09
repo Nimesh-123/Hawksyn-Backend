@@ -3,6 +3,8 @@
  * Handles dot-notation, operator normalization, and "Label:score" format.
  */
 function evaluateCondition(field, operator, value, dataMap) {
+    if (!field || typeof field !== 'string') return false;
+
     // Support dot-notation for nested fields (Step 3)
     const actual = field.includes('.')
         ? field.split('.').reduce((obj, key) => obj?.[key], dataMap)
@@ -71,7 +73,7 @@ function evaluateRuleJson(ruleJson, answersMap) {
     if (!ruleJson || !Array.isArray(ruleJson.conditions)) return false;
 
     const results = ruleJson.conditions.map(c =>
-        evaluateCondition(c.field, c.operator, c.value, answersMap)
+        evaluateCondition(c.field || c.questionId || c.question_id, c.operator, c.value, answersMap)
     );
 
     const logic = (ruleJson.operator || 'AND').toUpperCase();
@@ -89,12 +91,12 @@ function evaluateDependencyRule(ruleJson, profileMap) {
     if (!ruleJson) return true;  // no rule = always show
 
     const allPass = (ruleJson.all || []).every(c =>
-        evaluateCondition(c.field, c.op || c.operator, c.value, profileMap)
+        evaluateCondition(c.field || c.questionId || c.question_id, c.op || c.operator, c.value, profileMap)
     );
     const anyPass = (ruleJson.any || []).length === 0
         ? true
         : (ruleJson.any || []).some(c =>
-            evaluateCondition(c.field, c.op || c.operator, c.value, profileMap)
+            evaluateCondition(c.field || c.questionId || c.question_id, c.op || c.operator, c.value, profileMap)
         );
 
     return allPass && anyPass;
@@ -160,11 +162,16 @@ function calculateQuestionScore(question, answerValue) {
         }
 
         // Now get normalized score from scoringMapJson
-        if (optionScoreId !== null && Array.isArray(scoringMapJson)) {
-            const rule = scoringMapJson.find(
-                r => r.optionScore === optionScoreId
-            );
-            return rule ? rule.normalizedScore : 0;
+        if (optionScoreId !== null) {
+            if (Array.isArray(scoringMapJson) && scoringMapJson.length > 0) {
+                const rule = scoringMapJson.find(
+                    r => r.optionScore === optionScoreId
+                );
+                return rule ? rule.normalizedScore : 0;
+            }
+            // Fallback: If no scoringMapJson, treat optionScoreId as the final score
+            // (Common in legacy seeds where optionsJson[i].score is the 0-100 value)
+            return optionScoreId;
         }
 
         return 0;
@@ -191,64 +198,104 @@ function calculateQuestionScore(question, answerValue) {
     return 0;
 }
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const geminiClient = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
+const { generateText } = require('../src/services/aiProvider.js');
 const { aiSemaphore } = require('./concurrency.js');
 
 /**
- * callLLM — calls Gemini or OpenAI based on promptConfig modelFamily
+ * callLLM — calls model in hierarchy: Claude -> Gemini -> OpenAI
+ * modelFamily param is legacy/ignored now to follow tiered instructions
  */
-async function callLLM({ modelFamily, systemPrompt, userPrompt, temperature = 0.3, maxTokens = 600 }) {
+async function callLLM({ systemPrompt, userPrompt, forceProvider = null }) {
     await aiSemaphore.acquire();
     try {
-        if (modelFamily === 'GEMINI') {
-            const model = geminiClient.getGenerativeModel({ model: 'gemini-2.0-flash' });
-            const prompt = `${systemPrompt}\n\n${userPrompt}`;
-
-            // ✅ Robust Retry logic for report sections (paid tier burst handling)
-            let result = null;
-            let attempts = 0;
-            const maxAttempts = 3;
-
-            while (attempts < maxAttempts) {
-                try {
-                    attempts++;
-                    result = await model.generateContent(prompt);
-                    break;
-                } catch (err) {
-                    const isRateLimit = err.message?.includes('429') || err.message?.includes('Resource exhausted');
-                    if (isRateLimit && attempts < maxAttempts) {
-                        console.warn(`[LLM Helper] Gemini 429. Retrying in 2s (Attempt ${attempts})...`);
-                        await sleep(2000);
-                        continue;
-                    }
-                    throw err;
-                }
-            }
-            return result.response.text();
-        }
-
-        if (modelFamily === 'OPENAI') {
-            const OpenAI = require('openai');
-            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-            const resp = await openai.chat.completions.create({
-                model: 'gpt-4o',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
-                ],
-                temperature,
-                max_tokens: maxTokens
-            });
-            return resp.choices[0].message.content;
-        }
-
-        throw new Error(`callLLM: unknown modelFamily "${modelFamily}"`);
+        const { content, usage, provider, duration } = await generateText(userPrompt, systemPrompt, forceProvider);
+        return {
+            text: content,
+            usageMetadata: usage,
+            modelUsed: provider,
+            duration
+        };
     } finally {
         aiSemaphore.release();
     }
+}
+
+/**
+ * HELPER 6 — Verdict Logic Engine (Stage-based Deterministic Math)
+ * Used by: Step 4 Integrity Engine / Step 7 Report
+ * Processes formula, banding, and confidence stages.
+ */
+async function calculateVltVerdict(db, { caseId, intentId, constraintResults, accuracyScore }) {
+    const vltRules = await db.VerdictLogicTable.find({ 
+        caseId, 
+        intentId: { $in: [intentId, 'ALL'] }, 
+        isActive: true 
+    }).sort({ stage: 1, priority: 1 });
+    
+    const context = { accuracy_score: accuracyScore };
+    constraintResults.forEach((res, idx) => {
+        context[res.constraintId] = res.score;
+        context[`C${idx + 1}`] = res.score;
+    });
+
+    // FALLBACK: If no VLT rules, calculate mean of constraints to ensure non-zero compositeScore
+    if (!vltRules.length) {
+        const meanScore = constraintResults.length > 0 
+            ? Math.round(constraintResults.reduce((acc, c) => acc + (c.score || 0), 0) / constraintResults.length)
+            : 0;
+        return { 
+            verdict: meanScore < 30 ? 'ABORT' : (meanScore < 60 ? 'PAUSE' : 'PROCEED'), 
+            compositeScore: meanScore, 
+            confidence: accuracyScore > 70 ? 'HIGH' : 'MEDIUM' 
+        };
+    }
+
+    let compositeScore = 0;
+    let verdict = 'PAUSE';
+    let confidence = 'MEDIUM';
+
+    for (const rule of vltRules) {
+        const cond = rule.conditionJson || {};
+        const action = rule.actionValueJson || {};
+        const stage = typeof rule.stage === 'string' ? parseInt(rule.stage.replace('STAGE_', '')) : rule.stage;
+
+        // --- STAGE 1: Composite Score Calculation ---
+        if (stage === 1 && rule.actionType === 'COMPOSITE_SCORE') {
+            if (cond.formula) {
+                try {
+                    let formula = cond.formula;
+                    Object.keys(context).forEach(key => {
+                        const regex = new RegExp(`\\b${key}\\b`, 'g');
+                        formula = formula.replace(regex, context[key] || 0);
+                    });
+                    compositeScore = eval(formula); 
+                    context['composite'] = compositeScore;
+                } catch (e) {
+                    console.error(`[VLT] Formula error in ${rule.ruleId}:`, e.message);
+                }
+            }
+        }
+
+        // --- STAGE 2: Verdict Selection ---
+        if (stage === 2 && rule.actionType === 'VERDICT') {
+            let pass = true;
+            if (cond.composite_gte != null && (context.composite || compositeScore) < cond.composite_gte) pass = false;
+            if (cond.composite_lt != null && (context.composite || compositeScore) >= cond.composite_lt) pass = false;
+            
+            if (pass && action.verdict) verdict = action.verdict;
+        }
+
+        // --- STAGE 3: Confidence Banding ---
+        if (stage === 3 && rule.actionType === 'CONFIDENCE') {
+            let pass = true;
+            if (cond.accuracy_score_gte != null && accuracyScore < cond.accuracy_score_gte) pass = false;
+            if (cond.accuracy_score_lt != null && accuracyScore >= cond.accuracy_score_lt) pass = false;
+
+            if (pass && action.band) confidence = action.band;
+        }
+    }
+
+    return { verdict, compositeScore: Math.round(compositeScore), confidence };
 }
 
 module.exports = {
@@ -257,5 +304,7 @@ module.exports = {
     evaluateDependencyRule,
     getConstraintBand,
     calculateQuestionScore,
+    calculateVltVerdict,
     callLLM
 };
+

@@ -139,21 +139,21 @@ function buildReportHtml(reportData) {
             </tr>
             <tr>
                 <td class="label">Profile</td><td class="value" style="color: #FFB300; font-weight: 700;">${reportData.role || 'Software Engineer'}</td>
-                <td class="label">DAC Score</td><td class="value">${accuracyScore}/100 — ${verdict}</td>
+                <td class="label">DAC Score</td><td class="value" style="font-weight: 800;">${report.compositeScore}/100</td>
             </tr>
             <tr>
-                <td class="label">Accuracy Band</td><td class="value">${accuracyBand}</td>
-                <td class="label">Report Validity</td><td class="value">90 days from ${dateStr}</td>
+                <td class="label">Verdict</td><td class="value" style="font-weight: 700; color: ${getVerdictColor(report.compositeScore)};">${report.verdict}</td>
+                <td class="label">Confidence Band</td><td class="value">${report.confidence} | ${report.accuracyBand}</td>
             </tr>
         </table>
 
         <!-- SCORE BOX -->
         <div class="score-box">
-            <div class="score-value">${accuracyScore} / 100</div>
+            <div class="score-value">${report.compositeScore} / 100</div>
             <div class="score-verdict">
-                <div class="verdict-title">${verdict} — ACT REQUIRED</div>
+                <div class="verdict-title">${report.verdict} — ACTION STATUS</div>
                 <div class="verdict-text">
-                    ${getSect('SEC_001').split('\n')[0] || 'Your role is conditionally safe for 9-12 months.'}
+                    ${getSect('SEC_001').split('\n')[0] || 'Strategic decision based on current profile and market signals.'}
                 </div>
             </div>
         </div>

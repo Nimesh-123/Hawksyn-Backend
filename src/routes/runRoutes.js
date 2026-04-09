@@ -19,7 +19,7 @@ const upload = require('../../middleware/multer.js');
  * /runs/{runId}/cv/keep-existing:
  *   post:
  *     summary: Continue with existing CV for a specific run
- *     tags: [4. Payments & Run Initiation]
+ *     tags: ["4. Payments & Run Initiation"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -42,7 +42,7 @@ router.post('/:runId/cv/keep-existing', cvController.keepExistingCv);
  * /runs/{runId}/cv/upload:
  *   post:
  *     summary: Upload and Parse new CV for a specific run
- *     tags: [5. Run Operations (AI Flow)]
+ *     tags: ["5. Run Operations (AI Flow)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -77,7 +77,7 @@ router.post('/:runId/cv/upload', upload.single('cv'), cvController.uploadRunCv);
  * /runs/{runId}/questions/next:
  *   get:
  *     summary: Return next batch of unanswered questions for this run
- *     tags: [5. Run Operations (AI Flow)]
+ *     tags: ["5. Run Operations (AI Flow)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -98,7 +98,7 @@ router.get('/:runId/questions/next', questionsController.getNextQuestions);
  * /runs/{runId}/questions/answers:
  *   post:
  *     summary: Save and confirm batch of answers into RAS
- *     tags: [5. Run Operations (AI Flow)]
+ *     tags: ["5. Run Operations (AI Flow)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -139,7 +139,7 @@ router.post('/:runId/questions/answers', questionsController.saveAnswers);
  * /runs/{runId}/questions/status:
  *   get:
  *     summary: Return overall progress of questions for this run
- *     tags: [5. Run Operations (AI Flow)]
+ *     tags: ["5. Run Operations (AI Flow)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -164,7 +164,7 @@ router.get('/:runId/questions/status', questionsController.getQuestionsStatus);
  * /runs/{runId}/integrity/run:
  *   post:
  *     summary: Run the full integrity engine for this run
- *     tags: [5. Run Operations (AI Flow)]
+ *     tags: ["5. Run Operations (AI Flow)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -184,7 +184,7 @@ router.post('/:runId/integrity/run', integrityController.runIntegrityEngine);
  * /runs/{runId}/signals/collect:
  *   post:
  *     summary: Collect external market signals for this run
- *     tags: [5. Run Operations (AI Flow)]
+ *     tags: ["5. Run Operations (AI Flow)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -204,7 +204,7 @@ router.post('/:runId/signals/collect', signalsController.collectSignals);
  * /runs/{runId}/case-file/build:
  *   post:
  *     summary: Build an immutable Case File combining all parsed data, objective inputs, and signals
- *     tags: [5. Run Operations (AI Flow)]
+ *     tags: ["5. Run Operations (AI Flow)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -224,7 +224,7 @@ router.post('/:runId/case-file/build', caseFileController.buildCaseFile);
  * /runs/{runId}/case-file:
  *   get:
  *     summary: Retrieve the locked Case File for this run 
- *     tags: [5. Run Operations (AI Flow)]
+ *     tags: ["5. Run Operations (AI Flow)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -248,7 +248,7 @@ router.get('/:runId/case-file', caseFileController.getCaseFile);
  * /runs/{runId}/report/generate:
  *   post:
  *     summary: Generate the final comprehensive report for this run
- *     tags: [5. Run Operations (AI Flow)]
+ *     tags: ["5. Run Operations (AI Flow)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -268,7 +268,7 @@ router.post('/:runId/report/generate', reportController.generateReport);
  * /runs/{runId}/report/download:
  *   get:
  *     summary: Download the AI report in PDF format
- *     tags: [5. Run Operations (AI Flow)]
+ *     tags: ["5. Run Operations (AI Flow)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -288,7 +288,7 @@ router.get('/:runId/report/download', reportController.downloadReport);
  * /runs/{runId}/report/email:
  *   post:
  *     summary: Send the AI report PDF to the user's registered email
- *     tags: [5. Run Operations (AI Flow)]
+ *     tags: ["5. Run Operations (AI Flow)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -312,7 +312,7 @@ router.post('/:runId/report/email', reportController.sendReportEmail);
  * /runs/{runId}/expert/assign:
  *   post:
  *     summary: Assign a specialized expert to this run for review
- *     tags: [5. Run Operations (AI Flow)]
+ *     tags: ["5. Run Operations (AI Flow)"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -333,7 +333,7 @@ router.post('/:runId/expert/assign', expertController.assignExpert);
  * /runs/experts/price:
  *   get:
  *     summary: Fetch price for N expert queries (Slide 54)
- *     tags: [7. Expert Support & Chat]
+ *     tags: ["7. Expert Support & Chat"]
  *     parameters:
  *       - in: query
  *         name: count
@@ -351,7 +351,7 @@ router.get('/experts/price', expertController.getExpertQueryPrice);
  * /runs/experts/ask:
  *   post:
  *     summary: Ask a specific query to the assigned expert (Consumes 2 Hawk Checks)
- *     tags: [7. Expert Support & Chat]
+ *     tags: ["7. Expert Support & Chat"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -382,7 +382,7 @@ router.post('/experts/ask', expertController.askExpertQuery);
  * /runs/experts/queries/{runId}:
  *   get:
  *     summary: Get all expert queries for a specific run
- *     tags: [7. Expert Support & Chat]
+ *     tags: ["7. Expert Support & Chat"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -394,7 +394,5 @@ router.post('/experts/ask', expertController.askExpertQuery);
  *         description: Success
  */
 router.get('/experts/queries/:runId', expertController.getExpertQueries);
-router.get('/experts/auditor/inbox', expertController.getAuditorInbox);
-router.post('/experts/auditor/reply', expertController.replyToQuery);
 
 module.exports = router;

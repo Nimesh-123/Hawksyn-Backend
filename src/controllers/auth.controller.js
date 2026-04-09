@@ -2,29 +2,7 @@ const { db } = require('../models/index.model.js');
 const jwt = require('jsonwebtoken');
 const RESPONSE = require('../../utils/response.js');
 
-/**
- * @swagger
- * /auth/refresh-token:
- *   post:
- *     summary: Get new Access Token using Refresh Token
- *     tags: [1. Authentication & Security]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - refreshToken
- *             properties:
- *               refreshToken:
- *                 type: string
- *     responses:
- *       200:
- *         description: New access token generated
- *       401:
- *         description: Invalid or expired refresh token
- */
+
 exports.refreshToken = async (req, res) => {
     try {
         const { refreshToken } = req.body;
