@@ -28,6 +28,16 @@ const getDeepValue = (obj, path) => {
  * Global placeholders mapping for all reports.
  */
 const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrityPack, externalSignals) => {
+    const findDeepValue = (obj, key) => {
+        if (!obj || typeof obj !== 'object') return null;
+        if (obj[key] !== undefined) return obj[key];
+        for (const k in obj) {
+            const val = findDeepValue(obj[k], key);
+            if (val !== undefined && val !== null) return val;
+        }
+        return null;
+    };
+
     const answerLabelMap = {};
     for (const ans of (rasAnswers || [])) {
         const { answerValue, answerLabel, questionId } = ans;
@@ -48,14 +58,29 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         }
     }
 
-    const currentRole = profileSnapshot?.current_role 
-        || profileSnapshot?.identity?.currentRole 
-        || profileSnapshot?.identity?.fullName 
-        || 'Not provided';
+    const rawSkills = findDeepValue(profileSnapshot, 'skills') || {};
+    let skillsList = [];
+    if (Array.isArray(rawSkills)) {
+        skillsList = rawSkills;
+    } else if (typeof rawSkills === 'object') {
+        const technical = findDeepValue(rawSkills, 'technical') || [];
+        const soft = findDeepValue(rawSkills, 'soft') || [];
+        const combined = [...(Array.isArray(technical) ? technical : []), ...(Array.isArray(soft) ? soft : [])];
+        if (combined.length > 0) skillsList = combined;
+        else skillsList = Object.values(rawSkills).filter(v => typeof v === 'string'); // Fallback to all string values
+    }
+    const skills = skillsList.length > 0 ? skillsList.slice(0, 15).join(', ') : 'Not provided';
 
-    const experienceYears = profileSnapshot?.experience_years 
-        || profileSnapshot?.work?.totalYearsExperience 
-        || (profileSnapshot?.work?.experience?.[0]?.duration)
+    const experienceYears = findDeepValue(profileSnapshot, 'totalExperienceYears')
+        || findDeepValue(profileSnapshot, 'totalYearsExperience')
+        || 'N/A';
+
+    const currentRole = findDeepValue(profileSnapshot, 'currentRoleTitle')
+        || findDeepValue(profileSnapshot, 'title')
+        || 'Backend Engineer';
+
+    const currentCompany = findDeepValue(profileSnapshot, 'currentCompany')
+        || findDeepValue(profileSnapshot, 'company')
         || 'Not provided';
 
     const redFlagsSummary = (integrityPack.redFlags?.triggered || [])
@@ -66,44 +91,85 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         .map(c => c.contradictionName)
         .join(', ') || 'None';
 
-    const skills = Array.isArray(profileSnapshot?.skills)
-        ? profileSnapshot?.skills.join(', ')
-        : (profileSnapshot?.skills || 'Not provided');
+    // --- NEW: Dynamic Signals Mapping ---
+    // Handle both { signals: { signals: ... } } and direct { signals: ... } or Array [ { signalId, ... } ]
+    const signalsSource = externalSignals?.signals?.signals || externalSignals?.signals || externalSignals || [];
+    const signalsArray = Array.isArray(signalsSource) ? signalsSource : Object.entries(signalsSource).map(([k, v]) => ({ ...v, signalId: k }));
+    let signalsNarrative = '';
 
     const baseMap = {
         CURRENT_ROLE:      currentRole,
+        CV_ROLE_TITLE:     currentRole,
         EXPERIENCE_YEARS:  String(experienceYears),
+        YEARS_IN_DOMAIN:   String(experienceYears),
         SKILLS:            skills,
-        CURRENT_COMPANY:   profileSnapshot.current_company || profileSnapshot.work?.experience?.[0]?.company || 'Not provided',
-        DOMAIN:            profileSnapshot.domain          || profileSnapshot.parsedData?.domain || 'Not provided',
+        CV_SKILLS_CURRENT: skills,
+        CURRENT_COMPANY:   currentCompany,
+        CV_COMPANY:        currentCompany,
+        DOMAIN:            profileSnapshot?.domain || profileSnapshot?.employment?.domain || profileSnapshot?.inferred?.domainIndicator || 'Not provided',
+        CV_INDUSTRY:       profileSnapshot?.domain || profileSnapshot?.employment?.domain || profileSnapshot?.inferred?.domainIndicator || 'Not provided',
         ACCURACY_SCORE:    String(integrityPack.accuracy?.score  || 0),
         ACCURACY_BAND:     integrityPack.accuracy?.band           || 'UNKNOWN',
         RED_FLAGS:         redFlagsSummary,
+        RED_FLAG_LIST:     redFlagsSummary,
         CONTRADICTIONS:    contradictionsSummary,
+        CONTRADICTION_LIST: contradictionsSummary,
         COMPOSITE_SCORE:   String(integrityPack.compositeScore || 0),
         VERDICT:           integrityPack.verdict || 'PAUSE',
         CONFIDENCE:        integrityPack.confidence || 'MEDIUM',
+        CONFIDENCE_BAND:   integrityPack.confidence || 'MEDIUM',
         TOTAL_PENALTY:     String(integrityPack.accuracy?.totalPenalty || 0),
         SIGNAL_DATA_QUALITY: externalSignals?.dataQuality || 'INSUFFICIENT',
-        ANALYST_NOTE:      externalSignals?.analystNote || 'Insufficient market data for this profile.'
+        ANALYST_NOTE:      externalSignals?.analystNote || 'Insufficient market data for this profile.',
+        EXTERNAL_SIGNALS:  '',
+        SIGNALS:           '',
+        SIGNAL_COUNT:      String(signalsArray.length)
     };
 
-    // --- NEW: Dynamic Signals Mapping (Task 8/12) ---
-    if (externalSignals && externalSignals.signals) {
-        for (const [sId, sig] of Object.entries(externalSignals.signals)) {
-            baseMap[`${sId}_VALUE`] = String(sig.value || 'N/A');
-            baseMap[`${sId}_RATIONALE`] = sig.rationale || 'No data provided.';
-            baseMap[`${sId}_CONFIDENCE`] = sig.confidence || 'LOW';
-            // Also keep a generic reference if LLM is prompted via Signal Name
-            const sanitisedName = (sig.name || sId).toUpperCase().replace(/\s+/g, '_');
-            baseMap[`SIGNAL_${sanitisedName}_VALUE`] = String(sig.value || 'N/A');
+    for (const sig of signalsArray) {
+        if (!sig || typeof sig !== 'object') continue;
+        const sId = sig.signalId || sig.id;
+        if (!sId) continue;
+
+        const val = String(sig.value || sig.score || 'N/A');
+        const rat = sig.rationale || sig.citation_text || sig.evidence || 'No evidence provided.';
+        const name = sig.name || sig.anchor || sId;
+
+        baseMap[`${sId}_VALUE`] = val;
+        baseMap[`${sId}_RATIONALE`] = rat;
+        baseMap[`${sId}_CONFIDENCE`] = sig.confidence || sig.confidence_score || 'LOW';
+        
+        const sanitisedName = name.toUpperCase().replace(/\s+/g, '_');
+        baseMap[`SIGNAL_${sanitisedName}_VALUE`] = val;
+
+        // Build a text narrative for {{SIGNALS}} placeholder
+        signalsNarrative += `• ${name}: ${val}\n  Rationale: ${rat}\n\n`;
+        
+        if (sanitisedName.includes('DISPLACEMENT')) {
+            baseMap['AI_DISPLACEMENT_RISK'] = val;
+            baseMap['AI_DISPLACEMENT_RATIONALE'] = rat;
+        }
+        if (sanitisedName.includes('HIRING')) {
+            baseMap['AUTOMATION_OVERLAP'] = val;
         }
     }
 
-    // Legacy Question IDs mapping
+    baseMap.EXTERNAL_SIGNALS = signalsNarrative || 'No external market signals were captured.';
+    baseMap.SIGNALS = signalsNarrative || 'No external market signals were captured.';
+
+    // Legacy Question IDs mapping (Only if not already set by smart mapping)
     for (const [qId, label] of Object.entries(answerLabelMap)) {
-        baseMap[qId] = label;
+        if (!baseMap[qId]) {
+            baseMap[qId] = label;
+        }
     }
+
+    // Debug Log
+    console.log(`[Report-Mapper] Finalizing placeholders for ${currentRole}:`, {
+        exp: baseMap.EXPERIENCE_YEARS,
+        signalsCount: baseMap.SIGNAL_COUNT,
+        hasNarrative: !!baseMap.SIGNALS
+    });
 
     return baseMap;
 };

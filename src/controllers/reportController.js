@@ -3,6 +3,8 @@ const { callLLM } = require('../../utils/evaluationHelpers.js');
 const clockService = require('../services/clockService.js');
 const { buildReportHtml } = require('../templates/reportTemplate.js');
 const { generatePdfFromHtml } = require('../services/pdfService.js');
+const path = require('path');
+const fs = require('fs');
 const nodemailer = require('nodemailer');
 
 const {
@@ -31,23 +33,40 @@ exports.generateReport = async (req, res) => {
         const run = await db.Runs.findOne({ runId });
         if (!run) return res.status(404).json({ success: false, message: 'Run not found' });
 
-        const [integrityRas, signalsRas, profileRas, allObjectiveRas] = await Promise.all([
-            db.Ras.findOne({ runId, artifactType: 'INTEGRITY_PACK', status: 'FINAL' }),
-            db.Ras.findOne({ runId, artifactType: 'EXTERNAL_SIGNALS_CAPTURED', status: 'FINAL' }),
-            db.Ras.findOne({ runId, artifactType: 'PROFILE_CONFIRMED', status: 'FINAL' }),
-            db.Ras.find({ runId, stepNo: 3, artifactType: 'OBJECTIVE_INPUTS_CAPTURED', status: 'FINAL' })
-        ]);
+        const rasArtifacts = await db.Ras.find({ runId });
+        const integrityRas = rasArtifacts.find(r => r.artifactType === 'INTEGRITY_PACK');
+        const signalsRas = rasArtifacts.find(r => r.artifactType === 'EXTERNAL_SIGNALS_CAPTURED');
+        const profileRas = rasArtifacts.find(r => r.artifactType === 'PROFILE_CONFIRMED');
+        const allObjectiveRas = rasArtifacts.filter(r => r.stepNo === 3 && r.artifactType === 'OBJECTIVE_INPUTS_CAPTURED');
+
+        const profileSnapshot = profileRas?.artifactJson || run.cvSnapshot?.parsedData || {};
+
+        // RELENTLESS NORMALIZATION: Surface the 'identity', 'work', or 'inferred' block
+        let depth = 0;
+        let pSnap = profileSnapshot;
+        while (depth < 3 && pSnap && !pSnap.identity && !pSnap.work && !pSnap.inferred) {
+            if (pSnap.confirmedProfile) pSnap = pSnap.confirmedProfile;
+            else if (pSnap.structured) pSnap = pSnap.structured;
+            else if (pSnap.data) pSnap = pSnap.data;
+            else break;
+            depth++;
+        }
+        
+        // Merge sub-blocks into root for easy access
+        let normalizedProfile = { ...pSnap };
+        if (pSnap.identity) normalizedProfile = { ...normalizedProfile, ...pSnap.identity };
+        if (pSnap.work) normalizedProfile = { ...normalizedProfile, ...pSnap.work };
+        if (pSnap.inferred) normalizedProfile = { ...normalizedProfile, ...pSnap.inferred };
+        if (pSnap.personalInfo) normalizedProfile = { ...normalizedProfile, ...pSnap.personalInfo };
+        if (pSnap.seniority) normalizedProfile = { ...normalizedProfile, ...pSnap.seniority };
+        if (pSnap.employment) normalizedProfile = { ...normalizedProfile, ...pSnap.employment };
 
         if (!integrityRas) return res.status(400).json({ success: false, message: 'Integrity Audit missing.' });
 
         const integrityPack = integrityRas.artifactJson;
         const externalSignals = signalsRas?.artifactJson?.signals || null;
+        
         const externalCoverage = signalsRas?.artifactJson?.coverage || [];
-
-        const profileSnapshot = profileRas?.artifactJson?.confirmedProfile
-            || profileRas?.artifactJson?.profile
-            || profileRas?.artifactJson?.parsedData
-            || run.cvSnapshot?.parsedData || {};
 
         const rasAnswers = allObjectiveRas.flatMap(r => r.artifactJson?.answers || []);
         const questionDocs = await db.Questions.find({ questionId: { $in: rasAnswers.map(a => a.questionId) } });
@@ -67,15 +86,32 @@ exports.generateReport = async (req, res) => {
         for (const p of promptDocs) promptsMap[p.sectionId] = p;
 
         // 3. Build RAG & Mapping Context
-        const placeholders = buildPlaceholderMap(profileSnapshot, rasAnswers, questionsMap, integrityPack, externalSignals);
+        const placeholders = buildPlaceholderMap(
+            normalizedProfile, 
+            rasArtifacts.filter(a => a.artifactType === 'QUESTION_ANSWERED' || a.artifactType === 'OBJECTIVE_INPUTS_CAPTURED'),
+            questionsMap,
+            integrityRas?.artifactJson || {},
+            signalsRas?.artifactJson || {}
+        );
+
+        // Audit Trail: Save evidence package for production debugging
+        try {
+            const logDir = path.join(process.cwd(), 'logs', 'evidence');
+            if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+            const snapshot = JSON.stringify(placeholders, null, 2);
+            fs.writeFileSync(path.join(logDir, `${runId}_evidence.json`), snapshot);
+            console.log(`[AUDIT-EVIDENCE] Run: ${runId} | Snapshot:\n${snapshot}`);
+        } catch (logErr) {
+            console.warn('[Report-Audit] Failed to save evidence snapshot:', logErr.message);
+        }
         const goldExamples = await getGoldStandardExamples(db, run.caseId, run.intentId, 3);
         const goldContextBlock = goldExamples.length > 0
             ? `\n\n--- GOLD STANDARD EXAMPLES (${goldExamples.length}) ---\n` +
             goldExamples.map((ex, i) => `[Ex ${i + 1}]\n${JSON.stringify(ex.sections?.map(s => ({ id: s.sectionId, content: s.content })) || ex, null, 2)}`).join('\n\n')
-            : '';
+            : "";
 
-        // 4. Section-wise Generation Pipeline (Parallel Execution via Semaphore)
-        const reportSections = await Promise.all(sections.map(async (section) => {
+        // 4. Parallel Generation of Sections
+        const sectionPromises = sections.map(async (section) => {
             const sectionOut = {
                 sectionId: section.sectionId,
                 sectionName: section.sectionName,
@@ -101,8 +137,40 @@ exports.generateReport = async (req, res) => {
             const sectionPlaceholders = { ...placeholders };
             if (prompt.evidencePlaceholdersJson) {
                 for (const [phKey, ref] of Object.entries(prompt.evidencePlaceholdersJson)) {
-                    if (ref.startsWith('Q_')) sectionPlaceholders[phKey] = placeholders[ref] || 'N/A';
-                    else if (ref.includes('.') && !ref.startsWith('INTEGRITY.')) sectionPlaceholders[phKey] = getDeepValue(profileSnapshot, ref) || 'N/A';
+                    // 1. New Structured Object Mapping
+                    if (ref && typeof ref === 'object') {
+                        if (ref.source === 'answers' && ref.questionId) {
+                            sectionPlaceholders[phKey] = placeholders[ref.questionId] || 'N/A';
+                        } else if (ref.source === 'signals' || ref.source === 'externalSignals') {
+                            if (ref.signalId) {
+                                const sigRef = externalSignals?.[ref.signalId];
+                                sectionPlaceholders[phKey] = sigRef ? String(sigRef[ref.field || 'value'] || 'N/A') : 'N/A';
+                            } else if (Array.isArray(ref.filter)) {
+                                const filtered = {};
+                                ref.filter.forEach(fid => {
+                                    if (externalSignals?.[fid]) filtered[fid] = externalSignals[fid];
+                                });
+                                sectionPlaceholders[phKey] = JSON.stringify(filtered, null, 2);
+                            }
+                        } else if (ref.source === 'integrity' && ref.path) {
+                            sectionPlaceholders[phKey] = String(getDeepValue(integrityPack, ref.path) || 'N/A');
+                        }
+                        continue;
+                    }
+
+                    // 2. Legacy String-based Mapping
+                    if (typeof ref === 'string') {
+                        if (ref.startsWith('Q_')) {
+                            sectionPlaceholders[phKey] = placeholders[ref] || 'N/A';
+                        } else if (ref.startsWith('integrityPack.')) {
+                            sectionPlaceholders[phKey] = String(getDeepValue(integrityPack, ref.replace('integrityPack.', '')) || 'N/A');
+                        } else if (ref.startsWith('externalSignals.')) {
+                            sectionPlaceholders[phKey] = String(getDeepValue(externalSignals, ref.replace('externalSignals.', '')) || 'N/A');
+                        } else {
+                            const deepVal = getDeepValue(normalizedProfile, ref);
+                            sectionPlaceholders[phKey] = (deepVal !== undefined && deepVal !== null) ? String(deepVal) : (placeholders[ref] || 'N/A');
+                        }
+                    }
                 }
             }
 
@@ -112,10 +180,20 @@ exports.generateReport = async (req, res) => {
 
                 const llmResult = await callLLM({
                     modelFamily: prompt.modelFamily,
-                    systemPrompt: (prompt.systemPrompt || '') + goldContextBlock,
+                    forceProvider: 'Gemini',
+                    systemPrompt: (prompt.systemPrompt || '') + 
+                        "\n\n--- COMPREHENSIVE EVIDENCE PACKAGE ---\n" +
+                        JSON.stringify(placeholders, null, 2) +
+                        "\n\nSTRICT GROUNDING RULES:\n" +
+                        "1. Use the provided EVIDENCE PACKAGE as the primary source of truth.\n" +
+                        "2. If a specific placeholder is N/A but the evidence package has the data, use the data from the package.\n" +
+                        "3. Do not say data is missing if it is in the package above.\n" +
+                        "4. DO NOT mention surveys, inventories, or frameworks (e.g. 'Burnout Inventory', 'Stress Survey') unless they appear explicitly in the evidence.\n" +
+                        "5. If specific evidence is missing, do not simply state 'UNKNOWN'. Instead, provide a professional 'Pro-Tip' or 'General Advisory' relevant to the section's topic and the user's role (e.g., Backend Engineer), ensuring the feedback remains valuable even with data gaps.\n" +
+                        goldContextBlock,
                     userPrompt,
                     temperature: prompt.temperature || 0.3,
-                    maxTokens: prompt.maxTokens || 800
+                    maxTokens: prompt.maxTokens || 1500
                 });
 
                 sectionOut.content = applyCertaintyCap(llmResult.text, prompt.certaintyCapPercent || 85, integrityPack.accuracy?.band);
@@ -129,7 +207,9 @@ exports.generateReport = async (req, res) => {
                 sectionOut.content = 'Generation failed.';
                 return sectionOut;
             }
-        }));
+        });
+
+        const reportSections = await Promise.all(sectionPromises);
 
         // 5. Final Assembly & Aggregation
         const totalDuration = (Date.now() - startTime) / 1000;

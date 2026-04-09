@@ -162,11 +162,16 @@ function calculateQuestionScore(question, answerValue) {
         }
 
         // Now get normalized score from scoringMapJson
-        if (optionScoreId !== null && Array.isArray(scoringMapJson)) {
-            const rule = scoringMapJson.find(
-                r => r.optionScore === optionScoreId
-            );
-            return rule ? rule.normalizedScore : 0;
+        if (optionScoreId !== null) {
+            if (Array.isArray(scoringMapJson) && scoringMapJson.length > 0) {
+                const rule = scoringMapJson.find(
+                    r => r.optionScore === optionScoreId
+                );
+                return rule ? rule.normalizedScore : 0;
+            }
+            // Fallback: If no scoringMapJson, treat optionScoreId as the final score
+            // (Common in legacy seeds where optionsJson[i].score is the 0-100 value)
+            return optionScoreId;
         }
 
         return 0;
@@ -200,10 +205,10 @@ const { aiSemaphore } = require('./concurrency.js');
  * callLLM — calls model in hierarchy: Claude -> Gemini -> OpenAI
  * modelFamily param is legacy/ignored now to follow tiered instructions
  */
-async function callLLM({ systemPrompt, userPrompt }) {
+async function callLLM({ systemPrompt, userPrompt, forceProvider = null }) {
     await aiSemaphore.acquire();
     try {
-        const { content, usage, provider, duration } = await generateText(userPrompt, systemPrompt);
+        const { content, usage, provider, duration } = await generateText(userPrompt, systemPrompt, forceProvider);
         return {
             text: content,
             usageMetadata: usage,
@@ -221,16 +226,29 @@ async function callLLM({ systemPrompt, userPrompt }) {
  * Processes formula, banding, and confidence stages.
  */
 async function calculateVltVerdict(db, { caseId, intentId, constraintResults, accuracyScore }) {
-    const vltRules = await db.VerdictLogicTable.find({ caseId, intentId, isActive: true }).sort({ stage: 1, ruleId: 1 });
-    if (!vltRules.length) return { verdict: 'PAUSE', compositeScore: 0, confidence: 'UNKNOWN' };
-
+    const vltRules = await db.VerdictLogicTable.find({ 
+        caseId, 
+        intentId: { $in: [intentId, 'ALL'] }, 
+        isActive: true 
+    }).sort({ stage: 1, priority: 1 });
+    
     const context = { accuracy_score: accuracyScore };
-    // Map constraints (C1, C2...) to scores
     constraintResults.forEach((res, idx) => {
-        // Support both direct ID matching and positional (C1, C2...)
         context[res.constraintId] = res.score;
         context[`C${idx + 1}`] = res.score;
     });
+
+    // FALLBACK: If no VLT rules, calculate mean of constraints to ensure non-zero compositeScore
+    if (!vltRules.length) {
+        const meanScore = constraintResults.length > 0 
+            ? Math.round(constraintResults.reduce((acc, c) => acc + (c.score || 0), 0) / constraintResults.length)
+            : 0;
+        return { 
+            verdict: meanScore < 30 ? 'ABORT' : (meanScore < 60 ? 'PAUSE' : 'PROCEED'), 
+            compositeScore: meanScore, 
+            confidence: accuracyScore > 70 ? 'HIGH' : 'MEDIUM' 
+        };
+    }
 
     let compositeScore = 0;
     let verdict = 'PAUSE';
@@ -238,18 +256,18 @@ async function calculateVltVerdict(db, { caseId, intentId, constraintResults, ac
 
     for (const rule of vltRules) {
         const cond = rule.conditionJson || {};
+        const action = rule.actionValueJson || {};
+        const stage = typeof rule.stage === 'string' ? parseInt(rule.stage.replace('STAGE_', '')) : rule.stage;
 
-        // STAGE 1: Composite Score Formula
-        if (rule.stage === 'STAGE_1' && rule.ruleType === 'COMPOSITE_FORMULA') {
+        // --- STAGE 1: Composite Score Calculation ---
+        if (stage === 1 && rule.actionType === 'COMPOSITE_SCORE') {
             if (cond.formula) {
                 try {
-                    // Simple evaluation replacing placeholders like C1, C2 with values
                     let formula = cond.formula;
                     Object.keys(context).forEach(key => {
                         const regex = new RegExp(`\\b${key}\\b`, 'g');
                         formula = formula.replace(regex, context[key] || 0);
                     });
-                    // Math evaluation (safe subset of JS math)
                     compositeScore = eval(formula); 
                     context['composite'] = compositeScore;
                 } catch (e) {
@@ -258,22 +276,22 @@ async function calculateVltVerdict(db, { caseId, intentId, constraintResults, ac
             }
         }
 
-        // STAGE 2: Verdict Selection
-        if (rule.stage === 'STAGE_2' && rule.outcomeType === 'VERDICT') {
+        // --- STAGE 2: Verdict Selection ---
+        if (stage === 2 && rule.actionType === 'VERDICT') {
             let pass = true;
-            if (cond.composite_gte != null && compositeScore < cond.composite_gte) pass = false;
-            if (cond.composite_lt != null && compositeScore >= cond.composite_lt) pass = false;
+            if (cond.composite_gte != null && (context.composite || compositeScore) < cond.composite_gte) pass = false;
+            if (cond.composite_lt != null && (context.composite || compositeScore) >= cond.composite_lt) pass = false;
             
-            if (pass) verdict = rule.outcomeValue;
+            if (pass && action.verdict) verdict = action.verdict;
         }
 
-        // STAGE 3: Confidence Banding
-        if (rule.stage === 'STAGE_3' && rule.outcomeType === 'CONFIDENCE') {
+        // --- STAGE 3: Confidence Banding ---
+        if (stage === 3 && rule.actionType === 'CONFIDENCE') {
             let pass = true;
             if (cond.accuracy_score_gte != null && accuracyScore < cond.accuracy_score_gte) pass = false;
             if (cond.accuracy_score_lt != null && accuracyScore >= cond.accuracy_score_lt) pass = false;
 
-            if (pass) confidence = rule.outcomeValue;
+            if (pass && action.band) confidence = action.band;
         }
     }
 

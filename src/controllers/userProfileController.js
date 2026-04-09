@@ -155,11 +155,12 @@ exports.updateUserProfile = async (req, res) => {
         await userProfile.save();
 
 
-        const activeRun = await db.Runs.findOne({ userId: req.user.id, status: { $in: ['CV_UPLOADED', 'PROFILE_CONFIRMED'] } });
+        const activeRun = await db.Runs.findOne({ userId: req.user.id, status: { $ne: 'REPORT_COMPLETE' } });
         if (activeRun) {
+            // Update the data snapshot but PRESERVE the current pipeline status
             await db.Runs.updateOne(
                 { runId: activeRun.runId },
-                { $set: { status: 'PROFILE_CONFIRMED', 'cvSnapshot.parsedData': mergedProfile } }
+                { $set: { 'cvSnapshot.parsedData': mergedProfile } }
             );
 
 

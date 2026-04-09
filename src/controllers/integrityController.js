@@ -10,6 +10,60 @@ const {
 
 const SEVERITY_ORDER = { LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 };
 
+function getDeepValue(obj, path) {
+    if (!path || !obj) return undefined;
+    
+    // Direct lookup first
+    const parts = path.split('.');
+    let current = obj;
+    for (const part of parts) {
+        if (current && current[part] !== undefined) {
+            current = current[part];
+        } else {
+            current = undefined;
+            break;
+        }
+    }
+    if (current !== undefined) return current;
+
+    // Smart Lookup: Try with common prefixes or casing differences
+    const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const targetSlug = slug(parts[parts.length - 1]);
+    
+    // Synonym mapping for common mismatches
+    const synonyms = {
+        'topskills': ['skills', 'topskills', 'keyskills'],
+        'currentcompanyname': ['company', 'currentcompany', 'name', 'companyname'],
+        'currentcompany': ['company', 'currentcompany', 'name', 'companyname'],
+        'industry': ['industry', 'domainindicator', 'domain', 'sector'],
+        'yearsincurrentrole': ['duration', 'tenure', 'period', 'yearsinrole', 'experience'],
+        'rolestartdate': ['duration', 'tenure', 'startdate', 'period', 'role_start_date'],
+        'totalexperienceyears': ['totalexperienceyears', 'yearsofexperience', 'totalyears', 'experience', 'yearsexperience', 'totalexperience'],
+        'yearsexperience': ['totalexperienceyears', 'yearsofexperience', 'totalyears', 'experience', 'yearsexperience', 'totalexperience'],
+        'totalexperience': ['totalexperienceyears', 'yearsofexperience', 'totalyears', 'experience', 'yearsexperience', 'totalexperience'],
+        'rolehistory': ['experience', 'pastroles', 'history']
+    };
+    const potentialSlugs = synonyms[targetSlug] || [targetSlug];
+
+    const recursiveSearch = (o, depth = 0) => {
+        if (depth > 6 || !o || typeof o !== 'object') return undefined; // Increased depth for arrays
+        
+        // Check keys in this level
+        for (const k in o) {
+            if (potentialSlugs.includes(slug(k))) return o[k];
+        }
+
+        // Dig deeper (handle arrays too)
+        for (const k in o) {
+            const found = recursiveSearch(o[k], depth + 1);
+            if (found !== undefined) return found;
+        }
+        return undefined;
+    };
+
+    return recursiveSearch(obj);
+}
+
 function shouldTriggerWarning(warning, currentAccuracyBand) {
     if (!warning.minSeverityBand) return true;
     return (SEVERITY_ORDER[currentAccuracyBand] || 0) >= (SEVERITY_ORDER[warning.minSeverityBand] || 0);
@@ -31,7 +85,26 @@ exports.runIntegrityEngine = async (req, res) => {
 
         const rasInputs = await db.Ras.find({ runId, status: 'FINAL' });
 
-        const profileSnapshot = rasInputs.find(r => r.artifactType === 'PROFILE_CONFIRMED')?.artifactJson || {};
+        const profileArtifact = rasInputs.find(r => r.artifactType === 'PROFILE_CONFIRMED');
+        let profileSnapshot = profileArtifact?.artifactJson || run.cvSnapshot?.parsedData || {};
+
+        // SMART UNWRAPPING: Keep the container if it has identity/work OR inferred
+        let depth = 0;
+        let root = profileSnapshot;
+        while (depth < 3 && root && !root.identity && !root.work) {
+            if (root.confirmedProfile) root = root.confirmedProfile;
+            else if (root.structured) root = root.structured;
+            else if (root.data) root = root.data;
+            else break;
+            depth++;
+        }
+        
+        // ALWAYS Merge inferred if present in the original artifact
+        const originalInferred = (profileArtifact?.artifactJson || {}).inferred || run.cvSnapshot?.parsedData?.inferred;
+        if (originalInferred) {
+            root = { ...root, inferred: { ...(root.inferred || {}), ...originalInferred } };
+        }
+        profileSnapshot = root;
 
         const allAnswersMap = new Map();
         rasInputs.filter(r => r.artifactType === 'OBJECTIVE_INPUTS_CAPTURED')
@@ -44,6 +117,7 @@ exports.runIntegrityEngine = async (req, res) => {
                 }
             });
 
+
         const allAnswers = Array.from(allAnswersMap.values());
         const answersMap = {};
         allAnswers.forEach(a => {
@@ -53,8 +127,18 @@ exports.runIntegrityEngine = async (req, res) => {
         const allSignals = [];
         rasInputs.filter(r => r.artifactType === 'EXTERNAL_SIGNALS_CAPTURED')
             .forEach(record => {
-                if (record.artifactJson.signals && Array.isArray(record.artifactJson.signals)) {
-                    record.artifactJson.signals.forEach(s => allSignals.push(s));
+                const data = record.artifactJson;
+                // AI output often puts signals in 'signals' or 'coverage'
+                const signalSource = data.signals || data.coverage || [];
+                
+                if (Array.isArray(signalSource)) {
+                    signalSource.forEach(s => allSignals.push(s));
+                } else if (typeof signalSource === 'object' && signalSource !== null) {
+                    // If signals is an object, check for nested signals/coverage
+                    const nested = signalSource.signals || signalSource.coverage || [];
+                    if (Array.isArray(nested)) {
+                        nested.forEach(s => allSignals.push(s));
+                    }
                 }
             });
 
@@ -62,13 +146,14 @@ exports.runIntegrityEngine = async (req, res) => {
             return res.status(400).json({ success: false, message: 'No objective inputs found. Complete Step 3 first.' });
         }
 
-        const elr = await db.EvaluationLibraryRegistry.findOne({
+        const evaluationLib = await db.EvaluationLibraryRegistry.findOne({
             caseId: run.caseId,
             intentId: run.intentId,
             playbookVersionId: run.playbookVersionId,
             isActive: true
         });
-        if (!elr) return res.status(404).json({ success: false, message: 'Evaluation config not found' });
+
+        if (!evaluationLib) return res.status(404).json({ success: false, message: 'Evaluation config not found' });
 
         const scoredAnswers = [];
         for (const answer of allAnswers) {
@@ -103,9 +188,16 @@ exports.runIntegrityEngine = async (req, res) => {
 
             let weightedSum = 0;
             let totalWeight = 0;
+            if (mappings.length === 0) {
+                console.warn(`[Integrity] No CQMT mappings found for Constraint: ${constraint.constraintId}`);
+            }
+
             for (const mapping of mappings) {
                 const scored = scoredAnswers.find(s => s.questionId === mapping.questionId);
-                if (!scored) continue;
+                if (!scored) {
+                    console.warn(`[Integrity] No scored answer found for Question: ${mapping.questionId} in mapping for ${constraint.constraintId}`);
+                    continue;
+                }
                 weightedSum += scored.rawScore * (mapping.contributionWeight || 1);
                 totalWeight += (mapping.contributionWeight || 1);
             }
@@ -134,20 +226,46 @@ exports.runIntegrityEngine = async (req, res) => {
         let coveragePenalty = 0;
         let requiresEscalation = false;
 
-        const crtMap = await db.CoverageRequirements.find({ coverageSetId: elr.coverageSetId, isActive: true });
+        const crtMap = await db.CoverageRequirements.find({ coverageSetId: evaluationLib.coverageSetId, isActive: true });
         const patterns = await db.DataPatternKeyTaxonomy.find({ caseId: run.caseId, intentId: run.intentId, isActive: true });
+        
+        let totalAnchorsRequired = crtMap.length;
+        const resolutionResults = [];
 
         for (const crt of crtMap) {
             let evidenceCount = 0;
+            const sources = typeof crt.requiredSourcesJson === 'string' ? JSON.parse(crt.requiredSourcesJson) : crt.requiredSourcesJson;
 
-            if (crt.requiredSourcesJson?.questionIds) {
-                evidenceCount += crt.requiredSourcesJson.questionIds.filter(qid => allAnswers.some(a => a.questionId === qid)).length;
+            // 1. Check MCQ Answers
+            const qIds = sources?.questionIds || sources?.mcq_fields || sources?.question_ids || [];
+            if (qIds.length > 0) {
+                evidenceCount += qIds.filter(qid => allAnswers.some(a => a.questionId === qid)).length;
             }
 
-            if (crt.requiredSourcesJson?.externalSignalIds) {
-                evidenceCount += crt.requiredSourcesJson.externalSignalIds.filter(sid => allSignals.some(s => s.signalId === sid)).length;
+            // 2. Check External Signals
+            if (sources?.externalSignalIds || sources?.external_signal_ids) {
+                const sIds = sources?.externalSignalIds || sources?.external_signal_ids || [];
+                evidenceCount += sIds.filter(sid => allSignals.some(s => s.signalId === sid)).length;
             }
 
+            // 3. Check Profile/CV Data (IER Fix)
+            const pFields = sources?.profileFields || sources?.profile_fields || [];
+            const cFields = sources?.cvFields || sources?.cv_fields || [];
+            const allCandidateFields = [...new Set([...pFields, ...cFields])];
+
+            if (allCandidateFields.length > 0) {
+                evidenceCount += allCandidateFields.reduce((sum, field) => {
+                    const val = getDeepValue(profileSnapshot, field);
+                    
+                    if (val === undefined || val === null || val === '' || val === 'N/A') return sum;
+                    
+                    // If it's an array (like skills), add its length as evidence
+                    if (Array.isArray(val)) return sum + val.length;
+                    return sum + 1;
+                }, 0);
+            }
+
+            // 4. Check Data Patterns
             const relatedPatterns = patterns.filter(p => p.producesAnchorName === crt.anchorName);
             for (const pattern of relatedPatterns) {
                 const presentSignals = pattern.requiredSignals.filter(sid => allSignals.some(s => s.signalId === sid));
@@ -308,6 +426,9 @@ exports.runIntegrityEngine = async (req, res) => {
             data: {
                 runId,
                 rasId: integrityPackId,
+                verdict: integrityPack.verdict,
+                compositeScore: integrityPack.compositeScore,
+                confidence: integrityPack.confidence,
                 accuracy: integrityPack.accuracy,
                 constraints: integrityPack.constraints,
                 coverage: integrityPack.coverage,

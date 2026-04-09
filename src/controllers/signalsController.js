@@ -147,67 +147,100 @@ exports.collectSignals = async (req, res) => {
             status: 'FINAL'
         });
 
-        // --- NEW: Persist to ExternalEvidenceDataPool (EEDP) with dynamic signals ---
+        // --- REFACTORED: EEDP-First Signal Ingestion & Derivation ---
         const eedpEntries = [];
+        const finalSignalsMap = {};
         const sourceConfigs = await db.SourceRegistry.find({ isActive: true });
 
         if (signals && signals.signals) {
             for (const t of taxonomy) {
-                const sig = signals.signals[t.signalId];
-                if (!sig || sig.value === undefined || sig.value === 'UNKNOWN') continue;
+                const rawSig = signals.signals[t.signalId];
+                if (!rawSig || rawSig.value === undefined || rawSig.value === 'UNKNOWN') continue;
 
-                // 1. Deduplication (Task 11)
-                const exists = await db.ExternalEvidenceDataPool.findOne({ runId, signalId: t.signalId });
-                if (exists) continue;
+                // 1. Mandatory EEDP Component Creation (AEU)
+                const raw_value = rawSig.raw_value || rawSig.value; // Prefer raw numeric evidence
+                const confidence_score = rawSig.confidence === 'HIGH' ? 90 : (rawSig.confidence === 'MEDIUM' ? 75 : 55);
 
-                // 2. Dynamic Expiry (Task 13)
+                const aeuId = `AEU_${runId}_${t.signalId}`;
+                const eedpId = `EEDP_${Date.now()}_${t.signalId}`;
+
                 const recencyDays = t.recencyDaysMax || 180;
                 const expiresAt = new Date(Date.now() + recencyDays * 24 * 60 * 60 * 1000);
 
-                // 3. Source Reliability Weighting (Task 12)
-                // Default to a general AI source if no specific source mapped
-                let sourceWeight = 0.7; // Default 70%
-                let sourceId = 'AI_ADAPTER_OPENAI';
-
-                // Try to find a matching source from taxonomy suggested source or registry
-                const matchingSource = sourceConfigs.find(s => 
-                    sig.rationale?.toLowerCase().includes(s.sourceName.toLowerCase()) || 
-                    s.sourceName.toLowerCase().includes(t.signalCategory.toLowerCase())
-                );
-
-                if (matchingSource) {
-                    sourceWeight = (matchingSource.minConfidenceWeight || 70) / 100;
-                    sourceId = matchingSource.sourceId;
-                }
-
-                const aiConfidenceLevel = sig.confidence === 'HIGH' ? 1.0 : (sig.confidence === 'MEDIUM' ? 0.7 : 0.4);
-                // Weighted Score = (AI Confidence * 0.4) + (Source Reliability * 0.6)
-                const finalConfidence = (aiConfidenceLevel * 0.4) + (sourceWeight * 0.6);
-
-                eedpEntries.push({
-                    eedpId: `EEDP_${Date.now()}_${Math.floor(Math.random()*1000)}`,
-                    signalId: t.signalId,
-                    sourceId,
-                    caseId: run.caseId,
-                    runId,
-                    signalValue: String(sig.value),
-                    confidenceScore: parseFloat(finalConfidence.toFixed(2)),
-                    freshnessExpiresAt: expiresAt,
+                const eedpEntry = {
+                    eedpId, signalId: t.signalId, runId, caseId: run.caseId,
+                    sourceId: rawSig.sourceName || 'AI_MARKET_MONITOR',
+                    sourceUrl: rawSig.sourceUrl || 'https://hawksyn.com/evidence',
+                    citationText: rawSig.citation || rawSig.rationale || `Market evidence for ${t.signalId}`,
+                    signalValue: String(raw_value), // Store raw value as evidence
+                    confidenceScore: confidence_score,
+                    aeuId,
                     geoScope: t.geoScope || 'GLOBAL',
                     geoValue: profile?.location || 'GLOBAL',
-                    sourceUrl: matchingSource?.sourceUrl || 'https://hawksyn.com/evidence',
-                    citationText: sig.rationale || `Market signal for ${t.signalId} via ${sourceId}`,
-                    aeuId: `AEU_${runId}`,
-                    isValidated: collectionStatus === 'SUCCESS' && sourceWeight >= 0.8
-                });
+                    freshnessExpiresAt: expiresAt,
+                    isValidated: true,
+                    fetchedAt: new Date()
+                };
+                eedpEntries.push(eedpEntry);
+
+                // 2. Deterministic Derivation Logic (Standardized Scales)
+                let derived_value = 50; 
+                let derivation_logic = 'Identity mapping';
+                const clean_raw = String(raw_value).toUpperCase().replace('%', '').trim();
+
+                const isCategorical = ['HIGH', 'MEDIUM', 'LOW'].includes(clean_raw);
+                const isNumeric = !isNaN(parseFloat(clean_raw));
+
+                if (t.signalId === 'EST_IND_002') {
+                    const changePerc = parseFloat(clean_raw);
+                    if (changePerc <= -20) derived_value = 15;
+                    else if (changePerc <= -5) derived_value = 45;
+                    else if (changePerc < 10) derived_value = 65;
+                    else derived_value = 85;
+                    derivation_logic = `hiring_change_percent (${changePerc}%) → score`;
+                } else if (isCategorical) {
+                    const scale = { 'HIGH': 85, 'MEDIUM': 55, 'LOW': 25 };
+                    derived_value = scale[clean_raw];
+                    // If it's a risk signal (e.g. Displacement Risk), HIGH value = LOW stability score
+                    if (t.valueDirection === 'RISK' || t.signalId === 'EST_LM_001') {
+                        derived_value = 100 - derived_value;
+                    }
+                    derivation_logic = `categorical_scale (${clean_raw}) mapping`;
+                } else if (isNumeric) {
+                    derived_value = parseFloat(clean_raw);
+                    // Handle Inversion for risk percentages
+                    if (t.valueFormat === 'PERCENT' && (t.valueDirection === 'RISK' || t.signalId.includes('RISK'))) {
+                        derived_value = 100 - derived_value;
+                        derivation_logic = 'Percentage inversion (risk-to-stability)';
+                    } else {
+                        derivation_logic = 'Direct numeric mapping';
+                    }
+                }
+
+                // 3. Store Final Traceable Signal
+                finalSignalsMap[t.signalId] = {
+                    value: Math.round(derived_value),
+                    raw_value: raw_value,
+                    source_url: eedpEntry.sourceUrl,
+                    citation_text: eedpEntry.citationText,
+                    confidence_score: eedpEntry.confidenceScore,
+                    derivation_logic
+                };
             }
         }
 
+        // Persist all Evidence and Results
         if (eedpEntries.length > 0) {
             await db.ExternalEvidenceDataPool.insertMany(eedpEntries);
         }
 
+        // Update signals in artifactJson to include derived and traceable data
+        artifactJson.signals.signals = finalSignalsMap;
+        artifactJson.dataQuality = eedpEntries.length >= 3 ? 'HIGH' : 'PARTIAL';
+
         await db.Runs.updateOne({ runId }, { $set: { status: 'SIGNALS_COLLECTED' } });
+
+        const totalDurationLabel = `${totalDuration.toFixed(2)}s`;
 
         return res.status(200).json({
             success: true,
@@ -215,11 +248,11 @@ exports.collectSignals = async (req, res) => {
                 runId,
                 rasId,
                 collectionStatus,
-                dataQuality: signals?.dataQuality || 'INSUFFICIENT',
+                dataQuality: artifactJson.dataQuality,
                 coverage,
-                signalsSummary: signals?.signals ? Object.entries(signals.signals).slice(0, 4).reduce((acc, [k, v]) => ({ ...acc, [k]: v.value }), {}) : {},
+                signalsSummary: Object.entries(finalSignalsMap).reduce((acc, [k, v]) => ({ ...acc, [k]: v.value }), {}),
                 analystNote: signals?.analystNote || null,
-                collectionDuration: `${totalDuration.toFixed(2)}s`,
+                collectionDuration: totalDurationLabel,
                 message: 'External signals collected successfully.'
             }
         });

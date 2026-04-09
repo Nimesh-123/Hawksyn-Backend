@@ -589,8 +589,8 @@ async function seedContradictions() {
             contradictionDescription: 'Company is actively deploying AI but user has very low financial buffer.',
             contradictionType: 'INPUT_VS_INPUT',
             involvedEntitiesJson: { questionIds: ['Q_COMPANY_AI_POLICY_V1', 'Q_FINANCIAL_RUNWAY_V1'] },
-            defaultSeverityBand: 'HIGH',                
-            ruleName: 'Active AI + Low Runway Rule',    
+            defaultSeverityBand: 'HIGH',
+            ruleName: 'Active AI + Low Runway Rule',
             ruleJson: {
                 operator: 'AND',
                 conditions: [
@@ -602,9 +602,9 @@ async function seedContradictions() {
             onMissingData: 'NOT_EVALUATED',
             severityBand: 'HIGH',
             accuracyPenaltyPoints: 15,
-            confidencePenaltyPoints: 0,                
+            confidencePenaltyPoints: 0,
             isBlocking: false,
-            escalationTag: null,                      
+            escalationTag: null,
             maxTriggerCount: 1,
             isActive: true
         },
@@ -617,8 +617,8 @@ async function seedContradictions() {
             contradictionDescription: 'User claims very low AI automation exposure but company is AI-first.',
             contradictionType: 'INPUT_VS_INPUT',
             involvedEntitiesJson: { questionIds: ['Q_AI_ROLE_EXPOSURE_V1', 'Q_COMPANY_AI_POLICY_V1'] },
-            defaultSeverityBand: 'MEDIUM',              
-            ruleName: 'Low Exposure + AI First Rule', 
+            defaultSeverityBand: 'MEDIUM',
+            ruleName: 'Low Exposure + AI First Rule',
             ruleJson: {
                 operator: 'AND',
                 conditions: [
@@ -630,9 +630,9 @@ async function seedContradictions() {
             onMissingData: 'NOT_EVALUATED',
             severityBand: 'MEDIUM',
             accuracyPenaltyPoints: 10,
-            confidencePenaltyPoints: 0,                 
+            confidencePenaltyPoints: 0,
             isBlocking: false,
-            escalationTag: null,                        
+            escalationTag: null,
             maxTriggerCount: 1,
             isActive: true
         }
@@ -660,8 +660,8 @@ async function seedCoverageRequirements() {
             gapType: 'MISSING',
             stackingMode: 'CAP',
             stackingCapPoints: 10,
-            escalationThreshold: null,                
-            escalationPenaltyPoints: null,              
+            escalationThreshold: null,
+            escalationPenaltyPoints: null,
             displayOrder: 1,
             isActive: true
         },
@@ -680,8 +680,8 @@ async function seedCoverageRequirements() {
             gapType: 'MISSING',
             stackingMode: 'CAP',
             stackingCapPoints: 10,
-            escalationThreshold: null,                 
-            escalationPenaltyPoints: null,             
+            escalationThreshold: null,
+            escalationPenaltyPoints: null,
             displayOrder: 2,
             isActive: true
         }
@@ -782,7 +782,7 @@ async function seedWarnings() {
             warningMappingId: 'WMT_AI_V1',
             redFlagId: 'RF_0001',
             triggerMode: 'ALWAYS',
-            minSeverityBand: null,                      
+            minSeverityBand: null,
             displayPriority: 1,
             warningTitle: 'Financial Cushion Is Weak',
             warningMessage: 'You have less than 6 months of financial runway. This is critically low in a period of AI-driven workforce change. If your role is disrupted, you will have very limited time to transition.',
@@ -791,7 +791,7 @@ async function seedWarnings() {
             ctaText: 'Build a 6-month emergency fund before making any career decisions.',
             humanValidationRecommended: false,
             displayType: 'TOP_BANNER',
-            expiresAfterDays: null,                    
+            expiresAfterDays: null,
             isActive: true
         },
         {
@@ -799,7 +799,7 @@ async function seedWarnings() {
             warningMappingId: 'WMT_AI_V1',
             redFlagId: 'RF_0002',
             triggerMode: 'ALWAYS',
-            minSeverityBand: null,                      
+            minSeverityBand: null,
             displayPriority: 2,
             warningTitle: 'Your Company Is Actively Deploying AI',
             warningMessage: 'Companies in active AI deployment phases typically reorganize roles and responsibilities within 6 to 12 months. This creates structural risk for roles with high automation overlap.',
@@ -808,7 +808,7 @@ async function seedWarnings() {
             ctaText: 'Map which of your tasks are being automated and identify which skills make you irreplaceable.',
             humanValidationRecommended: true,
             displayType: 'REPORT_SECTION',
-            expiresAfterDays: null,                    
+            expiresAfterDays: null,
             isActive: true
         }
     ]);
@@ -910,8 +910,8 @@ async function seedDecisionAssuranceSections() {
             certaintyCapPercent: 85,
             minAccuracyRequired: 0,
             fallbackPolicy: 'DEGRADE',
-            requiredInternalAnchorsJson: [],          
-            requiredExternalAnchorsJson: [],          
+            requiredInternalAnchorsJson: [],
+            requiredExternalAnchorsJson: [],
             outputSchemaReference: null,
             isActive: true
         },
@@ -926,8 +926,8 @@ async function seedDecisionAssuranceSections() {
             certaintyCapPercent: 85,
             minAccuracyRequired: 0,
             fallbackPolicy: 'DEGRADE',
-            requiredInternalAnchorsJson: ['Financial Resilience'],  
-            requiredExternalAnchorsJson: [],                       
+            requiredInternalAnchorsJson: ['Financial Resilience'],
+            requiredExternalAnchorsJson: [],
             outputSchemaReference: null,
             isActive: true
         },
@@ -942,8 +942,8 @@ async function seedDecisionAssuranceSections() {
             certaintyCapPercent: 70,
             minAccuracyRequired: 0,
             fallbackPolicy: 'DEGRADE',
-            requiredInternalAnchorsJson: [],                        
-            requiredExternalAnchorsJson: ['Market Demand Signal'], 
+            requiredInternalAnchorsJson: [],
+            requiredExternalAnchorsJson: ['Market Demand Signal'],
             outputSchemaReference: null,
             isActive: true
         },
@@ -958,8 +958,8 @@ async function seedDecisionAssuranceSections() {
             certaintyCapPercent: 85,
             minAccuracyRequired: 0,
             fallbackPolicy: 'ESCALATE',
-            requiredInternalAnchorsJson: [],          
-            requiredExternalAnchorsJson: [],           
+            requiredInternalAnchorsJson: [],
+            requiredExternalAnchorsJson: [],
             outputSchemaReference: null,
             isActive: true
         }
@@ -982,8 +982,8 @@ async function seedPromptConfigRegistry() {
             modelFamily: 'OPENAI',
             temperature: 0.3,
             maxTokens: 600,
-            systemPrompt: 'You are a structured risk analyst for Hawksyn. Write only what evidence supports. Do not introduce external facts. Do not use words like "definitely" or "certainly".',
-            userPrompt: `Write a 4-sentence Profile Risk Summary for this user.
+            systemPrompt: 'You are a career decision analyst for Hawksyn. Write only what evidence supports.',
+            userPrompt: `Write a 4-sentence Profile Risk Summary for this user. 
 
 Profile:
 - Current Role: {{CURRENT_ROLE}}
@@ -1157,7 +1157,7 @@ async function seedDependencyRules() {
             dependencyRuleId: 'DRR_000004',
             moiId: 'MOI_AI_STAY_V1',
             ruleName: 'Ask company signals only if company size is mid/large',
-            targetQuestionId: 'Q_COMPANY_AI_POLICY_V1',  
+            targetQuestionId: 'Q_COMPANY_AI_POLICY_V1',
             ruleJson: {
                 all: [{ source: 'profile', field: 'inferred.companySize', op: 'in', value: ['MID', 'LARGE'] }],
                 any: []
@@ -1229,7 +1229,7 @@ async function seedDataPatternKeyTaxonomy() {
 // ════════════════════════════════════════════════════════════
 async function seedRiskAuditorRegistry() {
     await RiskAuditorRegistry.deleteMany({});
-    
+
     // Hash a default password for all mock experts
     const hashedPassword = await bcrypt.hash('expert123', 10);
 
@@ -1275,6 +1275,17 @@ async function seedRiskAuditorRegistry() {
             caseId: 'CASE_ROLE_SWITCH',
             specializations: ['ROLE_TRANSITION', 'SKILL_ANALYSIS'],
             maxCaseload: 20,
+            currentCaseload: 0,
+            isActive: true
+        },
+        {
+            auditorId: 'RAR_007',
+            auditorName: 'Obsolescence Risk Specialist',
+            email: 'rar_007@hawksyn.com',
+            password: hashedPassword,
+            caseId: 'CASE_ROLE_OBSOLESCENCE',
+            specializations: ['AI_OBSOLESCENCE', 'FUTURE_OF_WORK'],
+            maxCaseload: 30,
             currentCaseload: 0,
             isActive: true
         }
@@ -1835,8 +1846,8 @@ async function seedCase_MBA() {
             promptId: 'PCR_MBA_SEC001_V1', sectionId: 'MBA_SEC_001', caseId: 'CASE_MBA_BREAK', intentId: 'INT_MBA_2026_YESNO', playbookVersionId: 'PBV_000002', promptVersion: 1, modelFamily: 'OPENAI', temperature: 0.3, maxTokens: 600,
             systemPrompt: 'You are a career decision analyst for Hawksyn. Write only what evidence supports. Do not introduce external facts.',
             userPrompt: `Write a 4-sentence Profile and Readiness Summary for this user considering an MBA.\n\nProfile:\n- Current Role: {{CURRENT_ROLE}}\n- Experience: {{EXPERIENCE_YEARS}} years at {{CURRENT_COMPANY}}\n- Domain: {{DOMAIN}}\n- Skills: {{SKILLS}}\n\nUser's Inputs:\n- Savings Runway: {{MBA_SAVINGS_RUNWAY}}\n- Employer Support: {{MBA_EMPLOYER_SUPPORT}}\n- ROI Clarity: {{MBA_ROI_CLARITY}}\n- Work Experience: {{MBA_EXPERIENCE_YEARS}} years\n\nIntegrity Results:\n- Accuracy Score: {{ACCURACY_SCORE}} (Band: {{ACCURACY_BAND}})\n- Red Flags: {{RED_FLAGS}}\n\nWrite based ONLY on this data. Be direct and specific. Do not give generic MBA advice.`,
-            evidencePlaceholdersJson: { 
-                CURRENT_ROLE: 'identity.currentRole', 
+            evidencePlaceholdersJson: {
+                CURRENT_ROLE: 'identity.currentRole',
                 EXPERIENCE_YEARS: 'work.totalYearsExperience',
                 CURRENT_COMPANY: 'work.experience.0.company',
                 DOMAIN: 'identity.industry',
@@ -1852,7 +1863,7 @@ async function seedCase_MBA() {
             promptId: 'PCR_MBA_SEC002_V1', sectionId: 'MBA_SEC_002', caseId: 'CASE_MBA_BREAK', intentId: 'INT_MBA_2026_YESNO', playbookVersionId: 'PBV_000002', promptVersion: 1, modelFamily: 'GEMINI', temperature: 0.3, maxTokens: 600,
             systemPrompt: 'You are a financial feasibility analyst for Hawksyn. Assess MBA financial viability. Be factual. Do not invent numbers.',
             userPrompt: `Assess the financial feasibility of this user's MBA plan.\n\nSavings Runway: {{MBA_SAVINGS_RUNWAY}}\nEmployer Support: {{MBA_EMPLOYER_SUPPORT}}\nAccuracy Band: {{ACCURACY_BAND}}\nRed Flags: {{RED_FLAGS}}\n\nWrite 2-3 paragraphs:\n1. Is the financial position adequate for an MBA break?\n2. What happens if the user goes ahead without adequate savings?\n3. What immediate action is recommended?`,
-            evidencePlaceholdersJson: { 
+            evidencePlaceholdersJson: {
                 MBA_SAVINGS_RUNWAY: 'Q_MBA_SAVINGS_RUNWAY_V1',
                 MBA_EMPLOYER_SUPPORT: 'Q_MBA_EMPLOYER_SUPPORT_V1'
             },
@@ -1862,7 +1873,7 @@ async function seedCase_MBA() {
             promptId: 'PCR_MBA_SEC003_V1', sectionId: 'MBA_SEC_003', caseId: 'CASE_MBA_BREAK', intentId: 'INT_MBA_2026_YESNO', playbookVersionId: 'PBV_000002', promptVersion: 1, modelFamily: 'GEMINI', temperature: 0.4, maxTokens: 500,
             systemPrompt: 'You are a market signals analyst for Hawksyn. Summarize MBA market ROI conditions. Use only provided data.',
             userPrompt: `Analyze market conditions for MBA ROI for this user.\n\nUser: {{CURRENT_ROLE}} in {{DOMAIN}} with {{EXPERIENCE_YEARS}} years experience\nMarket Demand Signal: {{MARKET_DEMAND_SIGNAL}}\nAI Displacement Risk: {{AI_DISPLACEMENT_RISK}}\nIndustry Hiring Trend: {{INDUSTRY_HIRING_TREND}}\nAccuracy Band: {{ACCURACY_BAND}}\nAnalyst Note: {{ANALYST_NOTE}}\n\nWrite 3-4 sentences on MBA ROI signals for this profile. End with one direct implication.`,
-            evidencePlaceholdersJson: { 
+            evidencePlaceholdersJson: {
                 CURRENT_ROLE: 'identity.currentRole',
                 DOMAIN: 'identity.industry',
                 EXPERIENCE_YEARS: 'work.totalYearsExperience'
@@ -1873,7 +1884,7 @@ async function seedCase_MBA() {
             promptId: 'PCR_MBA_SEC004_V1', sectionId: 'MBA_SEC_004', caseId: 'CASE_MBA_BREAK', intentId: 'INT_MBA_2026_YESNO', playbookVersionId: 'PBV_000002', promptVersion: 1, modelFamily: 'OPENAI', temperature: 0.2, maxTokens: 400,
             systemPrompt: 'You are the verdict engine for Hawksyn MBA decisions. Deliver PROCEED, PAUSE, or ABORT. Base verdict solely on provided integrity data.',
             userPrompt: `Deliver a verdict on whether this user should pursue MBA now.\n\nAccuracy Score: {{ACCURACY_SCORE}}\nAccuracy Band: {{ACCURACY_BAND}}\nRed Flags: {{RED_FLAGS}}\nContradictions: {{CONTRADICTIONS}}\n\nYour first line MUST be: PROCEED, PAUSE, or ABORT\nThen 3-4 sentences explaining the verdict.\nEnd with one clear recommendation.`,
-            evidencePlaceholdersJson: { 
+            evidencePlaceholdersJson: {
                 ACCURACY_SCORE: 'INTEGRITY.score',
                 ACCURACY_BAND: 'INTEGRITY.band',
                 RED_FLAGS: 'INTEGRITY.redFlags',
@@ -2133,10 +2144,10 @@ async function seedCase_Freelance() {
 
     await PromptConfigRegistry.deleteMany({ caseId: 'CASE_FREELANCE_SWITCH' });
     await PromptConfigRegistry.insertMany([
-        { 
-            promptId: 'PCR_FL_SEC001_V1', sectionId: 'FL_SEC_001', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'OPENAI', temperature: 0.3, maxTokens: 600, 
-            systemPrompt: 'You are a career decision analyst for Hawksyn. Write only what evidence supports.', 
-            userPrompt: `Write a 4-sentence Freelance Readiness Summary for this user.\n\nProfile:\n- Current Role: {{CURRENT_ROLE}}\n- Experience: {{EXPERIENCE_YEARS}} years at {{CURRENT_COMPANY}}\n- Domain: {{DOMAIN}}\n- Skills: {{SKILLS}}\n\nUser Inputs:\n- Savings Runway: {{FL_SAVINGS_RUNWAY}}\n- Client Network: {{FL_CLIENT_NETWORK}}\n- Skill Marketability: {{FL_SKILL_MARKETABILITY}}\n- Financial Obligations: {{FL_DEPENDENTS}}\n\nIntegrity:\n- Accuracy Score: {{ACCURACY_SCORE}} (Band: {{ACCURACY_BAND}})\n- Red Flags: {{RED_FLAGS}}\n\nBe direct. Reference specific answers. No generic advice.`, 
+        {
+            promptId: 'PCR_FL_SEC001_V1', sectionId: 'FL_SEC_001', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'OPENAI', temperature: 0.3, maxTokens: 600,
+            systemPrompt: 'You are a career decision analyst for Hawksyn. Write only what evidence supports.',
+            userPrompt: `Write a 4-sentence Freelance Readiness Summary for this user.\n\nProfile:\n- Current Role: {{CURRENT_ROLE}}\n- Experience: {{EXPERIENCE_YEARS}} years at {{CURRENT_COMPANY}}\n- Domain: {{DOMAIN}}\n- Skills: {{SKILLS}}\n\nUser Inputs:\n- Savings Runway: {{FL_SAVINGS_RUNWAY}}\n- Client Network: {{FL_CLIENT_NETWORK}}\n- Skill Marketability: {{FL_SKILL_MARKETABILITY}}\n- Financial Obligations: {{FL_DEPENDENTS}}\n\nIntegrity:\n- Accuracy Score: {{ACCURACY_SCORE}} (Band: {{ACCURACY_BAND}})\n- Red Flags: {{RED_FLAGS}}\n\nBe direct. Reference specific answers. No generic advice.`,
             evidencePlaceholdersJson: {
                 CURRENT_ROLE: 'identity.currentRole',
                 EXPERIENCE_YEARS: 'work.totalYearsExperience',
@@ -2147,40 +2158,40 @@ async function seedCase_Freelance() {
                 FL_CLIENT_NETWORK: 'Q_FL_CLIENT_NETWORK_V1',
                 FL_SKILL_MARKETABILITY: 'Q_FL_SKILL_MARKETABILITY_V1',
                 FL_DEPENDENTS: 'Q_FL_DEPENDENTS_V1'
-            }, 
-            certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true 
+            },
+            certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true
         },
-        { 
-            promptId: 'PCR_FL_SEC002_V1', sectionId: 'FL_SEC_002', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'GEMINI', temperature: 0.3, maxTokens: 600, 
-            systemPrompt: 'You are a financial resilience analyst for Hawksyn. Assess freelance financial safety.', 
-            userPrompt: `Assess financial readiness for freelance switch.\n\nSavings Runway: {{FL_SAVINGS_RUNWAY}}\nClient Network: {{FL_CLIENT_NETWORK}}\nFinancial Obligations: {{FL_DEPENDENTS}}\nAccuracy Band: {{ACCURACY_BAND}}\nRed Flags: {{RED_FLAGS}}\n\nWrite 2-3 paragraphs:\n1. Is the financial cushion adequate?\n2. What happens with zero income for 3-6 months?\n3. Recommended immediate action?`, 
+        {
+            promptId: 'PCR_FL_SEC002_V1', sectionId: 'FL_SEC_002', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'GEMINI', temperature: 0.3, maxTokens: 600,
+            systemPrompt: 'You are a financial resilience analyst for Hawksyn. Assess freelance financial safety.',
+            userPrompt: `Assess financial readiness for freelance switch.\n\nSavings Runway: {{FL_SAVINGS_RUNWAY}}\nClient Network: {{FL_CLIENT_NETWORK}}\nFinancial Obligations: {{FL_DEPENDENTS}}\nAccuracy Band: {{ACCURACY_BAND}}\nRed Flags: {{RED_FLAGS}}\n\nWrite 2-3 paragraphs:\n1. Is the financial cushion adequate?\n2. What happens with zero income for 3-6 months?\n3. Recommended immediate action?`,
             evidencePlaceholdersJson: {
                 FL_SAVINGS_RUNWAY: 'Q_FL_SAVINGS_RUNWAY_V1',
                 FL_CLIENT_NETWORK: 'Q_FL_CLIENT_NETWORK_V1',
                 FL_DEPENDENTS: 'Q_FL_DEPENDENTS_V1'
-            }, 
-            certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true 
+            },
+            certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true
         },
-        { 
-            promptId: 'PCR_FL_SEC003_V1', sectionId: 'FL_SEC_003', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'GEMINI', temperature: 0.4, maxTokens: 500, 
-            systemPrompt: 'You are a market signals analyst for Hawksyn. Analyze freelance market conditions.', 
-            userPrompt: `Analyze freelance market for: {{CURRENT_ROLE}} in {{DOMAIN}}\n\nMarket Demand: {{MARKET_DEMAND_SIGNAL}}\nAI Risk: {{AI_DISPLACEMENT_RISK}}\nHiring Trend: {{INDUSTRY_HIRING_TREND}}\nAccuracy Band: {{ACCURACY_BAND}}\n\nWrite 3-4 sentences. End with direct implication for this user.`, 
+        {
+            promptId: 'PCR_FL_SEC003_V1', sectionId: 'FL_SEC_003', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'GEMINI', temperature: 0.4, maxTokens: 500,
+            systemPrompt: 'You are a market signals analyst for Hawksyn. Analyze freelance market conditions.',
+            userPrompt: `Analyze freelance market for: {{CURRENT_ROLE}} in {{DOMAIN}}\n\nMarket Demand: {{MARKET_DEMAND_SIGNAL}}\nAI Risk: {{AI_DISPLACEMENT_RISK}}\nHiring Trend: {{INDUSTRY_HIRING_TREND}}\nAccuracy Band: {{ACCURACY_BAND}}\n\nWrite 3-4 sentences. End with direct implication for this user.`,
             evidencePlaceholdersJson: {
                 CURRENT_ROLE: 'identity.currentRole',
                 DOMAIN: 'identity.industry'
-            }, 
-            certaintyCapPercent: 70, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true 
+            },
+            certaintyCapPercent: 70, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true
         },
-        { 
-            promptId: 'PCR_FL_SEC004_V1', sectionId: 'FL_SEC_004', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'OPENAI', temperature: 0.2, maxTokens: 400, 
-            systemPrompt: 'You are the verdict engine for Hawksyn freelance decisions. PROCEED, PAUSE, or ABORT only.', 
-            userPrompt: `Verdict on freelance switch:\n\nAccuracy Score: {{ACCURACY_SCORE}}\nAccuracy Band: {{ACCURACY_BAND}}\nRed Flags: {{RED_FLAGS}}\nContradictions: {{CONTRADICTIONS}}\n\nFirst line: PROCEED, PAUSE, or ABORT\nThen 3-4 sentences with reasoning.\nEnd with one recommendation.`, 
+        {
+            promptId: 'PCR_FL_SEC004_V1', sectionId: 'FL_SEC_004', caseId: 'CASE_FREELANCE_SWITCH', intentId: 'INT_FREELANCE_6M', playbookVersionId: 'PBV_000003', promptVersion: 1, modelFamily: 'OPENAI', temperature: 0.2, maxTokens: 400,
+            systemPrompt: 'You are the verdict engine for Hawksyn freelance decisions. PROCEED, PAUSE, or ABORT only.',
+            userPrompt: `Verdict on freelance switch:\n\nAccuracy Score: {{ACCURACY_SCORE}}\nAccuracy Band: {{ACCURACY_BAND}}\nRed Flags: {{RED_FLAGS}}\nContradictions: {{CONTRADICTIONS}}\n\nFirst line: PROCEED, PAUSE, or ABORT\nThen 3-4 sentences with reasoning.\nEnd with one recommendation.`,
             evidencePlaceholdersJson: {
                 ACCURACY_SCORE: 'INTEGRITY.score',
                 ACCURACY_BAND: 'INTEGRITY.band',
                 RED_FLAGS: 'INTEGRITY.redFlags'
-            }, 
-            certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true 
+            },
+            certaintyCapPercent: 85, retryPolicy: 'RETRY_ON_SCHEMA_FAIL', outputSchemaReference: null, isActive: true
         }
     ]);
 
@@ -2423,172 +2434,74 @@ async function seedVerdictLogicTable() {
     await VerdictLogicTable.deleteMany({});
     await VerdictLogicTable.insertMany([
         {
-            ruleId: 'VLT_RO_001', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 1,
-            ruleName: 'Compute composite score from all 7 constraints',
-            conditionJson: { formula: '(C1*1.5 + C2*1.5 + C3*1.0 + C4*1.5 + C5*1.0 + C6*1.0 + C7*1.5) / 9.0', blocking_weight: 1.5, non_blocking_weight: 1.0 },
+            ruleId: 'VLT_AI_001', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 1,
+            ruleName: 'Compute composite score from AI constraints (C1-C4)',
+            conditionJson: { formula: '(C1*1.5 + C2*1.5 + C3*1.0 + C4*1.5) / 5.5', blocking_weight: 1.5, non_blocking_weight: 1.0 },
             actionType: 'COMPOSITE_SCORE', actionValueJson: { type: 'NUMERIC_0_TO_100' },
             priority: 1, isActive: true
         },
         {
-            ruleId: 'VLT_RO_002', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 2,
+            ruleId: 'VLT_AI_002', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 2,
             ruleName: 'Composite 75 to 100: Verdict PROCEED',
             conditionJson: { composite_gte: 75 },
             actionType: 'VERDICT', actionValueJson: { verdict: 'PROCEED' },
             priority: 1, isActive: true
         },
         {
-            ruleId: 'VLT_RO_003', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 2,
+            ruleId: 'VLT_AI_003', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 2,
             ruleName: 'Composite 50 to 74: Verdict PAUSE',
             conditionJson: { composite_gte: 50, composite_lt: 75 },
             actionType: 'VERDICT', actionValueJson: { verdict: 'PAUSE' },
             priority: 2, isActive: true
         },
         {
-            ruleId: 'VLT_RO_004', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 2,
-            ruleName: 'Composite 0 to 49: Verdict STOP',
+            ruleId: 'VLT_AI_004', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 2,
+            ruleName: 'Composite 0 to 49: Verdict ABORT',
             conditionJson: { composite_lt: 50 },
-            actionType: 'VERDICT', actionValueJson: { verdict: 'STOP' },
+            actionType: 'VERDICT', actionValueJson: { verdict: 'ABORT' },
             priority: 3, isActive: true
         },
         {
-            ruleId: 'VLT_RO_005', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 3,
+            ruleId: 'VLT_AI_005', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 3,
             ruleName: 'Accuracy 85 to 100: Confidence HIGH',
-            conditionJson: { accuracy_score_gte: 85 }, 
+            conditionJson: { accuracy_score_gte: 85 },
             actionType: 'CONFIDENCE', actionValueJson: { band: 'HIGH' },
             priority: 1, isActive: true
         },
         {
-            ruleId: 'VLT_RO_006', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 3,
-            ruleName: 'Accuracy 65 to 84: Confidence MEDIUM',
-            conditionJson: { accuracy_score_gte: 65, accuracy_score_lt: 85 }, 
-            actionType: 'CONFIDENCE', actionValueJson: { band: 'MEDIUM' },
-            priority: 2, isActive: true
-        },
-        {
-            ruleId: 'VLT_RO_007', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 3,
-            ruleName: 'Accuracy 40 to 64: Confidence LOW',
-            conditionJson: { accuracy_score_gte: 40, accuracy_score_lt: 65 }, 
-            actionType: 'CONFIDENCE', actionValueJson: { band: 'LOW' },
-            priority: 3, isActive: true
-        },
-        {
-            ruleId: 'VLT_RO_008', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 3,
-            ruleName: 'Accuracy 0 to 39: Confidence VERY LOW',
-            conditionJson: { accuracy_score_lt: 40 }, 
-            actionType: 'CONFIDENCE', actionValueJson: { band: 'VERY_LOW' },
-            priority: 4, isActive: true
-        },
-        {
-            ruleId: 'VLT_RO_009', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
-            ruleName: 'C1 CRITICAL: Role Automation Exposure red flag',
-            conditionJson: { constraint: 'CONS_RO_001', op: 'lt', value: 40 }, 
-            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_001' },
+            ruleId: 'VLT_AI_008', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'C1 CRITICAL: High AI Automation Exposure',
+            conditionJson: { constraint: 'CONS_AI_001', op: 'lt', value: 40 },
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_0002' }, // Company AI Displacement Risk
             priority: 1, isActive: true
         },
         {
-            ruleId: 'VLT_RO_010', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
-            ruleName: 'C2 CRITICAL: Skill Depreciation red flag',
-            conditionJson: { constraint: 'CONS_RO_002', op: 'lt', value: 40 }, 
-            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_002' },
+            ruleId: 'VLT_AI_009', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'C2 CRITICAL: Financial Vulnerability',
+            conditionJson: { constraint: 'CONS_AI_002', op: 'lt', value: 40 },
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_0001' }, // Financial Vulnerability
             priority: 2, isActive: true
         },
         {
-            ruleId: 'VLT_RO_011', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
-            ruleName: 'C4 CRITICAL: Financial Vulnerability red flag',
-            conditionJson: { constraint: 'CONS_RO_004', op: 'lt', value: 30 }, 
-            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_003' },
+            ruleId: 'VLT_AI_010', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'C4 CRITICAL: Aggressive Company AI Adoption',
+            conditionJson: { constraint: 'CONS_AI_004', op: 'lt', value: 40 },
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_0002' },
             priority: 3, isActive: true
         },
         {
-            ruleId: 'VLT_RO_012', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
-            ruleName: 'C7 CRITICAL: High Internal Replaceability red flag',
-            conditionJson: { constraint: 'CONS_RO_007', op: 'lt', value: 40 }, 
-            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_004' },
+            ruleId: 'VLT_AI_011', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
+            ruleName: 'CONTR_AI_001: Active AI + Low Runway',
+            conditionJson: { contradiction_id: 'CONTR_AI_001', status: 'TRIGGERED' },
+            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_0003' },
             priority: 4, isActive: true
         },
         {
-            ruleId: 'VLT_RO_013', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
-            ruleName: 'C3 CRITICAL: Company Instability red flag',
-            conditionJson: { constraint: 'CONS_RO_003', op: 'lt', value: 40 }, 
-            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_005' },
-            priority: 5, isActive: true
-        },
-        {
-            ruleId: 'VLT_RO_014', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
-            ruleName: 'C5 CRITICAL: No Viable Exit Route red flag',
-            conditionJson: { constraint: 'CONS_RO_005', op: 'lt', value: 40 }, 
-            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_006' },
-            priority: 6, isActive: true
-        },
-        {
-            ruleId: 'VLT_RO_015', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
-            ruleName: 'CONTR_RO_001 fires: Company trouble but claims critical',
-            conditionJson: { contradiction_id: 'CONTR_RO_001', status: 'TRIGGERED' }, 
-            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_007' },
-            priority: 7, isActive: true
-        },
-        {
-            ruleId: 'VLT_RO_016', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
-            ruleName: 'CONTR_RO_002 fires: Long runway but salary dependent',
-            conditionJson: { contradiction_id: 'CONTR_RO_002', status: 'TRIGGERED' }, 
-            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_008' },
-            priority: 8, isActive: true
-        },
-        {
-            ruleId: 'VLT_RO_017', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
-            ruleName: 'CONTR_RO_003 fires: Process work but irreplaceable claim',
-            conditionJson: { contradiction_id: 'CONTR_RO_003', status: 'TRIGGERED' }, 
-            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_009' },
-            priority: 9, isActive: true
-        },
-        {
-            ruleId: 'VLT_RO_018', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
-            ruleName: 'CONTR_RO_004 fires: Course completed but nothing changed',
-            conditionJson: { contradiction_id: 'CONTR_RO_004', status: 'TRIGGERED' }, 
-            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_010' },
-            priority: 10, isActive: true
-        },
-        {
-            ruleId: 'VLT_RO_019', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
-            ruleName: 'Triple Threat: C1, C2 and C7 all FRAGILE or below',
-            conditionJson: { all: [{ constraint: 'CONS_RO_001', op: 'lte', value: 59 }, { constraint: 'CONS_RO_002', op: 'lte', value: 59 }, { constraint: 'CONS_RO_007', op: 'lte', value: 59 }] },
-            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_011' },
-            priority: 11, isActive: true
-        },
-        {
-            ruleId: 'VLT_RO_020', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 4,
-            ruleName: 'No Escape Route: C4 and C5 both FRAGILE or below',
-            conditionJson: { all: [{ constraint: 'CONS_RO_004', op: 'lte', value: 59 }, { constraint: 'CONS_RO_005', op: 'lte', value: 59 }] },
-            actionType: 'RED_FLAG', actionValueJson: { red_flag_id: 'RF_RO_012' },
-            priority: 12, isActive: true
-        },
-        {
-            ruleId: 'VLT_RO_021', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 5,
-            ruleName: 'Each CRITICAL blocking constraint: 15 point accuracy penalty',
-            conditionJson: { per_critical_blocking_constraint: 15, max_penalty_from_this_rule: 45 }, 
-            actionType: 'ACCURACY_DEDUCTION', actionValueJson: { formula: '15_PER_CRITICAL_BLOCKING' },
+            ruleId: 'VLT_AI_020', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 5,
+            ruleName: 'Accuracy Scoring & Boundaries',
+            conditionJson: { max_total_penalty: 75, floor_score: 25 },
+            actionType: 'ACCURACY_BOUNDARY', actionValueJson: { formula: 'CAP_75_FLOOR_25' },
             priority: 1, isActive: true
-        },
-        {
-            ruleId: 'VLT_RO_022', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 5,
-            ruleName: 'Each CRITICAL non-blocking constraint: 8 point accuracy penalty',
-            conditionJson: { per_critical_non_blocking_constraint: 8, max_penalty_from_this_rule: 24 }, 
-            actionType: 'ACCURACY_DEDUCTION', actionValueJson: { formula: '8_PER_CRITICAL_NON_BLOCKING' },
-            priority: 2, isActive: true
-        },
-        {
-            ruleId: 'VLT_RO_023', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 5,
-            ruleName: 'Each CRITICAL contradiction: 10 point accuracy penalty',
-            conditionJson: { per_critical_contradiction: 10, per_high_contradiction: 6, per_medium_contradiction: 3, max_penalty_from_this_rule: 40 }, 
-            actionType: 'ACCURACY_DEDUCTION', actionValueJson: { formula: 'VARIABLE_PER_SEVERITY' },
-            priority: 3, isActive: true
-        },
-        {
-            ruleId: 'VLT_RO_024', caseId: 'CASE_AI_JOB_RISK', intentId: 'ALL', stage: 5,
-            ruleName: 'Total penalty cap 70. Floor 25.',
-            conditionJson: { max_total_penalty: 70, floor_score: 25 }, 
-            actionType: 'ACCURACY_BOUNDARY', actionValueJson: { formula: 'CAP_70_FLOOR_25' },
-            priority: 4, isActive: true
         }
     ]);
     console.log('✅ VLT (Verdict Logic Table) seeded');

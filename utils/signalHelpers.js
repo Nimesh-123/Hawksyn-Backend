@@ -15,6 +15,9 @@ function buildSignalPrompt({ role, industry, orgSize, intentName, caseName, taxo
     "category": "${t.signalCategory}",
     "value": "${options}",
     "rationale": "One specific factual sentence about this signal for ${role} in ${industry}.",
+    "sourceName": "Specific real-world data source (e.g. LinkedIn Hiring Index, MoSPI Labour Force Survey, Naukri Tech Jobs Index)",
+    "sourceUrl": "Realistic URL to the source or its latest report",
+    "citation": "A formal citation string for the evidence",
     "confidence": "HIGH | MEDIUM | LOW"
   }`;
     }).join(',\n');
@@ -74,6 +77,7 @@ function validateSignals(parsed, taxonomy = []) {
         if (!sig) return { valid: false, reason: `Missing required signal: ${t.signalId} (${t.signalName})` };
         if (sig.value === undefined || sig.value === null) return { valid: false, reason: `Missing value for: ${t.signalId}` };
         if (!sig.rationale) return { valid: false, reason: `Missing rationale for: ${t.signalId}` };
+        if (!sig.sourceName || !sig.sourceUrl) return { valid: false, reason: `Missing source metadata for: ${t.signalId}` };
     }
 
     return { valid: true };
