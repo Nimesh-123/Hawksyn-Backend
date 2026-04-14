@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const adminPlaybookController = require('../../controllers/adminPlaybook.controller.js');
+const caseController = require('../../controllers/caseController.js');
+
 
 // Multer storage configuration (memory buffer)
 const storage = multer.memoryStorage();
@@ -22,6 +24,43 @@ const upload = multer({
 
 /**
  * @swagger
+ * /admin/playbook/cases:
+ *   get:
+ *     summary: Get all cases (Admin view includes inactive)
+ *     tags: ["9. Admin: Playbook Import"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of cases
+ */
+router.get('/cases', caseController.getCases);
+
+/**
+ * @swagger
+ * /admin/playbook/template/download:
+ *   get:
+ *     summary: Download multi-sheet Excel template (optionally pre-filled)
+ *     tags: ["9. Admin: Playbook Import"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: caseId
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: "Optional: Case ID to pre-fill data for editing. Leave blank for a NEW CASE template."
+ *     responses:
+ *       200:
+ *         description: Excel file buffer
+ */
+router.get('/template/download', adminPlaybookController.downloadPlaybookTemplate);
+
+
+
+/**
+ * @swagger
  * /admin/playbook/upload:
  *   post:
  *     summary: Upload and validate a multi-sheet Excel Playbook
@@ -29,6 +68,7 @@ const upload = multer({
  *     security:
  *       - bearerAuth: []
  *     requestBody:
+ *       required: true
  *       content:
  *         multipart/form-data:
  *           schema:
@@ -39,13 +79,10 @@ const upload = multer({
  *                 format: binary
  *     responses:
  *       200:
- *         description: Parsed summary and preview
- *       400:
- *         description: Invalid file or missing data
- *       500:
- *         description: Parsing error
+ *         description: Parsed data summary
  */
 router.post('/upload', upload.single('file'), adminPlaybookController.uploadPlaybook);
+
 
 /**
  * @swagger
@@ -68,12 +105,11 @@ router.post('/upload', upload.single('file'), adminPlaybookController.uploadPlay
  *                 type: string
  *     responses:
  *       200:
- *         description: Import success
- *       404:
- *         description: Upload session expired
+ *         description: Import completion
  *       500:
  *         description: Transaction failed
  */
 router.post('/import', adminPlaybookController.confirmImport);
+
 
 module.exports = router;

@@ -27,12 +27,19 @@ exports.getCases = async (req, res) => {
 
         const skip = (page - 1) * limit;
 
-        const totalCount = await CaseRegistry.countDocuments({ isActive: true });
-        const cases = await CaseRegistry.find({ isActive: true })
-            .select('caseId caseName caseCategory caseDescription defaultCurrency minPrice maxPrice logoSvg')
+        // Common Logic: Users only see active, Admins see all for editing
+        const filter = { isActive: true };
+        if (req.user && req.user.role === 'admin') {
+            delete filter.isActive; // Admin can see everything
+        }
+
+        const totalCount = await CaseRegistry.countDocuments(filter);
+        const cases = await CaseRegistry.find(filter)
+            .select('caseId caseName caseCategory caseDescription defaultCurrency minPrice maxPrice logoSvg isActive')
             .sort(sort)
             .skip(skip)
             .limit(limit);
+
 
         const totalPages = Math.ceil(totalCount / limit);
 
