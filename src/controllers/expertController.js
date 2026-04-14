@@ -285,7 +285,7 @@ exports.askExpertQuery = async (req, res) => {
                             type: 'EXPERT_QUERY_CONSUME',
                             amount: -1,
                             balanceAfter: newBalance,
-                            note: `Expert Slot Consumed: ${queryType} — Run ${runId} (After 7-day free window)`,
+                            note: `Expert Slot Consumed: ${queryType} â€” Run ${runId} (After 7-day free window)`,
                             createdAt: new Date()
                         }
                     }
@@ -564,6 +564,97 @@ exports.verifyExpertQueryPayment = async (req, res) => {
             }
         });
 
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.getChatAttempts = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const userId = req.user.id;
+
+        const expertAssignment = await db.Ras.findOne({
+            runId,
+            artifactType: 'EXPERT_ASSIGNED',
+            status: 'FINAL'
+        });
+
+        if (!expertAssignment || !expertAssignment.artifactJson.assignedExpert) {
+            return res.status(200).json({
+                success: true,
+                data: { canChat: false, message: 'No expert assigned yet.' }
+            });
+        }
+
+        const assignedAt = expertAssignment.artifactJson.assignedExpert.assignedAt;
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const isFreeWindowActive = new Date(assignedAt) > sevenDaysAgo;
+
+        const userCredits = await db.UserCredits.findOne({ userId });
+        const creditBalance = userCredits ? userCredits.expertChatBalance : 0;
+
+        // Count queries already asked in this run
+        const queriesCount = await db.ExpertQuery.countDocuments({ runId, userId });
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                runId,
+                isFreeWindowActive,
+                creditBalance,
+                queriesAsked: queriesCount,
+                canChat: isFreeWindowActive || creditBalance > 0,
+                displayMessage: isFreeWindowActive 
+                    ? '7-day free support window is active.' 
+                    : 'Your balance: ' + creditBalance + ' query slots.',
+                remainingAttempts: isFreeWindowActive ? 'Unlimited' : creditBalance
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.unlockExpertSupport = async (req, res) => {
+    try {
+        const { runId } = req.body;
+        const userId = req.user.id;
+
+        const run = await db.Runs.findOne({ runId, userId });
+        if (!run) return res.status(404).json({ success: false, message: 'Run not found' });
+
+        const userCredits = await db.UserCredits.findOne({ userId });
+        if (!userCredits || userCredits.expertChatBalance < 1) {
+            return res.status(402).json({ success: false, message: 'Insufficient expert chat credits. Please purchase more.' });
+        }
+
+        const newBalance = userCredits.expertChatBalance - 1;
+        await db.UserCredits.findOneAndUpdate(
+            { userId },
+            {
+                $set: { expertChatBalance: newBalance },
+                $push: {
+                    transactions: {
+                        type: 'EXPERT_QUERY_CONSUME',
+                        amount: -1,
+                        balanceAfter: newBalance,
+                        note: 'Manual Unlock Expert Support — Run ' + runId,
+                        runId: runId,
+                        createdAt: new Date()
+                    }
+                }
+            }
+        );
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                newBalance,
+                message: 'Expert support unlocked for this run.'
+            }
+        });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }

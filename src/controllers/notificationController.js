@@ -93,3 +93,42 @@ exports.deleteNotification = async (req, res) => {
         return RESPONSE.error(res, 500, 9999, err.message);
     }
 };
+
+// 5. Standalone Count (Slide 17)
+exports.getUnreadCount = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const role = req.user.role;
+        let query = { isDeleted: false, isRead: false };
+
+        if (role === 'admin' || role === 'sub_admin') {
+            query.targetRole = { $in: ['admin', 'sub_admin', 'ALL'] };
+        } else {
+            query.userId = userId;
+        }
+
+        const count = await db.Notifications.countDocuments(query);
+        return RESPONSE.success(res, 200, 1001, { unreadCount: count });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+// 6. Update Notification Preferences (Slide 17)
+exports.updatePreferences = async (req, res) => {
+    try {
+        const { push, email, criticalAlertsOnly } = req.body;
+        const userId = req.user.id;
+
+        const updateData = {};
+        if (push !== undefined) updateData['notificationPreferences.push'] = push;
+        if (email !== undefined) updateData['notificationPreferences.email'] = email;
+        if (criticalAlertsOnly !== undefined) updateData['notificationPreferences.criticalAlertsOnly'] = criticalAlertsOnly;
+
+        await db.User.findByIdAndUpdate(userId, { $set: updateData });
+
+        return RESPONSE.success(res, 200, 1001, { message: 'Notification preferences updated' });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};

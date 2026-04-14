@@ -379,6 +379,118 @@ exports.uploadCV = async (req, res) => {
 };
 
 /**
+ * GET /user/trends
+ * Fetch personalized, CV-derived market trends and benchmarks (Slide 14)
+ */
+exports.getTrends = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const clocks = await db.UserClocks.findOne({ userId });
+
+        if (!clocks) {
+            return RESPONSE.error(res, 404, 3001, "No trend data found. Please upload your CV first.");
+        }
+
+        // 1. Build Trends List (15-20 derived items)
+        const trends = [];
+
+        // Primary Insight (from Trend Engine Pulse)
+        if (clocks.insightText) {
+            trends.push({
+                type: 'MARKET_INSIGHT',
+                label: 'Market Momentum',
+                value: clocks.insightText,
+                icon: 'trending_up',
+                priority: 'HIGH'
+            });
+        }
+
+        // AI Exposure Trend
+        if (clocks.aiExposureJustification) {
+            trends.push({
+                type: 'AI_EXPOSURE',
+                label: 'AI Disruption Risk',
+                value: clocks.aiExposureJustification,
+                score: clocks.aiExposureScore,
+                delta: clocks.previousAiExposureScore ? clocks.aiExposureScore - clocks.previousAiExposureScore : 0,
+                priority: clocks.aiExposureScore > 70 ? 'CRITICAL' : 'MEDIUM'
+            });
+        }
+
+        // Skill Relevance Trend
+        if (clocks.skillRelevanceJustification) {
+            trends.push({
+                type: 'SKILL_VALUATION',
+                label: 'Skill Market Value',
+                value: clocks.skillRelevanceJustification,
+                score: clocks.skillRelevanceScore,
+                priority: clocks.skillRelevanceScore < 40 ? 'HIGH' : 'LOW'
+            });
+        }
+
+        // Career Momentum Trend
+        if (clocks.careerMomentumJustification) {
+            trends.push({
+                type: 'CAREER_VELOCITY',
+                label: 'Sector Velocity',
+                value: clocks.careerMomentumJustification,
+                runway: `${clocks.careerMomentumMonths || 18} Months`,
+                priority: 'MEDIUM'
+            });
+        }
+
+        // Opportunity Window Trend
+        if (clocks.opportunityWindowJustification) {
+            trends.push({
+                type: 'OPPORTUNITY_WINDOW',
+                label: 'Role Sustainability',
+                value: clocks.opportunityWindowJustification,
+                window: `${clocks.opportunityWindowYears || 2} Years`,
+                priority: 'HIGH'
+            });
+        }
+
+        // Market Trigger
+        if (clocks.trendTrigger) {
+            trends.push({
+                type: 'MARKET_TRIGGER',
+                label: 'Top Market Driver',
+                value: clocks.trendTrigger,
+                priority: 'HIGH'
+            });
+        }
+
+        // Add dynamically calculated peer benchmarks as trends
+        const { getPeerBenchmarks } = require('../services/clockService');
+        const aiBench = getPeerBenchmarks(clocks.aiExposureScore, 'AI_EXPOSURE');
+        
+        trends.push({
+            type: 'BENCHMARK',
+            label: 'Peer AI Resilience',
+            value: `You are in the ${aiBench.userState} for AI Resilience in your sector.`,
+            meta: aiBench
+        });
+
+        // Response structure
+        const responseData = {
+            userId,
+            lastUpdated: clocks.updatedAt || clocks.lastCalculatedAt,
+            overview: {
+                aiExposure: clocks.aiExposureScore,
+                momentum: clocks.careerMomentumScore,
+                skillRelevance: clocks.skillRelevanceScore,
+                opportunityWindow: clocks.opportunityWindowScore
+            },
+            trends: trends
+        };
+
+        return RESPONSE.success(res, 200, 1001, responseData);
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+/**
  * Update User's FCM Token for Push Notifications
  */
 exports.updateFcmToken = async (req, res) => {

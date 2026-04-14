@@ -22,24 +22,25 @@ const userSchema = new mongoose.Schema(
         role: { type: String, enum: ['user', 'admin', 'expert'], default: 'user' },
         isExpert: { type: Boolean, default: false },
         
-        // Multi-region Support (Auto-detected from IP)
         countryCode: { type: String, default: 'IN' }, 
         preferredCurrency: { type: String, default: 'INR' },
         
-        refreshToken: { type: String }, // Solution 1: Refresh Token support
+        refreshToken: { type: String }, 
 
-        // Authentication & Notifications (Sprint 8 Expansion)
         loginType: { type: String, enum: ['email', 'google'], default: 'email' },
-        fcmToken: { type: String, default: null }
+        fcmToken: { type: String, default: null },
+        notificationPreferences: {
+            push: { type: Boolean, default: true },
+            email: { type: Boolean, default: true },
+            criticalAlertsOnly: { type: Boolean, default: false }
+        }
     },
     { timestamps: true }
 );
 userSchema.index({ isDeleted: 1 });
 userSchema.index({ isBlocked: 1 });
 
-// ✅ PARTIAL UNIQUE INDEX: Allows multiple users with the same email 
-// if they are deleted, but only one "Active" (non-deleted) user.
-// This solves the reactivation/fresh-start data issue without losing history.
+
 userSchema.index(
     { email: 1 }, 
     { 

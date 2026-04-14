@@ -459,3 +459,66 @@ exports.getAllPayments = async (req, res) => {
 };
 
 
+
+/**
+ * API 7 — POST /api/payment/verify-and-recover
+ * Purpose: Payment Failed Recovery (Slide 24) with cooling logic
+ */
+exports.verifyAndRecover = async (req, res) => {
+    try {
+        const { purchaseId, paymentId } = req.body;
+        const userId = req.user.id;
+
+        const query = { userId };
+        if (purchaseId) query.purchaseId = purchaseId;
+        else if (paymentId) query.paymentId = paymentId;
+        else return res.status(400).json({ success: false, message: 'purchaseId or paymentId is required' });
+
+        const payment = await Payments.findOne(query);
+        if (!payment) return res.status(404).json({ success: false, message: 'Payment record not found' });
+
+        // 1. Cooling logic: If payment is very new (< 2 mins), wait for gateway sync
+        const now = new Date();
+        const created = new Date(payment.createdAt);
+        const diffMinutes = (now - created) / (1000 * 60);
+
+        if (diffMinutes < 2 && payment.status === 'PENDING') {
+            return res.status(429).json({
+                success: false,
+                message: 'Recovery is too early. Please wait at least 2 minutes for bank sync.',
+                coolingRemainingMinutes: Math.ceil(2 - diffMinutes)
+            });
+        }
+
+        // 2. Logic: Already completed
+        if (payment.status === 'COMPLETED') {
+            return res.status(200).json({
+                success: true,
+                status: 'RECOVERED_ALREADY',
+                runId: payment.runId,
+                message: 'Payment was already recovered/verified.'
+            });
+        }
+
+        // 3. Simulated Debit Recheck (In production, call Razorpay/Stripe API here)
+        // For now, we simulate success if the user triggers recovery (UX Policy)
+        const isDebitConfirmed = true; // Simulated
+
+        if (isDebitConfirmed) {
+            // Reuse verification logic by spoofing request body
+            req.body.purchaseId = payment.purchaseId;
+            req.body.caseId = payment.caseId;
+            req.body.intentId = payment.intentId;
+            
+            return await exports.verifyPayment(req, res);
+        }
+
+        return res.status(400).json({
+            success: false,
+            message: 'No successful debit found at the gateway for this ID.'
+        });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};

@@ -73,4 +73,45 @@ router.patch('/read-all', notificationController.markAllAsRead);
  */
 router.delete('/:id', notificationController.deleteNotification);
 
+/**
+ * @swagger
+ * /notifications/count:
+ *   get:
+ *     summary: Get unread notification count (Slide 17)
+ *     tags: ["14. Notifications & Alerts"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Unread count
+ */
+router.get('/count', notificationController.getUnreadCount);
+
+/**
+ * @swagger
+ * /notifications/preferences:
+ *   patch:
+ *     summary: Update notification preferences (Slide 17)
+ *     tags: ["14. Notifications & Alerts"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               push:
+ *                 type: boolean
+ *               email:
+ *                 type: boolean
+ *               criticalAlertsOnly:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.patch('/preferences', notificationController.updatePreferences);
+
 module.exports = router;
