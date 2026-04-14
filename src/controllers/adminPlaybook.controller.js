@@ -677,3 +677,79 @@ exports.confirmImport = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Transaction rolled back due to error.', error: error.message });
     }
 };
+
+/**
+ * Get Case Snapshot (Admin Overview)
+ * GET /api/v1/admin/playbook/case/:caseId/snapshot
+ */
+exports.getCaseSnapshot = async (req, res) => {
+    try {
+        const { caseId } = req.params;
+
+        // 1. Fetch Core Case Info
+        const registry = await db.CaseRegistry.findOne({ caseId }).lean();
+        if (!registry) return res.status(404).json({ success: false, message: 'Case not found.' });
+
+        // 2. Fetch Intents & Mapping
+        const intentConfigs = await db.CaseIntentConfig.find({ caseId }).sort({ displayOrder: 1 }).lean();
+        const intentIds = intentConfigs.map(ic => ic.intentId);
+        const intents = await db.IntentTaxonomy.find({ intentId: { $in: intentIds } }).lean();
+
+        // 3. Fetch Policies (Playbooks)
+        const policies = await db.Playbooks.find({ caseId }).lean();
+
+        // 4. Fetch Detailed Data for Snapshot
+        const questions = await db.Questions.find({ caseScope: { $in: [caseId, 'ALL'] } }).select('questionId questionText').lean();
+        const constraints = await db.Constraints.find({ caseId: { $in: [caseId, 'ALL'] } }).select('constraintId constraintName').lean();
+        const redFlags = await db.RedFlagTaxonomy.find({ caseId: { $in: [caseId, 'ALL'] } }).select('redFlagId redFlagName').lean();
+        const contradictions = await db.Contradictions.find({ caseId: { $in: [caseId, 'ALL'] } }).select('contradictionId contradictionName').lean();
+        const externalSignals = await db.ExternalSignalTaxonomy.find({ caseId: { $in: [caseId, 'ALL'] } }).select('signalId signalName').lean();
+
+        // 5. Structure Snapshot Result
+        const snapshot = {
+            caseInfo: registry,
+            intents: intentConfigs.map(config => {
+                const baseIntent = intents.find(i => i.intentId === config.intentId);
+                const policy = policies.find(p => p.intentId === config.intentId || p.intentId === 'ALL');
+                return {
+                    intentId: config.intentId,
+                    name: baseIntent ? baseIntent.intentName : 'Unknown',
+                    isActive: config.isActive,
+                    isDefault: config.isDefault,
+                    playbookVersion: config.playbookVersionId,
+                    policy: policy ? {
+                        llm: policy.normalisationLlm,
+                        docMandatory: policy.documentMandatory,
+                        adversarialMirror: policy.adversarialMirrorEnabled
+                    } : null
+                };
+            }),
+            details: {
+                questions: questions,
+                constraints: constraints,
+                redFlags: redFlags,
+                contradictions: contradictions,
+                externalSignals: externalSignals
+            },
+            stats: {
+                totalQuestions: questions.length,
+                totalConstraints: constraints.length,
+                totalRedFlags: redFlags.length,
+                totalContradictions: contradictions.length,
+                totalExternalSignals: externalSignals.length
+            },
+            readiness: {
+                hasQuestions: questions.length > 0,
+                hasConstraints: constraints.length > 0,
+                hasLogic: redFlags.length > 0 && contradictions.length > 0
+            }
+        };
+
+        return res.json({ success: true, data: snapshot });
+
+    } catch (error) {
+        console.error('[GetCaseSnapshot Error]:', error);
+        return res.status(500).json({ success: false, message: 'Error fetching case snapshot.', error: error.message });
+    }
+};
+

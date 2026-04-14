@@ -7,7 +7,69 @@ const reportController = require('../controllers/reportController');
 const expertController = require('../controllers/expertController');
 const signalsController = require('../controllers/signalsController');
 const caseFileController = require('../controllers/caseFileController');
+const caseController = require('../controllers/caseController');
 const upload = require('../../middleware/multer.js');
+
+
+/**
+ * @swagger
+ * /runs/pipeline/summary:
+ *   get:
+ *     summary: (Admin Only) Fetch Kanban-style summary of all runs grouped by staging
+ *     tags: ["9. Admin: Dashboard"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pipeline summary grouped by logical stages
+ */
+router.get('/pipeline/summary', caseController.getPipelineSummary);
+/**
+ * @swagger
+ * /runs/{runId}/snapshot:
+ *   get:
+ *     summary: (Admin Only) Fetch a comprehensive snapshot of a specific run and its artifacts
+ *     tags: ["9. Admin: Dashboard"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Consolidated run details and artifact manifest returned
+ */
+router.get('/:runId/snapshot', caseController.getRunSnapshot);
+
+/**
+ * @swagger
+ * /runs/{runId}/revert:
+ *   post:
+ *     summary: (Admin Only) Revert a specific run to a previous status (Safety Switch)
+ *     tags: ["5. Run Operations (AI Flow)"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [targetStatus]
+ *             properties:
+ *               targetStatus:
+ *                 type: string
+ *                 enum: [PROFILE_CONFIRMED, QUESTIONS_CONFIRMED, SIGNALS_COLLECTED]
+ *     responses:
+ *       200:
+ *         description: Run reverted and associated future data cleaned up
+ */
+router.post('/:runId/revert', caseController.revertRunStatus);
 
 
 /**
@@ -262,6 +324,7 @@ router.get('/:runId/case-file', caseFileController.getCaseFile);
  *         description: Report generated successfully
  */
 router.post('/:runId/report/generate', reportController.generateReport);
+router.post('/:runId/report/section/refresh', reportController.refreshReportSection);
 
 /**
  * @swagger

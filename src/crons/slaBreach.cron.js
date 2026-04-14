@@ -35,7 +35,6 @@ async function checkSlaBreaches() {
                     { _id: run._id },
                     { $set: { isSlaBreached: true } }
                 );
-
                 // 2. Log for Admin Dashboard Alert (Task 20)
                 await db.auditLog.create({
                     action: 'SLA_BREACH_DETECTED',
@@ -45,6 +44,17 @@ async function checkSlaBreaches() {
                     performedBy: 'SYSTEM_CRON',
                     severity: 'HIGH'
                 });
+
+                // 3. Notify User (Sprint 8 / Notification #10)
+                try {
+                    const notificationService = require('../services/notificationService');
+                    const user = await db.User.findById(run.userId);
+                    if (user) {
+                        await notificationService.notifySLABreach(run.runId, user);
+                    }
+                } catch (notifErr) {
+                    console.error(`[SLACron] Failed to notify user for ${run.runId}:`, notifErr.message);
+                }
             }
             
             console.log(`[SLACron] ✅ Marked ${breachedRuns.length} runs as SLA_BREACHED.`);

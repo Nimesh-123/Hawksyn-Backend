@@ -95,6 +95,9 @@ exports.verifyOTP = async (req, res) => {
         user.countryCode = region.countryCode;
         user.preferredCurrency = region.currency;
         user.isEmailVerified = true;
+        
+        // Save FCM Token if provided during login
+        if (req.body.fcmToken) user.fcmToken = req.body.fcmToken;
 
         otpRecord.isUsed = true;
         otpRecord.expiresAt = new Date();        await otpRecord.save();
@@ -117,7 +120,10 @@ exports.setPin = async (req, res) => {
         const { email, mPin, confirmMPin } = req.body;
         if (mPin !== confirmMPin) return RESPONSE.error(res, 400, 3005);
  
-        // Temporary: Removed commonPins check to unblock testing
+        const commonPins = ['1234', '1111', '0000', '1212', '2580', '1379'];
+        if (commonPins.includes(mPin)) {
+            return RESPONSE.error(res, 400, 4444, "This PIN is too common. Please choose a more secure one.");
+        }
 
         const user = await db.User.findOne({ email, isDeleted: false });
         if (!user) return RESPONSE.error(res, 404, 3001);
@@ -163,6 +169,10 @@ exports.loginWithPin = async (req, res) => {
         
         const tokens = generateToken({ id: user._id, email: user.email, role: user.role });
         user.refreshToken = tokens.refreshToken;
+
+        // Save FCM Token if provided during login
+        if (req.body.fcmToken) user.fcmToken = req.body.fcmToken;
+
         await user.save();
 
         const userResponse = await prepareUserResponse(user);
@@ -182,7 +192,7 @@ exports.googleLogin = async (req, res) => {
         let ticket;
         try {
             ticket = await client.verifyIdToken({ idToken, audience: process.env.GOOGLE_CLIENT_ID });
-        } catch (e) { return RESPONSE.error(res, 401, 3002, "Invalid Google Token."); }
+        } catch (e) { return RESPONSE.error(res, 401, 1002, "Invalid Google Token."); }
 
         const { email, name, picture, sub: googleId } = ticket.getPayload();
 
@@ -193,7 +203,7 @@ exports.googleLogin = async (req, res) => {
         }
 
         if (!user) {
-            user = new db.User({ email, fullName: name, avatar: picture, googleId, isEmailVerified: true });
+            user = new db.User({ email, fullName: name, avatar: picture, googleId, isEmailVerified: true, loginType: 'google' });
             const region = detectRegionFromIP(req.ip);
             user.countryCode = region.countryCode;
             user.preferredCurrency = region.currency;
@@ -204,6 +214,10 @@ exports.googleLogin = async (req, res) => {
 
         const tokens = generateToken({ id: user._id, email: user.email, role: user.role });
         user.refreshToken = tokens.refreshToken;
+
+        // Save FCM Token if provided during login
+        if (req.body.fcmToken) user.fcmToken = req.body.fcmToken;
+
         await user.save();
 
         const userResponse = await prepareUserResponse(user);
@@ -280,7 +294,8 @@ exports.uploadCV = async (req, res) => {
 
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const fileName = `resumes/${req.user.id}-${uniqueSuffix}.pdf`;
-        const fileUrl = await uploadFile(file.buffer, fileName, file.mimetype);
+        const uploadRes = await uploadFile(file.buffer, fileName, file.mimetype);
+        const fileUrl = uploadRes.url;
 
         let extractedData = null;
         let parserStatus = "FAILED";
@@ -360,5 +375,21 @@ exports.uploadCV = async (req, res) => {
     } catch (error) {
         console.error("[Upload Fail]", error.message);
         return RESPONSE.error(res, 500, 9999, "Failed to upload CV.");
+    }
+};
+
+/**
+ * Update User's FCM Token for Push Notifications
+ */
+exports.updateFcmToken = async (req, res) => {
+    try {
+        const { fcmToken } = req.body;
+        if (!fcmToken) return RESPONSE.error(res, 400, 1002, "FCM Token is required");
+
+        await db.User.findByIdAndUpdate(req.user.id, { $set: { fcmToken } });
+
+        return RESPONSE.success(res, 200, 1001, { message: "FCM Token updated successfully" });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
     }
 };

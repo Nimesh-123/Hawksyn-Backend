@@ -14,7 +14,8 @@ const RiskAuditorRegistrySchema = new mongoose.Schema({
     // Keeping some legacy fields just in case
     professionalBackground: { type: String },
     ratingScore: { type: Number },
-    status: { type: String, default: 'ACTIVE' }
+    status: { type: String, default: 'ACTIVE' },
+    fcmToken: { type: String, default: null }
 }, {
     timestamps: true,
     collection: 'risk_auditor_registry'

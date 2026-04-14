@@ -1,5 +1,6 @@
 const { db } = require('../models/index.model.js');
 const { evaluateDependencyRule } = require('../../utils/evaluationHelpers.js');
+const notificationService = require('../services/notificationService');
 
 /**
  * API 1 — GET /api/runs/:runId/questions/next
@@ -119,6 +120,7 @@ exports.getNextQuestions = async (req, res) => {
             const terminalSteps = ['QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED', 'INTEGRITY_COMPLETE', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED'];
             if (!terminalSteps.includes(run.status)) {
                 await db.Runs.updateOne({ runId }, { $set: { status: 'QUESTIONS_CONFIRMED' } });
+                notificationService.notifyIntakeComplete(runId);
             }
 
             return res.status(200).json({
@@ -315,6 +317,7 @@ exports.saveAnswers = async (req, res) => {
 
             if (answeredQuestionIds.size >= allMappings.length) {
                 await db.Runs.updateOne({ runId }, { $set: { status: 'QUESTIONS_CONFIRMED' } });
+                notificationService.notifyIntakeComplete(runId);
             }
         }
 

@@ -16,11 +16,12 @@ require('./middleware/database/connectDatabase.js');
 const { Server } = require('socket.io');
 const { initChatSocket } = require('./src/sockets/chatSocket');
 
-// --- Cron Jobs ---
 require('./src/crons/trendEngine.cron.js');
 require('./src/crons/validityDecline.cron.js');
 require('./src/crons/signalArchive.cron.js');
 require('./src/crons/slaBreach.cron.js');
+const cronService = require('./src/services/cronService');
+cronService.init();
 
 // --- Global Logging & Request ID ---
 const requestLogger = require('./middleware/requestLogger.js');
@@ -33,7 +34,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.json({
+        status: "success",
+        message: "Hawksyn Backend API is running",
+        version: "1.0.0"
+    });
 });
 
 // Test routes for logging verification

@@ -2,6 +2,8 @@ const { db } = require('../models/index.model.js');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const RESPONSE = require('../../utils/response.js');
+const s3Service = require('../../utils/s3');
+const notificationService = require('../services/notificationService');
 
 // Admin Signup
 exports.adminSignup = async (req, res) => {
@@ -15,14 +17,14 @@ exports.adminSignup = async (req, res) => {
             return RESPONSE.error(res, 400, 1003, 'Admin already exists');
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        
+
         // Auto-assign admin role to the VERY FIRST admin in the system
         const adminCount = await db.Admin.countDocuments();
         const role = adminCount === 0 ? 'admin' : 'sub_admin';
 
-        const admin = await db.Admin.create({ 
-            username, 
-            email, 
+        const admin = await db.Admin.create({
+            username,
+            email,
             password: hashedPassword,
             role: role
         });
@@ -86,7 +88,7 @@ exports.getAllUsers = async (req, res) => {
         const { page = 1, limit = 10 } = req.query;
         // Filter by role: 'user' to exclude Experts/Admins from the customer list
         const query = { role: 'user' };
-        
+
         const users = await db.User.find(query)
             .sort({ createdAt: -1 })
             .skip((Number(page) - 1) * Number(limit))
@@ -106,7 +108,7 @@ exports.getActiveUsers = async (req, res) => {
         const { page = 1, limit = 10 } = req.query;
         // Exclude Experts/Admins AND Deleted users
         const query = { isDeleted: false, role: 'user' };
-        
+
         const users = await db.User.find(query)
             .sort({ createdAt: -1 })
             .skip((Number(page) - 1) * Number(limit))
@@ -126,7 +128,7 @@ exports.getDeletedUsers = async (req, res) => {
         const { page = 1, limit = 10 } = req.query;
         // Search deleted users who were previously 'user' role
         const query = { isDeleted: true, role: 'user' };
-        
+
         const users = await db.User.find(query)
             .sort({ deletedAt: -1 })
             .skip((Number(page) - 1) * Number(limit))
@@ -187,11 +189,11 @@ exports.blockUser = async (req, res) => {
 exports.toggleUserExpertStatus = async (req, res) => {
     try {
         const { userId } = req.params;
-        const { 
-            isExpert, 
-            caseId, 
-            specializations, 
-            maxCaseload 
+        const {
+            isExpert,
+            caseId,
+            specializations,
+            maxCaseload
         } = req.body; // Accept professional details from admin
 
         const user = await db.User.findById(userId);
@@ -210,15 +212,15 @@ exports.toggleUserExpertStatus = async (req, res) => {
         if (isExpert) {
             // Check if they already exist in RiskAuditorRegistry
             let expert = await db.RiskAuditorRegistry.findOne({ email: user.email });
-            
+
             // --- Basic Mapping (Manual Admin Data) ---
             const auditorName = user.fullName || user.name || 'Expert Auditor';
             const finalSpecializations = specializations || ["Generalist"];
 
             const expertConfig = {
-                auditorName, 
+                auditorName,
                 email: user.email,
-                caseId: caseId || 'GENERAL', 
+                caseId: caseId || 'GENERAL',
                 specializations: finalSpecializations,
                 maxCaseload: maxCaseload || 20,
                 isActive: true,
@@ -228,9 +230,9 @@ exports.toggleUserExpertStatus = async (req, res) => {
             if (!expert) {
                 // Generate a skeleton expert record (ID: EXP_timestamp_rand)
                 expertConfig.auditorId = `EXP_${Math.floor(Date.now() / 1000)}_${Math.floor(1000 + Math.random() * 9000)}`;
-                
+
                 // Set default placeholder password
-                expertConfig.password = await bcrypt.hash('Expert@Hks123!', 10); 
+                expertConfig.password = await bcrypt.hash('Expert@Hks123!', 10);
 
                 await db.RiskAuditorRegistry.create(expertConfig);
             } else {
@@ -243,7 +245,7 @@ exports.toggleUserExpertStatus = async (req, res) => {
         }
 
         const msg = isExpert ? 'Promoted to Expert with specific Case/Specialization' : 'Expert status confirmed';
-        return RESPONSE.success(res, 200, 1001, { 
+        return RESPONSE.success(res, 200, 1001, {
             message: `User role updated. ${msg}`,
             userId: user._id,
             isExpert: user.isExpert
@@ -257,7 +259,7 @@ exports.toggleUserExpertStatus = async (req, res) => {
 exports.getAuditLogs = async (req, res) => {
     try {
         const { page = 1, limit = 10, userId } = req.query;
-        
+
         // Define Filter
         const filter = {};
         if (userId) filter.userId = userId;
@@ -390,9 +392,9 @@ exports.createSubAdmin = async (req, res) => {
         const subAdminResponse = subAdmin.toObject();
         delete subAdminResponse.password;
 
-        return RESPONSE.success(res, 201, 1004, { 
+        return RESPONSE.success(res, 201, 1004, {
             message: 'Sub-admin created successfully',
-            admin: subAdminResponse 
+            admin: subAdminResponse
         });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
@@ -558,7 +560,7 @@ exports.rateReport = async (req, res) => {
         }
 
         // Save the rating
-        rasDoc.qualityRating  = parsedRating;
+        rasDoc.qualityRating = parsedRating;
         rasDoc.qualityRatedBy = req.user.id;
         rasDoc.qualityRatedAt = new Date();
         await rasDoc.save();
@@ -578,6 +580,76 @@ exports.rateReport = async (req, res) => {
     }
 };
 
+/**
+ * PHASE 3: AUDIT FLOW REFINEMENT
+ * Submit Expert Review (Verdict Override + Deep Comments)
+ * POST /api/v1/admin/reports/:runId/audit-finalize
+ */
+exports.submitExpertReview = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const { verdictOverride, auditComments, rating } = req.body;
+
+        if (!auditComments) {
+            return RESPONSE.error(res, 400, 1002, 'Audit comments are required for finalization');
+        }
+
+        // 1. Find the Run
+        const run = await db.Runs.findOne({ runId });
+        if (!run) return RESPONSE.error(res, 404, 3001, 'Run not found');
+
+        // 2. Create/Update EXPERT_REVIEW Artifact in RAS
+        const reviewArtifact = await db.Ras.create({
+            rasId: `RAS_REV_${runId}_${Date.now()}`,
+            runId,
+            artifactType: 'EXPERT_REVIEW',
+            status: 'FINAL',
+            artifactJson: {
+                verdictOverride: verdictOverride || run.verdict,
+                originalVerdict: run.verdict,
+                comments: auditComments,
+                reviewedBy: req.user.id,
+                reviewRole: req.user.role
+            },
+            qualityRating: rating || null,
+            qualityRatedBy: req.user.id,
+            qualityRatedAt: new Date()
+        });
+
+        // 3. Update Run with Override and SLA completion
+        const updateData = {
+            expertReviewedAt: new Date(),
+            status: 'REPORT_COMPLETE'
+        };
+
+        if (verdictOverride) {
+            updateData.verdict = verdictOverride;
+        }
+
+        await db.Runs.updateOne({ runId }, { $set: updateData });
+
+        // --- NEW: Auditor Review Complete Notification (#6) ---
+        try {
+            const user = await db.User.findById(run.userId);
+            if (user) {
+                await notificationService.notifyAuditorReviewComplete(runId, user);
+            }
+        } catch (notifErr) {
+            console.error('[Admin-Notify] Failed to send review completion alert:', notifErr.message);
+        }
+
+        return RESPONSE.success(res, 200, 1001, {
+            message: 'Expert review submitted and case finalized',
+            runId,
+            finalVerdict: verdictOverride || run.verdict,
+            reviewRasId: reviewArtifact.rasId
+        });
+
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // AI TRAINING DATA — Get All Rated Reports (Leaderboard)
 // GET /api/v1/admin/reports/rated
@@ -591,7 +663,7 @@ exports.getRatedReports = async (req, res) => {
             qualityRating: { $gte: Number(minRating), $ne: null }
         };
 
-        if (caseId)   filter['artifactJson.caseId']   = caseId;
+        if (caseId) filter['artifactJson.caseId'] = caseId;
         if (intentId) filter['artifactJson.intentId'] = intentId;
 
         const reports = await db.Ras.find(filter)
@@ -674,10 +746,10 @@ exports.getReportForReview = async (req, res) => {
         for (const q of questionDocs) questionsMap[q.questionId] = q;
 
         const enrichedAnswers = allAnswers.map(ans => ({
-            questionId:   ans.questionId,
+            questionId: ans.questionId,
             questionText: questionsMap[ans.questionId]?.questionText || ans.questionId,
             questionType: questionsMap[ans.questionId]?.questionType || 'UNKNOWN',
-            answer:       ans.answerLabel || ans.answerValue
+            answer: ans.answerLabel || ans.answerValue
         }));
 
         // 5. Integrity Pack (Step 4)
@@ -710,12 +782,12 @@ exports.getReportForReview = async (req, res) => {
             reviewPackage: {
                 // Meta
                 runId,
-                rasId:      reportRas.rasId,
-                caseId:     run.caseId,
-                intentId:   run.intentId,
-                runStatus:  run.status,
+                rasId: reportRas.rasId,
+                caseId: run.caseId,
+                intentId: run.intentId,
+                runStatus: run.status,
                 generatedAt: reportRas.createdAt,
-                isReRun:    !!run.previousRunId,
+                isReRun: !!run.previousRunId,
                 previousRunId: run.previousRunId || null,
 
                 // User
@@ -740,13 +812,13 @@ exports.getReportForReview = async (req, res) => {
                 // Integrity
                 integrity: integrityPack
                     ? {
-                        accuracyScore:      integrityPack.accuracy?.score || 0,
-                        accuracyBand:       integrityPack.accuracy?.band  || 'UNKNOWN',
-                        totalPenalty:       integrityPack.accuracy?.totalPenalty || 0,
-                        redFlags:           integrityPack.redFlags?.triggered || [],
-                        contradictions:     integrityPack.contradictions?.triggered || [],
+                        accuracyScore: integrityPack.accuracy?.score || 0,
+                        accuracyBand: integrityPack.accuracy?.band || 'UNKNOWN',
+                        totalPenalty: integrityPack.accuracy?.totalPenalty || 0,
+                        redFlags: integrityPack.redFlags?.triggered || [],
+                        contradictions: integrityPack.contradictions?.triggered || [],
                         hasTerminalFailure: integrityPack.hasTerminalFailure || false,
-                        warnings:           integrityPack.warnings || []
+                        warnings: integrityPack.warnings || []
                     }
                     : { note: 'Integrity data not available' },
 
@@ -755,19 +827,19 @@ exports.getReportForReview = async (req, res) => {
 
                 // Generated Report
                 report: {
-                    verdict:       reportRas.artifactJson?.verdict || 'UNKNOWN',
+                    verdict: reportRas.artifactJson?.verdict || 'UNKNOWN',
                     accuracyScore: reportRas.artifactJson?.accuracyScore || 0,
-                    accuracyBand:  reportRas.artifactJson?.accuracyBand  || 'UNKNOWN',
-                    sections:      reportRas.artifactJson?.sections || [],
-                    redFlags:      reportRas.artifactJson?.redFlags || [],
-                    warnings:      reportRas.artifactJson?.warnings || []
+                    accuracyBand: reportRas.artifactJson?.accuracyBand || 'UNKNOWN',
+                    sections: reportRas.artifactJson?.sections || [],
+                    redFlags: reportRas.artifactJson?.redFlags || [],
+                    warnings: reportRas.artifactJson?.warnings || []
                 },
 
                 // Current Rating (null if not yet rated)
                 currentRating: {
-                    rating:       reportRas.qualityRating   || null,
-                    ratedBy:      reportRas.qualityRatedBy  || null,
-                    ratedAt:      reportRas.qualityRatedAt  || null,
+                    rating: reportRas.qualityRating || null,
+                    ratedBy: reportRas.qualityRatedBy || null,
+                    ratedAt: reportRas.qualityRatedAt || null,
                     isGoldStandard: reportRas.qualityRating === 5
                 },
 
@@ -799,7 +871,7 @@ exports.getAllCompletedRuns = async (req, res) => {
 
         // Build Run filter
         const runFilter = { status: 'REPORT_COMPLETE' };
-        if (caseId)   runFilter.caseId   = caseId;
+        if (caseId) runFilter.caseId = caseId;
         if (intentId) runFilter.intentId = intentId;
 
         const runs = await db.Runs.find(runFilter)
@@ -812,9 +884,9 @@ exports.getAllCompletedRuns = async (req, res) => {
         // Get rating status for each run in one query
         const runIds = runs.map(r => r.runId);
         const reportRasList = await db.Ras.find({
-            runId:        { $in: runIds },
+            runId: { $in: runIds },
             artifactType: 'FINAL_REPORT',
-            status:       'FINAL'
+            status: 'FINAL'
         }).select('runId rasId qualityRating qualityRatedAt').lean();
 
         const ratingMap = {};
@@ -822,21 +894,21 @@ exports.getAllCompletedRuns = async (req, res) => {
 
         // Build response list with rating info
         let result = runs.map(run => ({
-            runId:        run.runId,
-            rasId:        ratingMap[run.runId]?.rasId || null,
-            caseId:       run.caseId,
-            intentId:     run.intentId,
-            verdict:      run.verdict,
-            isReRun:      !!run.previousRunId,
-            createdAt:    run.createdAt,
-            rating:       ratingMap[run.runId]?.qualityRating || null,
-            ratedAt:      ratingMap[run.runId]?.qualityRatedAt || null,
+            runId: run.runId,
+            rasId: ratingMap[run.runId]?.rasId || null,
+            caseId: run.caseId,
+            intentId: run.intentId,
+            verdict: run.verdict,
+            isReRun: !!run.previousRunId,
+            createdAt: run.createdAt,
+            rating: ratingMap[run.runId]?.qualityRating || null,
+            ratedAt: ratingMap[run.runId]?.qualityRatedAt || null,
             isGoldStandard: ratingMap[run.runId]?.qualityRating === 5,
-            reviewUrl:    `/api/v1/admin/reports/${run.runId}/review`  // direct link
+            reviewUrl: `/api/v1/admin/reports/${run.runId}/review`  // direct link
         }));
 
         // Filter by rated status if requested
-        if (rated === 'true')  result = result.filter(r => r.rating !== null);
+        if (rated === 'true') result = result.filter(r => r.rating !== null);
         if (rated === 'false') result = result.filter(r => r.rating === null);
 
         const total = await db.Runs.countDocuments(runFilter);
@@ -873,7 +945,7 @@ exports.updateReRunPolicy = async (req, res) => {
         }
 
         if (eligibleForFreeReRun !== undefined) run.reRunSetup.eligibleForFreeReRun = eligibleForFreeReRun;
-        
+
         if (freeReRunExpiryDate !== undefined) {
             run.reRunSetup.freeReRunExpiryDate = freeReRunExpiryDate ? new Date(freeReRunExpiryDate) : null;
         }
@@ -926,9 +998,9 @@ exports.createExpert = async (req, res) => {
         const expertResponse = newExpert.toObject();
         delete expertResponse.password;
 
-        return RESPONSE.success(res, 201, 1004, { 
+        return RESPONSE.success(res, 201, 1004, {
             message: 'Expert created successfully',
-            expert: expertResponse 
+            expert: expertResponse
         });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
@@ -1001,9 +1073,9 @@ exports.getCvAuditLogs = async (req, res) => {
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
         // Using global db import from top of file
-        
+
         let query = {};
-        
+
 
         if (status) {
             query.parserStatus = status;
@@ -1059,5 +1131,52 @@ exports.getCvAuditLogs = async (req, res) => {
     } catch (error) {
         console.error('[Admin CV Audit Error]', error);
         return res.status(500).json({ success: false, message: "Failed to fetch CV audit logs." });
+    }
+};
+/**
+ * API — Securely Download Invoice from S3
+ */
+const { GetObjectCommand } = require('@aws-sdk/client-s3');
+
+exports.downloadInvoiceS3 = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const invoice = await db.Invoice.findOne({ runId });
+        if (!invoice || !invoice.pdfUrl) return res.status(404).json({ success: false, message: 'Invoice not found on S3.' });
+
+        const key = `invoices/${invoice.invoiceNumber}.pdf`;
+        
+        // 1. Get from S3 as Stream
+        const { Body, ContentType } = await s3Service.getFileStream(key);
+        
+        // 2. Set Headers for Direct Download
+        res.setHeader('Content-Type', ContentType || 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=${invoice.invoiceNumber}.pdf`);
+        
+        // 3. Pipe the S3 stream to Response
+        return Body.pipe(res);
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+exports.downloadReportS3 = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const run = await db.Runs.findOne({ runId });
+        if (!run || !run.reportPdfUrl) return res.status(404).json({ success: false, message: 'Report PDF not found on S3.' });
+
+        const key = `reports/Report_${runId}.pdf`;
+        
+        // 1. Get from S3 as Stream
+        const { Body, ContentType } = await s3Service.getFileStream(key);
+        
+        // 2. Set Headers
+        res.setHeader('Content-Type', ContentType || 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=Report_${runId}.pdf`);
+        
+        return Body.pipe(res);
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
     }
 };

@@ -24,12 +24,19 @@ const RunsSchema = new mongoose.Schema({
             'QUESTIONS_CONFIRMED',
             'SIGNALS_COLLECTED',
             'CASE_FILE_LOCKED',
+            'EXTRACTING',
+            'CONTRA_CHECK',
+            'SIGNAL_PULL',
+            'SYNTHESIZING',
             'INTEGRITY_COMPLETE',
             'REPORT_COMPLETE',
-            'EXPERT_ASSIGNED'
+            'EXPERT_ASSIGNED',
+            'PROCESSING_FAILED'
         ],
         default: 'CREATED'
     },
+    failureStep: { type: String, default: null },
+    failureReason: { type: String, default: null },
     finalReport: { type: mongoose.Schema.Types.Mixed, default: null },
     verdict:     { type: String, enum: ['PROCEED', 'PAUSE', 'ABORT'], default: null },
     cvSnapshot: {
@@ -57,6 +64,7 @@ const RunsSchema = new mongoose.Schema({
     expertAssignedAt: { type: Date, default: null },
     expertReviewedAt: { type: Date, default: null },
     isSlaBreached: { type: Boolean, default: false },
+    reportPdfUrl: { type: String, default: null }, // S3 Link to final PDF
     completedAt: { type: Date, default: null }
 }, {
     timestamps: true,

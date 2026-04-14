@@ -59,7 +59,14 @@ const logger = createLogger({
     new transports.Console({
       format: format.combine(
         format.colorize(),
-        format.simple()
+        format.printf(({ level, message }) => {
+          const msg = typeof message === 'string' ? message : (message.msg || '');
+          // Only show simple strings (like notifications) or OTP logs in terminal
+          if (typeof message === 'string' || msg.includes('[Notification]') || msg.includes('[Auth]')) {
+              return `[${level}] ${msg}`;
+          }
+          return ''; // Silence everything else in console
+        })
       )
     })
   ]

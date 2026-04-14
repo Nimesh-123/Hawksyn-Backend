@@ -26,7 +26,11 @@ const userSchema = new mongoose.Schema(
         countryCode: { type: String, default: 'IN' }, 
         preferredCurrency: { type: String, default: 'INR' },
         
-        refreshToken: { type: String } // Solution 1: Refresh Token support
+        refreshToken: { type: String }, // Solution 1: Refresh Token support
+
+        // Authentication & Notifications (Sprint 8 Expansion)
+        loginType: { type: String, enum: ['email', 'google'], default: 'email' },
+        fcmToken: { type: String, default: null }
     },
     { timestamps: true }
 );

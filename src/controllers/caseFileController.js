@@ -5,6 +5,7 @@ const {
     buildExternalSignalSummary,
     loadTaxonomyVersions
 } = require('../services/caseFileService');
+const s3Service = require('../../utils/s3');
 
 /**
  * API 1 — POST /api/v1/runs/:runId/case-file/build
@@ -70,6 +71,14 @@ exports.buildCaseFile = async (req, res) => {
             previousCaseFileId: previousCaseFile?.caseFileId || null,
             updatedAt: new Date()
         });
+
+        // --- NEW: Immutable S3 Snapshot (Sprint 7) ---
+        try {
+            await s3Service.uploadJsonSnapshot(caseFile.toObject(), 'snapshots', caseFileId);
+        } catch (s3Err) {
+            console.error('[CaseFile-S3] Snapshot Upload Failed:', s3Err.message);
+            // Non-blocking: We still have it in DB
+        }
 
         await db.Runs.updateOne({ runId }, { $set: { status: 'CASE_FILE_LOCKED' } });
 

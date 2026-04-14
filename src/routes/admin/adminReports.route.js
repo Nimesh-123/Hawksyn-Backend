@@ -8,7 +8,7 @@ const adminController = require('../../controllers/admin.controller.js');
  * /admin/reports/runs:
  *   get:
  *     summary: List all completed runs (with rating status)
- *     tags: ["10. Admin: AI Training Data"]
+ *     tags: ["11. Admin: AI Training Data"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -39,7 +39,7 @@ route.get('/runs', adminController.getAllCompletedRuns);
  * /admin/reports/{runId}/review:
  *   get:
  *     summary: Get complete review package for a run (CV + Answers + Report)
- *     tags: ["10. Admin: AI Training Data"]
+ *     tags: ["11. Admin: AI Training Data"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -61,7 +61,7 @@ route.get('/:runId/review', adminController.getReportForReview);
  * /admin/reports/rated:
  *   get:
  *     summary: Get all admin-rated reports (AI Training Data Leaderboard)
- *     tags: ["10. Admin: AI Training Data"]
+ *     tags: ["11. Admin: AI Training Data"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -92,7 +92,7 @@ route.get('/rated', adminController.getRatedReports);
  * /admin/reports/{rasId}/rate:
  *   post:
  *     summary: Rate a completed report (1–5 stars) for AI training
- *     tags: ["10. Admin: AI Training Data"]
+ *     tags: ["11. Admin: AI Training Data"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -127,7 +127,7 @@ route.post('/:rasId/rate', adminController.rateReport);
  * /admin/reports/{runId}/re-run-policy:
  *   patch:
  *     summary: Update Re-run policy (Free/Paid/Expiry/Price) for a specific run
- *     tags: ["10. Admin: AI Training Data"]
+ *     tags: ["11. Admin: AI Training Data"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -150,5 +150,61 @@ route.post('/:rasId/rate', adminController.rateReport);
  *         description: Re-run policy updated successfully
  */
 route.patch('/:runId/re-run-policy', adminController.updateReRunPolicy);
+
+route.post('/:runId/audit-finalize', adminController.submitExpertReview);
+
+// S3 Secure Downloads (Sprint 8)
+
+/**
+ * @swagger
+ * /admin/reports/{runId}/invoice/download:
+ *   get:
+ *     summary: Download the tax invoice (PDF) securely from S3
+ *     tags: ["11. Admin: AI Training Data"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Success! Direct PDF download
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Invoice not found
+ */
+route.get('/:runId/invoice/download', adminController.downloadInvoiceS3);
+
+/**
+ * @swagger
+ * /admin/reports/{runId}/report/download:
+ *   get:
+ *     summary: Direct PDF download of the final AI report
+ *     tags: ["11. Admin: AI Training Data"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Success! Direct PDF download
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Report not found
+ */
+route.get('/:runId/report/download', adminController.downloadReportS3);
 
 module.exports = route;

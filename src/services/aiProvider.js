@@ -52,61 +52,61 @@ async function generateJSON(prompt, systemPrompt = 'You are a JSON-only responde
         }
     }
 
-    // --- Step 1: GEMINI (Primary - Gemini-2.0-Flash) ---
+    // --- Step 1: ANTHROPIC HAIKU (Primary - Claude-3-5-Haiku) ---
     try {
-        console.log('[AI-Provider] 🤖 Attempting Gemini (Gemini-2.0-Flash)...');
-        const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
-        const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
-        const result = await model.generateContent(fullPrompt);
-        const response = await result.response;
-        const raw = response.text();
+        console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Haiku) [High-Speed]...');
+        const message = await anthropic.messages.create({
+            model: 'claude-3-haiku-20240307',
+            max_tokens: 4096,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: prompt }]
+        });
 
-        const data = parseCleanJSON(raw, 'Gemini');
+        const raw = message.content[0].text;
+        const data = parseCleanJSON(raw, 'Anthropic-Haiku');
         const duration = (Date.now() - startTime) / 1000;
         return {
             data,
             usage: {
-                promptTokens: response.usageMetadata?.promptTokenCount || 0,
-                completionTokens: response.usageMetadata?.candidatesTokenCount || 0,
-                totalTokens: response.usageMetadata?.totalTokenCount || 0
+                promptTokens: message.usage?.input_tokens || 0,
+                completionTokens: message.usage?.output_tokens || 0,
+                totalTokens: (message.usage?.input_tokens || 0) + (message.usage?.output_tokens || 0)
             },
-            provider: 'Gemini',
+            provider: 'Anthropic-Haiku',
             duration: `${duration}s`
         };
     } catch (err) {
-        console.warn(`[AI-Provider] ⚠️ Gemini failed: ${err.message}. Falling back to Anthropic.`);
+        console.warn(`[AI-Provider] ⚠️ Anthropic Haiku failed: ${err.message}. Falling back to Gemini.`);
 
-        // --- Step 2: ANTHROPIC HAIKU (Fallback 1) ---
+        // --- Step 2: GEMINI (Fallback 1) ---
         try {
-            console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Haiku) [High-Speed]...');
-            const message = await anthropic.messages.create({
-                model: 'claude-3-5-haiku-latest',
-                max_tokens: 4096,
-                system: systemPrompt,
-                messages: [{ role: 'user', content: prompt }]
-            });
+            console.log('[AI-Provider] 🤖 Attempting Gemini (Gemini-2.0-Flash)...');
+            const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
+            const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
+            const result = await model.generateContent(fullPrompt);
+            const response = await result.response;
+            const raw = response.text();
 
-            const raw = message.content[0].text;
-            const data = parseCleanJSON(raw, 'Anthropic-Haiku');
+            const data = parseCleanJSON(raw, 'Gemini');
             const duration = (Date.now() - startTime) / 1000;
             return {
                 data,
                 usage: {
-                    promptTokens: message.usage?.input_tokens || 0,
-                    completionTokens: message.usage?.output_tokens || 0,
-                    totalTokens: (message.usage?.input_tokens || 0) + (message.usage?.output_tokens || 0)
+                    promptTokens: response.usageMetadata?.promptTokenCount || 0,
+                    completionTokens: response.usageMetadata?.candidatesTokenCount || 0,
+                    totalTokens: response.usageMetadata?.totalTokenCount || 0
                 },
-                provider: 'Anthropic-Haiku',
+                provider: 'Gemini',
                 duration: `${duration}s`
             };
-        } catch (anthropicErr) {
-            console.warn(`[AI-Provider] ⚠️ Anthropic Haiku failed: ${anthropicErr.message}`);
+        } catch (geminiErr) {
+            console.warn(`[AI-Provider] ⚠️ Gemini failed: ${geminiErr.message}. Falling back to Anthropic Sonnet.`);
 
             // --- Step 3: ANTHROPIC SONNET (Fallback 2) ---
             try {
                 console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Sonnet) [High Accuracy]...');
                 const message = await anthropic.messages.create({
-                    model: 'claude-3-5-sonnet-latest',
+                    model: 'claude-3-5-sonnet-20241022',
                     max_tokens: 8192,
                     system: systemPrompt,
                     messages: [{ role: 'user', content: prompt }]
@@ -156,7 +156,7 @@ async function generateJSON(prompt, systemPrompt = 'You are a JSON-only responde
                     };
                 } catch (openaiErr) {
                     console.error('[AI-Provider] ❌ CRITICAL: All AI providers failed.');
-                    throw new Error('All AI providers (Gemini, Haiku, Sonnet, OpenAI) failed to fulfill the request.');
+                    throw new Error('All AI providers (Haiku, Gemini, Sonnet, OpenAI) failed to fulfill the request.');
                 }
             }
         }
@@ -217,7 +217,7 @@ async function generateText(prompt, systemPrompt = 'You are a helpful assistant.
     try {
         console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Haiku) [Text]...');
         const message = await anthropic.messages.create({
-            model: 'claude-3-5-haiku-latest',
+            model: 'claude-3-haiku-20240307',
             max_tokens: 4096,
             system: systemPrompt,
             messages: [{ role: 'user', content: prompt }]
@@ -261,7 +261,7 @@ async function generateText(prompt, systemPrompt = 'You are a helpful assistant.
             try {
                 console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Sonnet) [Text]...');
                 const message = await anthropic.messages.create({
-                    model: 'claude-3-5-sonnet-latest',
+                    model: 'claude-3-5-sonnet-20241022',
                     max_tokens: 4096,
                     system: systemPrompt,
                     messages: [{ role: 'user', content: prompt }]

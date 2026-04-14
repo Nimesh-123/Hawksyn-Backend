@@ -1,4 +1,5 @@
 const { db } = require('../models/index.model.js');
+const notificationService = require('../services/notificationService');
 const {
     getConstraintBand,
     evaluateRuleJson,
@@ -72,16 +73,19 @@ function shouldTriggerWarning(warning, currentAccuracyBand) {
 
 exports.runIntegrityEngine = async (req, res) => {
     const startTime = Date.now();
-    try {
-        const { runId } = req.params;
+    const { runId } = req.params;
 
+    try {
         const run = await db.Runs.findOne({ runId });
         if (!run) return res.status(404).json({ success: false, message: 'Run not found' });
         
-        const allowedStatuses = ['PROFILE_CONFIRMED', 'QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED', 'INTEGRITY_COMPLETE', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED'];
+        const allowedStatuses = ['PROFILE_CONFIRMED', 'QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED', 'INTEGRITY_COMPLETE', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED', 'PROCESSING_FAILED', 'CASE_FILE_LOCKED'];
         if (!allowedStatuses.includes(run.status)) {
             return res.status(400).json({ success: false, message: `Invalid state for analysis: ${run.status}` });
         }
+
+        // --- STAGE 1: EXTRACTING ---
+        await db.Runs.updateOne({ runId }, { $set: { status: 'EXTRACTING', failureStep: null, failureReason: null } });
 
         const rasInputs = await db.Ras.find({ runId, status: 'FINAL' });
 
@@ -99,7 +103,6 @@ exports.runIntegrityEngine = async (req, res) => {
             depth++;
         }
         
-        // ALWAYS Merge inferred if present in the original artifact
         const originalInferred = (profileArtifact?.artifactJson || {}).inferred || run.cvSnapshot?.parsedData?.inferred;
         if (originalInferred) {
             root = { ...root, inferred: { ...(root.inferred || {}), ...originalInferred } };
@@ -117,7 +120,6 @@ exports.runIntegrityEngine = async (req, res) => {
                 }
             });
 
-
         const allAnswers = Array.from(allAnswersMap.values());
         const answersMap = {};
         allAnswers.forEach(a => {
@@ -128,13 +130,10 @@ exports.runIntegrityEngine = async (req, res) => {
         rasInputs.filter(r => r.artifactType === 'EXTERNAL_SIGNALS_CAPTURED')
             .forEach(record => {
                 const data = record.artifactJson;
-                // AI output often puts signals in 'signals' or 'coverage'
                 const signalSource = data.signals || data.coverage || [];
-                
                 if (Array.isArray(signalSource)) {
                     signalSource.forEach(s => allSignals.push(s));
                 } else if (typeof signalSource === 'object' && signalSource !== null) {
-                    // If signals is an object, check for nested signals/coverage
                     const nested = signalSource.signals || signalSource.coverage || [];
                     if (Array.isArray(nested)) {
                         nested.forEach(s => allSignals.push(s));
@@ -143,8 +142,11 @@ exports.runIntegrityEngine = async (req, res) => {
             });
 
         if (allAnswers.length === 0) {
-            return res.status(400).json({ success: false, message: 'No objective inputs found. Complete Step 3 first.' });
+            throw new Error('No objective inputs found. Complete Step 3 (Questions) first.');
         }
+
+        // --- STAGE 2: CONTRA_CHECK (Logic Engine) ---
+        await db.Runs.updateOne({ runId }, { $set: { status: 'CONTRA_CHECK' } });
 
         const evaluationLib = await db.EvaluationLibraryRegistry.findOne({
             caseId: run.caseId,
@@ -153,7 +155,7 @@ exports.runIntegrityEngine = async (req, res) => {
             isActive: true
         });
 
-        if (!evaluationLib) return res.status(404).json({ success: false, message: 'Evaluation config not found' });
+        if (!evaluationLib) throw new Error('Evaluation config (ELR) not found for this playbook.');
 
         const scoredAnswers = [];
         for (const answer of allAnswers) {
@@ -188,16 +190,9 @@ exports.runIntegrityEngine = async (req, res) => {
 
             let weightedSum = 0;
             let totalWeight = 0;
-            if (mappings.length === 0) {
-                console.warn(`[Integrity] No CQMT mappings found for Constraint: ${constraint.constraintId}`);
-            }
-
             for (const mapping of mappings) {
                 const scored = scoredAnswers.find(s => s.questionId === mapping.questionId);
-                if (!scored) {
-                    console.warn(`[Integrity] No scored answer found for Question: ${mapping.questionId} in mapping for ${constraint.constraintId}`);
-                    continue;
-                }
+                if (!scored) continue;
                 weightedSum += scored.rawScore * (mapping.contributionWeight || 1);
                 totalWeight += (mapping.contributionWeight || 1);
             }
@@ -229,26 +224,20 @@ exports.runIntegrityEngine = async (req, res) => {
         const crtMap = await db.CoverageRequirements.find({ coverageSetId: evaluationLib.coverageSetId, isActive: true });
         const patterns = await db.DataPatternKeyTaxonomy.find({ caseId: run.caseId, intentId: run.intentId, isActive: true });
         
-        let totalAnchorsRequired = crtMap.length;
-        const resolutionResults = [];
-
         for (const crt of crtMap) {
             let evidenceCount = 0;
             const sources = typeof crt.requiredSourcesJson === 'string' ? JSON.parse(crt.requiredSourcesJson) : crt.requiredSourcesJson;
 
-            // 1. Check MCQ Answers
             const qIds = sources?.questionIds || sources?.mcq_fields || sources?.question_ids || [];
             if (qIds.length > 0) {
                 evidenceCount += qIds.filter(qid => allAnswers.some(a => a.questionId === qid)).length;
             }
 
-            // 2. Check External Signals
             if (sources?.externalSignalIds || sources?.external_signal_ids) {
                 const sIds = sources?.externalSignalIds || sources?.external_signal_ids || [];
                 evidenceCount += sIds.filter(sid => allSignals.some(s => s.signalId === sid)).length;
             }
 
-            // 3. Check Profile/CV Data (IER Fix)
             const pFields = sources?.profileFields || sources?.profile_fields || [];
             const cFields = sources?.cvFields || sources?.cv_fields || [];
             const allCandidateFields = [...new Set([...pFields, ...cFields])];
@@ -256,16 +245,12 @@ exports.runIntegrityEngine = async (req, res) => {
             if (allCandidateFields.length > 0) {
                 evidenceCount += allCandidateFields.reduce((sum, field) => {
                     const val = getDeepValue(profileSnapshot, field);
-                    
                     if (val === undefined || val === null || val === '' || val === 'N/A') return sum;
-                    
-                    // If it's an array (like skills), add its length as evidence
                     if (Array.isArray(val)) return sum + val.length;
                     return sum + 1;
                 }, 0);
             }
 
-            // 4. Check Data Patterns
             const relatedPatterns = patterns.filter(p => p.producesAnchorName === crt.anchorName);
             for (const pattern of relatedPatterns) {
                 const presentSignals = pattern.requiredSignals.filter(sid => allSignals.some(s => s.signalId === sid));
@@ -278,7 +263,7 @@ exports.runIntegrityEngine = async (req, res) => {
             coveragePenalty += penalty;
             if (crt.escalationThreshold != null && penalty >= crt.escalationThreshold) requiresEscalation = true;
 
-            coverageResults.push({ anchor: crt.anchorName, sufficiency, penalty, gapType: (sufficiency === 'FOUND') ? null : crt.gapType });
+            coverageResults.push({ anchor: crt.anchorName, sufficiency, penalty });
         }
 
         const contradictionResults = [];
@@ -295,6 +280,9 @@ exports.runIntegrityEngine = async (req, res) => {
                 });
             }
         }
+
+        // --- STAGE 3: SYNTHESIZING (Output Generation) ---
+        await db.Runs.updateOne({ runId }, { $set: { status: 'SYNTHESIZING' } });
 
         const redFlagResults = [];
         const allRedFlags = await db.RedFlagTaxonomy.find({ caseId: run.caseId, intentId: run.intentId, isActive: true });
@@ -330,16 +318,8 @@ exports.runIntegrityEngine = async (req, res) => {
             }
         }
 
-        let policy = await db.AccuracyScoringPolicy.findOne({ caseId: run.caseId, intentId: run.intentId });
-        if (!policy) {
-            // Fallback to "ALL" if specific intent policy is missing
-            policy = await db.AccuracyScoringPolicy.findOne({ caseId: run.caseId, intentId: 'ALL' });
-        }
-
-        if (!policy) {
-            console.error(`[Integrity Engine] Accuracy policy not found for Case: ${run.caseId}, Intent: ${run.intentId} or ALL`);
-            return res.status(404).json({ success: false, message: 'Accuracy policy not found' });
-        }
+        let policy = await db.AccuracyScoringPolicy.findOne({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] } });
+        if (!policy) throw new Error('Accuracy scoring policy not found.');
 
         let accuracyScore = policy.baseScore || 100;
         const totalPenalty = Math.min(
@@ -371,7 +351,6 @@ exports.runIntegrityEngine = async (req, res) => {
         }
         warningResults.sort((a, b) => a.displayPriority - b.displayPriority);
         
-        // --- Deterministic VLT Verdict Calculation ---
         const { verdict, compositeScore, confidence } = await calculateVltVerdict(db, {
             caseId: run.caseId,
             intentId: run.intentId,
@@ -381,43 +360,46 @@ exports.runIntegrityEngine = async (req, res) => {
 
         const integrityPackId = `RAS_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
         const integrityPack = {
-            runId,
-            stepNo: 4,
-            verdict,
-            compositeScore,
-            confidence,
+            runId, stepNo: 4, verdict, compositeScore, confidence,
             accuracy: {
                 score: accuracyScore,
                 band: accuracyBand,
                 totalPenalty: totalPenalty,
-                escalationRequired: requiresEscalation || accuracyScore <= (policy.escalationThresholdScore || 40)
+                escalationRequired: accuracyScore <= (policy.escalationThresholdScore || 40)
             },
             constraints: { results: constraintResults, hasTerminalFailure, terminalConstraints },
             coverage: { results: coverageResults, totalPenalty: coveragePenalty },
-            contradictions: {
-                triggered: contradictionResults,
-                totalPenalty: contradictionResults.reduce((sum, c) => sum + (c.accuracyPenaltyScore || 0), 0)
-            },
-            redFlags: {
-                triggered: redFlagResults,
-                totalPenalty: redFlagResults.reduce((sum, f) => sum + (f.penaltyPoints || 0), 0)
-            },
+            contradictions: { triggered: contradictionResults },
+            redFlags: { triggered: redFlagResults },
             warnings: warningResults,
             hasTerminalFailure,
-            requiresEscalation: requiresEscalation || accuracyScore <= (policy.escalationThresholdScore || 40)
+            requiresEscalation: accuracyScore <= (policy.escalationThresholdScore || 40)
         };
 
         await db.Ras.create({
-            rasId: integrityPackId,
-            runId,
-            stepNo: 4,
-            artifactType: 'INTEGRITY_PACK',
-            artifactVersion: 1,
-            artifactJson: integrityPack,
-            status: 'FINAL'
+            rasId: integrityPackId, runId, stepNo: 4, artifactType: 'INTEGRITY_PACK',
+            artifactVersion: 1, artifactJson: integrityPack, status: 'FINAL'
         });
 
         await db.Runs.updateOne({ runId }, { $set: { status: 'INTEGRITY_COMPLETE' } });
+
+        // --- NEW: Step 4 In-Session Alerts (#3 & #4) ---
+        try {
+            const user = await db.User.findById(run.userId);
+            if (user) {
+                if (integrityPack.contradictions.triggered.length > 0) {
+                    await notificationService.notifyContradictionDetected(runId, user);
+                }
+                if (integrityPack.coverage.totalPenalty > 4) { // Threshold for "Significant" missing data
+                    await notificationService.notifyMissingDataWarning(runId, user);
+                }
+            }
+        } catch (notifErr) {
+            console.error('[Integrity-Notify] Failed to send in-session alerts:', notifErr.message);
+        }
+
+        // Trigger Success Notification (Existing)
+        notificationService.notifyProcessingSuccess(runId);
 
         const totalDuration = (Date.now() - startTime) / 1000;
 
@@ -425,18 +407,8 @@ exports.runIntegrityEngine = async (req, res) => {
             success: true,
             data: {
                 runId,
-                rasId: integrityPackId,
                 verdict: integrityPack.verdict,
-                compositeScore: integrityPack.compositeScore,
-                confidence: integrityPack.confidence,
                 accuracy: integrityPack.accuracy,
-                constraints: integrityPack.constraints,
-                coverage: integrityPack.coverage,
-                contradictions: integrityPack.contradictions,
-                redFlags: integrityPack.redFlags,
-                warnings: integrityPack.warnings,
-                hasTerminalFailure,
-                requiresEscalation: integrityPack.requiresEscalation,
                 processingDuration: `${totalDuration}s`,
                 message: 'Integrity engine completed successfully.'
             }
@@ -444,6 +416,26 @@ exports.runIntegrityEngine = async (req, res) => {
 
     } catch (error) {
         console.error("[Integrity Engine Error]", error);
-        return res.status(500).json({ success: false, message: error.message });
+        
+        // --- SAFE ERROR HANDLING ---
+        const currentRun = await db.Runs.findOne({ runId });
+        const failureStep = currentRun?.status || 'UNKNOWN';
+        
+        await db.Runs.updateOne({ runId }, { 
+            $set: { 
+                status: 'PROCESSING_FAILED',
+                failureStep: failureStep,
+                failureReason: error.message
+            } 
+        });
+
+        // Trigger Failure Notification to System Admin
+        notificationService.notifyProcessingFailure(runId, failureStep, error.message);
+
+        return res.status(500).json({ 
+            success: false, 
+            message: error.message,
+            failureStep: failureStep
+        });
     }
 };
