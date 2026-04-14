@@ -154,6 +154,20 @@ exports.updateUserProfile = async (req, res) => {
         userProfile.markModified('overrideMap');
         await userProfile.save();
 
+        // --- NEW: Profile Conflict Notification (#13) ---
+        if (builtOverrideMap.fieldsChanged.length > 0) {
+            try {
+                const completedRun = await db.Runs.findOne({ userId: req.user.id, status: 'REPORT_COMPLETE' }).sort({ completedAt: -1 });
+                if (completedRun) {
+                    const notificationService = require('../services/notificationService');
+                    const user = await db.User.findById(req.user.id);
+                    await notificationService.notifyProfileConflict(completedRun.runId, user);
+                }
+            } catch (err) {
+                console.error('[Profile-Notify] Conflict alert failed:', err.message);
+            }
+        }
+
 
         const activeRun = await db.Runs.findOne({ userId: req.user.id, status: { $ne: 'REPORT_COMPLETE' } });
         if (activeRun) {

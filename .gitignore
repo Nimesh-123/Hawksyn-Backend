@@ -9,4 +9,4 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .logs/
-public/
+src/config/firebase-service-account.json

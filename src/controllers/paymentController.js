@@ -4,8 +4,11 @@ const Playbooks = require('../models/Playbooks.model');
 const Payments = require('../models/Payments.model');
 const Runs = require('../models/Runs.model');
 const User = require('../models/user.model');
+const { db } = require('../models/index.model.js');
 const crypto = require('crypto');
 const { generateFormattedId } = require('../../utils/idGenerator');
+const financeService = require('../services/financeService');
+const notificationService = require('../services/notificationService');
 
 /**
  * API 1 — GET /api/payment/product
@@ -249,6 +252,22 @@ exports.verifyPayment = async (req, res) => {
         payment.verifiedAt = new Date();
         payment.runId = run.runId;
         await payment.save();
+
+        // --- NEW: Finance & Audit Finalization (Sprint 8) ---
+        try {
+            const user = await db.User.findById(userId);
+            if (user) {
+                const finData = await financeService.processPaymentFinalization(payment, user);
+                if (finData.success) {
+                    const invoice = await db.Invoice.findOne({ invoiceId: finData.invoiceId });
+                    await notificationService.notifyPaymentSuccess(payment, user, invoice);
+                }
+            } else {
+                console.error('[Payment-Verify] Finance Skip: User record not found for ID:', userId);
+            }
+        } catch (finErr) {
+            console.error('[Payment-Verify] Post-processing Finance Error:', finErr);
+        }
 
         return res.status(200).json({
             success: true,

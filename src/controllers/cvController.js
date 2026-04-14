@@ -165,7 +165,8 @@ exports.uploadRunCv = async (req, res) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const fileName = `resumes/${userId}-${uniqueSuffix}.pdf`;
 
-        const fileUrl = await uploadFile(file.buffer, fileName, file.mimetype);
+        const uploadRes = await uploadFile(file.buffer, fileName, file.mimetype);
+        const fileUrl = uploadRes.url;
 
         let extractedData = null;
         let parserStatus = "FAILED";

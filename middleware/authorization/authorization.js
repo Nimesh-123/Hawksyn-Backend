@@ -18,6 +18,7 @@ exports.authenticate = async (req, res, next) => {
             '/user/set-pin',
             '/user/login-with-pin',
             '/user/forgot-pin',
+            '/user/auth/google',
             '/expert/auth/login'
         ];
 
@@ -53,6 +54,7 @@ exports.authenticate = async (req, res, next) => {
             const admin_roles = ['admin', 'sub_admin'];
             const isAdminRoute = cleanPath.startsWith('/admin');
 
+            let entity;
             if (decoded.role?.includes('admin')) {
                 entity = await db.Admin.findById(decoded.id);
             } else if (decoded.role === 'expert') {
@@ -61,10 +63,15 @@ exports.authenticate = async (req, res, next) => {
                 entity = await db.User.findById(decoded.id);
             }
 
-            if (!entity) return RESPONSE.error(res, 404, 3001, 'User not found');
+            if (!entity) return RESPONSE.error(res, 404, 3001, 'User/Admin/Expert not found');
 
             // User specific checks (only for normal users)
             if (!decoded.role?.includes('admin')) {
+                // For Experts, we also check if they are active in registry
+                if (decoded.role === 'expert' && entity.status !== 'ACTIVE') {
+                    return RESPONSE.error(res, 403, 3003, 'Expert account is inactive');
+                }
+                
                 if (entity.isDeleted) return RESPONSE.error(res, 404, 3001, 'Account is deleted');
                 if (entity.isBlocked) return RESPONSE.error(res, 403, 3003, 'Account is blocked');
             }
@@ -76,8 +83,15 @@ exports.authenticate = async (req, res, next) => {
                 ...decoded 
             };
 
+            // Allow Expert role for audit-finalize admin endpoint
+            const isExpertAuditingRoute = cleanPath.includes('/audit-finalize');
+            
             if (isAdminRoute && !admin_roles.includes(decoded.role)) {
-                return RESPONSE.error(res, 403, 4444, 'Permission Denied: Admin access required');
+                if (decoded.role === 'expert' && isExpertAuditingRoute) {
+                    // Allowed
+                } else {
+                    return RESPONSE.error(res, 403, 4444, 'Permission Denied: Admin access required');
+                }
             }
             // --- End of Authorization Logic ---
 

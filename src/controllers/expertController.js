@@ -4,6 +4,7 @@ const { scoreExpert, buildAssignmentReason } = require('../services/expertServic
 const { generateFormattedId } = require('../../utils/idGenerator');
 const crypto = require('crypto');
 const RESPONSE = require('../../utils/response.js');
+const notificationService = require('../services/notificationService');
 
 exports.assignExpert = async (req, res) => {
     try {
@@ -52,7 +53,13 @@ exports.assignExpert = async (req, res) => {
                 status: 'FINAL'
             });
 
-            await db.Runs.updateOne({ runId }, { $set: { status: 'EXPERT_ASSIGNED' } });
+            await db.Runs.updateOne({ runId }, { 
+                $set: { 
+                    status: 'REPORT_COMPLETE', 
+                    completedAt: new Date(),
+                    expertReviewedAt: new Date() // Auto-finalize SLA
+                } 
+            });
             await refreshClocksAfterCase(run.userId, runId);
 
             return res.status(200).json({
@@ -61,7 +68,7 @@ exports.assignExpert = async (req, res) => {
                     runId,
                     rasId: autoRasId,
                     assignmentStatus: 'NOT_REQUIRED',
-                    message: 'Expert assignment not required. Run is complete.'
+                    message: 'Expert assignment not required. Run is automatically completed.'
                 }
             });
         }
@@ -161,7 +168,34 @@ exports.assignExpert = async (req, res) => {
             status: 'FINAL'
         });
 
-        await db.Runs.updateOne({ runId }, { $set: { status: 'REPORT_COMPLETE', completedAt: new Date() } });
+        const mongoose = require('mongoose');
+        // Ensure we are using the MongoDB _id and it's a proper ObjectId
+        const expertIdRaw = best.expert._id.toString();
+        const expertObjectId = new mongoose.Types.ObjectId(expertIdRaw);
+
+        console.log(`[DEV Expert] Assigning Runner ${runId} to Expert _id: ${expertIdRaw} (auditorId: ${best.expert.auditorId})`);
+        
+        await db.Runs.updateOne(
+            { runId }, 
+            { 
+                $set: { 
+                    status: 'EXPERT_ASSIGNED', 
+                    expertId: expertObjectId, 
+                    expertAssignedAt: assignedAt 
+                } 
+            }
+        );
+        
+        // --- NEW: Expert Assigned Notification (#2) ---
+        try {
+            const user = await db.User.findById(run.userId);
+            if (user) {
+                await notificationService.notifyExpertAssigned(runId, user, best.expert);
+            }
+        } catch (notifErr) {
+            console.error('[Expert-Notify] Failed to notify user:', notifErr.message);
+        }
+
         await refreshClocksAfterCase(run.userId, runId);
 
         return res.status(200).json({
@@ -424,6 +458,16 @@ exports.replyToQuery = async (req, res) => {
             { runId, senderType: 'USER', status: { $ne: 'READ' } },
             { $set: { status: 'READ' } }
         );
+
+        // --- NEW: Expert Chat Reply Notification (#7) ---
+        try {
+            const run = await db.Runs.findOne({ runId }).populate('userId');
+            if (run && run.userId) {
+                await notificationService.notifyExpertChatReply(runId, run.userId);
+            }
+        } catch (notifErr) {
+            console.error('[Expert-Chat-Notify] Failed to notify user:', notifErr.message);
+        }
 
         return RESPONSE.success(res, 200, 1001, {
             message: 'Reply sent and history updated',

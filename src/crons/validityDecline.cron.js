@@ -47,6 +47,21 @@ async function runValidityDecline() {
                         { $set: { daysLeft: newDaysLeft, updatedAt: new Date() } }
                     );
                     updatedCount++;
+
+                    // --- NEW: Verdict Expiry Notification (7 & 2 days) ---
+                    if (newDaysLeft === 7 || newDaysLeft === 2) {
+                        try {
+                            const notificationService = require('../services/notificationService');
+                            const user = await db.User.findOne({ _id: clock.userId });
+                            if (user) {
+                                // Find latest completed run for this user to get a runId context
+                                const run = await db.Runs.findOne({ userId: user._id, status: 'REPORT_COMPLETE' }).sort({ completedAt: -1 });
+                                await notificationService.notifyVerdictExpiry(run?.runId || 'N/A', user, newDaysLeft);
+                            }
+                        } catch (notifErr) {
+                            console.error(`[ValidityCron] Notification failed for user ${clock.userId}:`, notifErr.message);
+                        }
+                    }
                 }
             } else {
                 // If everything expired, set daysLeft to 0 and frozen

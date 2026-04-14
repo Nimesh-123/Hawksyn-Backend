@@ -27,7 +27,7 @@ const upload = multer({
  * /admin/playbook/cases:
  *   get:
  *     summary: Get all cases (Admin view includes inactive)
- *     tags: ["9. Admin: Playbook Import"]
+ *     tags: ["10. Admin: Playbook Import"]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -41,7 +41,7 @@ router.get('/cases', caseController.getCases);
  * /admin/playbook/template/download:
  *   get:
  *     summary: Download multi-sheet Excel template (optionally pre-filled)
- *     tags: ["9. Admin: Playbook Import"]
+ *     tags: ["10. Admin: Playbook Import"]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -64,7 +64,7 @@ router.get('/template/download', adminPlaybookController.downloadPlaybookTemplat
  * /admin/playbook/upload:
  *   post:
  *     summary: Upload and validate a multi-sheet Excel Playbook
- *     tags: ["9. Admin: Playbook Import"]
+ *     tags: ["10. Admin: Playbook Import"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -89,7 +89,7 @@ router.post('/upload', upload.single('file'), adminPlaybookController.uploadPlay
  * /admin/playbook/import:
  *   post:
  *     summary: Confirm and commit validated data to MongoDB
- *     tags: ["9. Admin: Playbook Import"]
+ *     tags: ["10. Admin: Playbook Import"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -111,5 +111,25 @@ router.post('/upload', upload.single('file'), adminPlaybookController.uploadPlay
  */
 router.post('/import', adminPlaybookController.confirmImport);
 
+/**
+ * @swagger
+ * /admin/playbook/case/{caseId}/snapshot:
+ *   get:
+ *     summary: Get comprehensive snapshot of a case (intents, policies, stats)
+ *     tags: ["10. Admin: Playbook Import"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Case ID to check
+ *     responses:
+ *       200:
+ *         description: Case snapshot data
+ */
+router.get('/case/:caseId/snapshot', adminPlaybookController.getCaseSnapshot);
 
 module.exports = router;

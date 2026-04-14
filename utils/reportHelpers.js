@@ -41,6 +41,7 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
     const answerLabelMap = {};
     for (const ans of (rasAnswers || [])) {
         const { answerValue, answerLabel, questionId } = ans;
+        if (!questionId) continue;
         if (answerLabel) {
             answerLabelMap[questionId] = answerLabel;
             continue;
@@ -48,8 +49,8 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         const q = questionsMap[questionId];
         if (q && q.questionType === 'MCQ' && Array.isArray(q.optionsJson)) {
             const numericValue = Number(answerValue);
-            const opt = q.optionsJson.find(o => 
-                Number(o.score) === numericValue || 
+            const opt = q.optionsJson.find(o =>
+                Number(o.score) === numericValue ||
                 String(o.opt).toLowerCase() === String(answerValue).toLowerCase()
             );
             answerLabelMap[questionId] = opt ? opt.opt : String(answerValue);
@@ -98,32 +99,32 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
     let signalsNarrative = '';
 
     const baseMap = {
-        CURRENT_ROLE:      currentRole,
-        CV_ROLE_TITLE:     currentRole,
-        EXPERIENCE_YEARS:  String(experienceYears),
-        YEARS_IN_DOMAIN:   String(experienceYears),
-        SKILLS:            skills,
+        CURRENT_ROLE: currentRole,
+        CV_ROLE_TITLE: currentRole,
+        EXPERIENCE_YEARS: String(experienceYears),
+        YEARS_IN_DOMAIN: String(experienceYears),
+        SKILLS: skills,
         CV_SKILLS_CURRENT: skills,
-        CURRENT_COMPANY:   currentCompany,
-        CV_COMPANY:        currentCompany,
-        DOMAIN:            profileSnapshot?.domain || profileSnapshot?.employment?.domain || profileSnapshot?.inferred?.domainIndicator || 'Not provided',
-        CV_INDUSTRY:       profileSnapshot?.domain || profileSnapshot?.employment?.domain || profileSnapshot?.inferred?.domainIndicator || 'Not provided',
-        ACCURACY_SCORE:    String(integrityPack.accuracy?.score  || 0),
-        ACCURACY_BAND:     integrityPack.accuracy?.band           || 'UNKNOWN',
-        RED_FLAGS:         redFlagsSummary,
-        RED_FLAG_LIST:     redFlagsSummary,
-        CONTRADICTIONS:    contradictionsSummary,
+        CURRENT_COMPANY: currentCompany,
+        CV_COMPANY: currentCompany,
+        DOMAIN: profileSnapshot?.domain || profileSnapshot?.employment?.domain || profileSnapshot?.inferred?.domainIndicator || 'Not provided',
+        CV_INDUSTRY: profileSnapshot?.domain || profileSnapshot?.employment?.domain || profileSnapshot?.inferred?.domainIndicator || 'Not provided',
+        ACCURACY_SCORE: String(integrityPack.accuracy?.score || 0),
+        ACCURACY_BAND: integrityPack.accuracy?.band || 'UNKNOWN',
+        RED_FLAGS: redFlagsSummary,
+        RED_FLAG_LIST: redFlagsSummary,
+        CONTRADICTIONS: contradictionsSummary,
         CONTRADICTION_LIST: contradictionsSummary,
-        COMPOSITE_SCORE:   String(integrityPack.compositeScore || 0),
-        VERDICT:           integrityPack.verdict || 'PAUSE',
-        CONFIDENCE:        integrityPack.confidence || 'MEDIUM',
-        CONFIDENCE_BAND:   integrityPack.confidence || 'MEDIUM',
-        TOTAL_PENALTY:     String(integrityPack.accuracy?.totalPenalty || 0),
+        COMPOSITE_SCORE: String(integrityPack.compositeScore || 0),
+        VERDICT: integrityPack.verdict || 'PAUSE',
+        CONFIDENCE: integrityPack.confidence || 'MEDIUM',
+        CONFIDENCE_BAND: integrityPack.confidence || 'MEDIUM',
+        TOTAL_PENALTY: String(integrityPack.accuracy?.totalPenalty || 0),
         SIGNAL_DATA_QUALITY: externalSignals?.dataQuality || 'INSUFFICIENT',
-        ANALYST_NOTE:      externalSignals?.analystNote || 'Insufficient market data for this profile.',
-        EXTERNAL_SIGNALS:  '',
-        SIGNALS:           '',
-        SIGNAL_COUNT:      String(signalsArray.length)
+        ANALYST_NOTE: externalSignals?.analystNote || 'Insufficient market data for this profile.',
+        EXTERNAL_SIGNALS: '',
+        SIGNALS: '',
+        SIGNAL_COUNT: String(signalsArray.length)
     };
 
     for (const sig of signalsArray) {
@@ -138,13 +139,13 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         baseMap[`${sId}_VALUE`] = val;
         baseMap[`${sId}_RATIONALE`] = rat;
         baseMap[`${sId}_CONFIDENCE`] = sig.confidence || sig.confidence_score || 'LOW';
-        
+
         const sanitisedName = name.toUpperCase().replace(/\s+/g, '_');
         baseMap[`SIGNAL_${sanitisedName}_VALUE`] = val;
 
         // Build a text narrative for {{SIGNALS}} placeholder
         signalsNarrative += `• ${name}: ${val}\n  Rationale: ${rat}\n\n`;
-        
+
         if (sanitisedName.includes('DISPLACEMENT')) {
             baseMap['AI_DISPLACEMENT_RISK'] = val;
             baseMap['AI_DISPLACEMENT_RATIONALE'] = rat;
@@ -217,10 +218,10 @@ const checkAnchors = (section, integrityPack, externalCoverage) => {
 const applyCertaintyCap = (text, capPercent, accuracyBand) => {
     if (capPercent < 85 || ['LOW', 'VERY_LOW'].includes(accuracyBand)) {
         text = text
-            .replace(/\bdefinitely\b/gi,    'likely')
-            .replace(/\bcertainly\b/gi,     'probably')
+            .replace(/\bdefinitely\b/gi, 'likely')
+            .replace(/\bcertainly\b/gi, 'probably')
             .replace(/\bwill definitely\b/gi, 'may')
-            .replace(/\bguaranteed\b/gi,    'expected')
+            .replace(/\bguaranteed\b/gi, 'expected')
             .replace(/\bwithout doubt\b/gi, 'likely');
     }
 
@@ -235,10 +236,10 @@ const applyCertaintyCap = (text, capPercent, accuracyBand) => {
  */
 const extractVerdict = (text) => {
     const upper = text.toUpperCase();
-    if (upper.includes('ABORT'))   return 'ABORT';
+    if (upper.includes('ABORT')) return 'ABORT';
     if (upper.includes('PROCEED')) return 'PROCEED';
-    if (upper.includes('PAUSE'))   return 'PAUSE';
-    return 'PAUSE'; 
+    if (upper.includes('PAUSE')) return 'PAUSE';
+    return 'PAUSE';
 };
 
 module.exports = {
@@ -262,9 +263,9 @@ module.exports = {
                 'artifactJson.caseId': caseId,
                 'artifactJson.intentId': intentId
             })
-            .sort({ qualityRatedAt: -1 })
-            .limit(limit)
-            .lean();
+                .sort({ qualityRatedAt: -1 })
+                .limit(limit)
+                .lean();
 
             return examples.map(ex => (ex.artifactJson));
         } catch (err) {

@@ -19,7 +19,8 @@ const RasSchema = new mongoose.Schema({
             'INTEGRITY_PACK',
             'FINAL_REPORT',
             'REPORT_GENERATED',
-            'EXPERT_ASSIGNED'
+            'EXPERT_ASSIGNED',
+            'EXPERT_REVIEW'
         ]
     },
     artifactVersion: { type: Number, default: 1 },

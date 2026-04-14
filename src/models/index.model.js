@@ -30,6 +30,8 @@ db.DecisionAssuranceSections = require('./DecisionAssuranceSections.model');
 db.PromptConfigRegistry = require('./PromptConfigRegistry.model');
 db.Runs = require('./Runs.model');
 db.Payments = require('./Payments.model');
+db.Invoice = require('./Invoice.model');
+db.Ledger = require('./Ledger.model');
 
 db.UserProfile = require('./UserProfile.model');
 db.DependencyRules = require('./DependencyRules.model');
@@ -50,6 +52,7 @@ db.ClockHistory = require('./ClockHistory.model');
 db.UserCredits  = require('./UserCredits.model');
 db.ExpertQuery = require('./ExpertQuery.model');
 db.ChatMessage = require('./ChatMessage.model');
+db.Notifications = require('./Notification.model.js');
 
 
 module.exports = { db };

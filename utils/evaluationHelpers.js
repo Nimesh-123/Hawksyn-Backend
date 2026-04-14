@@ -226,12 +226,12 @@ async function callLLM({ systemPrompt, userPrompt, forceProvider = null }) {
  * Processes formula, banding, and confidence stages.
  */
 async function calculateVltVerdict(db, { caseId, intentId, constraintResults, accuracyScore }) {
-    const vltRules = await db.VerdictLogicTable.find({ 
-        caseId, 
-        intentId: { $in: [intentId, 'ALL'] }, 
-        isActive: true 
+    const vltRules = await db.VerdictLogicTable.find({
+        caseId,
+        intentId: { $in: [intentId, 'ALL'] },
+        isActive: true
     }).sort({ stage: 1, priority: 1 });
-    
+
     const context = { accuracy_score: accuracyScore };
     constraintResults.forEach((res, idx) => {
         context[res.constraintId] = res.score;
@@ -240,13 +240,13 @@ async function calculateVltVerdict(db, { caseId, intentId, constraintResults, ac
 
     // FALLBACK: If no VLT rules, calculate mean of constraints to ensure non-zero compositeScore
     if (!vltRules.length) {
-        const meanScore = constraintResults.length > 0 
+        const meanScore = constraintResults.length > 0
             ? Math.round(constraintResults.reduce((acc, c) => acc + (c.score || 0), 0) / constraintResults.length)
             : 0;
-        return { 
-            verdict: meanScore < 30 ? 'ABORT' : (meanScore < 60 ? 'PAUSE' : 'PROCEED'), 
-            compositeScore: meanScore, 
-            confidence: accuracyScore > 70 ? 'HIGH' : 'MEDIUM' 
+        return {
+            verdict: meanScore < 30 ? 'ABORT' : (meanScore < 60 ? 'PAUSE' : 'PROCEED'),
+            compositeScore: meanScore,
+            confidence: accuracyScore > 70 ? 'HIGH' : 'MEDIUM'
         };
     }
 
@@ -268,7 +268,7 @@ async function calculateVltVerdict(db, { caseId, intentId, constraintResults, ac
                         const regex = new RegExp(`\\b${key}\\b`, 'g');
                         formula = formula.replace(regex, context[key] || 0);
                     });
-                    compositeScore = eval(formula); 
+                    compositeScore = eval(formula);
                     context['composite'] = compositeScore;
                 } catch (e) {
                     console.error(`[VLT] Formula error in ${rule.ruleId}:`, e.message);
@@ -281,7 +281,7 @@ async function calculateVltVerdict(db, { caseId, intentId, constraintResults, ac
             let pass = true;
             if (cond.composite_gte != null && (context.composite || compositeScore) < cond.composite_gte) pass = false;
             if (cond.composite_lt != null && (context.composite || compositeScore) >= cond.composite_lt) pass = false;
-            
+
             if (pass && action.verdict) verdict = action.verdict;
         }
 

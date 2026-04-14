@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const expertAuthController = require('../../controllers/expertAuth.controller');
 const expertController = require('../../controllers/expertController');
+const adminController = require('../../controllers/admin.controller');
 const { authenticate } = require('../../../middleware/authorization/authorization.js');
 
 /**
@@ -9,7 +10,7 @@ const { authenticate } = require('../../../middleware/authorization/authorizatio
  * /expert/auth/login:
  *   post:
  *     summary: Expert login using email and password
- *     tags: ["11. Expert Panel: Auth"]
+ *     tags: ["12. Expert Panel: Auth"]
  *     requestBody:
  *       required: true
  *       content:
@@ -35,7 +36,7 @@ router.get('/auth/profile', authenticate, expertAuthController.getExpertProfile)
  * /expert/inbox:
  *   get:
  *     summary: Get expert's pending query inbox
- *     tags: ["12. Expert Panel: Operations"]
+ *     tags: ["13. Expert Panel: Operations"]
  *     security:
  *       - bearerAuth: []
  */
@@ -47,10 +48,21 @@ router.get('/queries/:runId', authenticate, expertController.getExpertQueries);
  * /expert/reply:
  *   post:
  *     summary: Reply to a specific user query
- *     tags: ["12. Expert Panel: Operations"]
+ *     tags: ["13. Expert Panel: Operations"]
  *     security:
  *       - bearerAuth: []
  */
 router.post('/reply', authenticate, expertController.replyToQuery);
+
+/**
+ * @swagger
+ * /expert/audit-review/{runId}:
+ *   post:
+ *     summary: Submit final expert review and verdict override
+ *     tags: ["13. Expert Panel: Operations"]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/audit-review/:runId', authenticate, adminController.submitExpertReview);
 
 module.exports = router;

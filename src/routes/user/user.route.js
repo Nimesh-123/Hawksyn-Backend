@@ -216,5 +216,29 @@ route.post('/forgot-pin', userController.forgotPin);
  */
 route.post('/upload-cv', upload.single('cv'), userController.uploadCV);
 
+/**
+ * @swagger
+ * /user/update-fcm-token:
+ *   post:
+ *     summary: Update User's FCM Token for Push Notifications
+ *     tags: ["1. Authentication & Security"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [fcmToken]
+ *             properties:
+ *               fcmToken:
+ *                 type: string
+ *                 description: Firebase Cloud Messaging Token from mobile device.
+ *     responses:
+ *       200:
+ *         description: FCM Token updated successfully
+ */
+route.post('/update-fcm-token', userController.updateFcmToken);
 
 module.exports = route;

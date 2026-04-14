@@ -1,8 +1,10 @@
 const { db } = require('../models/index.model.js');
+const notificationService = require('../services/notificationService');
 const { callLLM } = require('../../utils/evaluationHelpers.js');
 const clockService = require('../services/clockService.js');
 const { buildReportHtml } = require('../templates/reportTemplate.js');
 const { generatePdfFromHtml } = require('../services/pdfService.js');
+const s3Service = require('../../utils/s3');
 const path = require('path');
 const fs = require('fs');
 const nodemailer = require('nodemailer');
@@ -112,11 +114,13 @@ exports.generateReport = async (req, res) => {
 
         // 4. Parallel Generation of Sections
         const sectionPromises = sections.map(async (section) => {
+            const prompt = promptsMap[section.sectionId];
             const sectionOut = {
                 sectionId: section.sectionId,
                 sectionName: section.sectionName,
                 sectionType: section.sectionType,
                 sectionOrder: section.sectionOrder,
+                promptVersion: prompt?.promptVersion || 1, // Capture for Audit Trail
                 status: 'PENDING'
             };
 
@@ -127,7 +131,6 @@ exports.generateReport = async (req, res) => {
                 return sectionOut;
             }
 
-            const prompt = promptsMap[section.sectionId];
             if (!prompt) {
                 sectionOut.status = 'SKIPPED';
                 return sectionOut;
@@ -245,8 +248,36 @@ exports.generateReport = async (req, res) => {
             artifactType: 'FINAL_REPORT', artifactJson: finalReport
         });
 
-        await db.Runs.updateOne({ runId }, { $set: { verdict, finalReport, status: 'REPORT_COMPLETE' } });
+        // --- NEW: Immutable S3 Snapshots (Sprint 7/8) ---
+        let reportPdfUrl = null;
+        try {
+            // 1. JSON Snapshot
+            await s3Service.uploadJsonSnapshot(finalReport, 'snapshots', `RPT_${runId}`);
+
+            // 2. PDF Report
+            const html = buildReportHtml({
+                report: finalReport,
+                runId, generatedAt: new Date(),
+                accuracyBand: finalReport.accuracyBand,
+                role: profileSnapshot?.identity?.currentRoleTitle || 'Professional'
+            });
+            const pdfBuffer = await generatePdfFromHtml(html);
+            const s3Result = await s3Service.uploadFile(
+                pdfBuffer,
+                `reports/Report_${runId}.pdf`,
+                'application/pdf'
+            );
+            if (s3Result.success) reportPdfUrl = s3Result.url;
+
+        } catch (s3Err) {
+            console.error('[Report-S3] Automation Failed:', s3Err.message);
+        }
+
+        await db.Runs.updateOne({ runId }, { $set: { verdict, finalReport, reportPdfUrl, status: 'REPORT_COMPLETE' } });
         clockService.refreshClocksAfterCase(run.userId, runId);
+
+        // Trigger Final Notification
+        notificationService.notifyProcessingSuccess(runId);
 
         console.timeEnd("Report_Gen");
         return res.status(200).json({ success: true, data: { verdict, report: finalReport } });
@@ -319,4 +350,99 @@ exports.sendReportEmail = async (req, res) => {
 
         return res.status(200).json({ success: true, message: "Email sent." });
     } catch (err) { return res.status(500).json({ success: false, message: err.message }); }
+};
+
+/**
+ * API — Refresh a specific Report Section (Sprint 7/8 Audit Trail)
+ */
+exports.refreshReportSection = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const { sectionId } = req.body;
+
+        if (!runId || !sectionId) return res.status(400).json({ success: false, message: 'runId and sectionId are required.' });
+
+        // 1. Load Data
+        const [run, reportArtifact, prompt] = await Promise.all([
+            db.Runs.findOne({ runId }),
+            db.Ras.findOne({ runId, artifactType: 'FINAL_REPORT' }),
+            db.PromptConfigRegistry.findOne({ sectionId, isActive: true }) // Find latest active prompt
+        ]);
+
+        if (!run) return res.status(404).json({ success: false, message: 'Run not found.' });
+        if (!reportArtifact) return res.status(404).json({ success: false, message: 'Final report artifact not found.' });
+        if (!prompt) return res.status(404).json({ success: false, message: 'Active prompt for this section not found.' });
+
+        const finalizedReport = reportArtifact.artifactJson;
+        const sectionIndex = finalizedReport.sections.findIndex(s => s.sectionId === sectionId);
+        if (sectionIndex === -1) return res.status(404).json({ success: false, message: 'Section not found in the report.' });
+
+        const oldSectionData = finalizedReport.sections[sectionIndex];
+
+        // 2. Load Context (Same as generation)
+        const rasArtifacts = await db.Ras.find({ runId });
+        const signalsRas = rasArtifacts.find(r => r.artifactType === 'EXTERNAL_SIGNALS_CAPTURED');
+        const integrityRas = rasArtifacts.find(r => r.artifactType === 'INTEGRITY_PACK');
+        const profileRas = rasArtifacts.find(r => r.artifactType === 'PROFILE_CONFIRMED');
+        const allObjectiveRas = rasArtifacts.filter(r => r.stepNo === 3 && r.artifactType === 'OBJECTIVE_INPUTS_CAPTURED');
+        
+        const profileSnapshot = profileRas?.artifactJson || {};
+        const integrityPack = integrityRas?.artifactJson || {};
+        const rasAnswers = allObjectiveRas.flatMap(r => r.artifactJson?.answers || []);
+
+        const questionDocs = await db.Questions.find({ questionId: { $in: rasAnswers.map(a => a.questionId) } });
+        const questionsMap = {};
+        for (const q of questionDocs) questionsMap[q.questionId] = q;
+
+        const placeholders = buildPlaceholderMap(profileSnapshot, rasArtifacts, questionsMap, integrityPack, signalsRas?.artifactJson || {});
+
+        // 3. Re-generate Section
+        const userPrompt = fillPrompt(prompt.userPrompt, placeholders);
+        
+        console.log(`[REFRESH] Section: ${sectionId} | Prompt Version: ${prompt.promptVersion}`);
+
+        const llmResult = await callLLM({
+            modelFamily: prompt.modelFamily,
+            systemPrompt: prompt.systemPrompt,
+            userPrompt,
+            temperature: 0.3
+        });
+
+        // 4. Update Report Artifact
+        const newSectionData = {
+            ...oldSectionData,
+            content: llmResult.text || llmResult,
+            promptVersion: prompt.promptVersion,
+            refreshedAt: new Date()
+        };
+
+        finalizedReport.sections[sectionIndex] = newSectionData;
+        
+        // 5. Audit Log (Task D35)
+        await db.AuditLog.create({
+            action: 'REPORT_SECTION_REFRESH',
+            userId: req.user?._id,
+            metadata: {
+                runId,
+                sectionId,
+                oldContent: oldSectionData.content,
+                newContent: newSectionData.content,
+                promptVersion: prompt.promptVersion,
+                timestamp: new Date()
+            }
+        });
+
+        await db.Ras.updateOne({ runId, artifactType: 'FINAL_REPORT' }, { $set: { artifactJson: finalizedReport } });
+        await db.Runs.updateOne({ runId }, { $set: { finalReport: finalizedReport } });
+
+        return res.status(200).json({
+            success: true,
+            message: `Section ${sectionId} refreshed successfully.`,
+            updatedSection: newSectionData
+        });
+
+    } catch (error) {
+        console.error('[RefreshSection] Error:', error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
 };
