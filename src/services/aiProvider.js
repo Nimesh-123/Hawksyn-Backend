@@ -52,11 +52,11 @@ async function generateJSON(prompt, systemPrompt = 'You are a JSON-only responde
         }
     }
 
-    // --- Step 1: ANTHROPIC HAIKU (Primary - Claude-3-5-Haiku) ---
+    // --- Step 1: ANTHROPIC HAIKU (Primary - Claude-4-5-Haiku) ---
     try {
-        console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Haiku) [High-Speed]...');
+        console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-4-5-Haiku) [High-Speed]...');
         const message = await anthropic.messages.create({
-            model: 'claude-3-haiku-20240307',
+            model: 'claude-haiku-4-5-20251001',
             max_tokens: 4096,
             system: systemPrompt,
             messages: [{ role: 'user', content: prompt }]
@@ -76,7 +76,7 @@ async function generateJSON(prompt, systemPrompt = 'You are a JSON-only responde
             duration: `${duration}s`
         };
     } catch (err) {
-        console.warn(`[AI-Provider] ⚠️ Anthropic Haiku failed: ${err.message}. Falling back to Gemini.`);
+        console.warn(`[AI-Provider] ⚠️ Anthropic Haiku failed (${err.status || 'ERROR'}): ${err.message}. Falling back to Gemini.`);
 
         // --- Step 2: GEMINI (Fallback 1) ---
         try {
@@ -102,11 +102,11 @@ async function generateJSON(prompt, systemPrompt = 'You are a JSON-only responde
         } catch (geminiErr) {
             console.warn(`[AI-Provider] ⚠️ Gemini failed: ${geminiErr.message}. Falling back to Anthropic Sonnet.`);
 
-            // --- Step 3: ANTHROPIC SONNET (Fallback 2) ---
+            // --- Step 3: ANTHROPIC CLAUDE 4.6 (Fallback 2) ---
             try {
-                console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Sonnet) [High Accuracy]...');
+                console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-4-6-Sonnet) [High Accuracy]...');
                 const message = await anthropic.messages.create({
-                    model: 'claude-3-5-sonnet-20241022',
+                    model: "claude-sonnet-4-6",
                     max_tokens: 8192,
                     system: systemPrompt,
                     messages: [{ role: 'user', content: prompt }]
@@ -215,100 +215,100 @@ async function generateText(prompt, systemPrompt = 'You are a helpful assistant.
 
     // --- Step 1: ANTHROPIC HAIKU (Primary) ---
     try {
-        console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Haiku) [Text]...');
-        const message = await anthropic.messages.create({
-            model: 'claude-3-haiku-20240307',
-            max_tokens: 4096,
-            system: systemPrompt,
-            messages: [{ role: 'user', content: prompt }]
-        });
+        console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-4-5-Haiku) [Text]...');
+    const message = await anthropic.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: prompt }]
+    });
+    const duration = (Date.now() - startTime) / 1000;
+    return {
+        content: message.content[0].text,
+        usage: {
+            promptTokens: message.usage?.input_tokens || 0,
+            completionTokens: message.usage?.output_tokens || 0,
+            totalTokens: (message.usage?.input_tokens || 0) + (message.usage?.output_tokens || 0)
+        },
+        provider: 'Anthropic-Haiku',
+        duration: `${duration}s`
+    };
+} catch (err) {
+    console.warn(`[AI-Provider] ⚠️ Anthropic Haiku failed: ${err.message}`);
+
+    // --- Step 2: GEMINI (Fallback 1) ---
+    try {
+        console.log('[AI-Provider] 🤖 Attempting Gemini (Gemini-2.0-Flash) [Text]...');
+        const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
+        const result = await model.generateContent(fullPrompt);
+        const response = await result.response;
         const duration = (Date.now() - startTime) / 1000;
         return {
-            content: message.content[0].text,
+            content: response.text(),
             usage: {
-                promptTokens: message.usage?.input_tokens || 0,
-                completionTokens: message.usage?.output_tokens || 0,
-                totalTokens: (message.usage?.input_tokens || 0) + (message.usage?.output_tokens || 0)
+                promptTokens: response.usageMetadata?.promptTokenCount || 0,
+                completionTokens: response.usageMetadata?.candidatesTokenCount || 0,
+                totalTokens: response.usageMetadata?.totalTokenCount || 0
             },
-            provider: 'Anthropic-Haiku',
+            provider: 'Gemini',
             duration: `${duration}s`
         };
-    } catch (err) {
-        console.warn(`[AI-Provider] ⚠️ Anthropic Haiku failed: ${err.message}`);
+    } catch (geminiErr) {
+        console.warn(`[AI-Provider] ⚠️ Gemini failed: ${geminiErr.message}`);
 
-        // --- Step 2: GEMINI (Fallback 1) ---
+        // --- Step 3: ANTHROPIC SONNET (Fallback 2) ---
         try {
-            console.log('[AI-Provider] 🤖 Attempting Gemini (Gemini-2.0-Flash) [Text]...');
-            const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
-            const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
-            const result = await model.generateContent(fullPrompt);
-            const response = await result.response;
+            console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Sonnet) [Text]...');
+            const message = await anthropic.messages.create({
+                model: 'claude-3-5-sonnet-20241022',
+                max_tokens: 4096,
+                system: systemPrompt,
+                messages: [{ role: 'user', content: prompt }]
+            });
             const duration = (Date.now() - startTime) / 1000;
             return {
-                content: response.text(),
+                content: message.content[0].text,
                 usage: {
-                    promptTokens: response.usageMetadata?.promptTokenCount || 0,
-                    completionTokens: response.usageMetadata?.candidatesTokenCount || 0,
-                    totalTokens: response.usageMetadata?.totalTokenCount || 0
+                    promptTokens: message.usage?.input_tokens || 0,
+                    completionTokens: message.usage?.output_tokens || 0,
+                    totalTokens: (message.usage?.input_tokens || 0) + (message.usage?.output_tokens || 0)
                 },
-                provider: 'Gemini',
+                provider: 'Anthropic-Sonnet',
                 duration: `${duration}s`
             };
-        } catch (geminiErr) {
-            console.warn(`[AI-Provider] ⚠️ Gemini failed: ${geminiErr.message}`);
+        } catch (sonnetErr) {
+            console.warn(`[AI-Provider] ⚠️ Anthropic Sonnet failed: ${sonnetErr.message}`);
 
-            // --- Step 3: ANTHROPIC SONNET (Fallback 2) ---
+            // --- Step 4: OPENAI (Fallback 3) ---
             try {
-                console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Sonnet) [Text]...');
-                const message = await anthropic.messages.create({
-                    model: 'claude-3-5-sonnet-20241022',
-                    max_tokens: 4096,
-                    system: systemPrompt,
-                    messages: [{ role: 'user', content: prompt }]
+                console.log('[AI-Provider] 🤖 Attempting OpenAI (GPT-4o) [Text]...');
+                const response = await openai.chat.completions.create({
+                    model: 'gpt-4o',
+                    temperature: 0.2,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: prompt }
+                    ]
                 });
                 const duration = (Date.now() - startTime) / 1000;
                 return {
-                    content: message.content[0].text,
+                    content: response.choices[0].message.content || '',
                     usage: {
-                        promptTokens: message.usage?.input_tokens || 0,
-                        completionTokens: message.usage?.output_tokens || 0,
-                        totalTokens: (message.usage?.input_tokens || 0) + (message.usage?.output_tokens || 0)
+                        promptTokens: response.usage?.prompt_tokens || 0,
+                        completionTokens: response.usage?.completion_tokens || 0,
+                        totalTokens: response.usage?.total_tokens || 0
                     },
-                    provider: 'Anthropic-Sonnet',
+                    provider: 'OpenAI',
                     duration: `${duration}s`
                 };
-            } catch (sonnetErr) {
-                console.warn(`[AI-Provider] ⚠️ Anthropic Sonnet failed: ${sonnetErr.message}`);
-
-                // --- Step 4: OPENAI (Fallback 3) ---
-                try {
-                    console.log('[AI-Provider] 🤖 Attempting OpenAI (GPT-4o) [Text]...');
-                    const response = await openai.chat.completions.create({
-                        model: 'gpt-4o',
-                        temperature: 0.2,
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            { role: 'user', content: prompt }
-                        ]
-                    });
-                    const duration = (Date.now() - startTime) / 1000;
-                    return {
-                        content: response.choices[0].message.content || '',
-                        usage: {
-                            promptTokens: response.usage?.prompt_tokens || 0,
-                            completionTokens: response.usage?.completion_tokens || 0,
-                            totalTokens: response.usage?.total_tokens || 0
-                        },
-                        provider: 'OpenAI',
-                        duration: `${duration}s`
-                    };
-                } catch (openaiErr) {
-                    console.error('[AI-Provider] ❌ CRITICAL: All AI providers failed.');
-                    throw new Error('All AI providers (Haiku, Gemini, Sonnet, OpenAI) failed to fulfill the request.');
-                }
+            } catch (openaiErr) {
+                console.error('[AI-Provider] ❌ CRITICAL: All AI providers failed.');
+                throw new Error('All AI providers (Haiku, Gemini, Sonnet, OpenAI) failed to fulfill the request.');
             }
         }
     }
+}
 }
 
 module.exports = {

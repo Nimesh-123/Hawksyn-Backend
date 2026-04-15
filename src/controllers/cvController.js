@@ -1,6 +1,7 @@
 const { db } = require('../models/index.model.js');
 const { uploadFile, deleteFile } = require('../../utils/s3');
 const { smartCVParser } = require('../../utils/aiParser');
+const notificationService = require('../services/notificationService');
 
 /**
  * Handle "Continue with existing CV" choice.
@@ -95,6 +96,10 @@ exports.keepExistingCv = async (req, res) => {
             { upsert: true }
         );
 
+        // Step 1 Notification
+        const user = await db.User.findById(userId);
+        if (user) await notificationService.notifyParsingComplete(runId, user);
+
         return res.status(200).json({
             success: true,
             data: {
@@ -177,6 +182,22 @@ exports.uploadRunCv = async (req, res) => {
             if (extractedData && extractedData.isCv === false) {
                 await deleteFile(fileName);
                 
+                // Save the failed attempt to DocumentUploads for audit tracking
+                await db.DocumentUploads.create({
+                    userId,
+                    fileName: file.originalname,
+                    cvUrl: null,
+                    parsedCvData: null,
+                    parserStatus: 'NOT_A_CV',
+                    errorReason: 'Detected as non-CV document.',
+                    parserMetadata: extractedData ? {
+                        modelUsed: extractedData.modelUsed,
+                        duration: extractedData.totalPipelineDuration,
+                        tokenUsage: extractedData.tokenUsage
+                    } : null,
+                    isActive: false
+                });
+
                 // --- NEW: Log Failure Reason (User Request) ---
                 await db.auditLog.create({
                     action: 'CV_PARSING_REJECTED',
@@ -284,6 +305,12 @@ exports.uploadRunCv = async (req, res) => {
         let finalMessage = "CV uploaded and parsed successfully";
         if (parserStatus === "FAILED") finalMessage = "CV uploaded but AI parsing failed";
         else if (parserStatus === "EMPTY") finalMessage = "CV uploaded but we couldn't extract any meaningful data. Please ensure it's a readable PDF.";
+
+        // Step 1 Notification
+        if (parserStatus === "SUCCESS") {
+            const user = await db.User.findById(userId);
+            if (user) await notificationService.notifyParsingComplete(runId, user);
+        }
 
         return res.status(200).json({
             success: true,

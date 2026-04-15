@@ -47,7 +47,17 @@ class NotificationService {
                 metadata: { runId, caseId: run.caseId }
             });
 
-            // 2. Send Email
+            // 2. Create In-App Notification record for User (Step 3)
+            await db.Notifications.create({
+                userId: run.userId._id,
+                targetRole: 'user',
+                type: 'INTAKE_COMPLETE',
+                title: 'Assessment Inputs Captured',
+                message: `Assessment Inputs Captured. Our intelligence engine is now mapping your risk profile.`,
+                metadata: { runId }
+            });
+
+            // 3. Send Email
             await sendEmail({
                 email: adminEmail,
                 subject: `🔔 Intake Complete: ${run.caseId} | Run: ${runId}`,
@@ -82,13 +92,13 @@ class NotificationService {
             const run = await db.Runs.findOne({ runId }).populate('userId');
             if (!run || !run.userId?.email) return;
 
-            // 1. Create In-App Notification record for User
+            // 1. Create In-App Notification record for User (Step 5)
             await db.Notifications.create({
                 userId: run.userId._id,
                 targetRole: 'user',
                 type: 'REPORT_READY',
-                title: 'Risk Audit Ready',
-                message: `Your investigation for ${run.caseId} is complete. View your final report now.`,
+                title: 'Report Ready',
+                message: `Your Decision Assurance Report is ready. Open to see your verdict.`,
                 metadata: { runId, caseId: run.caseId }
             });
 
@@ -114,8 +124,8 @@ class NotificationService {
             if (run.userId.fcmToken) {
                 await this.sendPushNotification(
                     run.userId.fcmToken, 
-                    'Risk Audit Ready ✅', 
-                    `Audit for ${run.caseId} is complete. View your report now.`,
+                    'Report Ready', 
+                    `Your Decision Assurance Report is ready. Open to see your verdict.`,
                     { runId, type: 'REPORT_READY' }
                 );
             }
@@ -168,19 +178,20 @@ class NotificationService {
             logger.error(`[Notification Error] Failure Alert: ${error.message}`);
         }
     }
+
     /**
-     * Triggered when a payment is successfully verified (Sprint 8)
+     * Triggered when a payment is successfully verified
      */
     async notifyPaymentSuccess(payment, user, invoice) {
         try {
-            // 1. In-App Notification
+            // 1. In-App Notification (Step 5.5)
             await db.Notifications.create({
                 userId: user._id,
                 targetRole: 'user',
                 type: 'PAYMENT_SUCCESS',
-                title: 'Payment Successful',
-                message: `Your payment of ${payment.currency} ${payment.amount} was successful. Order ID: ${payment.gatewayOrderId}`,
-                metadata: { paymentId: payment.paymentId, invoiceId: invoice.invoiceId }
+                title: 'Payment Confirmation',
+                message: `Payment confirmed. Your Report/Expert Pack is active. Invoice sent to your email.`,
+                metadata: { paymentId: payment.paymentId, invoiceId: invoice.invoiceId, runId: payment.runId }
             });
 
             // 2. Email Confirmation
@@ -204,12 +215,13 @@ class NotificationService {
                     </div>
                 `
             });
+
             // 3. Send Push Notification
             if (user.fcmToken) {
                 await this.sendPushNotification(
                     user.fcmToken,
-                    'Payment Successful 💰',
-                    `Payment received for Run ${payment.runId}. Starting analysis.`,
+                    'Payment Confirmation',
+                    `Payment confirmed. Your Report/Expert Pack is active.`,
                     { runId: payment.runId, type: 'PAYMENT_SUCCESS' }
                 );
             }
@@ -225,8 +237,8 @@ class NotificationService {
      */
     async notifyExpertAssigned(runId, user, expert) {
         try {
-            // 1. Notify EXPERT
             if (expert && expert.email) {
+                // Notify Expert
                 await db.Notifications.create({
                     userId: expert.userId || expert._id,
                     targetRole: 'expert',
@@ -236,73 +248,26 @@ class NotificationService {
                     metadata: { runId }
                 });
 
-                await sendEmail({
-                    email: expert.email,
-                    subject: `📋 New Case Assignment: Run ${runId}`,
-                    message: `You have a new case waiting for audit review. Run ID: ${runId}`,
-                    html: `
-                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
-                            <h2 style="color: #2c3e50;">Expert Assignment Alert</h2>
-                            <p>Hello Auditor,</p>
-                            <p>A new assessment report is ready for your expert review and verdict certification.</p>
-                            <p><b>Run ID:</b> <code>${runId}</code></p>
-                            <p style="margin-top: 20px;">
-                                <a href="${process.env.EXPERT_PORTAL_URL}/review/${runId}" style="background: #34495e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Auditor Dashboard</a>
-                            </p>
-                        </div>
-                    `
-                });
-
-                // 3. Send Push Notification to USER
-                if (user.fcmToken) {
-                    await this.sendPushNotification(
-                        user.fcmToken,
-                        'Expert Assigned 👨‍🎓',
-                        'A specialized expert is now reviewing your case.',
-                        { runId, type: 'EXPERT_ASSIGNED' }
-                    );
-                }
-            }
-
-            // 2. Notify USER (#2)
-            if (user && user.email) {
+                // Notify User (Step 6)
                 await db.Notifications.create({
                     userId: user._id,
                     targetRole: 'user',
                     type: 'EXPERT_ASSIGNED',
-                    title: 'Professional Review Started',
-                    message: `An expert has been assigned to your case. Your report will be certified shortly.`,
+                    title: 'Expert Assigned',
+                    message: `Your case has been assigned to ${expert.name || 'an expert'}. Expected review within 72 hours.`,
                     metadata: { runId }
                 });
 
-                await sendEmail({
-                    email: user.email,
-                    subject: `👨‍🎓 Expert Assigned to your Hawksyn Audit`,
-                    message: `A professional auditor has started reviewing your risk profile.`,
-                    html: `
-                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-top: 4px solid #E8600A;">
-                            <h2 style="color: #E8600A;">Professional Review Active</h2>
-                            <p>Hello <b>${user.fullName || user.name || 'Valued Client'}</b>,</p>
-                            <p>Great news! Your risk audit for <b>Run ${runId}</b> has been assigned to one of our professional auditors.</p>
-                            <p>They are currently validating your AI-generated verdict and will provide a certified stamp within the next 72 hours.</p>
-                            <p style="margin-top: 20px;">
-                                <a href="${process.env.CLIENT_PORTAL_URL}/reports/${runId}" style="background: #E8600A; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Track Audit Status</a>
-                            </p>
-                        </div>
-                    `
-                });
-
-                // 3. Send Push Notification to EXPERT
-                if (expert.fcmToken) {
+                // Push to User
+                if (user.fcmToken) {
                     await this.sendPushNotification(
-                        expert.fcmToken,
-                        'New Case Assigned 📋',
-                        `You have been assigned Run ${runId}.`,
-                        { runId, type: 'NEW_ASSIGNMENT' }
+                        user.fcmToken,
+                        'Expert Assigned',
+                        `Your case has been assigned to ${expert.name || 'an expert'}. Expected review within 72 hours.`,
+                        { runId, type: 'EXPERT_ASSIGNED' }
                     );
                 }
             }
-
             logger.info(`[Notification] Expert assignment alerts sent for Run ${runId}`);
         } catch (error) {
             logger.error(`[Notification Error] Expert Notification: ${error.message}`);
@@ -310,7 +275,7 @@ class NotificationService {
     }
 
     /**
-     * Triggered when an expert submits their final review/verdict certification (#6)
+     * Triggered when an expert submits their final review/verdict certification
      */
     async notifyAuditorReviewComplete(runId, user) {
         try {
@@ -318,110 +283,59 @@ class NotificationService {
                 userId: user._id,
                 targetRole: 'user',
                 type: 'REVIEW_COMPLETE',
-                title: 'Expert Review Finalized',
-                message: `Your risk auditor has completed their review for Run ${runId}. Your report is now fully certified.`,
+                title: 'Auditor Review Complete',
+                message: `Your auditor has completed their review. Your report now includes expert validation. Open to read.`,
                 metadata: { runId }
             });
 
-            await sendEmail({
-                email: user.email,
-                subject: `✅ Auditor Review Complete: Run ${runId}`,
-                message: `Your Hawksyn risk audit has been certified by an expert.`,
-                html: `
-                    <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
-                        <h2 style="color: #27ae60;">Expert Validation Complete</h2>
-                        <p>Hello,</p>
-                        <p>Your risk auditor has submitted their final validation stamp. Your report now includes professional certification.</p>
-                        <p style="margin-top: 20px;">
-                            <a href="${process.env.CLIENT_PORTAL_URL}/reports/${runId}" style="background: #27ae60; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Certified Report</a>
-                        </p>
-                    </div>
-                `
-            });
-            logger.info(`[Notification] Review Complete alert sent for ${runId}`);
-        } catch (error) {
-            logger.error(`[Notification Error] Review Complete: ${error.message}`);
-        }
+            if (user.fcmToken) {
+                await this.sendPushNotification(user.fcmToken, 'Auditor Review Complete ✅', 'Your report now includes expert validation.', { runId });
+            }
+        } catch (error) { logger.error(`[Notif Error] Review Complete: ${error.message}`); }
     }
 
     /**
-     * Triggered for Verdict Expiry Warnings (7 days & 2 days) (#8, #9)
+     * Triggered for Verdict Expiry Warnings (7 days & 2 days)
      */
     async notifyVerdictExpiry(runId, user, daysRemaining) {
         try {
+            const title = daysRemaining === 7 ? 'Verdict Expiry Warning, 7 Days' : 'Verdict Expiry Warning, 2 Days';
+            const msg = daysRemaining === 7 
+                ? `Your verdict on ${runId.slice(-6)} expires in 7 days. Market conditions may have shifted. A re-run gives you a fresh picture.`
+                : `Your verdict expires in 2 days. After this, your audit result is no longer valid. Re-run to stay current.`;
+
             await db.Notifications.create({
                 userId: user._id,
                 targetRole: 'user',
                 type: 'VERDICT_EXPIRY',
-                title: 'Verdict Expiry Warning',
-                message: `Your verdict for case ${runId} will expire in ${daysRemaining} days. A re-run is recommended.`,
+                title: title,
+                message: msg,
                 metadata: { runId, daysRemaining }
             });
-
-            await sendEmail({
-                email: user.email,
-                subject: `⚠️ Verdict Expiry: ${daysRemaining} Days Remaining`,
-                message: `Your risk audit verdict is about to expire.`,
-                html: `
-                    <div style="font-family: sans-serif; padding: 20px; border: 1px solid #f39c12;">
-                        <h2 style="color: #e67e22;">Action Required: Expiry Warning</h2>
-                        <p>Your Hawksyn verdict for <b>Run ${runId}</b> expires in ${daysRemaining} days.</p>
-                        <p>Market conditions and risk factors shift over time. To maintain an accurate risk profile, we recommend a re-run.</p>
-                        <p style="margin-top: 20px;">
-                            <a href="${process.env.CLIENT_PORTAL_URL}/reports/${runId}" style="background: #e67e22; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Review Verdict Validity</a>
-                        </p>
-                    </div>
-                `
-            });
-            // 3. Send Push Notification
             if (user.fcmToken) {
-                await this.sendPushNotification(
-                    user.fcmToken,
-                    'Verdict Expiry Warning ⚠️',
-                    `Your verdict for case ${runId} will expire in ${daysRemaining} days.`,
-                    { runId, type: 'VERDICT_EXPIRY' }
-                );
+                await this.sendPushNotification(user.fcmToken, title, msg, { runId, daysRemaining });
             }
         } catch (error) { logger.error(`[Notif Error] Expiry: ${error.message}`); }
     }
 
     /**
-     * Triggered when Auditor fails to respond within SLA (#10)
+     * Triggered when Auditor fails to respond within SLA
      */
     async notifySLABreach(runId, user) {
         try {
-            await sendEmail({
-                email: user.email,
-                subject: `📋 Status Update: Your Case Review`,
-                message: `We are monitoring your expert review progress.`,
-                html: `
-                    <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
-                        <p>Your report is still under expert review. Our team is monitoring this and you will hear back within 24 hours.</p>
-                    </div>
-                `
+            await db.Notifications.create({
+                userId: user._id,
+                targetRole: 'user',
+                type: 'SLA_BREACH',
+                title: 'SLA Breach Warning, 48 Hours',
+                message: `Your report is still under expert review. Our team is monitoring this. You will hear back within 24 hours.`,
+                metadata: { runId }
             });
         } catch (error) { logger.error(`[Notif Error] SLA: ${error.message}`); }
     }
 
     /**
-     * Triggered when a profile update conflicts with a locked audit snapshot (#13)
-     */
-    async notifyProfileConflict(runId, user) {
-        try {
-            await db.Notifications.create({
-                userId: user._id,
-                targetRole: 'user',
-                type: 'PROFILE_CONFLICT',
-                title: 'Data Conflict Detected',
-                message: `Recent profile updates conflict with your ${runId} audit. Verdict accuracy may be affected.`,
-                metadata: { runId }
-            });
-            logger.info(`[Notification] Profile conflict alert sent for user ${user._id}`);
-        } catch (error) { logger.error(`[Notif Error] Conflict: ${error.message}`); }
-    }
-
-    /**
-     * Triggered when an expert sends a message in the chat (#7)
+     * Triggered when an expert sends a message in the chat
      */
     async notifyExpertChatReply(runId, user) {
         try {
@@ -429,38 +343,18 @@ class NotificationService {
                 userId: user._id,
                 targetRole: 'user',
                 type: 'EXPERT_REPLY',
-                title: 'Expert Responded',
-                message: `Your risk auditor has responded to your query for Run ${runId}. Click to chat.`,
+                title: 'Expert Replied in Chat',
+                message: `Your auditor has responded. Open to continue the conversation.`,
                 metadata: { runId }
             });
-
-            await sendEmail({
-                email: user.email,
-                subject: `💬 New Message from your Hawksyn Auditor`,
-                message: `You have received a reply from your risk auditor.`,
-                html: `
-                    <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
-                        <p>Your auditor has responded to your query. You can continue the conversation in the app.</p>
-                        <p style="margin-top: 20px;">
-                            <a href="${process.env.CLIENT_PORTAL_URL}/chat/${runId}" style="background: #34495e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reply in Chat</a>
-                        </p>
-                    </div>
-                `
-            });
-            // 3. Send Push Notification
             if (user.fcmToken) {
-                await this.sendPushNotification(
-                    user.fcmToken,
-                    'New Expert Message 💬',
-                    `Expert has replied to your query for Run ${runId}.`,
-                    { runId, type: 'EXPERT_REPLY' }
-                );
+                await this.sendPushNotification(user.fcmToken, 'Expert Replied in Chat 💬', 'Your auditor has responded. Open to chat.', { runId });
             }
         } catch (error) { logger.error(`[Notif Error] Chat Reply: ${error.message}`); }
     }
 
     /**
-     * Triggered when Step 4 detects serious contradictions (#3)
+     * Triggered when Step 4 detects serious contradictions
      */
     async notifyContradictionDetected(runId, user) {
         try {
@@ -468,16 +362,15 @@ class NotificationService {
                 userId: user._id,
                 targetRole: 'user',
                 type: 'CONTRADICTION_ALERT',
-                title: 'Conflicting Inputs Detected',
-                message: `We found conflicting inputs in your audit for Run ${runId}. This will affect your confidence score.`,
+                title: 'Contradiction Warning',
+                message: `We found conflicting inputs in your audit. This has been flagged and will affect your confidence score.`,
                 metadata: { runId }
             });
-            logger.warn(`[Notification] Contradiction alert sent for run ${runId}`);
         } catch (error) { logger.error(`[Notif Error] Contradiction: ${error.message}`); }
     }
 
     /**
-     * Triggered when Step 4 detects critical missing data (#4)
+     * Triggered when Step 4 detects critical missing data
      */
     async notifyMissingDataWarning(runId, user) {
         try {
@@ -485,12 +378,56 @@ class NotificationService {
                 userId: user._id,
                 targetRole: 'user',
                 type: 'MISSING_DATA_ALERT',
-                title: 'Critical Missing Data',
-                message: `Some critical inputs are missing in Run ${runId}. Your accuracy score has been penalised.`,
+                title: 'Missing Data Warning',
+                message: `Some inputs are incomplete. Your accuracy score has been penalised and your confidence band reflects this.`,
                 metadata: { runId }
             });
-            logger.warn(`[Notification] Missing data alert sent for run ${runId}`);
         } catch (error) { logger.error(`[Notif Error] Missing Data: ${error.message}`); }
+    }
+
+    /**
+     * Triggered when a profile update conflicts with a locked audit snapshot
+     */
+    async notifyProfileConflict(runId, user) {
+        try {
+            await db.Notifications.create({
+                userId: user._id,
+                targetRole: 'user',
+                type: 'PROFILE_CONFLICT',
+                title: 'Profile Conflict Detected',
+                message: `You updated your profile. One or more changes conflict with inputs from your audit. Review recommended.`,
+                metadata: { runId }
+            });
+        } catch (error) { logger.error(`[Notif Error] Conflict: ${error.message}`); }
+    }
+
+    async notifyParsingComplete(runId, user) {
+        try {
+            await db.Notifications.create({
+                userId: user._id,
+                targetRole: 'user',
+                type: 'PARSING_COMPLETE',
+                title: 'CV Analyzed Successfully',
+                message: 'CV Analyzed Successfully. Professional risk markers identified. Continue with Step 2.',
+                metadata: { runId }
+            });
+            if (user.fcmToken) {
+                await this.sendPushNotification(user.fcmToken, 'CV Analyzed ✅', 'Professional risk markers identified. Continue with Step 2.', { runId });
+            }
+        } catch (error) { logger.error('Parsing Notif Error: ' + error.message); }
+    }
+
+    async notifyIntakeProgress(runId, user) {
+        try {
+            await db.Notifications.create({
+                userId: user._id,
+                targetRole: 'user',
+                type: 'INTAKE_PROGRESS',
+                title: 'Intake Progress',
+                message: 'Intake Progress: Profile captured. Moving to deeper assessment.',
+                metadata: { runId }
+            });
+        } catch (error) { logger.error('Intake Progress Notif Error: ' + error.message); }
     }
 
 }

@@ -15,7 +15,7 @@ const documentUploadsSchema = new mongoose.Schema(
         },
         cvUrl: {
             type: String,
-            required: true
+            required: false
         },
 
         // Parser & Audit Logic

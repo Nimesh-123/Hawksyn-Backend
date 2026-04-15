@@ -2,6 +2,8 @@ const express = require('express');
 const route = express.Router();
 
 const userController = require('../../controllers/user.controller.js');
+const recordsController = require('../../controllers/recordsController');
+const expertController = require('../../controllers/expertController');
 const upload = require('../../../middleware/multer.js');
 
 /**
@@ -218,10 +220,47 @@ route.post('/upload-cv', upload.single('cv'), userController.uploadCV);
 
 /**
  * @swagger
- * /user/update-fcm-token:
+ * /user/trends:
+ *   get:
+ *     summary: Fetch personalized, CV-derived market trends and benchmarks (Slide 14)
+ *     tags: ["8. Command Center & Trends"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Personalized trends retrieved successfully
+ *       404:
+ *         description: No trend data found
+ */
+/**
+ * @swagger
+ * /user/runs/compare:
+ *   get:
+ *     summary: Deep comparison between two runs (Slide 45)
+ *     tags: ["6. My Records & Reports"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: baseline
+ *         required: true
+ *       - in: query
+ *         name: latest
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Comparison data
+ */
+route.get('/runs/compare', recordsController.compareRuns);
+
+route.get('/trends', userController.getTrends);
+
+/**
+ * @swagger
+ * /user/credits/unlock:
  *   post:
- *     summary: Update User's FCM Token for Push Notifications
- *     tags: ["1. Authentication & Security"]
+ *     summary: Use credits to unlock expert support for a specific run (Slide 53-54)
+ *     tags: ["7. Expert Support & Chat"]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -230,15 +269,18 @@ route.post('/upload-cv', upload.single('cv'), userController.uploadCV);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [fcmToken]
+ *             required: [runId]
  *             properties:
- *               fcmToken:
+ *               runId:
  *                 type: string
- *                 description: Firebase Cloud Messaging Token from mobile device.
  *     responses:
  *       200:
- *         description: FCM Token updated successfully
+ *         description: Support unlocked
+ *       402:
+ *         description: Insufficient credits
  */
+route.post('/credits/unlock', expertController.unlockExpertSupport);
+
 route.post('/update-fcm-token', userController.updateFcmToken);
 
 module.exports = route;

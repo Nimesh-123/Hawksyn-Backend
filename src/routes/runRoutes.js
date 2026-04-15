@@ -458,4 +458,22 @@ router.post('/experts/ask', expertController.askExpertQuery);
  */
 router.get('/experts/queries/:runId', expertController.getExpertQueries);
 
+/**
+ * @swagger
+ * /runs/{runId}/chat/attempts:
+ *   get:
+ *     summary: Get chat attempts and credit balance for expert support (Slide 52)
+ *     tags: ["7. Expert Support & Chat"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Attempt details
+ */
+router.get('/:runId/chat/attempts', expertController.getChatAttempts);
+
 module.exports = router;

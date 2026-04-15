@@ -196,13 +196,17 @@ exports.updateUserProfile = async (req, res) => {
             );
 
 
-            // No need to wait/block the response, do it in background
+            // Step 2 Notification
+            const notificationService = require('../services/notificationService');
+            const user = await db.User.findById(req.user.id);
+            if (user) await notificationService.notifyIntakeProgress(activeRun.runId, user);
+
             clockService.recalibrateForUser(req.user.id, mergedProfile);
         }
 
         return res.status(200).json({
             success: true,
-            data: { isConfirmed: true, confirmedAt: userProfile.confirmedAt, message: "Profile confirmed successfully." }
+            data: { isConfirmed: true, confirmedAt: userProfile.confirmedAt, message: "Profile confirmed successfully. Proceeding to intake assessment." }
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });

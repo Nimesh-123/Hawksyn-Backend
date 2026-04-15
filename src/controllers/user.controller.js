@@ -261,10 +261,13 @@ exports.deleteAccount = async (req, res) => {
 
             return RESPONSE.success(res, 200, 2002, { message: "Account permanently deleted." });
         } else {
+            const { reason, comment } = req.body;
             user.isDeleted = true;
             user.deletedAt = new Date();
+            user.deletionReason = reason || "No reason provided";
+            user.deletionComment = comment || "";
             await user.save();
-            await createAuditLog(req, 'ACCOUNT_DELETED', user._id, { email: user.email });
+            await createAuditLog(req, 'ACCOUNT_DELETED', user._id, { email: user.email, reason, comment });
             return RESPONSE.success(res, 200, 2002);
         }
     } catch (err) {
@@ -306,7 +309,27 @@ exports.uploadCV = async (req, res) => {
             
             if (extractedData && extractedData.isCv === false) {
                 await deleteFile(fileName);
-                return RESPONSE.error(res, 400, 1002, "Not a valid CV.");
+
+                // Save the failed attempt to DocumentUploads for audit tracking
+                const userId = req.user.id;
+                await db.DocumentUploads.create({
+                    userId,
+                    fileName: file.originalname,
+                    cvUrl: null,
+                    parsedCvData: null,
+                    parserStatus: 'NOT_A_CV',
+                    errorReason: 'Detected as non-CV document.',
+                    parserMetadata: extractedData ? {
+                        modelUsed: extractedData.modelUsed,
+                        duration: extractedData.totalPipelineDuration,
+                        tokenUsage: extractedData.tokenUsage
+                    } : null,
+                    isActive: false
+                });
+
+                await createAuditLog(req, 'CV_REJECTED', userId, { reason: 'NOT_A_CV', fileName: file.originalname });
+
+                return RESPONSE.error(res, 400, 3009, "Not a valid CV.");
             }
 
             if (extractedData) {
@@ -375,6 +398,118 @@ exports.uploadCV = async (req, res) => {
     } catch (error) {
         console.error("[Upload Fail]", error.message);
         return RESPONSE.error(res, 500, 9999, "Failed to upload CV.");
+    }
+};
+
+/**
+ * GET /user/trends
+ * Fetch personalized, CV-derived market trends and benchmarks (Slide 14)
+ */
+exports.getTrends = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const clocks = await db.UserClocks.findOne({ userId });
+
+        if (!clocks) {
+            return RESPONSE.error(res, 404, 3001, "No trend data found. Please upload your CV first.");
+        }
+
+        // 1. Build Trends List (15-20 derived items)
+        const trends = [];
+
+        // Primary Insight (from Trend Engine Pulse)
+        if (clocks.insightText) {
+            trends.push({
+                type: 'MARKET_INSIGHT',
+                label: 'Market Momentum',
+                value: clocks.insightText,
+                icon: 'trending_up',
+                priority: 'HIGH'
+            });
+        }
+
+        // AI Exposure Trend
+        if (clocks.aiExposureJustification) {
+            trends.push({
+                type: 'AI_EXPOSURE',
+                label: 'AI Disruption Risk',
+                value: clocks.aiExposureJustification,
+                score: clocks.aiExposureScore,
+                delta: clocks.previousAiExposureScore ? clocks.aiExposureScore - clocks.previousAiExposureScore : 0,
+                priority: clocks.aiExposureScore > 70 ? 'CRITICAL' : 'MEDIUM'
+            });
+        }
+
+        // Skill Relevance Trend
+        if (clocks.skillRelevanceJustification) {
+            trends.push({
+                type: 'SKILL_VALUATION',
+                label: 'Skill Market Value',
+                value: clocks.skillRelevanceJustification,
+                score: clocks.skillRelevanceScore,
+                priority: clocks.skillRelevanceScore < 40 ? 'HIGH' : 'LOW'
+            });
+        }
+
+        // Career Momentum Trend
+        if (clocks.careerMomentumJustification) {
+            trends.push({
+                type: 'CAREER_VELOCITY',
+                label: 'Sector Velocity',
+                value: clocks.careerMomentumJustification,
+                runway: `${clocks.careerMomentumMonths || 18} Months`,
+                priority: 'MEDIUM'
+            });
+        }
+
+        // Opportunity Window Trend
+        if (clocks.opportunityWindowJustification) {
+            trends.push({
+                type: 'OPPORTUNITY_WINDOW',
+                label: 'Role Sustainability',
+                value: clocks.opportunityWindowJustification,
+                window: `${clocks.opportunityWindowYears || 2} Years`,
+                priority: 'HIGH'
+            });
+        }
+
+        // Market Trigger
+        if (clocks.trendTrigger) {
+            trends.push({
+                type: 'MARKET_TRIGGER',
+                label: 'Top Market Driver',
+                value: clocks.trendTrigger,
+                priority: 'HIGH'
+            });
+        }
+
+        // Add dynamically calculated peer benchmarks as trends
+        const { getPeerBenchmarks } = require('../services/clockService');
+        const aiBench = getPeerBenchmarks(clocks.aiExposureScore, 'AI_EXPOSURE');
+        
+        trends.push({
+            type: 'BENCHMARK',
+            label: 'Peer AI Resilience',
+            value: `You are in the ${aiBench.userState} for AI Resilience in your sector.`,
+            meta: aiBench
+        });
+
+        // Response structure
+        const responseData = {
+            userId,
+            lastUpdated: clocks.updatedAt || clocks.lastCalculatedAt,
+            overview: {
+                aiExposure: clocks.aiExposureScore,
+                momentum: clocks.careerMomentumScore,
+                skillRelevance: clocks.skillRelevanceScore,
+                opportunityWindow: clocks.opportunityWindowScore
+            },
+            trends: trends
+        };
+
+        return RESPONSE.success(res, 200, 1001, responseData);
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
     }
 };
 

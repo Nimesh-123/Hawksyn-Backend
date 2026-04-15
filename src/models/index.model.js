@@ -53,6 +53,7 @@ db.UserCredits  = require('./UserCredits.model');
 db.ExpertQuery = require('./ExpertQuery.model');
 db.ChatMessage = require('./ChatMessage.model');
 db.Notifications = require('./Notification.model.js');
-
+db.FAQ = require('./FAQ.model.js');
+db.LegalContent = require('./LegalContent.model.js');
 
 module.exports = { db };

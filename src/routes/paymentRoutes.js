@@ -192,4 +192,49 @@ router.post('/experts/initiate', expertController.initiateExpertQueryPayment);
  */
 router.post('/experts/verify', expertController.verifyExpertQueryPayment);
 
+/**
+ * @swagger
+ * /payment/verify-and-recover:
+ *   post:
+ *     summary: Verify failed payment and recover (Slide 24)
+ *     tags: ["4. Payments & Run Initiation"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               purchaseId:
+ *                 type: string
+ *               paymentId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Recovered successfully
+ *       429:
+ *         description: Cooling period active
+ */
+router.post('/verify-and-recover', paymentController.verifyAndRecover);
+
+/**
+ * @swagger
+ * /payment/invoice/{runId}:
+ *   get:
+ *     summary: Download payment invoice (S3) for a specific run
+ *     tags: ["4. Payments & Run Initiation"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: PDF Stream
+ */
+router.get('/invoice/:runId', paymentController.downloadUserInvoice);
+
 module.exports = router;

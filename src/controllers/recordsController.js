@@ -383,3 +383,90 @@ exports.initiateReRun = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+
+/**
+ * API 4 — GET /user/runs/compare?baseline=X&latest=Y
+ * Purpose: Deep comparison between two runs (Slide 45)
+ */
+exports.compareRuns = async (req, res) => {
+    try {
+        const { baseline: baselineId, latest: latestId } = req.query;
+
+        if (!baselineId || !latestId) {
+            return res.status(400).json({ success: false, message: 'Both baseline and latest runIds are required' });
+        }
+
+        const [baseline, latest] = await Promise.all([
+            db.Runs.findOne({ runId: baselineId }).lean(),
+            db.Runs.findOne({ runId: latestId }).lean()
+        ]);
+
+        if (!baseline || !latest) {
+            return res.status(404).json({ success: false, message: 'One or both runs not found' });
+        }
+
+        // Fetch RAS for both to get precise integrity scores
+        const [baseRas, lateRas] = await Promise.all([
+            db.Ras.findOne({ runId: baselineId, artifactType: 'INTEGRITY_PACK', status: 'FINAL' }).lean(),
+            db.Ras.findOne({ runId: latestId, artifactType: 'INTEGRITY_PACK', status: 'FINAL' }).lean()
+        ]);
+
+        const baseScore = baseRas?.accuracy?.score || 50;
+        const lateScore = lateRas?.accuracy?.score || 50;
+        const baseRisk = 100 - baseScore;
+        const lateRisk = 100 - lateScore;
+
+        const deltaScore = lateRisk - baseRisk;
+        const verdictChanged = baseline.verdict !== latest.verdict;
+
+        // --- Logic: Decision Direction AI Summary ---
+        let directionSummary = "";
+        if (deltaScore > 10) {
+            directionSummary = "Risk profile has significantly increased. New contradictions and red flags detected in the latest run suggest a higher probability of professional friction.";
+        } else if (deltaScore < -10) {
+            directionSummary = "Risk profile has improved. Latest inputs have successfully resolved previous contradictions, or market conditions have become more favorable for this profile.";
+        } else {
+            directionSummary = "Risk profile remains stable. Minimal divergence in core integrity findings between these two sessions.";
+        }
+
+        const comparison = {
+            meta: {
+                baselineId,
+                latestId,
+                analyzedAt: new Date()
+            },
+            riskAnalysis: {
+                baselineRisk: baseRisk,
+                latestRisk: lateRisk,
+                delta: deltaScore,
+                direction: deltaScore > 0 ? 'UP' : deltaScore < 0 ? 'DOWN' : 'STABLE',
+                intensity: Math.abs(deltaScore) > 20 ? 'HIGH' : 'LOW'
+            },
+            verdictShift: {
+                baselineVerdict: baseline.verdict,
+                latestVerdict: latest.verdict,
+                isChanged: verdictChanged
+            },
+            decisionDirection: directionSummary,
+            keyDifferences: [
+                {
+                    label: "Accuracy Shift",
+                    value: `${Math.abs(deltaScore)}% ${deltaScore > 0 ? 'Increase in Risk' : 'Reduction in Risk'}`
+                },
+                {
+                    label: "Verdict Status",
+                    value: verdictChanged ? `Changed from ${baseline.verdict} to ${latest.verdict}` : "Unchanged"
+                }
+            ]
+        };
+
+        return res.status(200).json({
+            success: true,
+            data: comparison
+        });
+
+    } catch (error) {
+        console.error('[Compare Error]', error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};

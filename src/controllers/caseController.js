@@ -282,6 +282,7 @@ exports.getPipelineSummary = async (req, res) => {
                             runId: "$runId",
                             caseId: "$caseId",
                             updatedAt: "$updatedAt",
+                            createdAt: "$createdAt",
                             failureStep: "$failureStep",
                             failureReason: "$failureReason",
                             expertReviewedAt: "$expertReviewedAt"
