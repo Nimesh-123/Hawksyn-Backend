@@ -1,4 +1,4 @@
-const CaseRegistry = require('../models/CaseRegistry.model');
+﻿const CaseRegistry = require('../models/CaseRegistry.model');
 const CaseIntentConfig = require('../models/CaseIntentConfig.model');
 const Playbooks = require('../models/Playbooks.model');
 const Payments = require('../models/Payments.model');
@@ -11,7 +11,7 @@ const financeService = require('../services/financeService');
 const notificationService = require('../services/notificationService');
 
 /**
- * API 1 — GET /api/payment/product
+ * API 1 â€” GET /api/payment/product
  */
 exports.getProduct = async (req, res) => {
     try {
@@ -56,7 +56,7 @@ exports.getProduct = async (req, res) => {
 };
 
 /**
- * API 2 — POST /api/payment/initiate
+ * API 2 â€” POST /api/payment/initiate
  */
 exports.initiatePayment = async (req, res) => {
     try {
@@ -77,7 +77,7 @@ exports.initiatePayment = async (req, res) => {
             return res.status(400).json({ success: false, message: 'This intent is not available' });
         }
 
-        // ── Check for existing PENDING payment ──
+        // â”€â”€ Check for existing PENDING payment â”€â”€
         // Only allow one active pending payment at a time to avoid spam
         const existingPayment = await Payments.findOne({ userId, caseId, intentId, status: 'PENDING' });
         if (existingPayment) {
@@ -152,7 +152,7 @@ exports.initiatePayment = async (req, res) => {
 };
 
 /**
- * API 3 — POST /api/payment/verify
+ * API 3 â€” POST /api/payment/verify
  */
 exports.verifyPayment = async (req, res) => {
     try {
@@ -197,7 +197,7 @@ exports.verifyPayment = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Playbook not found' });
         }
 
-        // [RELAXED CHECK] Check UserProfile — Allow the flow to continue even for unconfirmed profiles for testing
+        // [RELAXED CHECK] Check UserProfile â€” Allow the flow to continue even for unconfirmed profiles for testing
         const { UserProfile } = require('../models/index.model.js').db;
         const userProfile = await UserProfile.findOne({ userId }); 
         
@@ -288,7 +288,7 @@ exports.verifyPayment = async (req, res) => {
 };
 
 /**
- * API 4 — GET /api/payment/status
+ * API 4 â€” GET /api/payment/status
  * Purpose: Check if user has already paid for a specific case/intent before showing payment UI.
  */
 exports.getPaymentStatus = async (req, res) => {
@@ -365,7 +365,7 @@ exports.getPaymentStatus = async (req, res) => {
     }
 };
 /**
- * API 5 — GET /api/payment/detail/:paymentId
+ * API 5 â€” GET /api/payment/detail/:paymentId
  * Purpose: Get full receipt details for a specific payment
  */
 exports.getPaymentDetail = async (req, res) => {
@@ -409,7 +409,7 @@ exports.getPaymentDetail = async (req, res) => {
 };
 
 /**
- * API 6 — GET /api/payment/list
+ * API 6 â€” GET /api/payment/list
  * Purpose: Get list of all payments for the authenticated user
  */
 exports.getAllPayments = async (req, res) => {
@@ -461,7 +461,7 @@ exports.getAllPayments = async (req, res) => {
 
 
 /**
- * API 7 � POST /api/payment/verify-and-recover
+ * API 7 — POST /api/payment/verify-and-recover
  * Purpose: Payment Failed Recovery (Slide 24) with cooling logic
  */
 exports.verifyAndRecover = async (req, res) => {
@@ -522,3 +522,28 @@ exports.verifyAndRecover = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+
+const s3Service = require('../../utils/s3');
+
+exports.downloadUserInvoice = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const userId = req.user.id;
+        const invoice = await db.Invoice.findOne({ runId, userId });
+        if (!invoice || !invoice.pdfUrl) {
+            return res.status(404).json({ success: false, message: 'Invoice not found or unauthorized.' });
+        }
+        const key = 'invoices/' + invoice.invoiceNumber + '.pdf';
+        const { Body, ContentType } = await s3Service.getFileStream(key);
+        res.setHeader('Content-Type', ContentType || 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=' + invoice.invoiceNumber + '.pdf');
+        return Body.pipe(res);
+    } catch (err) {
+        console.error('[User Invoice Error]', err);
+        return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+module.exports = exports;
+
+

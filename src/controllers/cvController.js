@@ -182,6 +182,22 @@ exports.uploadRunCv = async (req, res) => {
             if (extractedData && extractedData.isCv === false) {
                 await deleteFile(fileName);
                 
+                // Save the failed attempt to DocumentUploads for audit tracking
+                await db.DocumentUploads.create({
+                    userId,
+                    fileName: file.originalname,
+                    cvUrl: null,
+                    parsedCvData: null,
+                    parserStatus: 'NOT_A_CV',
+                    errorReason: 'Detected as non-CV document.',
+                    parserMetadata: extractedData ? {
+                        modelUsed: extractedData.modelUsed,
+                        duration: extractedData.totalPipelineDuration,
+                        tokenUsage: extractedData.tokenUsage
+                    } : null,
+                    isActive: false
+                });
+
                 // --- NEW: Log Failure Reason (User Request) ---
                 await db.auditLog.create({
                     action: 'CV_PARSING_REJECTED',

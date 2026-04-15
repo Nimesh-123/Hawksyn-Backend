@@ -32,5 +32,21 @@ route.use('/playbook', adminPlaybookRoute);
  *         description: Permission denied
  */
 route.get('/dashboard/stats', adminController.getDashboardStats);
+route.get('/signals/summary', adminController.getDashboardStats); // Fallback for old UI
+route.get('/signals/volume', adminController.getSignalVolumeSummary); 
+
+// Financials
+route.get('/payments/all', adminController.getAllPayments);
+route.get('/payments/export', adminController.exportPaymentsCSV);
+
+// Content Management (FAQ & Legal)
+const supportController = require('../../controllers/supportContentController');
+route.get('/content/faq', supportController.getFAQs);
+route.post('/content/faq', supportController.createFAQ);
+route.patch('/content/faq/:id', supportController.updateFAQ);
+route.delete('/content/faq/:id', supportController.deleteFAQ);
+
+route.get('/content/legal', supportController.getLegalContent);
+route.post('/content/legal', supportController.upsertLegalContent);
 
 module.exports = route;

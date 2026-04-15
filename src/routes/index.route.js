@@ -12,9 +12,12 @@ const recordsRoutes = require('./records.routes.js');
 const commandCenterRoutes = require('./commandCenterRoutes.js');
 const expertAuthRoute = require('./expert/expertAuth.route.js');
 const notificationRoutes = require('./notificationRoutes.js');
+const contentRoutes = require('./contentRoutes.js');
 
 // 1. PUBLIC ROUTES (Login / Signup)
 route.use('/auth', authRoute);
+route.use('/content', contentRoutes); // /api/v1/content/faq
+route.use('/legal', contentRoutes);   // /api/v1/legal/content
 
 // 2. PROTECTED ROUTES (Requires valid JWT Token)
 route.use('/admin', adminRoute);

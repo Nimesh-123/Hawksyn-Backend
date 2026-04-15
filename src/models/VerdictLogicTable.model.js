@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 
 const VerdictLogicTableSchema = new mongoose.Schema({
     ruleId: { type: String, required: true, unique: true },
-    stage: { 
-        type: Number, 
+    stage: {
+        type: Number,
         required: true,
         min: 1,
         max: 5

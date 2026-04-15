@@ -17,6 +17,8 @@ const userSchema = new mongoose.Schema(
         isEmailVerified: { type: Boolean, default: false },
         isDeleted: { type: Boolean, default: false },
         deletedAt: { type: Date },
+        deletionReason: { type: String, default: null }, // Selected from dropdown 
+        deletionComment: { type: String, default: null }, // Optional user feedback 
         isBlocked: { type: Boolean, default: false },
         mPinSet: { type: Boolean, default: false },
         role: { type: String, enum: ['user', 'admin', 'expert'], default: 'user' },

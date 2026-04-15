@@ -219,4 +219,22 @@ router.post('/experts/verify', expertController.verifyExpertQueryPayment);
  */
 router.post('/verify-and-recover', paymentController.verifyAndRecover);
 
+/**
+ * @swagger
+ * /payment/invoice/{runId}:
+ *   get:
+ *     summary: Download payment invoice (S3) for a specific run
+ *     tags: ["4. Payments & Run Initiation"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: PDF Stream
+ */
+router.get('/invoice/:runId', paymentController.downloadUserInvoice);
+
 module.exports = router;

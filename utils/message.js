@@ -24,7 +24,8 @@ const MESSAGES = {
     // api error
     9999: 'Something went wrong !!',
     4444: 'Access denied for this route',
-    1002: 'Invalid token'
+    1002: 'Invalid token',
+    3009: 'Invalid CV Document'
 };
 
 const get_message = message_code => {

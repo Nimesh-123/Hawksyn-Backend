@@ -261,10 +261,13 @@ exports.deleteAccount = async (req, res) => {
 
             return RESPONSE.success(res, 200, 2002, { message: "Account permanently deleted." });
         } else {
+            const { reason, comment } = req.body;
             user.isDeleted = true;
             user.deletedAt = new Date();
+            user.deletionReason = reason || "No reason provided";
+            user.deletionComment = comment || "";
             await user.save();
-            await createAuditLog(req, 'ACCOUNT_DELETED', user._id, { email: user.email });
+            await createAuditLog(req, 'ACCOUNT_DELETED', user._id, { email: user.email, reason, comment });
             return RESPONSE.success(res, 200, 2002);
         }
     } catch (err) {
@@ -306,7 +309,27 @@ exports.uploadCV = async (req, res) => {
             
             if (extractedData && extractedData.isCv === false) {
                 await deleteFile(fileName);
-                return RESPONSE.error(res, 400, 1002, "Not a valid CV.");
+
+                // Save the failed attempt to DocumentUploads for audit tracking
+                const userId = req.user.id;
+                await db.DocumentUploads.create({
+                    userId,
+                    fileName: file.originalname,
+                    cvUrl: null,
+                    parsedCvData: null,
+                    parserStatus: 'NOT_A_CV',
+                    errorReason: 'Detected as non-CV document.',
+                    parserMetadata: extractedData ? {
+                        modelUsed: extractedData.modelUsed,
+                        duration: extractedData.totalPipelineDuration,
+                        tokenUsage: extractedData.tokenUsage
+                    } : null,
+                    isActive: false
+                });
+
+                await createAuditLog(req, 'CV_REJECTED', userId, { reason: 'NOT_A_CV', fileName: file.originalname });
+
+                return RESPONSE.error(res, 400, 3009, "Not a valid CV.");
             }
 
             if (extractedData) {

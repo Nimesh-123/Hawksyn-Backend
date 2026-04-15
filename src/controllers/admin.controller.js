@@ -5,6 +5,39 @@ const RESPONSE = require('../../utils/response.js');
 const s3Service = require('../../utils/s3');
 const notificationService = require('../services/notificationService');
 
+/**
+ * PHASE 2: Dashboard Overview Statistics
+ * GET /api/v1/admin/dashboard/stats
+ */
+exports.getDashboardStats = async (req, res) => {
+    try {
+        const totalUsers = await db.User.countDocuments({ role: 'user' });
+        const activeRuns = await db.Runs.countDocuments({ status: { $nin: ['REPORT_COMPLETE', 'FAILED'] } });
+        
+        // Pending Audits (Kanban Columns: INTAKE, ANALYSIS, REVIEW)
+        const pendingAudits = await db.Runs.countDocuments({ 
+            status: { $in: ['CREATED', 'CV_UPLOADED', 'ANALYSING', 'INTEGRITY_CHECK_PASSED', 'EXPERT_ASSIGNED'] } 
+        });
+
+        // Revenue (Sum of successful payments)
+        const revenueData = await db.Payments.aggregate([
+            { $match: { status: 'COMPLETED' } },
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]);
+        const totalRevenue = revenueData.length > 0 ? revenueData[0].total : 0;
+
+        return RESPONSE.success(res, 200, 1001, {
+            totalUsers,
+            activeRuns,
+            pendingAudits,
+            totalRevenue,
+            currency: 'INR'
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
 // Admin Signup
 exports.adminSignup = async (req, res) => {
     try {
@@ -691,15 +724,7 @@ exports.getRatedReports = async (req, res) => {
 // ADMIN REVIEW — Get Complete Report Package for Rating
 // GET /api/v1/admin/reports/:runId/review
 // ─────────────────────────────────────────────────────────────────────────────
-// Admin ek hi API call mein pura data dekhta hai:
-//   ✅ User info (name, email)
-//   ✅ CV / Parsed Profile (skills, experience, current role, etc.)
-//   ✅ User ke saare Q&A answers
-//   ✅ Integrity Score + Red Flags + Contradictions
-//   ✅ External Market Signals
-//   ✅ Generated Report (all sections + verdict)
-//   ✅ Current rating (agar pehle de chuka hai)
-// ─────────────────────────────────────────────────────────────────────────────
+
 exports.getReportForReview = async (req, res) => {
     try {
         const { runId } = req.params;
@@ -861,10 +886,7 @@ exports.getReportForReview = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // ADMIN REVIEW — List All Completed Runs (Pending + Rated)
 // GET /api/v1/admin/reports/runs
-// ─────────────────────────────────────────────────────────────────────────────
-// Admin ko pata chale kaunse runs review ke liye available hain.
-// Optionally filter by: rated=true/false, caseId, intentId
-// ─────────────────────────────────────────────────────────────────────────────
+
 exports.getAllCompletedRuns = async (req, res) => {
     try {
         const { rated, caseId, intentId, page = 1, limit = 20 } = req.query;
@@ -1178,5 +1200,118 @@ exports.downloadReportS3 = async (req, res) => {
         return Body.pipe(res);
     } catch (err) {
         return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * PHASE 2: Signal Volume Summary for Analytics Dashboard
+ * GET /api/v1/admin/signals/summary
+ */
+exports.getSignalVolumeSummary = async (req, res) => {
+    try {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        // 1. Domain-wise Distribution (based on caseId)
+        const domainDist = await db.ExternalEvidenceDataPool.aggregate([
+            { $group: { _id: "$caseId", count: { $sum: 1 } } },
+            { $sort: { count: -1 } }
+        ]);
+
+        // 2. Daily Ingestion Trend (Last 7 Days)
+        const trend = await db.ExternalEvidenceDataPool.aggregate([
+            { $match: { fetchedAt: { $gte: sevenDaysAgo } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$fetchedAt" } },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        // 3. Source Distribution
+        const sourceDist = await db.ExternalEvidenceDataPool.aggregate([
+            { $group: { _id: "$sourceId", count: { $sum: 1 } } },
+            { $limit: 10 },
+            { $sort: { count: -1 } }
+        ]);
+
+        // 4. Overalls
+        const totalSignals = await db.ExternalEvidenceDataPool.countDocuments();
+        const freshSignals = await db.ExternalEvidenceDataPool.countDocuments({ 
+            freshnessExpiresAt: { $gt: new Date() } 
+        });
+
+        return RESPONSE.success(res, 200, 1001, {
+            summary: {
+                total: totalSignals,
+                fresh: freshSignals,
+                inactive: totalSignals - freshSignals
+            },
+            charts: {
+                domainDistribution: domainDist,
+                sourceDistribution: sourceDist,
+                sevenDayTrend: trend
+            }
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+/**
+ * PHASE 2: Financial Ledger API
+ * GET /api/v1/admin/payments/all
+ */
+exports.getAllPayments = async (req, res) => {
+    try {
+        const { page = 1, limit = 20, status } = req.query;
+        const filter = {};
+        if (status) filter.status = status;
+
+        const payments = await db.Payments.find(filter)
+            .sort({ createdAt: -1 })
+            .skip((Number(page) - 1) * Number(limit))
+            .limit(Number(limit))
+            .lean();
+
+        const total = await db.Payments.countDocuments(filter);
+
+        return RESPONSE.success(res, 200, 1001, {
+            payments,
+            total,
+            page: Number(page),
+            pages: Math.ceil(total / Number(limit))
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+/**
+ * PHASE 2: Export All Payments as CSV
+ * GET /api/v1/admin/payments/export
+ */
+exports.exportPaymentsCSV = async (req, res) => {
+    try {
+        const payments = await db.Payments.find({}).sort({ createdAt: -1 }).lean();
+        
+        // CSV Headers - Updated to be more clear
+        let csv = 'Date,PaymentId,PurchaseId/GatewayID,Amount,Currency,Status,Gateway,CaseId,UserId\n';
+        
+        payments.forEach(p => {
+            const rawDate = p.verifiedAt || p.createdAt || null;
+            const date = rawDate ? new Date(rawDate).toLocaleDateString('en-GB') : 'N/A';
+            const gateway = p.paymentMethod || 'Stripe';
+            csv += `${date},${p.paymentId},${p.purchaseId || 'N/A'},${p.amount},${p.currency || 'INR'},${p.status},${gateway},${p.caseId},${p.userId}\n`;
+        });
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=Hawksyn_Transactions.csv');
+        
+        return res.status(200).send(csv);
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
     }
 };
