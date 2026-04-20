@@ -47,7 +47,7 @@ exports.sendOTP = async (req, res) => {
             { upsert: true, new: true }
         );
 
-        console.log(`[DEV Auth] OTP for ${email}: ${otp} (Valid for 30s)`);
+        console.log(`[DEV Auth] OTP for ${email}: ${otp} (Valid for 5 mins)`);
 
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
             try {
@@ -55,8 +55,8 @@ exports.sendOTP = async (req, res) => {
                 await sendEmail({
                     email,
                     subject: 'Your Hawksyn OTP Verification Code',
-                    message: `Your OTP is ${otp}. It will expire in 30 seconds.`,
-                    html: `<b>Your OTP is ${otp}</b><p>It will expire in 30 seconds.</p>`
+                    message: `Your OTP is ${otp}. It will expire in 5 minutes.`,
+                    html: `<b>Your OTP is ${otp}</b><p>It will expire in 5 minutes.</p>`
                 });
             } catch (e) { console.error("[Mail] Failed:", e.message); }
         }
@@ -289,11 +289,11 @@ exports.forgotPin = async (req, res) => {
 
 exports.uploadCV = async (req, res) => {
     try {
-        if (!req.file) return RESPONSE.error(res, 400, 1002, "No file provided.");
+        if (!req.file) return RESPONSE.error(res, 400, 3009, "No file provided.");
 
         const file = req.file;
-        if (file.mimetype !== 'application/pdf') return RESPONSE.error(res, 400, 1002, "Only PDF files allowed.");
-        if (file.size > 10 * 1024 * 1024) return RESPONSE.error(res, 400, 1002, "Limit 10MB exceeded.");
+        if (file.mimetype !== 'application/pdf') return RESPONSE.error(res, 400, 3009, "Only PDF files allowed.");
+        if (file.size > 10 * 1024 * 1024) return RESPONSE.error(res, 400, 3009, "Limit 10MB exceeded.");
 
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const fileName = `resumes/${req.user.id}-${uniqueSuffix}.pdf`;
@@ -524,6 +524,117 @@ exports.updateFcmToken = async (req, res) => {
         await db.User.findByIdAndUpdate(req.user.id, { $set: { fcmToken } });
 
         return RESPONSE.success(res, 200, 1001, { message: "FCM Token updated successfully" });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+/**
+ * Logout from all devices by clearing the refresh token
+ */
+exports.logoutAll = async (req, res) => {
+    try {
+        await db.User.findByIdAndUpdate(req.user.id, { $set: { refreshToken: null } });
+        return RESPONSE.success(res, 200, 2004, { message: "Logged out from all devices successfully." });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+/**
+ * Change M-PIN using the old PIN
+ */
+exports.changeMPin = async (req, res) => {
+    try {
+        const { oldPin, newPin } = req.body;
+        const user = await db.User.findById(req.user.id);
+        
+        const bcrypt = require('bcryptjs');
+        const isMatch = await bcrypt.compare(String(oldPin), user.mPin);
+        if (!isMatch) return RESPONSE.error(res, 401, 3012, "Incorrect old PIN.");
+
+        user.mPin = await bcrypt.hash(String(newPin), 10);
+        await user.save();
+
+        return RESPONSE.success(res, 200, 1001, { message: "M-PIN changed successfully." });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+/**
+ * DPDP Compliance: Download all user data in JSON format
+ */
+exports.downloadUserData = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const [user, profile, runs, payments, credits] = await Promise.all([
+            db.User.findById(userId).select('-mPin -refreshToken').lean(),
+            db.UserProfile.findOne({ userId }).lean(),
+            db.Runs.find({ userId }).lean(),
+            db.Payments.find({ userId }).lean(),
+            db.UserCredits.findOne({ userId }).lean()
+        ]);
+
+        const dataDump = {
+            account: user,
+            profileSnapshot: profile,
+            auditHistory: runs,
+            financialTransactions: payments,
+            creditsBalance: credits,
+            exportedAt: new Date()
+        };
+
+        return res.status(200).json({
+            success: true,
+            message: "Data export successful.",
+            data: dataDump
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+/**
+ * User requests to become an Expert (Auditor)
+ * Sets role to 'expert' and creates a pending record in RiskAuditorRegistry
+ */
+exports.applyAsExpert = async (req, res) => {
+    try {
+        const user = await db.User.findById(req.user.id);
+        if (!user) return RESPONSE.error(res, 404, 3001);
+
+        // Mark as applicant, but role stays 'user' until admin promotion
+        user.isExpertApplicant = true;
+        user.isExpert = false;
+        await user.save();
+
+        // Create an initial record in RiskAuditorRegistry if not exists
+        let expertRecord = await db.RiskAuditorRegistry.findOne({ email: user.email });
+        if (!expertRecord) {
+            // Hardcode a simple ID generation if utility is not available or complex
+            const auditorId = `AUD-${Math.floor(1000 + Math.random() * 9000)}`;
+            
+            expertRecord = await db.RiskAuditorRegistry.create({
+                auditorId,
+                auditorName: user.fullName || user.name || 'New Expert applicant',
+                email: user.email,
+                password: user.mPin || 'Expert@Hks123!', // Link to their PIN initially
+                status: 'PENDING_SETUP', 
+                isActive: false, 
+                caseCategories: [], // No categories yet
+            });
+        }
+
+        await createAuditLog(req, 'EXPERT_APPLICATION_SUBMITTED', user._id, { email: user.email });
+
+        return RESPONSE.success(res, 200, 1001, { 
+            message: "Expert application submitted. You are now in pending activation state.",
+            role: user.role,
+            isExpert: user.isExpert,
+            isExpertApplicant: user.isExpertApplicant,
+            status: expertRecord.status
+        });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
     }

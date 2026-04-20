@@ -3,7 +3,7 @@ const { generateJSON } = require('../src/services/aiProvider.js');
 /**
  * 1. PROMPT HELPER — Generate dynamic market signal analysis prompt based on taxonomy
  */
-function buildSignalPrompt({ role, industry, orgSize, intentName, caseName, taxonomy = [] }) {
+function buildSignalPrompt({ role, industry, location, skills, orgSize, intentName, caseName, taxonomy = [] }) {
     const signalInstructions = taxonomy.map(t => {
         let options = "HIGH | MEDIUM | LOW";
         if (t.valueFormat === 'PERCENT') options = "0-100 number";
@@ -14,7 +14,7 @@ function buildSignalPrompt({ role, industry, orgSize, intentName, caseName, taxo
     "name": "${t.signalName}",
     "category": "${t.signalCategory}",
     "value": "${options}",
-    "rationale": "One specific factual sentence about this signal for ${role} in ${industry}.",
+    "rationale": "A detailed, evidence-based factual analysis (2-3 sentences) explaining this signal's impact for ${role} in ${industry}.",
     "sourceName": "Specific real-world data source (e.g. LinkedIn Hiring Index, MoSPI Labour Force Survey, Naukri Tech Jobs Index)",
     "sourceUrl": "Realistic URL to the source or its latest report",
     "citation": "A formal citation string for the evidence",
@@ -33,6 +33,8 @@ STRICT PRECISION RULE:
 Profile:
 - Current Role: ${role}
 - Industry: ${industry}
+- Location: ${location}
+- Top Skills: ${skills}
 - Organization Size: ${orgSize}
 - Assessment Type: ${caseName}
 - User Intent: ${intentName}
@@ -43,12 +45,12 @@ Return ONLY a JSON object. No markdown. No explanation.
 ${signalInstructions}
   },
   "dataQuality": "COMPLETE | PARTIAL | INSUFFICIENT",
-  "analystNote": "One overall sentence summarising the market position for this specific ${role} profile."
+  "analystNote": "A comprehensive summary (2-3 sentences) of the overall market position for this specific ${role} profile."
 }
 
 Rules:
 - value fields must match the format requested.
-- rationale must be exactly one sentence.
+- rationale must be detailed and analytical.
 - dataQuality: COMPLETE if specific to role/industry, PARTIAL if broad sector only.`;
 }
 

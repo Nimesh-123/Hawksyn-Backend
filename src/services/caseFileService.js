@@ -119,7 +119,7 @@ function buildExternalSignalSummary(signalsRas) {
 
     const signals = signalsRas.artifactJson?.signals || {};
     const available = Object.entries(signals)
-        .filter(([key, val]) => val && typeof val === 'object' && val.value && val.value !== 'UNKNOWN')
+        .filter(([key, val]) => val && typeof val === 'object' && (val.value !== undefined && val.value !== null && val.value !== 'UNKNOWN'))
         .map(([key]) => key);
 
     return {

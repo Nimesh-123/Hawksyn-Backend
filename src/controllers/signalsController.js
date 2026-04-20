@@ -45,27 +45,54 @@ exports.collectSignals = async (req, res) => {
             status: 'FINAL'
         });
 
-        const profileData = profileRas?.artifactJson || {};
-        const profile = profileData.confirmedProfile || profileData.profile || profileData;
-
-        const [intent, caseReg] = await Promise.all([
-            db.IntentTaxonomy.findOne({ intentId: run.intentId }),
-            db.CaseRegistry.findOne({ caseId: run.caseId })
+        // 2. Load Assessment Details & Environment
+        const [caseReg, intent] = await Promise.all([
+            db.CaseRegistry.findOne({ caseId: run.caseId }),
+            db.IntentTaxonomy.findOne({ intentId: run.intentId })
         ]);
 
+        // RELENTLESS PROFILE FALLBACK: 
+        // 1. Current Run Artifact
+        let profile = profileRas?.artifactJson?.confirmedProfile || profileRas?.artifactJson?.profile || profileRas?.artifactJson;
+        
+        // 2. Run Snapshot (Crucial for Re-runs)
+        if (!profile && run.cvSnapshot?.parsedData) {
+            console.log(`[DEBUG-SIGNALS] Profile missing in artifacts, using cvSnapshot for run ${runId}`);
+            profile = run.cvSnapshot.parsedData;
+        }
+
+        // 3. Global User Profile (Emergency backup)
+        if (!profile) {
+            console.log(`[DEBUG-SIGNALS] No profile for run ${runId}, falling back to latest user profile...`);
+            const globalProfile = await db.UserProfile.findOne({ userId: run.userId }).sort({ updatedAt: -1 });
+            profile = globalProfile?.confirmedProfile || globalProfile?.personalInfo || globalProfile;
+        }
+
         const promptContext = {
-            role: profile?.currentRole || profile?.role || 'Professional',
-            industry: profile?.industry || 'Technology',
+            role: profile?.currentRoleTitle || profile?.personalInfo?.currentRoleTitle || profile?.identity?.currentRoleTitle || profile?.currentRole || profile?.role || 'Professional',
+            industry: profile?.industry || profile?.personalInfo?.industry || profile?.domain || 'Technology',
+            location: profile?.location || profile?.personalInfo?.location || 'Global',
+            skills: Array.isArray(profile?.skills) ? profile.skills.join(', ') : (profile?.topSkills || (profile?.skills ? String(profile.skills) : 'Not specified')),
             orgSize: profile?.organizationSize || profile?.orgSize || 'Not specified',
             intentName: intent?.intentName || 'Assess risk',
             caseName: caseReg?.caseName || 'Job Safety Assessment'
         };
 
-        // --- NEW: Fetch Dynamic Taxonomy (Task 8) ---
-        const taxonomy = await db.ExternalSignalTaxonomy.find({ 
+        // 3. Load Taxonomy & Sources
+        let taxonomy = await db.ExternalSignalTaxonomy.find({ 
             $or: [{ caseId: run.caseId }, { caseId: 'ALL' }],
             isActive: true 
         });
+
+        // SAFETY: If DB taxonomy is empty, use a baseline set to avoid empty responses
+        if (!taxonomy || taxonomy.length === 0) {
+            console.warn(`[DEBUG-SIGNALS] Taxonomy empty in DB. Using baseline signals for ${run.caseId}`);
+            taxonomy = [
+                { signalId: 'EST_AUTO_RISK', signalName: 'Automation Risk', valueFormat: 'PERCENT', description: 'Risk of role displacement by AI in 12 months' },
+                { signalId: 'EST_TALENT_DEMAND', signalName: 'Market Demand', valueFormat: 'PERCENT', description: 'Growth or decline in hiring for this specific role' },
+                { signalId: 'EST_SKILL_WINDOW', signalName: 'Skill Adaptation Window', valueFormat: 'PERCENT', description: 'Time remaining before current skills become obsolete' }
+            ];
+        }
 
         const prompt = buildSignalPrompt({ ...promptContext, taxonomy });
 
@@ -155,7 +182,9 @@ exports.collectSignals = async (req, res) => {
         if (signals && signals.signals) {
             for (const t of taxonomy) {
                 const rawSig = signals.signals[t.signalId];
-                if (!rawSig || rawSig.value === undefined || rawSig.value === 'UNKNOWN') continue;
+                if (!rawSig || rawSig.value === undefined || rawSig.value === 'UNKNOWN') {
+                    continue;
+                }
 
                 // 1. Mandatory EEDP Component Creation (AEU)
                 const raw_value = rawSig.raw_value || rawSig.value; // Prefer raw numeric evidence

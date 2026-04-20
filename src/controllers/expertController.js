@@ -74,7 +74,7 @@ exports.assignExpert = async (req, res) => {
         }
 
         const experts = await db.RiskAuditorRegistry.find({
-            caseId: run.caseId,
+            caseCategories: { $in: [run.caseId] },
             isActive: true,
             $expr: { $lt: ['$currentCaseload', '$maxCaseload'] }
         });
@@ -657,5 +657,153 @@ exports.unlockExpertSupport = async (req, res) => {
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Update Expert's Professional Profile & Payout Info
+ */
+exports.updateExpertProfile = async (req, res) => {
+    try {
+        const id = req.user.id;
+        const { 
+            auditorName, designation, currentOrganization, experienceYears,
+            industryExpertise, specializations, profileNote, upiId, bankDetails,
+            maxCaseload, slaCommitmentHours
+        } = req.body;
+
+        const expert = await db.RiskAuditorRegistry.findById(id);
+        if (!expert) return RESPONSE.error(res, 404, 1005, 'Expert not found');
+
+        // Optional Validation: Simple UPI Check
+        if (upiId && !upiId.includes('@')) {
+            return RESPONSE.error(res, 400, 1002, 'Invalid UPI ID format');
+        }
+
+        // Apply Updates
+        if (auditorName) expert.auditorName = auditorName;
+        if (designation) expert.designation = designation;
+        if (currentOrganization) expert.currentOrganization = currentOrganization;
+        if (experienceYears) expert.experienceYears = experienceYears;
+        if (industryExpertise) expert.industryExpertise = industryExpertise;
+        if (specializations) expert.specializations = specializations;
+        if (profileNote) expert.profileNote = profileNote;
+        if (upiId) expert.upiId = upiId;
+        if (bankDetails) expert.bankDetails = bankDetails;
+        if (maxCaseload) expert.maxCaseload = maxCaseload;
+        if (slaCommitmentHours) expert.slaCommitmentHours = slaCommitmentHours;
+
+        // Auto-activate if setup is reasonably complete
+        if (expert.designation && expert.upiId && expert.status === 'PENDING_SETUP') {
+            expert.status = 'ACTIVE';
+        }
+
+        await expert.save();
+
+        return RESPONSE.success(res, 200, 1001, {
+            message: 'Expert profile updated successfully',
+            status: expert.status,
+            expert
+        });
+
+    } catch (error) {
+        return RESPONSE.error(res, 500, 9999, error.message);
+    }
+};
+
+/**
+ * Fetch Expert's own Profile Data
+ */
+exports.getExpertProfile = async (req, res) => {
+    try {
+        const id = req.user.id;
+        const expert = await db.RiskAuditorRegistry.findById(id).select('-password -refreshToken');
+        if (!expert) return RESPONSE.error(res, 404, 1005, 'Expert not found');
+
+        return RESPONSE.success(res, 200, 1001, expert);
+    } catch (error) {
+        return RESPONSE.error(res, 500, 9999, error.message);
+    }
+};
+
+/**
+ * Toggle Expert Availability (ON/OFF for new cases)
+ */
+exports.toggleAvailability = async (req, res) => {
+    try {
+        const id = req.user.id;
+        const { isActive } = req.body; 
+
+        const expert = await db.RiskAuditorRegistry.findByIdAndUpdate(
+            id, 
+            { $set: { isActive: !!isActive } },
+            { new: true }
+        );
+
+        return RESPONSE.success(res, 200, 1001, {
+            message: `Expert status updated to ${expert.isActive ? 'ONLINE' : 'OFFLINE'}`,
+            isActive: expert.isActive
+        });
+    } catch (error) {
+        return RESPONSE.error(res, 500, 9999, error.message);
+    }
+};
+
+/**
+ * Get Expert's Cases categorized by status (Assigned, Done)
+ */
+exports.getExpertCases = async (req, res) => {
+    try {
+        const id = req.user.id;
+        const { tab = 'ASSIGNED' } = req.query; // ASSIGNED, COMPLETED
+
+        const expertRecord = await db.RiskAuditorRegistry.findById(id);
+        if (!expertRecord) return RESPONSE.error(res, 404, 1005, 'Expert not found');
+
+        const statusMap = {
+            'ASSIGNED': 'EXPERT_ASSIGNED',
+            'COMPLETED': 'REPORT_COMPLETE'
+        };
+
+        const targetStatus = statusMap[tab.toUpperCase()] || 'EXPERT_ASSIGNED';
+
+        const runs = await db.Runs.find({
+            expertId: id,
+            status: targetStatus
+        })
+        .populate('userId', 'name email')
+        .sort({ expertAssignedAt: -1 })
+        .lean();
+
+        const enrichedRuns = await Promise.all(runs.map(async (run) => {
+            const reportRas = await db.Ras.findOne({
+                runId: run.runId,
+                artifactType: 'FINAL_REPORT'
+            }).select('artifactJson');
+
+            const report = reportRas?.artifactJson || {};
+            
+            let riskPriority = 'LOW';
+            if (report.verdict === 'STOP' || report.hasTerminalFailure) riskPriority = 'HIGH';
+            else if (report.verdict === 'CAUTION') riskPriority = 'MEDIUM';
+
+            return {
+                runId: run.runId,
+                caseId: run.caseId,
+                userName: run.userId?.name || 'User',
+                userEmail: run.userId?.email,
+                daysLeft: run.daysLeft,
+                status: run.status,
+                assignedAt: run.expertAssignedAt,
+                riskPriority, 
+                verdict: report.verdict,
+                hasTerminalFailure: report.hasTerminalFailure || false
+            };
+        }));
+
+        return RESPONSE.success(res, 200, 1001, enrichedRuns);
+
+    } catch (error) {
+        return RESPONSE.error(res, 500, 9999, error.message);
     }
 };

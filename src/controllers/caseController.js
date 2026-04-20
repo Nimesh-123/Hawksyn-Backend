@@ -256,7 +256,7 @@ exports.getPipelineSummary = async (req, res) => {
         const { period } = req.query;
         let matchQuery = {};
 
-        if (period) {
+        if (period && period !== 'all') {
             const now = new Date();
             let startDate = new Date();
 

@@ -1,4 +1,4 @@
-﻿const CaseRegistry = require('../models/CaseRegistry.model');
+const CaseRegistry = require('../models/CaseRegistry.model');
 const CaseIntentConfig = require('../models/CaseIntentConfig.model');
 const Playbooks = require('../models/Playbooks.model');
 const Payments = require('../models/Payments.model');
@@ -311,9 +311,11 @@ exports.getPaymentStatus = async (req, res) => {
             activeRun = await Runs.findOne({ userId, caseId, intentId }).sort({ createdAt: -1 });
         }
 
-        // --- RE-RUN LOGIC ---
-        // If the latest run is already complete, we should NOT force a resume.
-        // Instead, we allow the user to start a new "Re-run" flow.
+                // --- RE-RUN LOGIC ---
+        const reRunSetup = activeRun?.reRunSetup;
+        const isEligibleForFree = reRunSetup?.eligibleForFreeReRun === true && 
+                                 (!reRunSetup?.freeReRunExpiryDate || new Date() <= new Date(reRunSetup.freeReRunExpiryDate));
+
         const isRunFinished = activeRun && ['REPORT_COMPLETE', 'EXPERT_ASSIGNED'].includes(activeRun.status);
 
         if ((completedPayment || activeRun) && !isRunFinished) {
@@ -325,23 +327,23 @@ exports.getPaymentStatus = async (req, res) => {
                     runId: activeRun ? activeRun.runId : (completedPayment ? completedPayment.runId : null),
                     status: activeRun ? "RESUME_RUN" : "PAYMENT_DONE_RUN_NOT_STARTED",
                     runStatus: activeRun ? activeRun.status : null,
-                    message: activeRun && ['QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED', 'INTEGRITY_COMPLETE'].includes(activeRun.status)
-                        ? "Questions already answered. Proceed to analysis."
-                        : activeRun ? "Resume your current run." : "Payment complete. Start your run."
+                    message: activeRun ? "Resume your current run." : "Payment complete. Start your run."
                 }
             });
         }
 
-        // If a run is finished, we tell the frontend that a Re-run is possible
         if (isRunFinished) {
             return res.status(200).json({
                 success: true,
                 data: {
-                    isPaid: true, // TEMPORARY BYPASS: Set to true so frontend shows Start button
+                    isPaid: isEligibleForFree, 
                     canReRun: true,
+                    isFreeReRun: isEligibleForFree,
                     previousRunId: activeRun.runId,
                     status: "CAN_RE_RUN",
-                    message: "You have a completed report for this case. You can start a re-run."
+                    message: isEligibleForFree 
+                        ? "You are eligible for a free re-run!" 
+                        : "You have a completed report for this case. You can start a new re-run."
                 }
             });
         }
@@ -477,16 +479,16 @@ exports.verifyAndRecover = async (req, res) => {
         const payment = await Payments.findOne(query);
         if (!payment) return res.status(404).json({ success: false, message: 'Payment record not found' });
 
-        // 1. Cooling logic: If payment is very new (< 2 mins), wait for gateway sync
+        // 1. Cooling logic: If payment is very new (< 10 mins), wait for gateway sync
         const now = new Date();
         const created = new Date(payment.createdAt);
         const diffMinutes = (now - created) / (1000 * 60);
 
-        if (diffMinutes < 2 && payment.status === 'PENDING') {
+        if (diffMinutes < 10 && payment.status === 'PENDING') {
             return res.status(429).json({
                 success: false,
-                message: 'Recovery is too early. Please wait at least 2 minutes for bank sync.',
-                coolingRemainingMinutes: Math.ceil(2 - diffMinutes)
+                message: 'Recovery is too early. Please wait at least 10 minutes for bank sync.',
+                coolingRemainingMinutes: Math.ceil(10 - diffMinutes)
             });
         }
 

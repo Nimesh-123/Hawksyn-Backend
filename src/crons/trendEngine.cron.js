@@ -221,8 +221,26 @@ async function runTrendEngine() {
                 const userIds = [...new Set(runs.map(r => r.userId))];
 
                 console.log(`[TrendEngine] ${userIds.length} users to notify for trend update in ${pair.role} / ${pair.industry}`);
-                // TODO V1Light: Push notification code below
-                // if (userIds.length > 0) { ... notification engine logic ... }
+
+                // --- PUSH NOTIFICATIONS: Notify users if scores are critical ---
+                if (userIds.length > 0) {
+                    const notifyService = require('../services/notificationService');
+                    
+                    for (const userId of userIds) {
+                        try {
+                            // Notify AI Exposure if High Risk
+                            if (trends.aiExposureScore >= 70) {
+                                await notifyService.notifyClockCritical(userId, 'AI Exposure', trends.aiExposureScore);
+                            }
+                            // Notify Momentum if Critical
+                            if (trends.careerMomentumScore <= 30) {
+                                await notifyService.notifyClockCritical(userId, 'Career Momentum', trends.careerMomentumScore);
+                            }
+                        } catch (uErr) {
+                            console.error(`[TrendEngine] Notification failed for user ${userId}:`, uErr.message);
+                        }
+                    }
+                }
 
             } catch (pairErr) {
                 console.error(`[TrendEngine] ❌ Failed for ${pair.role} / ${pair.industry}:`, pairErr.message);

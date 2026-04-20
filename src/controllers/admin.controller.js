@@ -225,35 +225,47 @@ exports.toggleUserExpertStatus = async (req, res) => {
         const {
             isExpert,
             caseId,
+            caseCategories,
             specializations,
             maxCaseload
-        } = req.body; // Accept professional details from admin
+        } = req.body; 
 
         const user = await db.User.findById(userId);
         if (!user) return RESPONSE.error(res, 404, 3001, 'User not found');
 
-        // Check if user is already an expert and we're trying to set to false
         if (!isExpert && user.isExpert) {
             return RESPONSE.error(res, 400, 1007, 'Expert status cannot be removed once granted. Please use the Block User feature if you wish to restrict access.');
         }
 
-        // Update User Role/Flag
         user.isExpert = !!isExpert;
         user.role = isExpert ? 'expert' : 'user';
+        if (isExpert) {
+            user.isExpertApplicant = false;
+        }
         await user.save();
 
         if (isExpert) {
-            // Check if they already exist in RiskAuditorRegistry
             let expert = await db.RiskAuditorRegistry.findOne({ email: user.email });
 
-            // --- Basic Mapping (Manual Admin Data) ---
             const auditorName = user.fullName || user.name || 'Expert Auditor';
             const finalSpecializations = specializations || ["Generalist"];
+            
+            // Handle caseCategories (allow both array and single caseId string for flexibility)
+            let categories = [];
+            if (Array.isArray(caseCategories)) {
+                categories = caseCategories;
+            } else if (caseCategories) {
+                categories = [caseCategories];
+            } else if (caseId) {
+                categories = [caseId];
+            } else {
+                categories = ['GENERAL'];
+            }
 
             const expertConfig = {
                 auditorName,
                 email: user.email,
-                caseId: caseId || 'GENERAL',
+                caseCategories: categories,
                 specializations: finalSpecializations,
                 maxCaseload: maxCaseload || 20,
                 isActive: true,
@@ -261,15 +273,10 @@ exports.toggleUserExpertStatus = async (req, res) => {
             };
 
             if (!expert) {
-                // Generate a skeleton expert record (ID: EXP_timestamp_rand)
                 expertConfig.auditorId = `EXP_${Math.floor(Date.now() / 1000)}_${Math.floor(1000 + Math.random() * 9000)}`;
-
-                // Set default placeholder password
                 expertConfig.password = await bcrypt.hash('Expert@Hks123!', 10);
-
                 await db.RiskAuditorRegistry.create(expertConfig);
             } else {
-                // Update and reactive existing expert record with new settings
                 await db.RiskAuditorRegistry.updateOne(
                     { email: user.email },
                     { $set: expertConfig }
@@ -277,11 +284,12 @@ exports.toggleUserExpertStatus = async (req, res) => {
             }
         }
 
-        const msg = isExpert ? 'Promoted to Expert with specific Case/Specialization' : 'Expert status confirmed';
+        const msg = isExpert ? 'Promoted to Expert with specific Categories/Specializations' : 'Expert status confirmed';
         return RESPONSE.success(res, 200, 1001, {
             message: `User role updated. ${msg}`,
             userId: user._id,
-            isExpert: user.isExpert
+            isExpert: user.isExpert,
+            caseCategories: isExpert ? (caseCategories || caseId) : undefined
         });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
@@ -731,7 +739,7 @@ exports.getReportForReview = async (req, res) => {
 
         // 1. Run & basic meta
         const run = await db.Runs.findOne({ runId }).lean();
-        if (!run) return RESPONSE.error(res, 404, 3001, `Run not found: ${runId}`);
+        if (!run) return RESPONSE.error(res, 404, 3010, `Run with ID ${runId} doesn't exist`);
 
         // 2. User info
         const user = await db.User.findById(run.userId).select('name email phone createdAt').lean();
@@ -800,18 +808,21 @@ exports.getReportForReview = async (req, res) => {
             status: 'FINAL'
         }).select('rasId artifactJson qualityRating qualityRatedBy qualityRatedAt createdAt').lean();
 
-        if (!reportRas) return RESPONSE.error(res, 404, 3001, 'Report not yet generated for this run.');
+        if (!reportRas) {
+            // Log for debug but don't crash, but if we did error, we'd use 3011
+            console.log(`[Admin-Review] Report Pending: Showing partial preview for Run ${runId}`);
+        }
 
         // ── Build Review Package ──
         return RESPONSE.success(res, 200, 1001, {
             reviewPackage: {
                 // Meta
                 runId,
-                rasId: reportRas.rasId,
+                rasId: reportRas?.rasId || null,
                 caseId: run.caseId,
                 intentId: run.intentId,
                 runStatus: run.status,
-                generatedAt: reportRas.createdAt,
+                generatedAt: reportRas?.createdAt || null,
                 isReRun: !!run.previousRunId,
                 previousRunId: run.previousRunId || null,
 
@@ -852,20 +863,20 @@ exports.getReportForReview = async (req, res) => {
 
                 // Generated Report
                 report: {
-                    verdict: reportRas.artifactJson?.verdict || 'UNKNOWN',
-                    accuracyScore: reportRas.artifactJson?.accuracyScore || 0,
-                    accuracyBand: reportRas.artifactJson?.accuracyBand || 'UNKNOWN',
-                    sections: reportRas.artifactJson?.sections || [],
-                    redFlags: reportRas.artifactJson?.redFlags || [],
-                    warnings: reportRas.artifactJson?.warnings || []
+                    verdict: reportRas?.artifactJson?.verdict || 'PENDING',
+                    accuracyScore: reportRas?.artifactJson?.accuracyScore || 0,
+                    accuracyBand: reportRas?.artifactJson?.accuracyBand || 'UNKNOWN',
+                    sections: reportRas?.artifactJson?.sections || [],
+                    redFlags: reportRas?.artifactJson?.redFlags || [],
+                    warnings: reportRas?.artifactJson?.warnings || []
                 },
 
                 // Current Rating (null if not yet rated)
                 currentRating: {
-                    rating: reportRas.qualityRating || null,
-                    ratedBy: reportRas.qualityRatedBy || null,
-                    ratedAt: reportRas.qualityRatedAt || null,
-                    isGoldStandard: reportRas.qualityRating === 5
+                    rating: reportRas?.qualityRating || null,
+                    ratedBy: reportRas?.qualityRatedBy || null,
+                    ratedAt: reportRas?.qualityRatedAt || null,
+                    isGoldStandard: reportRas?.qualityRating === 5
                 },
 
                 // Admin Tip
@@ -891,13 +902,17 @@ exports.getAllCompletedRuns = async (req, res) => {
     try {
         const { rated, caseId, intentId, page = 1, limit = 20 } = req.query;
 
-        // Build Run filter
-        const runFilter = { status: 'REPORT_COMPLETE' };
+        // Build Run filter — Default is REPORT_COMPLETE for reports tab, 
+        // but 'all' for the Operations Pipeline board.
+        const runFilter = (rated === 'all' || req.query.status === 'all') 
+            ? {} 
+            : { status: 'REPORT_COMPLETE' };
+            
         if (caseId) runFilter.caseId = caseId;
         if (intentId) runFilter.intentId = intentId;
 
         const runs = await db.Runs.find(runFilter)
-            .select('runId userId caseId intentId status verdict previousRunId createdAt')
+            .select('runId userId caseId intentId status verdict previousRunId createdAt updatedAt')
             .sort({ createdAt: -1 })
             .skip((Number(page) - 1) * Number(limit))
             .limit(Number(limit))
@@ -979,8 +994,14 @@ exports.updateReRunPolicy = async (req, res) => {
         run.markModified('reRunSetup');
         await run.save();
 
+        // PUSH NOTIFICATION: Trigger if it's explicitly unlocked for free
+        if (eligibleForFreeReRun === true) {
+            const notificationService = require('../services/notificationService');
+            await notificationService.notifyReRunAvailable(runId);
+        }
+
         return RESPONSE.success(res, 200, 1001, {
-            message: 'Re-run policy updated successfully',
+            message: 'Re-run policy updated successfully and user notified',
             runId,
             reRunSetup: run.reRunSetup
         });

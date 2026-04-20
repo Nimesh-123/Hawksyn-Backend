@@ -132,8 +132,8 @@ exports.getNextQuestions = async (req, res) => {
             });
         }
 
-        // 8. Take next batch of 3
-        const BATCH_SIZE = 3;
+        // 8. Take next batch of 1 (Requirement: 1 per screen)
+        const BATCH_SIZE = 1;
         const currentBatch = visibleQuestions.slice(0, BATCH_SIZE);
         const batchNumber = rasRecords.length + 1;
 
@@ -209,10 +209,12 @@ exports.saveAnswers = async (req, res) => {
             'artifactJson.batchNumber': batchNumber
         });
 
-        if (existing && existing.status === 'FINAL') {
+        // LOCKING LOGIC: Only prevent edit if processing has already started
+        const processingStatuses = ['SIGNALS_COLLECTED', 'INTEGRITY_COMPLETE', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED'];
+        if (existing && processingStatuses.includes(run.status)) {
             return res.status(400).json({
                 success: false,
-                message: "This batch is already confirmed and cannot be changed."
+                message: "This audit has moved to analysis. Answers are now locked."
             });
         }
 
@@ -269,27 +271,33 @@ exports.saveAnswers = async (req, res) => {
             }
         }
 
-        // 4. Save to RAS
-        const rasId = `RAS_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+        // 4. Save to RAS (Update if exists, else Create)
+        const rasId = existing?.rasId || `RAS_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
 
-        await db.Ras.create({
-            rasId,
-            runId,
-            stepNo: 3,
-            artifactType: 'OBJECTIVE_INPUTS_CAPTURED',
-            artifactVersion: 1,
-            artifactJson: {
-                batchNumber,
-                answers: answers.map(a => ({
-                    questionId: a.questionId,
-                    answerValue: a.answerValue,
-                    answerLabel: a.answerLabel || null,
-                    answeredAt: new Date()
-                })),
-                completeness: 'PASS'
+        await db.Ras.findOneAndUpdate(
+            { runId, stepNo: 3, artifactType: 'OBJECTIVE_INPUTS_CAPTURED', 'artifactJson.batchNumber': batchNumber },
+            {
+                $set: {
+                    rasId,
+                    runId,
+                    stepNo: 3,
+                    artifactType: 'OBJECTIVE_INPUTS_CAPTURED',
+                    artifactVersion: 1,
+                    artifactJson: {
+                        batchNumber,
+                        answers: answers.map(a => ({
+                            questionId: a.questionId,
+                            answerValue: a.answerValue,
+                            answerLabel: a.answerLabel || null,
+                            answeredAt: new Date()
+                        })),
+                        completeness: 'PASS'
+                    },
+                    status: 'FINAL'
+                }
             },
-            status: 'FINAL'
-        });
+            { upsert: true, new: true }
+        );
 
         // 5. Check if all questions are now answered to transition status
         let moi = await db.MandatoryObjectiveInput.findOne({

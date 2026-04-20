@@ -53,7 +53,7 @@ exports.generateReport = async (req, res) => {
             else break;
             depth++;
         }
-        
+
         // Merge sub-blocks into root for easy access
         let normalizedProfile = { ...pSnap };
         if (pSnap.identity) normalizedProfile = { ...normalizedProfile, ...pSnap.identity };
@@ -67,7 +67,7 @@ exports.generateReport = async (req, res) => {
 
         const integrityPack = integrityRas.artifactJson;
         const externalSignals = signalsRas?.artifactJson?.signals || null;
-        
+
         const externalCoverage = signalsRas?.artifactJson?.coverage || [];
 
         const rasAnswers = allObjectiveRas.flatMap(r => r.artifactJson?.answers || []);
@@ -89,23 +89,13 @@ exports.generateReport = async (req, res) => {
 
         // 3. Build RAG & Mapping Context
         const placeholders = buildPlaceholderMap(
-            normalizedProfile, 
+            normalizedProfile,
             rasArtifacts.filter(a => a.artifactType === 'QUESTION_ANSWERED' || a.artifactType === 'OBJECTIVE_INPUTS_CAPTURED'),
             questionsMap,
             integrityRas?.artifactJson || {},
             signalsRas?.artifactJson || {}
         );
 
-        // Audit Trail: Save evidence package for production debugging
-        try {
-            const logDir = path.join(process.cwd(), 'logs', 'evidence');
-            if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-            const snapshot = JSON.stringify(placeholders, null, 2);
-            fs.writeFileSync(path.join(logDir, `${runId}_evidence.json`), snapshot);
-            console.log(`[AUDIT-EVIDENCE] Run: ${runId} | Snapshot:\n${snapshot}`);
-        } catch (logErr) {
-            console.warn('[Report-Audit] Failed to save evidence snapshot:', logErr.message);
-        }
         const goldExamples = await getGoldStandardExamples(db, run.caseId, run.intentId, 3);
         const goldContextBlock = goldExamples.length > 0
             ? `\n\n--- GOLD STANDARD EXAMPLES (${goldExamples.length}) ---\n` +
@@ -184,7 +174,7 @@ exports.generateReport = async (req, res) => {
                 const llmResult = await callLLM({
                     modelFamily: prompt.modelFamily,
                     forceProvider: 'Gemini',
-                    systemPrompt: (prompt.systemPrompt || '') + 
+                    systemPrompt: (prompt.systemPrompt || '') +
                         "\n\n--- COMPREHENSIVE EVIDENCE PACKAGE ---\n" +
                         JSON.stringify(placeholders, null, 2) +
                         "\n\nSTRICT GROUNDING RULES:\n" +
@@ -385,7 +375,7 @@ exports.refreshReportSection = async (req, res) => {
         const integrityRas = rasArtifacts.find(r => r.artifactType === 'INTEGRITY_PACK');
         const profileRas = rasArtifacts.find(r => r.artifactType === 'PROFILE_CONFIRMED');
         const allObjectiveRas = rasArtifacts.filter(r => r.stepNo === 3 && r.artifactType === 'OBJECTIVE_INPUTS_CAPTURED');
-        
+
         const profileSnapshot = profileRas?.artifactJson || {};
         const integrityPack = integrityRas?.artifactJson || {};
         const rasAnswers = allObjectiveRas.flatMap(r => r.artifactJson?.answers || []);
@@ -398,7 +388,7 @@ exports.refreshReportSection = async (req, res) => {
 
         // 3. Re-generate Section
         const userPrompt = fillPrompt(prompt.userPrompt, placeholders);
-        
+
         console.log(`[REFRESH] Section: ${sectionId} | Prompt Version: ${prompt.promptVersion}`);
 
         const llmResult = await callLLM({
@@ -417,7 +407,7 @@ exports.refreshReportSection = async (req, res) => {
         };
 
         finalizedReport.sections[sectionIndex] = newSectionData;
-        
+
         // 5. Audit Log (Task D35)
         await db.AuditLog.create({
             action: 'REPORT_SECTION_REFRESH',
