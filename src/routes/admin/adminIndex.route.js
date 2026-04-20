@@ -39,6 +39,11 @@ route.get('/signals/volume', adminController.getSignalVolumeSummary);
 route.get('/payments/all', adminController.getAllPayments);
 route.get('/payments/export', adminController.exportPaymentsCSV);
 
+// Operational Pipeline (Kanban Board)
+const caseController = require('../../controllers/caseController');
+route.get('/pipeline/summary', caseController.getPipelineSummary);
+route.post('/runs/:runId/revert', caseController.revertRunStatus);
+
 // Content Management (FAQ & Legal)
 const supportController = require('../../controllers/supportContentController');
 route.get('/content/faq', supportController.getFAQs);

@@ -411,8 +411,8 @@ exports.compareRuns = async (req, res) => {
             db.Ras.findOne({ runId: latestId, artifactType: 'INTEGRITY_PACK', status: 'FINAL' }).lean()
         ]);
 
-        const baseScore = baseRas?.accuracy?.score || 50;
-        const lateScore = lateRas?.accuracy?.score || 50;
+        const baseScore = baseRas?.artifactJson?.accuracy?.score || 50;
+        const lateScore = lateRas?.artifactJson?.accuracy?.score || 50;
         const baseRisk = 100 - baseScore;
         const lateRisk = 100 - lateScore;
 

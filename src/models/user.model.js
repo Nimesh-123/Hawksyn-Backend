@@ -23,6 +23,8 @@ const userSchema = new mongoose.Schema(
         mPinSet: { type: Boolean, default: false },
         role: { type: String, enum: ['user', 'admin', 'expert'], default: 'user' },
         isExpert: { type: Boolean, default: false },
+        isExpertApplicant: { type: Boolean, default: false },
+
         
         countryCode: { type: String, default: 'IN' }, 
         preferredCurrency: { type: String, default: 'INR' },

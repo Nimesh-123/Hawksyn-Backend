@@ -59,13 +59,23 @@ const logger = createLogger({
     new transports.Console({
       format: format.combine(
         format.colorize(),
-        format.printf(({ level, message }) => {
-          const msg = typeof message === 'string' ? message : (message.msg || '');
-          // Only show simple strings (like notifications) or OTP logs in terminal
-          if (typeof message === 'string' || msg.includes('[Notification]') || msg.includes('[Auth]')) {
-              return `[${level}] ${msg}`;
+        format.timestamp({ format: "HH:mm:ss" }),
+        format.printf((info) => {
+          const m = info.message;
+          const isString = typeof m === 'string';
+          
+          // Silently skip Noise: Notifications, admin polling, and specifically the admin account
+          const route = !isString ? (m.route || '') : '';
+          const email = !isString ? (m.userEmail || '') : '';
+          
+          if (email === 'admin@admin.com' || route.includes('/notifications')) {
+            return '';
           }
-          return ''; // Silence everything else in console
+
+          // Use the template directly if it exists, otherwise reconstruct simple format
+          return typeof textFormat.template === 'function' 
+            ? textFormat.template(info)
+            : `[${info.timestamp}] [${info.level.toUpperCase()}] ${isString ? m : (m.msg || '')}`;
         })
       )
     })

@@ -11,6 +11,7 @@ const runRoutes = require('./runRoutes.js');
 const recordsRoutes = require('./records.routes.js');
 const commandCenterRoutes = require('./commandCenterRoutes.js');
 const expertAuthRoute = require('./expert/expertAuth.route.js');
+const expertRoute = require('./expert/expert.route.js');
 const notificationRoutes = require('./notificationRoutes.js');
 const contentRoutes = require('./contentRoutes.js');
 
@@ -29,6 +30,7 @@ route.use('/payment', paymentRoutes);
 route.use('/runs', runRoutes);
 route.use('/command-center', commandCenterRoutes);
 route.use('/expert', expertAuthRoute);
+route.use('/expert', expertRoute);
 route.use('/notifications', notificationRoutes);
 
 module.exports = route;

@@ -282,5 +282,19 @@ route.get('/trends', userController.getTrends);
 route.post('/credits/unlock', expertController.unlockExpertSupport);
 
 route.post('/update-fcm-token', userController.updateFcmToken);
+/**
+ * @swagger
+ * /user/apply-expert:
+ *   post:
+ *     summary: User applies to become an expert (auditor)
+ *     tags: ["1. Authentication & Security"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Application submitted. Role changed to expert (pending).
+ */
+route.post('/apply-expert', userController.applyAsExpert);
+
 
 module.exports = route;

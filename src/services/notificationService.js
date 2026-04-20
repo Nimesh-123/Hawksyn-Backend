@@ -430,6 +430,59 @@ class NotificationService {
         } catch (error) { logger.error('Intake Progress Notif Error: ' + error.message); }
     }
 
+    /**
+     * Triggered when Admin unlocks a Free Re-run window
+     */
+    async notifyReRunAvailable(runId) {
+        try {
+            const run = await db.Runs.findOne({ runId }).populate('userId');
+            if (!run || !run.userId) return;
+
+            const user = run.userId;
+            const title = 'Re-run Available 🚀';
+            const msg = `Good news! Your case ${run.caseId} has been unlocked for a free re-run. Update your data and run it now.`;
+
+            await db.Notifications.create({
+                userId: user._id,
+                targetRole: 'user',
+                type: 'RERUN_UNLOCKED',
+                title,
+                message: msg,
+                metadata: { runId }
+            });
+
+            if (user.fcmToken) {
+                await this.sendPushNotification(user.fcmToken, title, msg, { runId, type: 'RERUN_UNLOCKED' });
+            }
+        } catch (error) { logger.error(`[Notif Error] Re-run: ${error.message}`); }
+    }
+
+    /**
+     * Triggered when a Clock score drops below critical threshold (30%)
+     */
+    async notifyClockCritical(userId, clockName, value) {
+        try {
+            const user = await db.User.findById(userId);
+            if (!user) return;
+
+            const title = 'Clock Critical ⚠️';
+            const msg = `Your ${clockName} is at ${value}% — risk level is high. Run a new audit to recalibrate.`;
+
+            await db.Notifications.create({
+                userId: user._id,
+                targetRole: 'user',
+                type: 'CLOCK_CRITICAL',
+                title,
+                message: msg,
+                metadata: { clockName, value }
+            });
+
+            if (user.fcmToken) {
+                await this.sendPushNotification(user.fcmToken, title, msg, { type: 'CLOCK_CRITICAL', clockName });
+            }
+        } catch (error) { logger.error(`[Notif Error] Clock Critical: ${error.message}`); }
+    }
+
 }
 
 module.exports = new NotificationService();

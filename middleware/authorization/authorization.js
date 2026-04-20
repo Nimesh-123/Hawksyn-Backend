@@ -55,20 +55,33 @@ exports.authenticate = async (req, res, next) => {
             const isAdminRoute = cleanPath.startsWith('/admin');
 
             let entity;
-            if (decoded.role?.includes('admin')) {
+            let role = decoded.role;
+
+            if (role?.includes('admin')) {
                 entity = await db.Admin.findById(decoded.id);
-            } else if (decoded.role === 'expert') {
-                entity = await db.RiskAuditorRegistry.findById(decoded.id);
             } else {
-                entity = await db.User.findById(decoded.id);
+                const user = await db.User.findById(decoded.id);
+                if (!user) return RESPONSE.error(res, 404, 3001, 'User not found');
+                
+                entity = user;
+                role = user.role;
+
+                if (role === 'expert') {
+                    const expert = await db.RiskAuditorRegistry.findOne({ 
+                        email: { $regex: new RegExp(`^${user.email}$`, 'i') } 
+                    });
+                    if (expert) {
+                        entity = expert;
+                    }
+                }
             }
 
             if (!entity) return RESPONSE.error(res, 404, 3001, 'User/Admin/Expert not found');
 
             // User specific checks (only for normal users)
-            if (!decoded.role?.includes('admin')) {
-                // For Experts, we also check if they are active in registry
-                if (decoded.role === 'expert' && entity.status !== 'ACTIVE') {
+            if (!role?.includes('admin')) {
+                const isProfileRoute = cleanPath === '/expert/profile';
+                if (role === 'expert' && entity.status !== 'ACTIVE' && !isProfileRoute) {
                     return RESPONSE.error(res, 403, 3003, 'Expert account is inactive');
                 }
                 
@@ -77,17 +90,16 @@ exports.authenticate = async (req, res, next) => {
             }
 
             req.user = { 
-                id: decoded.id, 
+                ...decoded,
+                id: entity._id, 
                 email: decoded.email, 
-                role: decoded.role || 'user',
-                ...decoded 
+                role: role || 'user'
             };
 
-            // Allow Expert role for audit-finalize admin endpoint
             const isExpertAuditingRoute = cleanPath.includes('/audit-finalize');
             
-            if (isAdminRoute && !admin_roles.includes(decoded.role)) {
-                if (decoded.role === 'expert' && isExpertAuditingRoute) {
+            if (isAdminRoute && !admin_roles.includes(role)) {
+                if (role === 'expert' && isExpertAuditingRoute) {
                     // Allowed
                 } else {
                     return RESPONSE.error(res, 403, 4444, 'Permission Denied: Admin access required');

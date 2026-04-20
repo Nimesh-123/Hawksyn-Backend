@@ -95,6 +95,15 @@ exports.initChatSocket = (io) => {
                 });
 
                 io.to(session.runId).emit('new_message', msg);
+
+                // PUSH NOTIFICATION: If Expert is sending, notify the User
+                if (session.userType === 'EXPERT') {
+                    const notifyService = require('../services/notificationService');
+                    const runData = await Runs.findOne({ runId: session.runId }).populate('userId');
+                    if (runData && runData.userId) {
+                        await notifyService.notifyExpertChatReply(session.runId, runData.userId);
+                    }
+                }
             } catch (err) {
                 console.error('[Socket Error]', err);
                 socket.emit('error', { message: 'Failed to send' });
