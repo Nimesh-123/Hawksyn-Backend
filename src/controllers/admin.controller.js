@@ -629,7 +629,7 @@ exports.rateReport = async (req, res) => {
 exports.submitExpertReview = async (req, res) => {
     try {
         const { runId } = req.params;
-        const { verdictOverride, auditComments, rating } = req.body;
+        const { verdictOverride, auditComments, rating, expertId } = req.body;
 
         if (!auditComments) {
             return RESPONSE.error(res, 400, 1002, 'Audit comments are required for finalization');
@@ -650,7 +650,8 @@ exports.submitExpertReview = async (req, res) => {
                 originalVerdict: run.verdict,
                 comments: auditComments,
                 reviewedBy: req.user.id,
-                reviewRole: req.user.role
+                reviewRole: req.user.role,
+                assignedExpertId: expertId || run.expertId // Track which expert was assigned during this review
             },
             qualityRating: rating || null,
             qualityRatedBy: req.user.id,
@@ -662,6 +663,11 @@ exports.submitExpertReview = async (req, res) => {
             expertReviewedAt: new Date(),
             status: 'REPORT_COMPLETE'
         };
+
+        if (expertId) {
+            updateData.expertId = expertId;
+            updateData.expertAssignedAt = new Date();
+        }
 
         if (verdictOverride) {
             updateData.verdict = verdictOverride;
@@ -869,6 +875,13 @@ exports.getReportForReview = async (req, res) => {
                     sections: reportRas?.artifactJson?.sections || [],
                     redFlags: reportRas?.artifactJson?.redFlags || [],
                     warnings: reportRas?.artifactJson?.warnings || []
+                },
+
+                // Re-Run Policy Setup
+                reRunSetup: run.reRunSetup || {
+                    eligibleForFreeReRun: false,
+                    freeReRunExpiryDate: null,
+                    reRunPriceOverride: null
                 },
 
                 // Current Rating (null if not yet rated)
@@ -1115,50 +1128,69 @@ exports.getCvAuditLogs = async (req, res) => {
         const { status, email, page = 1, limit = 20 } = req.query;
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        // Using global db import from top of file
+        // Build base aggregation pipeline to filter deleted users
+        const pipeline = [
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'userId',
+                    foreignField: '_id',
+                    as: 'user'
+                }
+            },
+            { $unwind: '$user' },
+            { $match: { 'user.isDeleted': false } }
+        ];
 
-        let query = {};
-
-
+        // Add status filter if provided
         if (status) {
-            query.parserStatus = status;
+            pipeline.push({ $match: { parserStatus: status } });
         }
 
-
+        // Add email search if provided
         if (email) {
-            const user = await db.User.findOne({ email: new RegExp(email, 'i') });
-            if (user) {
-                query.userId = user._id;
-            } else {
-                return res.status(200).json({
-                    success: true,
-                    data: {
-                        logs: [],
-                        pagination: { total: 0, page: parseInt(page), pages: 0 }
-                    }
-                });
-            }
+            pipeline.push({ $match: { 'user.email': new RegExp(email, 'i') } });
         }
 
-        const total = await db.DocumentUploads.countDocuments(query);
-        const logs = await db.DocumentUploads.find(query)
-            .populate('userId', 'name email mobile')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(parseInt(limit))
-            .lean();
+        // Count total matching records for pagination
+        const countPipeline = [...pipeline, { $count: 'total' }];
+        const countResult = await db.DocumentUploads.aggregate(countPipeline);
+        const total = countResult.length > 0 ? countResult[0].total : 0;
 
+        // Fetch paginated logs
+        pipeline.push({ $sort: { createdAt: -1 } });
+        pipeline.push({ $skip: skip });
+        pipeline.push({ $limit: parseInt(limit) });
 
-        const formattedLogs = logs.map(l => ({
-            id: l._id,
-            userName: l.userId?.name || 'Deleted User',
-            email: l.userId?.email || 'N/A',
-            fileName: l.fileName,
-            status: l.parserStatus,
-            errorReason: l.errorReason,
-            metadata: l.parserMetadata,
-            uploadedAt: l.uploadedAt || l.createdAt
-        }));
+        const logs = await db.DocumentUploads.aggregate(pipeline);
+
+        // Bulk fetch UserProfiles for the filtered logs
+        const userIds = logs.map(l => l.userId);
+        const profiles = await db.UserProfile.find({ userId: { $in: userIds } }).lean();
+        const profileMap = {};
+        profiles.forEach(p => profileMap[p.userId.toString()] = p);
+
+        const formattedLogs = logs.map(l => {
+            const profile = profileMap[l.userId.toString()];
+            const confirmedName = profile?.confirmedProfile?.identity?.fullName || 
+                                 profile?.originalParsedData?.structured?.identity?.fullName;
+
+            return {
+                id: l._id,
+                userName: confirmedName || 
+                          l.user?.fullName || 
+                          l.user?.name || 
+                          l.parsedCvData?.identity?.fullName || 
+                          l.parsedCvData?.name || 
+                          'Anonymous User',
+                email: l.user?.email || 'N/A',
+                fileName: l.fileName,
+                status: l.parserStatus,
+                errorReason: l.errorReason,
+                metadata: l.parserMetadata,
+                uploadedAt: l.uploadedAt || l.createdAt
+            };
+        });
 
         const response = {
             logs: formattedLogs,

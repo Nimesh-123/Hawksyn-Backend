@@ -41,6 +41,12 @@ router.get('/profile', authenticate, authorize('expert'), expertController.getEx
  *               upiId: { type: string }
  *               profileNote: { type: string }
  *               currentOrganization: { type: string }
+ *               experienceYears: { type: number }
+ *               industryExpertise: { type: array, items: { type: string } }
+ *               specializations: { type: array, items: { type: string } }
+ *               maxCaseload: { type: number }
+ *               slaCommitmentHours: { type: number }
+ *               isTermsAccepted: { type: boolean }
  *     responses:
  *       200:
  *         description: Profile updated successfully

@@ -47,7 +47,6 @@ const requestLogger = (req, res, next) => {
     };
 
     // Log to terminal for easy visibility as requested by user
-    /* 
     console.log(`\n--- REQUEST [${requestId}] ---`);
     console.log(`Method: ${req.method} | Route: ${req.originalUrl}`);
     if (req.body && Object.keys(req.body).length > 0) {
@@ -57,7 +56,6 @@ const requestLogger = (req, res, next) => {
     console.log(`Status: ${res.statusCode} | Time: ${Date.now() - start}ms`);
     console.log('Body:', JSON.stringify(req.responseBody, null, 2));
     console.log(`-------------------------------\n`);
-    */
 
     if (res.statusCode >= 500) {
       logger.error(logData);

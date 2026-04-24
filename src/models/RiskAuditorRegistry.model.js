@@ -33,6 +33,10 @@ const RiskAuditorRegistrySchema = new mongoose.Schema({
     isActive: { type: Boolean, default: true },
     status: { type: String, enum: ['PENDING_SETUP', 'ACTIVE', 'INACTIVE'], default: 'PENDING_SETUP' },
     fcmToken: { type: String, default: null },
+
+    // --- Legal ---
+    isTermsAccepted: { type: Boolean, default: false },
+    acceptedAt: { type: Date },
     
     // Legacy fields
     professionalBackground: { type: String },

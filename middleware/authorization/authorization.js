@@ -91,7 +91,7 @@ exports.authenticate = async (req, res, next) => {
 
             req.user = { 
                 ...decoded,
-                id: entity._id, 
+                id: entity._id.toString(), // Convert to string for consistent comparison in controllers
                 email: decoded.email, 
                 role: role || 'user'
             };
