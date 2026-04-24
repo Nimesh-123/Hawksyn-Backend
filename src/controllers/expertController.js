@@ -74,7 +74,10 @@ exports.assignExpert = async (req, res) => {
         }
 
         const experts = await db.RiskAuditorRegistry.find({
-            caseCategories: { $in: [run.caseId] },
+            $or: [
+                { caseCategories: { $in: [run.caseId] } },
+                { caseId: run.caseId }
+            ],
             isActive: true,
             $expr: { $lt: ['$currentCaseload', '$maxCaseload'] }
         });
@@ -669,7 +672,7 @@ exports.updateExpertProfile = async (req, res) => {
         const { 
             auditorName, designation, currentOrganization, experienceYears,
             industryExpertise, specializations, profileNote, upiId, bankDetails,
-            maxCaseload, slaCommitmentHours
+            maxCaseload, slaCommitmentHours, isTermsAccepted
         } = req.body;
 
         const expert = await db.RiskAuditorRegistry.findById(id);
@@ -692,9 +695,14 @@ exports.updateExpertProfile = async (req, res) => {
         if (bankDetails) expert.bankDetails = bankDetails;
         if (maxCaseload) expert.maxCaseload = maxCaseload;
         if (slaCommitmentHours) expert.slaCommitmentHours = slaCommitmentHours;
+        
+        if (isTermsAccepted === true) {
+            expert.isTermsAccepted = true;
+            expert.acceptedAt = new Date();
+        }
 
-        // Auto-activate if setup is reasonably complete
-        if (expert.designation && expert.upiId && expert.status === 'PENDING_SETUP') {
+        // Auto-activate if setup is reasonably complete & terms are accepted
+        if (expert.designation && expert.upiId && expert.isTermsAccepted && expert.status === 'PENDING_SETUP') {
             expert.status = 'ACTIVE';
         }
 

@@ -195,6 +195,14 @@ exports.saveAnswers = async (req, res) => {
             return res.status(400).json({ success: false, message: "batchNumber and answers array are required" });
         }
 
+        // Strict Enforcement: Requirement is 1 question per screen/batch
+        if (answers.length !== 1) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `Invalid batch size. Expected 1 answer, but received ${answers.length}.` 
+            });
+        }
+
         // 1. Find run
         const run = await db.Runs.findOne({ runId });
         if (!run) {

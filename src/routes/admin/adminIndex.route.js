@@ -32,8 +32,8 @@ route.use('/playbook', adminPlaybookRoute);
  *         description: Permission denied
  */
 route.get('/dashboard/stats', adminController.getDashboardStats);
-route.get('/signals/summary', adminController.getDashboardStats); // Fallback for old UI
-route.get('/signals/volume', adminController.getSignalVolumeSummary); 
+route.get('/signals/summary', adminController.getDashboardStats);
+route.get('/signals/volume', adminController.getSignalVolumeSummary);
 
 // Financials
 route.get('/payments/all', adminController.getAllPayments);
