@@ -64,7 +64,8 @@ async function buildRunSummary(run) {
         canReRun: canReRun,
         // ── NEW: Re-Run Policy Details (Task: User Visibility) ──
         reRunPolicy: {
-            isFree: run.reRunSetup?.eligibleForFreeReRun || false,
+            isFree: (run.reRunSetup?.eligibleForFreeReRun === true) && 
+                    (!run.reRunSetup?.freeReRunExpiryDate || new Date() <= new Date(run.reRunSetup.freeReRunExpiryDate)),
             expiry: run.reRunSetup?.freeReRunExpiryDate || null,
             priceOverride: run.reRunSetup?.reRunPriceOverride || null
         }
@@ -295,7 +296,8 @@ exports.getRunDetail = async (req, res) => {
             // Standard Re-Run Policy: Available Anytime
             reRunInDays: 0,
             reRunPolicy: {
-                isFree: run.reRunSetup?.eligibleForFreeReRun || false,
+                isFree: (run.reRunSetup?.eligibleForFreeReRun === true) && 
+                        (!run.reRunSetup?.freeReRunExpiryDate || new Date() <= new Date(run.reRunSetup.freeReRunExpiryDate)),
                 expiry: run.reRunSetup?.freeReRunExpiryDate || null,
                 priceOverride: run.reRunSetup?.reRunPriceOverride || null
             }

@@ -90,28 +90,37 @@ const financeService = {
             });
 
             // 5. Generate and Upload PDF Invoice (Sprint 8)
-            try {
-                const html = buildInvoiceHtml({ invoice, user });
-                const pdfBuffer = await generatePdfFromHtml(html);
-                const s3Result = await s3Service.uploadFile(
-                    pdfBuffer, 
-                    `invoices/${invoice.invoiceNumber}.pdf`, 
-                    'application/pdf'
-                );
-
-                if (s3Result.success) {
-                    await db.Invoice.updateOne({ invoiceId: invoice.invoiceId }, { $set: { pdfUrl: s3Result.url } });
-                }
-            } catch (pdfErr) {
-                console.error('[FinanceService-PDF] PDF/S3 Flow Failed:', pdfErr.message);
-                // Non-blocking: record already exists in DB
-            }
+            await financeService.generateAndUploadInvoicePdf(invoice, user);
 
             return { success: true, invoiceId: invoice.invoiceId, invoiceNumber: invoice.invoiceNumber };
 
         } catch (error) {
             console.error('[FinanceService] Error:', error);
             throw error;
+        }
+    },
+
+    /**
+     * Generate and Upload PDF Invoice to S3
+     */
+    generateAndUploadInvoicePdf: async (invoice, user) => {
+        try {
+            const html = buildInvoiceHtml({ invoice, user });
+            const pdfBuffer = await generatePdfFromHtml(html);
+            const s3Result = await s3Service.uploadFile(
+                pdfBuffer, 
+                `invoices/${invoice.invoiceNumber}.pdf`, 
+                'application/pdf'
+            );
+
+            if (s3Result.success) {
+                await db.Invoice.updateOne({ invoiceId: invoice.invoiceId }, { $set: { pdfUrl: s3Result.url } });
+                return { success: true, pdfUrl: s3Result.url };
+            }
+            return { success: false, message: 'S3 upload failed' };
+        } catch (pdfErr) {
+            console.error('[FinanceService-PDF] PDF/S3 Flow Failed:', pdfErr.message);
+            return { success: false, error: pdfErr.message };
         }
     }
 };

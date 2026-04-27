@@ -31,7 +31,7 @@ exports.keepExistingCv = async (req, res) => {
             const previousRun = await db.Runs.findOne({ runId: run.previousRunId });
             const setup = previousRun?.reRunSetup;
             const eligible = setup?.eligibleForFreeReRun === true;
-            const notExpired = setup?.freeReRunExpiryDate ? (new Date() <= new Date(setup.freeReRunExpiryDate)) : false;
+            const notExpired = !setup?.freeReRunExpiryDate || (new Date() <= new Date(setup.freeReRunExpiryDate));
 
             if (eligible && notExpired) {
                 isFreeReRun = true;
@@ -145,7 +145,7 @@ exports.uploadRunCv = async (req, res) => {
             const previousRun = await db.Runs.findOne({ runId: run.previousRunId });
             const setup = previousRun?.reRunSetup;
             const eligible = setup?.eligibleForFreeReRun === true;
-            const notExpired = setup?.freeReRunExpiryDate ? (new Date() <= new Date(setup.freeReRunExpiryDate)) : false;
+            const notExpired = !setup?.freeReRunExpiryDate || (new Date() <= new Date(setup.freeReRunExpiryDate));
 
             if (eligible && notExpired) {
                 isFreeReRun = true;

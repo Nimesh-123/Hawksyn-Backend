@@ -531,15 +531,39 @@ exports.downloadUserInvoice = async (req, res) => {
     try {
         const { runId } = req.params;
         const userId = req.user.id;
+
+        // 1. Find Invoice
         const invoice = await db.Invoice.findOne({ runId, userId });
-        if (!invoice || !invoice.pdfUrl) {
-            return res.status(404).json({ success: false, message: 'Invoice not found or unauthorized.' });
+        if (!invoice) {
+            return res.status(404).json({ success: false, message: 'Invoice record not found.' });
         }
+
+        // 2. If PDF missing, attempt regeneration (Self-healing)
+        if (!invoice.pdfUrl) {
+            console.warn(`[Invoice] PDF missing for ${runId}. Attempting on-the-fly regeneration...`);
+            const user = await db.User.findById(userId);
+            const regenResult = await financeService.generateAndUploadInvoicePdf(invoice, user);
+            
+            if (!regenResult.success) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'Invoice PDF is not ready yet. Please try again in a few minutes.',
+                    error: regenResult.error 
+                });
+            }
+            // Update local invoice object to proceed
+            invoice.pdfUrl = regenResult.pdfUrl;
+        }
+
+        // 3. Serve from S3
         const key = 'invoices/' + invoice.invoiceNumber + '.pdf';
         const { Body, ContentType } = await s3Service.getFileStream(key);
+        
         res.setHeader('Content-Type', ContentType || 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=' + invoice.invoiceNumber + '.pdf');
+        
         return Body.pipe(res);
+
     } catch (err) {
         console.error('[User Invoice Error]', err);
         return res.status(500).json({ success: false, message: err.message });
