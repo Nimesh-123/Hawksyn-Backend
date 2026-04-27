@@ -997,7 +997,23 @@ exports.updateReRunPolicy = async (req, res) => {
         if (eligibleForFreeReRun !== undefined) run.reRunSetup.eligibleForFreeReRun = eligibleForFreeReRun;
 
         if (freeReRunExpiryDate !== undefined) {
-            run.reRunSetup.freeReRunExpiryDate = freeReRunExpiryDate ? new Date(freeReRunExpiryDate) : null;
+            let parsedDate = null;
+            if (freeReRunExpiryDate && typeof freeReRunExpiryDate === 'string' && freeReRunExpiryDate.includes('/')) {
+                const parts = freeReRunExpiryDate.split(' ');
+                const datePart = parts[0];
+                const timePart = parts[1] || '00:00';
+                const [day, month, year] = datePart.split('/');
+                parsedDate = new Date(`${year}-${month}-${day}T${timePart}:00`);
+            } else {
+                parsedDate = freeReRunExpiryDate ? new Date(freeReRunExpiryDate) : null;
+            }
+
+            // --- Validation: Don't allow setting a date in the past ---
+            if (parsedDate && parsedDate < new Date()) {
+                return RESPONSE.error(res, 400, 1002, "Expiry date cannot be in the past. Please select a future time.");
+            }
+
+            run.reRunSetup.freeReRunExpiryDate = parsedDate;
         }
 
         if (reRunPriceOverride !== undefined) {

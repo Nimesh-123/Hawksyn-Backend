@@ -299,9 +299,9 @@ route.post('/logout-all', userController.logoutAll);
 
 /**
  * @swagger
- * /user/export-data:
+ * /user/download-data:
  *   get:
- *     summary: Export all user data (DPDP Compliance)
+ *     summary: Download all user data (DPDP Compliance)
  *     tags: ["1. Authentication & Security"]
  *     security:
  *       - bearerAuth: []
@@ -309,7 +309,7 @@ route.post('/logout-all', userController.logoutAll);
  *       200:
  *         description: Data export successful
  */
-route.get('/export-data', userController.downloadUserData);
+route.get('/download-data', userController.downloadUserData);
 /**
  * @swagger
  * /user/change-pin:
