@@ -61,7 +61,13 @@ async function buildRunSummary(run) {
         createdAt: run.createdAt,
         completedAt: run.completedAt,
         reRunInDays: reRunInDays,
-        canReRun: canReRun  // ✅ Flutter: sirf ye check karo button dikhane ke liye
+        canReRun: canReRun,
+        // ── NEW: Re-Run Policy Details (Task: User Visibility) ──
+        reRunPolicy: {
+            isFree: run.reRunSetup?.eligibleForFreeReRun || false,
+            expiry: run.reRunSetup?.freeReRunExpiryDate || null,
+            priceOverride: run.reRunSetup?.reRunPriceOverride || null
+        }
     };
 }
 
@@ -287,7 +293,12 @@ exports.getRunDetail = async (req, res) => {
             } : null,
 
             // Standard Re-Run Policy: Available Anytime
-            reRunInDays: 0
+            reRunInDays: 0,
+            reRunPolicy: {
+                isFree: run.reRunSetup?.eligibleForFreeReRun || false,
+                expiry: run.reRunSetup?.freeReRunExpiryDate || null,
+                priceOverride: run.reRunSetup?.reRunPriceOverride || null
+            }
         };
 
 

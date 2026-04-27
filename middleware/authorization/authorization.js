@@ -10,6 +10,7 @@ const { db } = require('../../src/models/index.model.js');
  * 4. Attaches decoded payload to req.user
  */
 exports.authenticate = async (req, res, next) => {
+    console.log(`[Auth] Incoming Request: ${req.method} ${req.originalUrl}`);
     try {
         const public_routes = [
             '/auth',
