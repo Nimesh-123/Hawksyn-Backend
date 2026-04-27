@@ -282,18 +282,64 @@ route.get('/trends', userController.getTrends);
 route.post('/credits/unlock', expertController.unlockExpertSupport);
 
 route.post('/update-fcm-token', userController.updateFcmToken);
+
 /**
  * @swagger
- * /user/apply-expert:
+ * /user/logout-all:
  *   post:
- *     summary: User applies to become an expert (auditor)
+ *     summary: Logout from all devices
  *     tags: ["1. Authentication & Security"]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Application submitted. Role changed to expert (pending).
+ *         description: Logged out successfully
  */
+route.post('/logout-all', userController.logoutAll);
+
+/**
+ * @swagger
+ * /user/export-data:
+ *   get:
+ *     summary: Export all user data (DPDP Compliance)
+ *     tags: ["1. Authentication & Security"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Data export successful
+ */
+route.get('/export-data', userController.downloadUserData);
+/**
+ * @swagger
+ * /user/change-pin:
+ *   post:
+ *     summary: Change M-PIN using the old PIN
+ *     tags: ["1. Authentication & Security"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [oldPin, newPin]
+ *             properties:
+ *               oldPin:
+ *                 type: string
+ *                 example: "1234"
+ *               newPin:
+ *                 type: string
+ *                 example: "4321"
+ *     responses:
+ *       200:
+ *         description: M-PIN changed successfully
+ *       401:
+ *         description: Incorrect old PIN
+ */
+route.post('/change-pin', userController.changeMPin);
+
 route.post('/apply-expert', userController.applyAsExpert);
 
 

@@ -28,7 +28,8 @@ const MESSAGES = {
     3009: 'Invalid CV Document',
     3010: 'Run not found',
     3011: 'Report not yet generated',
-    3012: 'Resource not found'
+    3012: 'Resource not found',
+    3013: 'This PIN is too common. Please choose a more secure one.'
 };
 
 const get_message = message_code => {

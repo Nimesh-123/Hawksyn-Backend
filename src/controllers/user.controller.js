@@ -122,7 +122,7 @@ exports.setPin = async (req, res) => {
  
         const commonPins = ['1234', '1111', '0000', '1212', '2580', '1379'];
         if (commonPins.includes(mPin)) {
-            return RESPONSE.error(res, 400, 4444, "This PIN is too common. Please choose a more secure one.");
+            return RESPONSE.error(res, 400, 3013);
         }
 
         const user = await db.User.findOne({ email, isDeleted: false });
