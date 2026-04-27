@@ -78,19 +78,12 @@ exports.getCaseIntents = async (req, res) => {
         const { caseId } = req.params;
         let { page = 1, limit = 10 } = req.query;
 
-        // Convert to numbers
         page = parseInt(page);
         limit = parseInt(limit);
         const skip = (page - 1) * limit;
 
-        // Fetch total count for this specific case
-        const totalCount = await CaseIntentConfig.countDocuments({ caseId });
-
-        // Fetch paginated configs
-        const configs = await CaseIntentConfig.find({ caseId })
-            .sort({ displayOrder: 1 })
-            .skip(skip)
-            .limit(limit);
+        // Fetch all configs for this case (we will deduplicate manually for accuracy)
+        const configs = await CaseIntentConfig.find({ caseId }).sort({ displayOrder: 1 });
 
         if (!configs || configs.length === 0) {
             return res.status(404).json({
@@ -100,13 +93,16 @@ exports.getCaseIntents = async (req, res) => {
         }
 
         const intentsList = [];
+        const seenIntents = new Set();
+
         for (const config of configs) {
-            // Fetch intent details
-            const intent = await IntentTaxonomy.findOne({
-                intentId: config.intentId
-            });
+            // Skip if we've already added this intentId
+            if (seenIntents.has(config.intentId)) continue;
+
+            const intent = await IntentTaxonomy.findOne({ intentId: config.intentId });
 
             if (intent) {
+                seenIntents.add(config.intentId);
                 intentsList.push({
                     intentId: intent.intentId,
                     intentName: intent.intentName,
@@ -119,12 +115,15 @@ exports.getCaseIntents = async (req, res) => {
             }
         }
 
+        // Apply manual pagination on the unique list
+        const totalCount = intentsList.length;
+        const paginatedIntents = intentsList.slice(skip, skip + limit);
         const totalPages = Math.ceil(totalCount / limit);
 
         return res.status(200).json({
             success: true,
             data: {
-                intents: intentsList,
+                intents: paginatedIntents,
                 pagination: {
                     currentPage: page,
                     totalPages: totalPages,
