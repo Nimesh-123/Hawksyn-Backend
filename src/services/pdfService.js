@@ -18,7 +18,7 @@ async function generatePdfFromHtml(html) {
         });
 
         const page = await browser.newPage();
-        
+
         // 1. Set Content
         await page.setContent(html, { waitUntil: 'networkidle0' });
 

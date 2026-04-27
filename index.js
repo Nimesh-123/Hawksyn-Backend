@@ -48,7 +48,9 @@ app.use(`${process.env.API_COMMON_ROUTE}/chat`, require('./src/routes/chat.route
 
 app.use(`${process.env.API_COMMON_ROUTE}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.use(`${process.env.API_COMMON_ROUTE}`, authenticate, check_validation, route);
+// --- Routes ---
+const apiPrefix = process.env.API_COMMON_ROUTE || '/api/v1';
+app.use(apiPrefix, authenticate, check_validation, route);
 
 // --- Centralized Error Handling Middleware (Keep at the end) ---
 app.use(errorHandler);
@@ -56,7 +58,8 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3001;
 
 const server = app.listen(PORT, () => {
-    console.log(`Magic happens on port ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 API Base Route: ${apiPrefix}`);
 });
 
 // --- Initialize Socket.io ---

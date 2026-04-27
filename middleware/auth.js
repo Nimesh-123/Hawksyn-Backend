@@ -18,9 +18,16 @@ const auth = (req, res, next) => {
 
         jwt.verify(token, secret, (err, decoded) => {
             if (err) {
+                if (err.name === 'TokenExpiredError') {
+                    return res.status(401).json({
+                        success: false,
+                        code: 1002,
+                        message: 'Unauthorized: Token has expired'
+                    });
+                }
                 return res.status(401).json({
                     success: false,
-                    message: 'Unauthorized: Invalid or expired token'
+                    message: 'Unauthorized: Invalid token'
                 });
             }
             req.user = decoded;
