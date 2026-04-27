@@ -18,5 +18,6 @@ const CaseIntentConfigSchema = new mongoose.Schema({
     timestamps: true,
     collection: 'case_intent_config'
 });
+CaseIntentConfigSchema.index({ caseId: 1, intentId: 1 }, { unique: true });
 
 module.exports = mongoose.model('CaseIntentConfig', CaseIntentConfigSchema);

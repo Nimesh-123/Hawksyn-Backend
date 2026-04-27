@@ -27,7 +27,7 @@ class CronService {
 
             for (const run of runs) {
                 const ageInDays = Math.floor((today - run.completedAt) / (1000 * 60 * 60 * 24));
-                
+
                 if (ageInDays === 173) { // 7 Days Remaining
                     await notificationService.notifyVerdictExpiry(run.runId, run.userId, 7);
                 } else if (ageInDays === 178) { // 2 Days Remaining
@@ -39,7 +39,7 @@ class CronService {
                 if (run.status === 'EXPERT_ASSIGNED' && run.expertAssignedAt && !run.expertReviewedAt) {
                     const hoursElapsed = Math.floor((today - run.expertAssignedAt) / (1000 * 60 * 60));
                     if (hoursElapsed >= 48 && hoursElapsed < 72) {
-                         await notificationService.notifySLABreach(run.runId, run.userId);
+                        await notificationService.notifySLABreach(run.runId, run.userId);
                     }
                 }
             }
@@ -49,12 +49,12 @@ class CronService {
             // (Assumes completedAt marks the start of the 30-day chat window)
             const chatExpiryTarget = new Date(today);
             chatExpiryTarget.setDate(today.getDate() - 27); // 3 days before 30 days = Day 27
-            
+
             const expiringChats = await db.Runs.find({
                 status: 'REPORT_COMPLETE',
                 completedAt: {
-                    $gte: new Date(chatExpiryTarget.setHours(0,0,0,0)),
-                    $lt: new Date(chatExpiryTarget.setHours(23,59,59,999))
+                    $gte: new Date(chatExpiryTarget.setHours(0, 0, 0, 0)),
+                    $lt: new Date(chatExpiryTarget.setHours(23, 59, 59, 999))
                 }
             }).populate('userId');
 
@@ -66,14 +66,14 @@ class CronService {
             // (Assumes cooldown expires exactly when reRunSetup.freeReRunExpiryDate is today)
             const rerunEligibility = await db.Runs.find({
                 'reRunSetup.freeReRunExpiryDate': {
-                    $gte: new Date(today.setHours(0,0,0,0)),
-                    $lt: new Date(today.setHours(23,59,59,999))
+                    $gte: new Date(today.setHours(0, 0, 0, 0)),
+                    $lt: new Date(today.setHours(23, 59, 59, 999))
                 }
             }).populate('userId');
 
             for (const reRun of rerunEligibility) {
                 // Custom logic for re-run alert
-                await notificationService.notifyVerdictExpiry(reRun.runId, reRun.userId, 0); 
+                await notificationService.notifyVerdictExpiry(reRun.runId, reRun.userId, 0);
             }
 
             logger.info(`[Cron] Daily Scan Complete. Processed ${runs.length} runs.`);

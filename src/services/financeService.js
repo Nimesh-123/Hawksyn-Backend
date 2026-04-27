@@ -108,8 +108,8 @@ const financeService = {
             const html = buildInvoiceHtml({ invoice, user });
             const pdfBuffer = await generatePdfFromHtml(html);
             const s3Result = await s3Service.uploadFile(
-                pdfBuffer, 
-                `invoices/${invoice.invoiceNumber}.pdf`, 
+                pdfBuffer,
+                `invoices/${invoice.invoiceNumber}.pdf`,
                 'application/pdf'
             );
 
