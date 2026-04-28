@@ -502,6 +502,13 @@ exports.getDashboardStats = async (req, res) => {
         ]);
         const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
 
+        // 3. Detailed Assessment Status Breakdown
+        const draftRuns = await db.Runs.countDocuments({ status: 'CREATED' }); // Started but no CV
+        const intakeDropped = await db.Runs.countDocuments({ status: { $in: ['CV_UPLOADED', 'PROFILE_CONFIRMED'] } }); // CV uploaded but not moved to AI
+        const activeProcessing = await db.Runs.countDocuments({ status: { $in: ['QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED', 'EXTRACTING', 'CONTRA_CHECK', 'SIGNAL_PULL', 'SYNTHESIZING', 'INTEGRITY_COMPLETE', 'EXPERT_ASSIGNED'] } });
+        const failedRuns = await db.Runs.countDocuments({ status: 'PROCESSING_FAILED' });
+        const paidAssessmentCount = await db.Payments.countDocuments({ status: 'COMPLETED' });
+
         const revenueByCase = await db.Payments.aggregate([
             { $match: { status: 'COMPLETED' } },
             { $group: { _id: "$caseId", revenue: { $sum: "$amount" } } },
@@ -560,7 +567,15 @@ exports.getDashboardStats = async (req, res) => {
             stats: {
                 summary: {
                     users: { total: totalUsers, newToday: newUsersToday },
-                    reports: { total: totalRuns, completed: completedRuns, processing: processingRuns },
+                    reports: { 
+                        total: totalRuns, 
+                        paid: paidAssessmentCount, 
+                        completed: completedRuns, 
+                        drafts: draftRuns,
+                        intakeDropped: intakeDropped,
+                        processing: activeProcessing,
+                        failed: failedRuns
+                    },
                     revenue: { total: totalRevenue, currency: 'INR' }
                 },
                 charts: {
@@ -1114,7 +1129,13 @@ exports.updateExpert = async (req, res) => {
         // Build update object
         const updateData = {};
         if (auditorName) updateData.auditorName = auditorName;
-        if (caseId) updateData.caseId = caseId;
+        
+        // Map caseId (single) to caseCategories (array) for the model
+        if (caseId) {
+            updateData.caseCategories = [caseId];
+            updateData.caseId = caseId; // Keep caseId for legacy support
+        }
+        
         if (specializations) updateData.specializations = specializations;
         if (maxCaseload !== undefined) updateData.maxCaseload = maxCaseload;
         if (isActive !== undefined) updateData.isActive = isActive;
@@ -1201,9 +1222,11 @@ exports.getCvAuditLogs = async (req, res) => {
                           'Anonymous User',
                 email: l.user?.email || 'N/A',
                 fileName: l.fileName,
+                cvUrl: l.cvUrl || null,
                 status: l.parserStatus,
                 errorReason: l.errorReason,
                 metadata: l.parserMetadata,
+                extractedData: l.parsedCvData,
                 uploadedAt: l.uploadedAt || l.createdAt
             };
         });
@@ -1267,6 +1290,60 @@ exports.downloadReportS3 = async (req, res) => {
         res.setHeader('Content-Disposition', `attachment; filename=Report_${runId}.pdf`);
         
         return Body.pipe(res);
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+exports.downloadCvAuditS3 = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const upload = await db.DocumentUploads.findById(id);
+        if (!upload || !upload.cvUrl) return res.status(404).json({ success: false, message: 'CV not found.' });
+
+        // Extract S3 key from full URL (e.g. https://bucket.s3.region.amazonaws.com/resumes/filename.pdf)
+        const urlObj = new URL(upload.cvUrl);
+        const key = urlObj.pathname.startsWith('/') ? urlObj.pathname.substring(1) : urlObj.pathname;
+        
+        // 1. Get from S3 as Stream
+        const { Body, ContentType } = await s3Service.getFileStream(key);
+        
+        // 2. Set Headers
+        res.setHeader('Content-Type', ContentType || 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${upload.fileName}"`);
+        
+        return Body.pipe(res);
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * Get single CV Audit log details
+ * GET /api/v1/admin/manage/cv-audit/:id
+ */
+exports.getCvAuditDetails = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const log = await db.DocumentUploads.findById(id).populate('userId', 'fullName name email');
+        
+        if (!log) return res.status(404).json({ success: false, message: 'Log not found' });
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                id: log._id,
+                userName: log.user?.fullName || log.user?.name || log.parsedCvData?.identity?.fullName || 'Anonymous User',
+                email: log.user?.email || 'N/A',
+                fileName: log.fileName,
+                cvUrl: log.cvUrl,
+                status: log.parserStatus,
+                errorReason: log.errorReason,
+                metadata: log.parserMetadata,
+                extractedData: log.parsedCvData,
+                uploadedAt: log.uploadedAt || log.createdAt
+            }
+        });
     } catch (err) {
         return res.status(500).json({ success: false, message: err.message });
     }

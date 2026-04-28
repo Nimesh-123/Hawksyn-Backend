@@ -79,7 +79,7 @@ exports.assignExpert = async (req, res) => {
                 { caseId: run.caseId }
             ],
             isActive: true,
-            $expr: { $lt: ['$currentCaseload', '$maxCaseload'] }
+            $expr: { $lt: ['$dailyCaseloadCount', '$maxCaseload'] }
         });
 
         if (!experts.length) {
@@ -136,7 +136,7 @@ exports.assignExpert = async (req, res) => {
 
         await db.RiskAuditorRegistry.updateOne(
             { auditorId: best.expert.auditorId },
-            { $inc: { currentCaseload: 1 } }
+            { $inc: { currentCaseload: 1, dailyCaseloadCount: 1 } }
         );
 
         const assignedAt = new Date();

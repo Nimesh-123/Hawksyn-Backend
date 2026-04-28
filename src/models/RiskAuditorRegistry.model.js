@@ -26,8 +26,9 @@ const RiskAuditorRegistrySchema = new mongoose.Schema({
     },
 
     // --- Performance & Limits ---
-    maxCaseload: { type: Number, default: 3 }, // Default to 3 cases/day as per req
-    currentCaseload: { type: Number, default: 0 },
+    maxCaseload: { type: Number, default: 3 }, // Daily quota
+    dailyCaseloadCount: { type: Number, default: 0 }, // Tracking cases taken today
+    currentCaseload: { type: Number, default: 0 }, // Total active cases
     slaCommitmentHours: { type: Number, default: 48 }, // e.g. 48 hours
     
     isActive: { type: Boolean, default: true },

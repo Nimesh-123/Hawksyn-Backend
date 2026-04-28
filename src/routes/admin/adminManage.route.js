@@ -129,4 +129,17 @@ router.delete('/experts/:id', adminController.deleteExpert);
  */
 router.get('/cv-audit', adminController.getCvAuditLogs);
 
+router.get('/cv-audit/download/:id', adminController.downloadCvAuditS3);
+
+/**
+ * @swagger
+ * /admin/manage/cv-audit/{id}:
+ *   get:
+ *     summary: Get single CV Audit log details
+ *     tags: ["9. Admin: Dashboard"]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get('/cv-audit/:id', adminController.getCvAuditDetails);
+
 module.exports = router;
