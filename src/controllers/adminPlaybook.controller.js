@@ -18,6 +18,13 @@ exports.downloadPlaybookTemplate = async (req, res) => {
         const { caseId } = req.query;
         const workbook = XLSX.utils.book_new();
 
+        // NEW: Fetch related intentIds for this case to filter shared models like IntentTaxonomy
+        let relatedIntentIds = [];
+        if (caseId) {
+            const configs = await db.CaseIntentConfig.find({ caseId }).select('intentId').lean();
+            relatedIntentIds = configs.map(c => c.intentId);
+        }
+
         // 1. Iterate over our 24 Sheets
         for (const sheetName of Object.keys(PLAYBOOK_MAPPING)) {
             const config = PLAYBOOK_MAPPING[sheetName];
@@ -35,6 +42,10 @@ exports.downloadPlaybookTemplate = async (req, res) => {
                 if (schema.caseId) query.caseId = caseId;
                 else if (schema.caseScope) query.caseScope = caseId;
                 else if (schema.targetCaseId) query.targetCaseId = caseId;
+                // Special Relationship Filtering
+                else if (config.model === 'IntentTaxonomy') {
+                    query.intentId = { $in: relatedIntentIds };
+                }
             } else {
                 // FORCE EMPTY: We only want headers for a new case
                 query = { _id: null }; 

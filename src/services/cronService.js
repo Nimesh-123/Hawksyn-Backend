@@ -13,7 +13,24 @@ class CronService {
         cron.schedule('0 10 * * *', () => {
             this.processScheduledNotifications();
         });
+
+        // NEW: Reset Daily Caseload for all experts at Midnight (00:00)
+        cron.schedule('0 0 * * *', () => {
+            this.resetDailyCaseloads();
+        });
+
         logger.info('[Cron] Notification Scheduler Initialized (Daily at 10 AM)');
+        logger.info('[Cron] Daily Caseload Resetter Initialized (Daily at Midnight)');
+    }
+
+    async resetDailyCaseloads() {
+        try {
+            logger.info('[Cron] Resetting Daily Caseload Counts for all experts...');
+            await db.RiskAuditorRegistry.updateMany({}, { $set: { dailyCaseloadCount: 0 } });
+            logger.info('[Cron] Daily Caseload Reset Complete.');
+        } catch (error) {
+            logger.error(`[Cron Error] Failed to reset caseloads: ${error.message}`);
+        }
     }
 
     async processScheduledNotifications() {

@@ -25,14 +25,14 @@ function scoreExpert(expert, redFlags, constraints) {
     specializationScore = Math.min(specializationScore, 60);
 
     const maxLoad = expert.maxCaseload || 20;
-    const currLoad = expert.currentCaseload || 0;
-    const loadScore = Math.round(((maxLoad - currLoad) / maxLoad) * 40);
+    const currDailyLoad = expert.dailyCaseloadCount || 0;
+    const loadScore = Math.round(((maxLoad - currDailyLoad) / maxLoad) * 40);
 
     return {
         totalScore: specializationScore + loadScore,
         specializationScore,
         loadScore,
-        availableCapacity: maxLoad - currLoad
+        availableCapacity: maxLoad - currDailyLoad
     };
 }
 
