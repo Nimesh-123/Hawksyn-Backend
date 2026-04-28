@@ -46,16 +46,21 @@ const requestLogger = (req, res, next) => {
       responseTime: `${Date.now() - start}ms`
     };
 
-    // Log to terminal for easy visibility as requested by user
-    console.log(`\n--- REQUEST [${requestId}] ---`);
-    console.log(`Method: ${req.method} | Route: ${req.originalUrl}`);
-    if (req.body && Object.keys(req.body).length > 0) {
-      console.log('Body:', JSON.stringify(req.body, null, 2));
+    // Skip verbose terminal logging for polling endpoints (notifications/summary) to reduce noise
+    const isExcludedFromConsole = req.originalUrl.includes('notifications') || req.originalUrl.includes('summary');
+
+    if (!isExcludedFromConsole || res.statusCode >= 400) {
+      // Log to terminal for easy visibility as requested by user
+      console.log(`\n--- REQUEST [${requestId}] ---`);
+      console.log(`Method: ${req.method} | Route: ${req.originalUrl}`);
+      if (req.body && Object.keys(req.body).length > 0) {
+        console.log('Body:', JSON.stringify(req.body, null, 2));
+      }
+      console.log(`--- RESPONSE [${requestId}] ---`);
+      console.log(`Status: ${res.statusCode} | Time: ${Date.now() - start}ms`);
+      console.log('Body:', JSON.stringify(req.responseBody, null, 2));
+      console.log(`-------------------------------\n`);
     }
-    console.log(`--- RESPONSE [${requestId}] ---`);
-    console.log(`Status: ${res.statusCode} | Time: ${Date.now() - start}ms`);
-    console.log('Body:', JSON.stringify(req.responseBody, null, 2));
-    console.log(`-------------------------------\n`);
 
     if (res.statusCode >= 500) {
       logger.error(logData);
