@@ -13,10 +13,10 @@ exports.getDashboardStats = async (req, res) => {
     try {
         const totalUsers = await db.User.countDocuments({ role: 'user' });
         const activeRuns = await db.Runs.countDocuments({ status: { $nin: ['REPORT_COMPLETE', 'FAILED'] } });
-        
+
         // Pending Audits (Kanban Columns: INTAKE, ANALYSIS, REVIEW)
-        const pendingAudits = await db.Runs.countDocuments({ 
-            status: { $in: ['CREATED', 'CV_UPLOADED', 'ANALYSING', 'INTEGRITY_CHECK_PASSED', 'EXPERT_ASSIGNED'] } 
+        const pendingAudits = await db.Runs.countDocuments({
+            status: { $in: ['CREATED', 'CV_UPLOADED', 'ANALYSING', 'INTEGRITY_CHECK_PASSED', 'EXPERT_ASSIGNED'] }
         });
 
         // Revenue (Sum of successful payments)
@@ -228,7 +228,7 @@ exports.toggleUserExpertStatus = async (req, res) => {
             caseCategories,
             specializations,
             maxCaseload
-        } = req.body; 
+        } = req.body;
 
         const user = await db.User.findById(userId);
         if (!user) return RESPONSE.error(res, 404, 3001, 'User not found');
@@ -249,7 +249,7 @@ exports.toggleUserExpertStatus = async (req, res) => {
 
             const auditorName = user.fullName || user.name || 'Expert Auditor';
             const finalSpecializations = specializations || ["Generalist"];
-            
+
             // Handle caseCategories (allow both array and single caseId string for flexibility)
             let categories = [];
             if (Array.isArray(caseCategories)) {
@@ -567,10 +567,10 @@ exports.getDashboardStats = async (req, res) => {
             stats: {
                 summary: {
                     users: { total: totalUsers, newToday: newUsersToday },
-                    reports: { 
-                        total: totalRuns, 
-                        paid: paidAssessmentCount, 
-                        completed: completedRuns, 
+                    reports: {
+                        total: totalRuns,
+                        paid: paidAssessmentCount,
+                        completed: completedRuns,
                         drafts: draftRuns,
                         intakeDropped: intakeDropped,
                         processing: activeProcessing,
@@ -932,10 +932,10 @@ exports.getAllCompletedRuns = async (req, res) => {
 
         // Build Run filter — Default is REPORT_COMPLETE for reports tab, 
         // but 'all' for the Operations Pipeline board.
-        const runFilter = (rated === 'all' || req.query.status === 'all') 
-            ? {} 
+        const runFilter = (rated === 'all' || req.query.status === 'all')
+            ? {}
             : { status: 'REPORT_COMPLETE' };
-            
+
         if (caseId) runFilter.caseId = caseId;
         if (intentId) runFilter.intentId = intentId;
 
@@ -1129,13 +1129,13 @@ exports.updateExpert = async (req, res) => {
         // Build update object
         const updateData = {};
         if (auditorName) updateData.auditorName = auditorName;
-        
+
         // Map caseId (single) to caseCategories (array) for the model
         if (caseId) {
             updateData.caseCategories = [caseId];
             updateData.caseId = caseId; // Keep caseId for legacy support
         }
-        
+
         if (specializations) updateData.specializations = specializations;
         if (maxCaseload !== undefined) updateData.maxCaseload = maxCaseload;
         if (isActive !== undefined) updateData.isActive = isActive;
@@ -1209,17 +1209,17 @@ exports.getCvAuditLogs = async (req, res) => {
 
         const formattedLogs = logs.map(l => {
             const profile = profileMap[l.userId.toString()];
-            const confirmedName = profile?.confirmedProfile?.identity?.fullName || 
-                                 profile?.originalParsedData?.structured?.identity?.fullName;
+            const confirmedName = profile?.confirmedProfile?.identity?.fullName ||
+                profile?.originalParsedData?.structured?.identity?.fullName;
 
             return {
                 id: l._id,
-                userName: confirmedName || 
-                          l.user?.fullName || 
-                          l.user?.name || 
-                          l.parsedCvData?.identity?.fullName || 
-                          l.parsedCvData?.name || 
-                          'Anonymous User',
+                userName: confirmedName ||
+                    l.user?.fullName ||
+                    l.user?.name ||
+                    l.parsedCvData?.identity?.fullName ||
+                    l.parsedCvData?.name ||
+                    'Anonymous User',
                 email: l.user?.email || 'N/A',
                 fileName: l.fileName,
                 cvUrl: l.cvUrl || null,
@@ -1259,14 +1259,14 @@ exports.downloadInvoiceS3 = async (req, res) => {
         if (!invoice || !invoice.pdfUrl) return res.status(404).json({ success: false, message: 'Invoice not found on S3.' });
 
         const key = `invoices/${invoice.invoiceNumber}.pdf`;
-        
+
         // 1. Get from S3 as Stream
         const { Body, ContentType } = await s3Service.getFileStream(key);
-        
+
         // 2. Set Headers for Direct Download
         res.setHeader('Content-Type', ContentType || 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=${invoice.invoiceNumber}.pdf`);
-        
+
         // 3. Pipe the S3 stream to Response
         return Body.pipe(res);
     } catch (err) {
@@ -1281,14 +1281,14 @@ exports.downloadReportS3 = async (req, res) => {
         if (!run || !run.reportPdfUrl) return res.status(404).json({ success: false, message: 'Report PDF not found on S3.' });
 
         const key = `reports/Report_${runId}.pdf`;
-        
+
         // 1. Get from S3 as Stream
         const { Body, ContentType } = await s3Service.getFileStream(key);
-        
+
         // 2. Set Headers
         res.setHeader('Content-Type', ContentType || 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=Report_${runId}.pdf`);
-        
+
         return Body.pipe(res);
     } catch (err) {
         return res.status(500).json({ success: false, message: err.message });
@@ -1304,14 +1304,14 @@ exports.downloadCvAuditS3 = async (req, res) => {
         // Extract S3 key from full URL (e.g. https://bucket.s3.region.amazonaws.com/resumes/filename.pdf)
         const urlObj = new URL(upload.cvUrl);
         const key = urlObj.pathname.startsWith('/') ? urlObj.pathname.substring(1) : urlObj.pathname;
-        
+
         // 1. Get from S3 as Stream
         const { Body, ContentType } = await s3Service.getFileStream(key);
-        
+
         // 2. Set Headers
         res.setHeader('Content-Type', ContentType || 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${upload.fileName}"`);
-        
+
         return Body.pipe(res);
     } catch (err) {
         return res.status(500).json({ success: false, message: err.message });
@@ -1326,7 +1326,7 @@ exports.getCvAuditDetails = async (req, res) => {
     try {
         const { id } = req.params;
         const log = await db.DocumentUploads.findById(id).populate('userId', 'fullName name email');
-        
+
         if (!log) return res.status(404).json({ success: false, message: 'Log not found' });
 
         return res.status(200).json({
@@ -1385,8 +1385,8 @@ exports.getSignalVolumeSummary = async (req, res) => {
 
         // 4. Overalls
         const totalSignals = await db.ExternalEvidenceDataPool.countDocuments();
-        const freshSignals = await db.ExternalEvidenceDataPool.countDocuments({ 
-            freshnessExpiresAt: { $gt: new Date() } 
+        const freshSignals = await db.ExternalEvidenceDataPool.countDocuments({
+            freshnessExpiresAt: { $gt: new Date() }
         });
 
         return RESPONSE.success(res, 200, 1001, {
@@ -1442,10 +1442,10 @@ exports.getAllPayments = async (req, res) => {
 exports.exportPaymentsCSV = async (req, res) => {
     try {
         const payments = await db.Payments.find({}).sort({ createdAt: -1 }).lean();
-        
+
         // CSV Headers - Updated to be more clear
         let csv = 'Date,PaymentId,PurchaseId/GatewayID,Amount,Currency,Status,Gateway,CaseId,UserId\n';
-        
+
         payments.forEach(p => {
             const rawDate = p.verifiedAt || p.createdAt || null;
             const date = rawDate ? new Date(rawDate).toLocaleDateString('en-GB') : 'N/A';
@@ -1455,7 +1455,7 @@ exports.exportPaymentsCSV = async (req, res) => {
 
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename=Hawksyn_Transactions.csv');
-        
+
         return res.status(200).send(csv);
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);

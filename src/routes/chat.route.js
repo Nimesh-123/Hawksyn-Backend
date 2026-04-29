@@ -61,5 +61,6 @@ route.post('/upload', upload.single('file'), chatController.uploadAttachment);
  *         schema: { type: string }
  */
 route.get('/history/:runId', chatController.getChatHistory);
+route.post('/send/:runId', chatController.sendMessage);
 
 module.exports = route;

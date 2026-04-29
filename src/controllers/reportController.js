@@ -263,7 +263,16 @@ exports.generateReport = async (req, res) => {
             console.error('[Report-S3] Automation Failed:', s3Err.message);
         }
 
-        await db.Runs.updateOne({ runId }, { $set: { verdict, finalReport, reportPdfUrl, status: 'REPORT_COMPLETE' } });
+        await db.Runs.updateOne({ runId }, {
+            $set: {
+                verdict,
+                finalReport,
+                reportPdfUrl,
+                status: 'REPORT_COMPLETE',
+                chatExpiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                completedAt: new Date()
+            }
+        });
         clockService.refreshClocksAfterCase(run.userId, runId);
 
         // Trigger Final Notification

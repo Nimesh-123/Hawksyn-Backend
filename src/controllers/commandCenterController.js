@@ -126,8 +126,8 @@ exports.getCommandCenter = async (req, res) => {
             daysLeft:            userClock.daysLeft,
             effectiveValidUntil: userClock.effectiveValidUntil,
             
-            // Build clock response using stored data
-            clocks: buildClocksResponse(clocksData, userClock),
+            // Build clock response using stored data vs market median
+            clocks: buildClocksResponse(clocksData, userClock, pulse),
 
             trendTrigger: userClock.trendTrigger || null,
             insightText:  userClock.insightText  || null,
@@ -233,7 +233,7 @@ exports.runHawk = async (req, res) => {
                 validityState: 'ACTIVE_CLOCK',
                 clockValidUntil,
                 daysLeft: 7,
-                clocks: buildClocksResponse(newScores, newScores), // Pass newScores as second param for justifications
+                clocks: buildClocksResponse(newScores, newScores, newScores), // Benchmarks relative to fresh AI scores
                 insightText: newScores.trendTrigger || newScores.aiExposureJustification,
                 significantChange,
                 message: 'Hawk complete. Clocks recalibrated and valid for 7 days.'

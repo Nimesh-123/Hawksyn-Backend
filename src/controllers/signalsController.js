@@ -96,51 +96,83 @@ exports.collectSignals = async (req, res) => {
 
         const prompt = buildSignalPrompt({ ...promptContext, taxonomy });
 
-        let signals = null;
+        const cacheThreshold = new Date();
+        cacheThreshold.setDate(cacheThreshold.getDate() - 7); // 7-day cache window (B35)
+
+        // 3. Signal Deduplication Check (B33 - No re-ingestion if fresh)
+        const cachedSignals = await db.ExternalEvidenceDataPool.find({
+            geoValue: promptContext.location,
+            industry: promptContext.industry,
+            role: promptContext.role, // Precise role match
+            fetchedAt: { $gt: cacheThreshold }
+        });
+
+        let signals = { signals: {} };
         let collectionStatus = 'SUCCESS';
         let validationError = null;
         let totalDuration = 0;
 
-        try {
-            const initialCall = await callOpenAI(prompt);
-            let parsed = initialCall.data;
-            let usage = initialCall.usage;
-            totalDuration = parseFloat(initialCall.duration);
+        // Determine which signals are missing from cache
+        const missingSignalIds = taxonomy
+            .filter(t => !cachedSignals.find(cs => cs.signalId === t.signalId))
+            .map(t => t.signalId);
 
-            const validation = validateSignals(parsed, taxonomy);
+        if (missingSignalIds.length === 0 && cachedSignals.length >= taxonomy.length) {
+            console.log(`[Signals-B33] Cache hit! Reusing ${cachedSignals.length} fresh signals for ${promptContext.role}`);
+            cachedSignals.forEach(cs => {
+                signals.signals[cs.signalId] = {
+                    value: cs.signalValue,
+                    raw_value: cs.signalValue,
+                    sourceName: cs.sourceId,
+                    sourceUrl: cs.sourceUrl,
+                    citation: cs.citationText,
+                    confidence: cs.confidenceScore >= 80 ? 'HIGH' : 'MEDIUM'
+                };
+            });
+            collectionStatus = 'CACHED';
+        } else {
+            console.log(`[Signals-B33] Cache miss for ${missingSignalIds.length} signals. Calling AI Research...`);
+            try {
+                const initialCall = await callOpenAI(prompt);
+                let parsed = initialCall.data;
+                let usage = initialCall.usage;
+                totalDuration = parseFloat(initialCall.duration);
 
-            if (!validation.valid) {
-                const retryPrompt = `${prompt}\n\nCORRECTION REQUIRED: Previous response failed validation.\nReason: ${validation.reason}\n\nReturn ONLY valid JSON matching the taxonomy.`;
-                const retryCall = await callOpenAI(retryPrompt);
-                
-                usage.promptTokens += retryCall.usage.promptTokens;
-                usage.completionTokens += retryCall.usage.completionTokens;
-                usage.totalTokens += retryCall.usage.totalTokens;
-                totalDuration += parseFloat(retryCall.duration);
+                const validation = validateSignals(parsed, taxonomy);
 
-                const retryValidation = validateSignals(retryCall.data, taxonomy);
+                if (!validation.valid) {
+                    const retryPrompt = `${prompt}\n\nCORRECTION REQUIRED: Previous response failed validation.\nReason: ${validation.reason}\n\nReturn ONLY valid JSON matching the taxonomy.`;
+                    const retryCall = await callOpenAI(retryPrompt);
+                    
+                    usage.promptTokens += retryCall.usage.promptTokens;
+                    usage.completionTokens += retryCall.usage.completionTokens;
+                    usage.totalTokens += retryCall.usage.totalTokens;
+                    totalDuration += parseFloat(retryCall.duration);
 
-                if (!retryValidation.valid) {
-                    signals = retryCall.data || {};
-                    collectionStatus = 'DEGRADED';
-                    validationError = retryValidation.reason;
+                    const retryValidation = validateSignals(retryCall.data, taxonomy);
+
+                    if (!retryValidation.valid) {
+                        signals = retryCall.data || {};
+                        collectionStatus = 'DEGRADED';
+                        validationError = retryValidation.reason;
+                    } else {
+                        signals = retryCall.data;
+                    }
                 } else {
-                    signals = retryCall.data;
+                    signals = parsed;
                 }
-            } else {
-                signals = parsed;
-            }
 
-            if (signals) {
-                signals.tokenUsage = usage;
-                signals.collectionDuration = `${totalDuration.toFixed(2)}s`;
-            }
+                if (signals) {
+                    signals.tokenUsage = usage;
+                    signals.collectionDuration = `${totalDuration.toFixed(2)}s`;
+                }
 
-        } catch (llmErr) {
-            console.error('[Signals] AI call failed:', llmErr.message);
-            collectionStatus = 'FAILED';
-            validationError = llmErr.message;
-            signals = {};
+            } catch (llmErr) {
+                console.error('[Signals] AI call failed:', llmErr.message);
+                collectionStatus = 'FAILED';
+                validationError = llmErr.message;
+                signals = {};
+            }
         }
 
         const coverage = buildCoverage(signals, taxonomy);
@@ -206,6 +238,8 @@ exports.collectSignals = async (req, res) => {
                     aeuId,
                     geoScope: t.geoScope || 'GLOBAL',
                     geoValue: profile?.location || 'GLOBAL',
+                    role: promptContext.role,
+                    industry: promptContext.industry,
                     freshnessExpiresAt: expiresAt,
                     isValidated: true,
                     fetchedAt: new Date()

@@ -15,13 +15,13 @@ const { detectRegionFromIP } = require('../../utils/regionHelper.js');
 const prepareUserResponse = async (user) => {
     const userActiveCv = await getUserActiveCv(user._id);
     const userResponse = user.toObject();
-    
+
     if (userActiveCv) {
         userResponse.cvUrl = userActiveCv.cvUrl;
         userResponse.cvUploadedAt = userActiveCv.cvUploadedAt;
         userResponse.parsedCvData = userActiveCv.parsedCvData;
     }
-    
+
     delete userResponse.mPin;
     delete userResponse.refreshToken;
     return userResponse;
@@ -85,7 +85,7 @@ exports.verifyOTP = async (req, res) => {
 
         let user = await db.User.findOne({ email, isDeleted: false });
         let isNewUser = false;
-        
+
         if (!user) {
             user = new db.User({ email });
             isNewUser = true;
@@ -95,12 +95,12 @@ exports.verifyOTP = async (req, res) => {
         user.countryCode = region.countryCode;
         user.preferredCurrency = region.currency;
         user.isEmailVerified = true;
-        
+
         // Save FCM Token if provided during login
         if (req.body.fcmToken) user.fcmToken = req.body.fcmToken;
 
         otpRecord.isUsed = true;
-        otpRecord.expiresAt = new Date();        await otpRecord.save();
+        otpRecord.expiresAt = new Date(); await otpRecord.save();
 
         const tokens = generateToken({ id: user._id, email: user.email, role: user.role });
         user.refreshToken = tokens.refreshToken;
@@ -119,7 +119,7 @@ exports.setPin = async (req, res) => {
     try {
         const { email, mPin, confirmMPin } = req.body;
         if (mPin !== confirmMPin) return RESPONSE.error(res, 400, 3005);
- 
+
         const commonPins = ['1234', '1111', '0000', '1212', '2580', '1379'];
         if (commonPins.includes(mPin)) {
             return RESPONSE.error(res, 400, 3013);
@@ -166,7 +166,7 @@ exports.loginWithPin = async (req, res) => {
         const region = detectRegionFromIP(req.ip);
         user.countryCode = region.countryCode;
         user.preferredCurrency = region.currency;
-        
+
         const tokens = generateToken({ id: user._id, email: user.email, role: user.role });
         user.refreshToken = tokens.refreshToken;
 
@@ -223,10 +223,10 @@ exports.googleLogin = async (req, res) => {
         const userResponse = await prepareUserResponse(user);
         await createAuditLog(req, 'LOGIN_WITH_GOOGLE', user._id, { email: user.email });
 
-        return RESPONSE.success(res, 200, 2001, { 
-            user: userResponse, 
-            ...tokens, 
-            isNewUser: !user.mPinSet 
+        return RESPONSE.success(res, 200, 2001, {
+            user: userResponse,
+            ...tokens,
+            isNewUser: !user.mPinSet
         });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
@@ -306,7 +306,7 @@ exports.uploadCV = async (req, res) => {
 
         try {
             extractedData = await smartCVParser(file.buffer, file.originalname, file.mimetype);
-            
+
             if (extractedData && extractedData.isCv === false) {
                 await deleteFile(fileName);
 
@@ -341,10 +341,10 @@ exports.uploadCV = async (req, res) => {
             }
         } catch (aiError) { console.error("[AI Fail]", aiError.message); }
 
-        const isExtractionBlank = !extractedData || 
-                                (extractedData.aeuList.length < 3 && 
-                                 (!extractedData.structured.work?.experience?.length) && 
-                                 (!extractedData.structured.composition?.skills?.technical?.length));
+        const isExtractionBlank = !extractedData ||
+            (extractedData.aeuList.length < 3 &&
+                (!extractedData.structured.work?.experience?.length) &&
+                (!extractedData.structured.composition?.skills?.technical?.length));
 
         if (isExtractionBlank && parserStatus !== "FAILED") {
             parserStatus = "EMPTY";
@@ -486,7 +486,7 @@ exports.getTrends = async (req, res) => {
         // Add dynamically calculated peer benchmarks as trends
         const { getPeerBenchmarks } = require('../services/clockService');
         const aiBench = getPeerBenchmarks(clocks.aiExposureScore, 'AI_EXPOSURE');
-        
+
         trends.push({
             type: 'BENCHMARK',
             label: 'Peer AI Resilience',
@@ -548,7 +548,7 @@ exports.changeMPin = async (req, res) => {
     try {
         const { oldPin, newPin } = req.body;
         const user = await db.User.findById(req.user.id);
-        
+
         const bcrypt = require('bcryptjs');
         const isMatch = await bcrypt.compare(String(oldPin), user.mPin);
         if (!isMatch) return RESPONSE.error(res, 401, 3012, "Incorrect old PIN.");
@@ -614,21 +614,21 @@ exports.applyAsExpert = async (req, res) => {
         if (!expertRecord) {
             // Hardcode a simple ID generation if utility is not available or complex
             const auditorId = `AUD-${Math.floor(1000 + Math.random() * 9000)}`;
-            
+
             expertRecord = await db.RiskAuditorRegistry.create({
                 auditorId,
                 auditorName: user.fullName || user.name || 'New Expert applicant',
                 email: user.email,
                 password: user.mPin || 'Expert@Hks123!', // Link to their PIN initially
-                status: 'PENDING_SETUP', 
-                isActive: false, 
+                status: 'PENDING_SETUP',
+                isActive: false,
                 caseCategories: [], // No categories yet
             });
         }
 
         await createAuditLog(req, 'EXPERT_APPLICATION_SUBMITTED', user._id, { email: user.email });
 
-        return RESPONSE.success(res, 200, 1001, { 
+        return RESPONSE.success(res, 200, 1001, {
             message: "Expert application submitted. You are now in pending activation state.",
             role: user.role,
             isExpert: user.isExpert,

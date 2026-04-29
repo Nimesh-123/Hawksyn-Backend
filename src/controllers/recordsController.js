@@ -64,8 +64,8 @@ async function buildRunSummary(run) {
         canReRun: canReRun,
         // ── NEW: Re-Run Policy Details (Task: User Visibility) ──
         reRunPolicy: {
-            isFree: (run.reRunSetup?.eligibleForFreeReRun === true) && 
-                    (!run.reRunSetup?.freeReRunExpiryDate || new Date() <= new Date(run.reRunSetup.freeReRunExpiryDate)),
+            isFree: (run.reRunSetup?.eligibleForFreeReRun === true) &&
+                (!run.reRunSetup?.freeReRunExpiryDate || new Date() <= new Date(run.reRunSetup.freeReRunExpiryDate)),
             expiry: run.reRunSetup?.freeReRunExpiryDate || null,
             priceOverride: run.reRunSetup?.reRunPriceOverride || null
         }
@@ -296,8 +296,8 @@ exports.getRunDetail = async (req, res) => {
             // Standard Re-Run Policy: Available Anytime
             reRunInDays: 0,
             reRunPolicy: {
-                isFree: (run.reRunSetup?.eligibleForFreeReRun === true) && 
-                        (!run.reRunSetup?.freeReRunExpiryDate || new Date() <= new Date(run.reRunSetup.freeReRunExpiryDate)),
+                isFree: (run.reRunSetup?.eligibleForFreeReRun === true) &&
+                    (!run.reRunSetup?.freeReRunExpiryDate || new Date() <= new Date(run.reRunSetup.freeReRunExpiryDate)),
                 expiry: run.reRunSetup?.freeReRunExpiryDate || null,
                 priceOverride: run.reRunSetup?.reRunPriceOverride || null
             }
@@ -340,6 +340,27 @@ exports.initiateReRun = async (req, res) => {
 
         const { caseId, intentId } = previousRun;
 
+        // --- NEW: Resume Logic (Prevents duplicates if user goes back) ---
+        const existingReRun = await db.Runs.findOne({
+            userId,
+            previousRunId: previousRunId,
+            status: { $nin: ['REPORT_COMPLETE', 'PROCESSING_FAILED'] }
+        });
+
+        if (existingReRun) {
+            console.log(`[Re-Run] Resuming existing session ${existingReRun.runId} for user ${userId}`);
+            return res.status(200).json({
+                success: true,
+                data: {
+                    runId: existingReRun.runId,
+                    caseId: existingReRun.caseId,
+                    intentId: existingReRun.intentId,
+                    status: existingReRun.status,
+                    message: "Resuming existing re-run session."
+                }
+            });
+        }
+
         // 3. Validate Case and Intent config
         const caseRecord = await db.CaseRegistry.findOne({ caseId, isActive: true });
         if (!caseRecord) return res.status(404).json({ success: false, message: 'Case not found' });
@@ -347,47 +368,38 @@ exports.initiateReRun = async (req, res) => {
         const config = await db.CaseIntentConfig.findOne({ caseId, intentId, isActive: true });
         if (!config) return res.status(400).json({ success: false, message: 'Usecase/Intent configuration not found' });
 
-        // 4. Check Re-Run Policy (Free vs Paid)
+        // 4. Check Re-Run Policy (Admin Managed)
+        // We use the settings manually configured by the Admin in the previous run
+        const adminSetup = previousRun.reRunSetup || {};
 
+        let eligibleForFree = adminSetup.eligibleForFreeReRun || false;
+        let expiryDate = adminSetup.freeReRunExpiryDate || null;
+        let reRunPrice = adminSetup.reRunPriceOverride || 999; // Default if not set
 
-        // 5. Load latest Profile for CV Snapshot
+        // Check if the Admin's free window has already expired
+        if (eligibleForFree && expiryDate && new Date() > new Date(expiryDate)) {
+            eligibleForFree = false;
+        }
         const userProfile = await db.UserProfile.findOne({ userId });
 
         // 5. Generate New runId
         const newRunId = await generateFormattedId(db.Runs, 'RUN', 'runId');
 
-        // 6. Create Fresh Run (linked to the same case/intent as the previous run)
-        const newRun = new db.Runs({
-            runId: newRunId,
-            userId: user._id,
-            caseId,
-            intentId,
-            playbookVersionId: config.playbookVersionId,
-            previousRunId: previousRunId, // Link back to the old run for delta/comparison
-            status: 'CREATED',
-            cvSnapshot: {
-                cvUploadId: userProfile?.lastCvUploadId || null,
-                cvUrl: userProfile?.cvUrl || null,
-                parsedData: userProfile?.confirmedProfile || {},
-                attachedAt: userProfile?.confirmedAt || new Date(),
-                source: 'EXISTING'
-            }
-        });
-
-        await newRun.save();
-
-        console.log(`[Re-Run] New session ${newRunId} initiated from previous run ${previousRunId} for user ${userId}`);
-
+        // 5. Return Policy & Proceed to Payment Flow
         return res.status(200).json({
             success: true,
             data: {
-                runId: newRun.runId,
-                caseId: newRun.caseId,
-                intentId: newRun.intentId,
+                previousRunId: previousRunId,
+                caseId,
+                intentId,
                 caseName: caseRecord.caseName,
-                status: 'CREATED',
-                cvChoiceMandatory: true,
-                message: "Re-run initiated successfully."
+                status: 'POLICY_CHECK_COMPLETE',
+                reRunPolicy: {
+                    isFree: eligibleForFree,
+                    expiry: expiryDate,
+                    price: eligibleForFree ? 0 : reRunPrice
+                },
+                message: "Policy verified. Proceed to payment/initiation."
             }
         });
 
@@ -432,54 +444,66 @@ exports.compareRuns = async (req, res) => {
         const deltaScore = lateRisk - baseRisk;
         const verdictChanged = baseline.verdict !== latest.verdict;
 
-        // --- Logic: Decision Direction AI Summary ---
-        let directionSummary = "";
-        if (deltaScore > 10) {
-            directionSummary = "Risk profile has significantly increased. New contradictions and red flags detected in the latest run suggest a higher probability of professional friction.";
-        } else if (deltaScore < -10) {
-            directionSummary = "Risk profile has improved. Latest inputs have successfully resolved previous contradictions, or market conditions have become more favorable for this profile.";
-        } else {
-            directionSummary = "Risk profile remains stable. Minimal divergence in core integrity findings between these two sessions.";
-        }
+        // --- Logic: Decision Direction AI Summary (Slide 45) ---
+        let deltaType = deltaScore > 0 ? 'DETERIORATION' : (deltaScore < 0 ? 'IMPROVEMENT' : 'STABLE');
+        let absDelta = Math.abs(deltaScore);
 
-        const comparison = {
-            meta: {
-                baselineId,
-                latestId,
-                analyzedAt: new Date()
-            },
-            riskAnalysis: {
-                baselineRisk: baseRisk,
-                latestRisk: lateRisk,
-                delta: deltaScore,
-                direction: deltaScore > 0 ? 'UP' : deltaScore < 0 ? 'DOWN' : 'STABLE',
-                intensity: Math.abs(deltaScore) > 20 ? 'HIGH' : 'LOW'
-            },
-            verdictShift: {
-                baselineVerdict: baseline.verdict,
-                latestVerdict: latest.verdict,
-                isChanged: verdictChanged
-            },
-            decisionDirection: directionSummary,
-            keyDifferences: [
-                {
-                    label: "Accuracy Shift",
-                    value: `${Math.abs(deltaScore)}% ${deltaScore > 0 ? 'Increase in Risk' : 'Reduction in Risk'}`
-                },
-                {
-                    label: "Verdict Status",
-                    value: verdictChanged ? `Changed from ${baseline.verdict} to ${latest.verdict}` : "Unchanged"
-                }
-            ]
-        };
+        let summary = "";
+        let keyDrivers = [];
+        let recommendation = "";
+
+        if (deltaType === 'STABLE') {
+            summary = "Your risk profile remains stable. Your career safety metrics haven't shifted significantly since the baseline.";
+            keyDrivers = ["Consistent market signals", "Static profile data", "No significant role changes"];
+            recommendation = "Continue tracking. Re-run if you change roles or gain new skills.";
+        } else if (deltaType === 'DETERIORATION') {
+            summary = `Your risk has increased by ${absDelta}%. This suggests higher vulnerability to market changes or AI displacement compared to your baseline.`;
+            keyDrivers = [
+                "New AI tools impacting your specific role",
+                "Increased automation in your industry",
+                "Skill gap detected relative to new market trends"
+            ];
+            recommendation = "Review your 'Top Skills' and consider upskilling in high-demand areas to lower your risk.";
+        } else {
+            summary = `Your risk has improved by ${absDelta}%. You are in a safer position now than you were during your baseline audit.`;
+            keyDrivers = [
+                "Enhanced experience levels",
+                "Favorable market shifts in your sector",
+                "Better profile accuracy (Full vs Partial)"
+            ];
+            recommendation = "Your profile is strengthening. Consider locking in this baseline as your new standard.";
+        }
 
         return res.status(200).json({
             success: true,
-            data: comparison
+            data: {
+                baseline: {
+                    runId: baseline.runId,
+                    riskScore: baseRisk,
+                    verdict: baseline.verdict,
+                    accuracyBand: baseRas?.artifactJson?.accuracy?.band || 'LOW'
+                },
+                latest: {
+                    runId: latest.runId,
+                    riskScore: lateRisk,
+                    verdict: latest.verdict,
+                    accuracyBand: lateRas?.artifactJson?.accuracy?.band || 'LOW'
+                },
+                comparison: {
+                    deltaScore: deltaScore,
+                    deltaType: deltaType,
+                    verdictChanged: verdictChanged,
+                    interpretation: {
+                        summary,
+                        keyDrivers: keyDrivers.slice(0, 3), // Limit to 3 drivers as per UI
+                        recommendation
+                    }
+                }
+            }
         });
 
     } catch (error) {
-        console.error('[Compare Error]', error);
+        console.error('[Compare Runs Error]', error);
         return res.status(500).json({ success: false, message: error.message });
     }
 };

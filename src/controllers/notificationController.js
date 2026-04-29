@@ -114,20 +114,46 @@ exports.getUnreadCount = async (req, res) => {
     }
 };
 
-// 6. Update Notification Preferences (Slide 17)
+// 6. Update Notification Preferences (Slide 39)
 exports.updatePreferences = async (req, res) => {
     try {
-        const { push, email, criticalAlertsOnly } = req.body;
+        const { 
+            push, email, 
+            clockCritical, clockExpired, expertReplied, 
+            chatClosing, reportReady, rerunReminder, productUpdates 
+        } = req.body;
+        
         const userId = req.user.id;
-
         const updateData = {};
-        if (push !== undefined) updateData['notificationPreferences.push'] = push;
+
+        // Core Toggles
+        if (push !== undefined)  updateData['notificationPreferences.push'] = push;
         if (email !== undefined) updateData['notificationPreferences.email'] = email;
-        if (criticalAlertsOnly !== undefined) updateData['notificationPreferences.criticalAlertsOnly'] = criticalAlertsOnly;
 
-        await db.User.findByIdAndUpdate(userId, { $set: updateData });
+        // Slide 39 Toggles
+        if (clockExpired !== undefined)  updateData['notificationPreferences.clockExpired'] = clockExpired;
+        if (expertReplied !== undefined) updateData['notificationPreferences.expertReplied'] = expertReplied;
+        if (chatClosing !== undefined)   updateData['notificationPreferences.chatClosing'] = chatClosing;
+        if (reportReady !== undefined)   updateData['notificationPreferences.reportReady'] = reportReady;
+        if (rerunReminder !== undefined) updateData['notificationPreferences.rerunReminder'] = rerunReminder;
+        if (productUpdates !== undefined) updateData['notificationPreferences.productUpdates'] = productUpdates;
 
-        return RESPONSE.success(res, 200, 1001, { message: 'Notification preferences updated' });
+        // ENFORCEMENT: clockCritical is LOCKED to true per Slide 39
+        // Even if the client sends false, we force it to true.
+        if (clockCritical !== undefined) {
+            updateData['notificationPreferences.clockCritical'] = true; 
+        }
+
+        const updatedUser = await db.User.findByIdAndUpdate(
+            userId, 
+            { $set: updateData }, 
+            { new: true }
+        );
+
+        return RESPONSE.success(res, 200, 1001, { 
+            message: 'Notification preferences updated',
+            preferences: updatedUser.notificationPreferences 
+        });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
     }
