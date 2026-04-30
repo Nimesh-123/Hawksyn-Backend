@@ -65,6 +65,7 @@ const RunsSchema = new mongoose.Schema({
     expertReviewedAt: { type: Date, default: null },
     isSlaBreached: { type: Boolean, default: false },
     reportPdfUrl: { type: String, default: null }, // S3 Link to final PDF
+    chatExpiryDate: { type: Date, default: null }, // 7-day chat validity window
     completedAt: { type: Date, default: null }
 }, {
     timestamps: true,

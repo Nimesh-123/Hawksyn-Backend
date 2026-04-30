@@ -84,7 +84,7 @@ router.post('/:userId/clock-refresh-from-case', cc.refreshClocksFromCase);
  *     security:
  *       - bearerAuth: []
  */
-const { runTrendEngine } = require('../crons/trendEngine.cron.js');
+router.get('/:userId/credits', cc.getCredits);
 
 /**
  * @swagger
@@ -98,15 +98,7 @@ const { runTrendEngine } = require('../crons/trendEngine.cron.js');
  *     security:
  *       - bearerAuth: []
  */
-router.get('/admin/run-trend-engine', async (req, res) => {
-    try {
-        await runTrendEngine();
-        res.status(200).json({ success: true, message: 'Trend Engine run complete' });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-});
+router.get('/admin/run-trend-engine', cc.runTrendEngineManual);
 
-router.get('/:userId/credits', cc.getCredits);
 
 module.exports = router;

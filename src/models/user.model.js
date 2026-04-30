@@ -36,7 +36,14 @@ const userSchema = new mongoose.Schema(
         notificationPreferences: {
             push: { type: Boolean, default: true },
             email: { type: Boolean, default: true },
-            criticalAlertsOnly: { type: Boolean, default: false }
+            // Slide 39 Toggles
+            clockCritical: { type: Boolean, default: true }, // Locked to ON in logic
+            clockExpired:  { type: Boolean, default: true },
+            expertReplied: { type: Boolean, default: true },
+            chatClosing:   { type: Boolean, default: true },
+            reportReady:   { type: Boolean, default: true },
+            rerunReminder: { type: Boolean, default: true },
+            productUpdates: { type: Boolean, default: false }
         }
     },
     { timestamps: true }

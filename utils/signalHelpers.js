@@ -55,9 +55,9 @@ Rules:
 }
 
 /**
- * 2. LLM HELPER — Call AI Provider and return cleaned JSON + usage
+ * 2. LLM HELPER — Call Unified AI Provider (Primary: Claude)
  */
-async function callOpenAI(prompt) {
+async function callUnifiedAI(prompt) {
     const { data, usage, provider, duration } = await generateJSON(prompt);
     
     return {
@@ -106,7 +106,7 @@ function buildCoverage(signalsData, taxonomy = []) {
 
 module.exports = {
     buildSignalPrompt,
-    callOpenAI,
+    callUnifiedAI,
     validateSignals,
     buildCoverage
 };

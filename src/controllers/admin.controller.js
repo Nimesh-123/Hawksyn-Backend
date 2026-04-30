@@ -5,18 +5,14 @@ const RESPONSE = require('../../utils/response.js');
 const s3Service = require('../../utils/s3');
 const notificationService = require('../services/notificationService');
 
-/**
- * PHASE 2: Dashboard Overview Statistics
- * GET /api/v1/admin/dashboard/stats
- */
 exports.getDashboardStats = async (req, res) => {
     try {
         const totalUsers = await db.User.countDocuments({ role: 'user' });
         const activeRuns = await db.Runs.countDocuments({ status: { $nin: ['REPORT_COMPLETE', 'FAILED'] } });
-        
+
         // Pending Audits (Kanban Columns: INTAKE, ANALYSIS, REVIEW)
-        const pendingAudits = await db.Runs.countDocuments({ 
-            status: { $in: ['CREATED', 'CV_UPLOADED', 'ANALYSING', 'INTEGRITY_CHECK_PASSED', 'EXPERT_ASSIGNED'] } 
+        const pendingAudits = await db.Runs.countDocuments({
+            status: { $in: ['CREATED', 'CV_UPLOADED', 'ANALYSING', 'INTEGRITY_CHECK_PASSED', 'EXPERT_ASSIGNED'] }
         });
 
         // Revenue (Sum of successful payments)
@@ -38,7 +34,6 @@ exports.getDashboardStats = async (req, res) => {
     }
 };
 
-// Admin Signup
 exports.adminSignup = async (req, res) => {
     try {
         const { username, email, password } = req.body;
@@ -81,7 +76,6 @@ exports.adminSignup = async (req, res) => {
     }
 };
 
-// Admin Login
 exports.adminLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -115,7 +109,6 @@ exports.adminLogin = async (req, res) => {
     }
 };
 
-// Get All Users (Role: User only, Active + Deleted)
 exports.getAllUsers = async (req, res) => {
     try {
         const { page = 1, limit = 10 } = req.query;
@@ -135,7 +128,6 @@ exports.getAllUsers = async (req, res) => {
     }
 };
 
-// Get Only Active Users (Role: User)
 exports.getActiveUsers = async (req, res) => {
     try {
         const { page = 1, limit = 10 } = req.query;
@@ -155,7 +147,6 @@ exports.getActiveUsers = async (req, res) => {
     }
 };
 
-// Get Soft-Deleted Users (Role: User)
 exports.getDeletedUsers = async (req, res) => {
     try {
         const { page = 1, limit = 10 } = req.query;
@@ -175,7 +166,6 @@ exports.getDeletedUsers = async (req, res) => {
     }
 };
 
-// Get Full User Details & History
 exports.getUserDetails = async (req, res) => {
     try {
         const { userId } = req.params;
@@ -184,13 +174,38 @@ exports.getUserDetails = async (req, res) => {
 
         // Fetch additional data for Admin to see
         const profile = await db.UserProfile.findOne({ userId });
-        const runs = await db.Runs.find({ userId }).sort({ createdAt: -1 });
+        const runsData = await db.Runs.find({ userId }).sort({ createdAt: -1 }).lean();
         const auditLogs = await db.AuditLog.find({ userId }).sort({ createdAt: -1 }).limit(10);
+
+        // Enrich runs with rasId and qualityRating from Ras collection
+        const runIds = runsData.map(r => r.runId);
+        const reportRasList = await db.Ras.find({
+            runId: { $in: runIds },
+            artifactType: 'FINAL_REPORT',
+            status: 'FINAL'
+        }).select('runId rasId qualityRating').lean();
+
+        const ratingMap = {};
+        reportRasList.forEach(ras => {
+            ratingMap[ras.runId] = {
+                rasId: ras.rasId,
+                qualityRating: ras.qualityRating
+            };
+        });
+
+        const enrichedRuns = runsData.map(run => ({
+            ...run,
+            finalReport: {
+                ...(run.finalReport || {}),
+                rasId: ratingMap[run.runId]?.rasId || null,
+                qualityRating: ratingMap[run.runId]?.qualityRating || null
+            }
+        }));
 
         return RESPONSE.success(res, 200, 1001, {
             user,
             profile,
-            runs,
+            runs: enrichedRuns,
             auditLogs
         });
     } catch (err) {
@@ -198,7 +213,9 @@ exports.getUserDetails = async (req, res) => {
     }
 };
 
-// Block/Unblock User
+/**
+ * Block or Unblock a User
+ */
 exports.blockUser = async (req, res) => {
     try {
         const { userId } = req.params;
@@ -218,85 +235,10 @@ exports.blockUser = async (req, res) => {
     }
 };
 
-// Toggle User as Expert (Promote/Demote)
-exports.toggleUserExpertStatus = async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const {
-            isExpert,
-            caseId,
-            caseCategories,
-            specializations,
-            maxCaseload
-        } = req.body; 
 
-        const user = await db.User.findById(userId);
-        if (!user) return RESPONSE.error(res, 404, 3001, 'User not found');
-
-        if (!isExpert && user.isExpert) {
-            return RESPONSE.error(res, 400, 1007, 'Expert status cannot be removed once granted. Please use the Block User feature if you wish to restrict access.');
-        }
-
-        user.isExpert = !!isExpert;
-        user.role = isExpert ? 'expert' : 'user';
-        if (isExpert) {
-            user.isExpertApplicant = false;
-        }
-        await user.save();
-
-        if (isExpert) {
-            let expert = await db.RiskAuditorRegistry.findOne({ email: user.email });
-
-            const auditorName = user.fullName || user.name || 'Expert Auditor';
-            const finalSpecializations = specializations || ["Generalist"];
-            
-            // Handle caseCategories (allow both array and single caseId string for flexibility)
-            let categories = [];
-            if (Array.isArray(caseCategories)) {
-                categories = caseCategories;
-            } else if (caseCategories) {
-                categories = [caseCategories];
-            } else if (caseId) {
-                categories = [caseId];
-            } else {
-                categories = ['GENERAL'];
-            }
-
-            const expertConfig = {
-                auditorName,
-                email: user.email,
-                caseCategories: categories,
-                specializations: finalSpecializations,
-                maxCaseload: maxCaseload || 20,
-                isActive: true,
-                status: 'ACTIVE'
-            };
-
-            if (!expert) {
-                expertConfig.auditorId = `EXP_${Math.floor(Date.now() / 1000)}_${Math.floor(1000 + Math.random() * 9000)}`;
-                expertConfig.password = await bcrypt.hash('Expert@Hks123!', 10);
-                await db.RiskAuditorRegistry.create(expertConfig);
-            } else {
-                await db.RiskAuditorRegistry.updateOne(
-                    { email: user.email },
-                    { $set: expertConfig }
-                );
-            }
-        }
-
-        const msg = isExpert ? 'Promoted to Expert with specific Categories/Specializations' : 'Expert status confirmed';
-        return RESPONSE.success(res, 200, 1001, {
-            message: `User role updated. ${msg}`,
-            userId: user._id,
-            isExpert: user.isExpert,
-            caseCategories: isExpert ? (caseCategories || caseId) : undefined
-        });
-    } catch (err) {
-        return RESPONSE.error(res, 500, 9999, err.message);
-    }
-};
-
-// Get All Audit Logs (With Pagination & Optional Filtering)
+/**
+ * Get All Audit Logs (With Pagination & Optional Filtering)
+ */
 exports.getAuditLogs = async (req, res) => {
     try {
         const { page = 1, limit = 10, userId } = req.query;
@@ -325,7 +267,6 @@ exports.getAuditLogs = async (req, res) => {
     }
 };
 
-// Get Admin Profile
 exports.getAdminProfile = async (req, res) => {
     try {
         const adminId = req.user.id;
@@ -339,7 +280,6 @@ exports.getAdminProfile = async (req, res) => {
     }
 };
 
-// Update Admin Profile
 exports.updateAdminProfile = async (req, res) => {
     try {
         const adminId = req.user.id;
@@ -374,7 +314,6 @@ exports.updateAdminProfile = async (req, res) => {
     }
 };
 
-// Change Admin Password
 exports.changeAdminPassword = async (req, res) => {
     try {
         const adminId = req.user.id;
@@ -403,9 +342,7 @@ exports.changeAdminPassword = async (req, res) => {
         return RESPONSE.error(res, 500, 9999, err.message);
     }
 };
-// --- Sub-Admin Management (Super Admin Only) ---
 
-// Create Sub-Admin
 exports.createSubAdmin = async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
@@ -442,7 +379,6 @@ exports.createSubAdmin = async (req, res) => {
     }
 };
 
-// Get All Sub-Admins
 exports.getSubAdmins = async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
@@ -456,7 +392,6 @@ exports.getSubAdmins = async (req, res) => {
     }
 };
 
-// Delete Sub-Admin
 exports.deleteSubAdmin = async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
@@ -567,10 +502,10 @@ exports.getDashboardStats = async (req, res) => {
             stats: {
                 summary: {
                     users: { total: totalUsers, newToday: newUsersToday },
-                    reports: { 
-                        total: totalRuns, 
-                        paid: paidAssessmentCount, 
-                        completed: completedRuns, 
+                    reports: {
+                        total: totalRuns,
+                        paid: paidAssessmentCount,
+                        completed: completedRuns,
                         drafts: draftRuns,
                         intakeDropped: intakeDropped,
                         processing: activeProcessing,
@@ -590,14 +525,6 @@ exports.getDashboardStats = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AI TRAINING DATA — Rate a Report (Gold Standard Labelling)
-// POST /api/v1/admin/reports/:rasId/rate
-// ─────────────────────────────────────────────────────────────────────────────
-// Admin kisi bhi completed report ko 1-5 stars de sakta hai.
-// Star 5 = "Gold Standard" → ye report AI ko training context ke roop mein
-// report generation ke waqt diya jaata hai (RAG pattern).
-// ─────────────────────────────────────────────────────────────────────────────
 exports.rateReport = async (req, res) => {
     try {
         const { rasId } = req.params;
@@ -636,11 +563,6 @@ exports.rateReport = async (req, res) => {
     }
 };
 
-/**
- * PHASE 3: AUDIT FLOW REFINEMENT
- * Submit Expert Review (Verdict Override + Deep Comments)
- * POST /api/v1/admin/reports/:runId/audit-finalize
- */
 exports.submitExpertReview = async (req, res) => {
     try {
         const { runId } = req.params;
@@ -712,10 +634,6 @@ exports.submitExpertReview = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AI TRAINING DATA — Get All Rated Reports (Leaderboard)
-// GET /api/v1/admin/reports/rated
-// ─────────────────────────────────────────────────────────────────────────────
 exports.getRatedReports = async (req, res) => {
     try {
         const { minRating = 1, caseId, intentId, page = 1, limit = 20 } = req.query;
@@ -749,10 +667,6 @@ exports.getRatedReports = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ADMIN REVIEW — Get Complete Report Package for Rating
-// GET /api/v1/admin/reports/:runId/review
-// ─────────────────────────────────────────────────────────────────────────────
 
 exports.getReportForReview = async (req, res) => {
     try {
@@ -922,9 +836,10 @@ exports.getReportForReview = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ADMIN REVIEW — List All Completed Runs (Pending + Rated)
-// GET /api/v1/admin/reports/runs
+/**
+ * ADMIN REVIEW — List All Completed Runs (Pending + Rated)
+ * GET /api/v1/admin/reports/runs
+ */
 
 exports.getAllCompletedRuns = async (req, res) => {
     try {
@@ -932,10 +847,10 @@ exports.getAllCompletedRuns = async (req, res) => {
 
         // Build Run filter — Default is REPORT_COMPLETE for reports tab, 
         // but 'all' for the Operations Pipeline board.
-        const runFilter = (rated === 'all' || req.query.status === 'all') 
-            ? {} 
+        const runFilter = (rated === 'all' || req.query.status === 'all')
+            ? {}
             : { status: 'REPORT_COMPLETE' };
-            
+
         if (caseId) runFilter.caseId = caseId;
         if (intentId) runFilter.intentId = intentId;
 
@@ -1054,107 +969,6 @@ exports.updateReRunPolicy = async (req, res) => {
     }
 };
 
-// --- Expert Management (Admin/Sub-Admin Only) ---
-
-// Create a New Expert (Risk Auditor)
-exports.createExpert = async (req, res) => {
-    try {
-        const { auditorId, auditorName, email, password, caseId, specializations, maxCaseload } = req.body;
-
-        if (!auditorId || !auditorName || !email || !password || !caseId) {
-            return RESPONSE.error(res, 400, 1002, 'All primary fields (ID, Name, Email, Password, CaseId) are required');
-        }
-
-        const existingExpert = await db.RiskAuditorRegistry.findOne({ $or: [{ email }, { auditorId }] });
-        if (existingExpert) {
-            return RESPONSE.error(res, 400, 1003, 'Expert with this Email or AuditorID already exists');
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newExpert = await db.RiskAuditorRegistry.create({
-            auditorId,
-            auditorName,
-            email,
-            password: hashedPassword,
-            caseId,
-            specializations: specializations || [],
-            maxCaseload: maxCaseload || 20,
-            isActive: true
-        });
-
-        const expertResponse = newExpert.toObject();
-        delete expertResponse.password;
-
-        return RESPONSE.success(res, 201, 1004, {
-            message: 'Expert created successfully',
-            expert: expertResponse
-        });
-    } catch (err) {
-        return RESPONSE.error(res, 500, 9999, err.message);
-    }
-};
-
-// Get All Registered Experts
-exports.getAllExperts = async (req, res) => {
-    try {
-        const experts = await db.RiskAuditorRegistry.find().select('-password -refreshToken').sort({ createdAt: -1 });
-        return RESPONSE.success(res, 200, 1001, { total: experts.length, experts });
-    } catch (err) {
-        return RESPONSE.error(res, 500, 9999, err.message);
-    }
-};
-
-// Delete Expert
-exports.deleteExpert = async (req, res) => {
-    try {
-        const { id } = req.params; // Using MongoDB _id
-        const deleted = await db.RiskAuditorRegistry.findByIdAndDelete(id);
-        if (!deleted) return RESPONSE.error(res, 404, 1005, 'Expert not found');
-
-        return RESPONSE.success(res, 200, 1001, { message: 'Expert removed successfully' });
-    } catch (err) {
-        return RESPONSE.error(res, 500, 9999, err.message);
-    }
-};
-
-// Update Existing Expert
-exports.updateExpert = async (req, res) => {
-    try {
-        const { id } = req.params; // Expert's MongoDB _id
-        const { auditorName, caseId, specializations, maxCaseload, isActive, status } = req.body;
-
-        const expert = await db.RiskAuditorRegistry.findById(id);
-        if (!expert) return RESPONSE.error(res, 404, 1005, 'Expert not found');
-
-        // Build update object
-        const updateData = {};
-        if (auditorName) updateData.auditorName = auditorName;
-        
-        // Map caseId (single) to caseCategories (array) for the model
-        if (caseId) {
-            updateData.caseCategories = [caseId];
-            updateData.caseId = caseId; // Keep caseId for legacy support
-        }
-        
-        if (specializations) updateData.specializations = specializations;
-        if (maxCaseload !== undefined) updateData.maxCaseload = maxCaseload;
-        if (isActive !== undefined) updateData.isActive = isActive;
-        if (status) updateData.status = status;
-
-        const updatedExpert = await db.RiskAuditorRegistry.findByIdAndUpdate(
-            id,
-            { $set: updateData },
-            { new: true }
-        ).select('-password -refreshToken');
-
-        return RESPONSE.success(res, 200, 1001, {
-            message: 'Expert details updated successfully',
-            expert: updatedExpert
-        });
-    } catch (err) {
-        return RESPONSE.error(res, 500, 9999, err.message);
-    }
-};
 
 /**
  * GET — CV Processing Audit Logs for Admin
@@ -1209,17 +1023,17 @@ exports.getCvAuditLogs = async (req, res) => {
 
         const formattedLogs = logs.map(l => {
             const profile = profileMap[l.userId.toString()];
-            const confirmedName = profile?.confirmedProfile?.identity?.fullName || 
-                                 profile?.originalParsedData?.structured?.identity?.fullName;
+            const confirmedName = profile?.confirmedProfile?.identity?.fullName ||
+                profile?.originalParsedData?.structured?.identity?.fullName;
 
             return {
                 id: l._id,
-                userName: confirmedName || 
-                          l.user?.fullName || 
-                          l.user?.name || 
-                          l.parsedCvData?.identity?.fullName || 
-                          l.parsedCvData?.name || 
-                          'Anonymous User',
+                userName: confirmedName ||
+                    l.user?.fullName ||
+                    l.user?.name ||
+                    l.parsedCvData?.identity?.fullName ||
+                    l.parsedCvData?.name ||
+                    'Anonymous User',
                 email: l.user?.email || 'N/A',
                 fileName: l.fileName,
                 cvUrl: l.cvUrl || null,
@@ -1259,14 +1073,14 @@ exports.downloadInvoiceS3 = async (req, res) => {
         if (!invoice || !invoice.pdfUrl) return res.status(404).json({ success: false, message: 'Invoice not found on S3.' });
 
         const key = `invoices/${invoice.invoiceNumber}.pdf`;
-        
+
         // 1. Get from S3 as Stream
         const { Body, ContentType } = await s3Service.getFileStream(key);
-        
+
         // 2. Set Headers for Direct Download
         res.setHeader('Content-Type', ContentType || 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=${invoice.invoiceNumber}.pdf`);
-        
+
         // 3. Pipe the S3 stream to Response
         return Body.pipe(res);
     } catch (err) {
@@ -1281,14 +1095,14 @@ exports.downloadReportS3 = async (req, res) => {
         if (!run || !run.reportPdfUrl) return res.status(404).json({ success: false, message: 'Report PDF not found on S3.' });
 
         const key = `reports/Report_${runId}.pdf`;
-        
+
         // 1. Get from S3 as Stream
         const { Body, ContentType } = await s3Service.getFileStream(key);
-        
+
         // 2. Set Headers
         res.setHeader('Content-Type', ContentType || 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=Report_${runId}.pdf`);
-        
+
         return Body.pipe(res);
     } catch (err) {
         return res.status(500).json({ success: false, message: err.message });
@@ -1304,14 +1118,14 @@ exports.downloadCvAuditS3 = async (req, res) => {
         // Extract S3 key from full URL (e.g. https://bucket.s3.region.amazonaws.com/resumes/filename.pdf)
         const urlObj = new URL(upload.cvUrl);
         const key = urlObj.pathname.startsWith('/') ? urlObj.pathname.substring(1) : urlObj.pathname;
-        
+
         // 1. Get from S3 as Stream
         const { Body, ContentType } = await s3Service.getFileStream(key);
-        
+
         // 2. Set Headers
         res.setHeader('Content-Type', ContentType || 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${upload.fileName}"`);
-        
+
         return Body.pipe(res);
     } catch (err) {
         return res.status(500).json({ success: false, message: err.message });
@@ -1326,7 +1140,7 @@ exports.getCvAuditDetails = async (req, res) => {
     try {
         const { id } = req.params;
         const log = await db.DocumentUploads.findById(id).populate('userId', 'fullName name email');
-        
+
         if (!log) return res.status(404).json({ success: false, message: 'Log not found' });
 
         return res.status(200).json({
@@ -1349,10 +1163,6 @@ exports.getCvAuditDetails = async (req, res) => {
     }
 };
 
-/**
- * PHASE 2: Signal Volume Summary for Analytics Dashboard
- * GET /api/v1/admin/signals/summary
- */
 exports.getSignalVolumeSummary = async (req, res) => {
     try {
         const sevenDaysAgo = new Date();
@@ -1385,8 +1195,8 @@ exports.getSignalVolumeSummary = async (req, res) => {
 
         // 4. Overalls
         const totalSignals = await db.ExternalEvidenceDataPool.countDocuments();
-        const freshSignals = await db.ExternalEvidenceDataPool.countDocuments({ 
-            freshnessExpiresAt: { $gt: new Date() } 
+        const freshSignals = await db.ExternalEvidenceDataPool.countDocuments({
+            freshnessExpiresAt: { $gt: new Date() }
         });
 
         return RESPONSE.success(res, 200, 1001, {
@@ -1406,57 +1216,44 @@ exports.getSignalVolumeSummary = async (req, res) => {
     }
 };
 
-/**
- * PHASE 2: Financial Ledger API
- * GET /api/v1/admin/payments/all
- */
-exports.getAllPayments = async (req, res) => {
+
+exports.updateUserCredits = async (req, res) => {
     try {
-        const { page = 1, limit = 20, status } = req.query;
-        const filter = {};
-        if (status) filter.status = status;
+        const { userId, checksDelta = 0, chatDelta = 0, note = 'Admin manual adjustment' } = req.body;
+        
+        if (!userId) {
+            return RESPONSE.error(res, 400, 1002, 'userId is required');
+        }
 
-        const payments = await db.Payments.find(filter)
-            .sort({ createdAt: -1 })
-            .skip((Number(page) - 1) * Number(limit))
-            .limit(Number(limit))
-            .lean();
+        const user = await db.User.findById(userId);
+        if (!user) {
+            return RESPONSE.error(res, 404, 1005, 'User not found');
+        }
 
-        const total = await db.Payments.countDocuments(filter);
+        let userCredits = await db.UserCredits.findOne({ userId });
+        if (!userCredits) {
+            userCredits = new db.UserCredits({ userId, checksBalance: 0, expertChatBalance: 0 });
+        }
+
+        userCredits.checksBalance += Number(checksDelta);
+        userCredits.expertChatBalance += Number(chatDelta);
+
+        userCredits.transactions.push({
+            type: 'BONUS',
+            amount: Number(checksDelta) || Number(chatDelta),
+            balanceAfter: userCredits.checksBalance,
+            note: note,
+            createdAt: new Date()
+        });
+
+        await userCredits.save();
 
         return RESPONSE.success(res, 200, 1001, {
-            payments,
-            total,
-            page: Number(page),
-            pages: Math.ceil(total / Number(limit))
+            userId,
+            newChecksBalance: userCredits.checksBalance,
+            newChatBalance: userCredits.expertChatBalance,
+            message: 'User credits updated successfully'
         });
-    } catch (err) {
-        return RESPONSE.error(res, 500, 9999, err.message);
-    }
-};
-
-/**
- * PHASE 2: Export All Payments as CSV
- * GET /api/v1/admin/payments/export
- */
-exports.exportPaymentsCSV = async (req, res) => {
-    try {
-        const payments = await db.Payments.find({}).sort({ createdAt: -1 }).lean();
-        
-        // CSV Headers - Updated to be more clear
-        let csv = 'Date,PaymentId,PurchaseId/GatewayID,Amount,Currency,Status,Gateway,CaseId,UserId\n';
-        
-        payments.forEach(p => {
-            const rawDate = p.verifiedAt || p.createdAt || null;
-            const date = rawDate ? new Date(rawDate).toLocaleDateString('en-GB') : 'N/A';
-            const gateway = p.paymentMethod || 'Stripe';
-            csv += `${date},${p.paymentId},${p.purchaseId || 'N/A'},${p.amount},${p.currency || 'INR'},${p.status},${gateway},${p.caseId},${p.userId}\n`;
-        });
-
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename=Hawksyn_Transactions.csv');
-        
-        return res.status(200).send(csv);
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
     }

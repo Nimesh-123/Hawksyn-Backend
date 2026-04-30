@@ -1,11 +1,12 @@
 const { db } = require('../models/index.model.js');
+const { runTrendEngine } = require('../crons/trendEngine.cron.js');
 const { 
     computeValidityState, 
     findActivePulse, 
     calculateClockScores, 
     detectSignificantChange, 
     buildClocksResponse,
-    generateClockScoresFromGemini
+    generateClockScores
 } = require('../services/clockService');
 
 async function saveClockHistory(userId, scores, type, pulseId) {
@@ -84,7 +85,7 @@ exports.getCommandCenter = async (req, res) => {
             }
         }
 
-        // 2. Fallback to Discovery Experts if nothing assigned (Matching Slide 54)
+        // 2. Fallback to Discovery Experts if nothing assigned
         if (assignedExperts.length === 0) {
             const activeSpecialists = await db.RiskAuditorRegistry.find({ 
                 isActive: true,
@@ -126,8 +127,8 @@ exports.getCommandCenter = async (req, res) => {
             daysLeft:            userClock.daysLeft,
             effectiveValidUntil: userClock.effectiveValidUntil,
             
-            // Build clock response using stored data
-            clocks: buildClocksResponse(clocksData, userClock),
+            // Build clock response using stored data vs market median
+            clocks: buildClocksResponse(clocksData, userClock, pulse),
 
             trendTrigger: userClock.trendTrigger || null,
             insightText:  userClock.insightText  || null,
@@ -178,8 +179,8 @@ exports.runHawk = async (req, res) => {
             tenure:       Number(profileData?.experience_years  || profileData?.identity?.experienceYears || 0)
         };
 
-        // Recalculate using Gemini (User-specific fresh data)
-        const newScores = await generateClockScoresFromGemini(dataForGemini);
+        // Recalculate using Unified AI Chain (Primary: Claude)
+        const newScores = await generateClockScores(dataForGemini);
         const significantChange = detectSignificantChange(userClock, newScores);
         const clockValidUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
@@ -233,7 +234,7 @@ exports.runHawk = async (req, res) => {
                 validityState: 'ACTIVE_CLOCK',
                 clockValidUntil,
                 daysLeft: 7,
-                clocks: buildClocksResponse(newScores, newScores), // Pass newScores as second param for justifications
+                clocks: buildClocksResponse(newScores, newScores, newScores), // Benchmarks relative to fresh AI scores
                 insightText: newScores.trendTrigger || newScores.aiExposureJustification,
                 significantChange,
                 message: 'Hawk complete. Clocks recalibrated and valid for 7 days.'
@@ -297,5 +298,14 @@ exports.getCredits = async (req, res) => {
         return res.status(200).json({ success: true, data: userCredits });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.runTrendEngineManual = async (req, res) => {
+    try {
+        await runTrendEngine();
+        return res.status(200).json({ success: true, message: 'Trend Engine run complete' });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
     }
 };

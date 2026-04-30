@@ -9,7 +9,7 @@ const {
 } = require('../../utils/evaluationHelpers.js');
 
 
-const SEVERITY_ORDER = { LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 };
+const SEVERITY_ORDER = { LOW: 1, PARTIAL: 2, FULL: 3, CRITICAL: 4 };
 
 function getDeepValue(obj, path) {
     if (!path || !obj) return undefined;
@@ -330,11 +330,11 @@ exports.runIntegrityEngine = async (req, res) => {
         );
         accuracyScore = Math.max(accuracyScore - totalPenalty, policy.floorScore || 0);
 
-        let accuracyBand = 'VERY_LOW';
+        let accuracyBand = 'LOW';
         const bands = policy.bandRulesJson || {};
-        if (accuracyScore >= (bands.HIGH?.min || 80)) accuracyBand = 'HIGH';
-        else if (accuracyScore >= (bands.MEDIUM?.min || 60)) accuracyBand = 'MEDIUM';
-        else if (accuracyScore >= (bands.LOW?.min || 40)) accuracyBand = 'LOW';
+        if (accuracyScore >= (bands.HIGH?.min || 80)) accuracyBand = 'FULL';
+        else if (accuracyScore >= (bands.MEDIUM?.min || 60)) accuracyBand = 'PARTIAL';
+        else accuracyBand = 'LOW';
 
         const warningResults = [];
         for (const flag of redFlagResults) {

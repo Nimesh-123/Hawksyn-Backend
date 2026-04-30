@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hawksyn Wireframes V2 — Batch 5: Re-engagement, Notifications & Clock Spec</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#111;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif}
+.slide{width:100%;background:#111;display:flex;align-items:flex-start;justify-content:center;padding:44px 0 52px;position:relative;border-bottom:1px solid #1e1e1e}
+.sn{position:absolute;top:14px;left:18px;font-size:11px;color:#444;letter-spacing:.04em}
+.st{position:absolute;top:14px;left:60px;font-size:11px;color:#e8600a;font-weight:500}
+.sg{position:absolute;top:12px;right:18px;font-size:10px;font-weight:500;padding:2px 8px;border-radius:4px}
+.tr{background:#2a1800;color:#f0a030}
+.tn{background:#1a2030;color:#4a9eff}
+.tk{background:#1a2e1a;color:#4caf50}
+.tspec{background:#26215C;color:#AFA9EC}
+.si{display:flex;align-items:flex-start;justify-content:center;width:100%;max-width:1100px;padding:0 16px}
+.al{width:230px;flex-shrink:0;display:flex;flex-direction:column;gap:24px;align-items:flex-end;padding-top:56px}
+.ar{width:230px;flex-shrink:0;display:flex;flex-direction:column;gap:24px;align-items:flex-start;padding-top:56px}
+.an{display:flex;align-items:center}
+.anl{flex-direction:row}.anr{flex-direction:row-reverse}
+.at{font-size:10.5px;color:#888;line-height:1.45;max-width:160px}
+.anl .at{text-align:right}.anr .at{text-align:left}
+.aln{display:flex;align-items:center;margin:0 6px}
+.pw{flex-shrink:0;padding-top:20px}
+.ph{width:270px;height:560px;background:#1e1e1e;border-radius:36px;border:2px solid #333;overflow:hidden;display:flex;flex-direction:column}
+.cam{width:9px;height:9px;background:#333;border-radius:50%;margin:9px auto 0;flex-shrink:0}
+.nav{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;flex-shrink:0}
+.logo{font-size:16px;color:#fff;font-weight:500;letter-spacing:-.02em}
+.logo span{color:#e8600a}
+.scr{flex:1;overflow:hidden;padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.tw{color:#f0f0f0}.tg{color:#999}.to{color:#e8600a}.td{color:#666}
+.tgr{color:#4caf50}.trd{color:#e05050}.tam{color:#f0a030}.tbl{color:#4a9eff}
+.f10{font-size:10px}.f11{font-size:11px}.f12{font-size:12px}.f13{font-size:13px}.f14{font-size:14px}.fw{font-weight:500}
+.card{background:#2a2a2a;border-radius:10px;padding:10px 11px}
+.btn{background:#222;border:1px solid #3a3a3a;border-radius:20px;padding:8px 0;width:100%;text-align:center;color:#f0f0f0;font-size:12px;font-weight:500}
+.btnp{background:#e8600a;border-color:#e8600a;color:#fff}
+.div{height:1px;background:#2e2e2e;margin:4px 0}
+.row{display:flex;align-items:center;justify-content:space-between}
+.rows{display:flex;align-items:center;gap:8px}
+.sec{font-size:10px;color:#666;font-weight:500;text-transform:uppercase;letter-spacing:.06em}
+.met{background:#252525;border-radius:8px;padding:8px 10px;text-align:center}
+.bnav{height:44px;background:#1a1a1a;border-top:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-around;flex-shrink:0}
+.bni{display:flex;flex-direction:column;align-items:center;gap:2px}
+.bnl{font-size:9px;color:#666}.bnla{font-size:9px;color:#e8600a}
+.ndot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
+/* clock ring */
+.clk{border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.clkr{border:10px solid #e05050;background:#1a0808}
+.clka{border:10px solid #f0a030;background:#1a1000}
+.clkg{border:10px solid #4caf50;background:#0a1a0a}
+.clkb{border:10px solid #4a9eff;background:#0a1020}
+/* spec wide layout */
+.spec-wrap{width:100%;max-width:1000px;padding:0 16px}
+.spec-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;margin-top:8px}
+.spec-card{background:#1e1e1e;border-radius:12px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.spec-label{font-size:11px;font-weight:500;text-align:center}
+.spec-sub{font-size:10px;color:#666;text-align:center;line-height:1.4}
+.spec-state{font-size:10px;font-weight:500;padding:2px 8px;border-radius:3px;letter-spacing:.04em}
+.state-r{background:#3a1a1a;color:#e05050}
+.state-a{background:#2e2010;color:#f0a030}
+.state-g{background:#1a2e1a;color:#4caf50}
+.state-b{background:#1a2030;color:#4a9eff}
+.cta-box{background:#252525;border-radius:8px;padding:7px 10px;width:100%;text-align:center;font-size:10px;margin-top:4px}
+.cta-r{border-left:3px solid #e05050;border-radius:0 8px 8px 0;color:#e05050}
+.cta-a{border-left:3px solid #f0a030;border-radius:0 8px 8px 0;color:#f0a030}
+.cta-g{border-left:3px solid #4caf50;border-radius:0 8px 8px 0;color:#4caf50}
+.cta-b{border-left:3px solid #4a9eff;border-radius:0 8px 8px 0;color:#4a9eff}
+.threshold-bar{width:100%;height:8px;background:#2a2a2a;border-radius:4px;position:relative;margin:4px 0}
+</style>
+</head>
+<body>
+
+<!-- SLIDE 35 — Push Notification Templates -->
+<div class="slide">
+<div class="sn">35</div>
+<div class="st">Re-engagement — push notification templates (3 types)</div>
+<span class="sg tn">New</span>
+<div class="si">
+  <div class="al">
+    <div class="an anl">
+      <div class="at">Push notification fires when a clock drops below 30% of its remaining window. System-triggered automatically — not admin-triggered. Three distinct notification types cover the key re-engagement moments.</div>
+      <div class="aln"><svg width="60" height="12"><line x1="0" y1="6" x2="48" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/><polygon points="48,3 60,6 48,9" fill="#555"/></svg></div>
+    </div>
+    <div class="an anl">
+      <div class="at">Type 1 — Clock critical: fires when any clock crosses below 30% remaining. Type 2 — Expert replied: fires immediately when expert sends a message. Type 3 — Re-run available: fires when admin unlocks the refresh window.</div>
+      <div class="aln"><svg width="60" height="12"><line x1="0" y1="6" x2="48" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/><polygon points="48,3 60,6 48,9" fill="#555"/></svg></div>
+    </div>
+  </div>
+  <div class="pw"><div class="ph">
+    <div class="cam"></div>
+    <!-- Simulating the phone lock screen with notifications -->
+    <div style="background:#0a0a0a;flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:8px;">
+      <div style="text-align:center;margin-bottom:6px;">
+        <div style="font-size:22px;color:#fff;font-weight:300;">9:41</div>
+        <div style="font-size:11px;color:#888;">Wednesday, April 1</div>
+      </div>
+      <!-- Notification 1 — Clock critical -->
+      <div style="background:rgba(30,30,30,0.95);border-radius:12px;padding:10px 12px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+          <div style="width:16px;height:16px;background:#e8600a;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:500;flex-shrink:0;">H</div>
+          <div style="font-size:10px;color:#888;">hawksyn · now</div>
+        </div>
+        <div style="font-size:12px;font-weight:500;color:#fff;margin-bottom:3px;">⚠ Your AI Exposure clock is critical</div>
+        <div style="font-size:11px;color:#999;line-height:1.4;">Your AI Exposure is at 78% — high risk zone. Only 3 days left in your audit window. Run a new audit now.</div>
+      </div>
+      <!-- Notification 2 — Expert replied -->
+      <div style="background:rgba(30,30,30,0.95);border-radius:12px;padding:10px 12px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+          <div style="width:16px;height:16px;background:#e8600a;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:500;flex-shrink:0;">H</div>
+          <div style="font-size:10px;color:#888;">hawksyn · 2m ago</div>
+        </div>
+        <div style="font-size:12px;font-weight:500;color:#fff;margin-bottom:3px;">💬 Ayush Verma replied to your case</div>
+        <div style="font-size:11px;color:#999;line-height:1.4;">Your Risk Expert has responded on Check Job Safety. You have 2 queries remaining. Open to read.</div>
+      </div>
+      <!-- Notification 3 — Re-run available -->
+      <div style="background:rgba(30,30,30,0.95);border-radius:12px;padding:10px 12px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+          <div style="width:16px;height:16px;background:#e8600a;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:500;flex-shrink:0;">H</div>
+          <div style="font-size:10px;color:#888;">hawksyn · 1h ago</div>
+        </div>
+        <div style="font-size:12px;font-weight:500;color:#fff;margin-bottom:3px;">🔄 Your clocks are ready for refresh</div>
+        <div style="font-size:11px;color:#999;line-height:1.4;">Your audit window has been refreshed. Tap to update your clocks and see how your position has changed.</div>
+      </div>
+    </div>
+  </div></div>
+  <div class="ar">
+    <div class="an anr">
+      <div class="at">All 3 notifications deep-link directly to the relevant screen inside the app. Clock critical → opens Command Center. Expert replied → opens Chat. Re-run available → opens Command Center with refresh active.</div>
+      <div class="aln"><svg width="60" height="12"><polygon points="12,3 0,6 12,9" fill="#555"/><line x1="12" y1="6" x2="60" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+    </div>
+    <div class="an anr">
+      <div class="at">Notification copy is specific — not generic "check the app" text. Each notification names the case, the clock, and the action. User knows exactly why they are being alerted before they open the app.</div>
+      <div class="aln"><svg width="60" height="12"><polygon points="12,3 0,6 12,9" fill="#555"/><line x1="12" y1="6" x2="60" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- SLIDE 36 — In-App Notification Centre -->
+<div class="slide">
+<div class="sn">36</div>
+<div class="st">Notification centre — in-app feed with all notification types</div>
+<span class="sg tn">New</span>
+<div class="si">
+  <div class="al">
+    <div class="an anl">
+      <div class="at">In-app notification centre accessible by tapping the bell icon. Every notification type listed with coloured dot encoding urgency: red = critical action needed, amber = watch, green = positive event, grey = informational.</div>
+      <div class="aln"><svg width="60" height="12"><line x1="0" y1="6" x2="48" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/><polygon points="48,3 60,6 48,9" fill="#555"/></svg></div>
+    </div>
+    <div class="an anl">
+      <div class="at">Bell icon on nav bar shows a count badge when unread notifications exist. Every time notifications arrive, the bell makes a sound and the notification count appears. Notifications persist until read.</div>
+      <div class="aln"><svg width="60" height="12"><line x1="0" y1="6" x2="48" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/><polygon points="48,3 60,6 48,9" fill="#555"/></svg></div>
+    </div>
+  </div>
+  <div class="pw"><div class="ph">
+    <div class="cam"></div>
+    <div class="nav">
+      <div style="font-size:16px;color:#aaa;">←</div>
+      <div style="font-size:14px;color:#fff;font-weight:500;">Notifications</div>
+      <div style="font-size:11px;color:#4a9eff;">Mark all read</div>
+    </div>
+    <div class="scr" style="gap:0;padding:0;overflow:hidden;">
+      <div style="padding:5px 12px;background:#252525;font-size:10px;color:#666;flex-shrink:0;">Today</div>
+      <div style="display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-bottom:1px solid #252525;">
+        <div class="ndot" style="background:#e05050;"></div>
+        <div style="flex:1;">
+          <div class="f11 fw tw">Your AI Exposure clock is critical</div>
+          <div class="f10 tg" style="margin-top:2px;line-height:1.4;">78% exposure — high risk. 3 days left in your audit window. Run a new audit.</div>
+          <div class="f10 td" style="margin-top:3px;">2 minutes ago</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-bottom:1px solid #252525;">
+        <div class="ndot" style="background:#4a9eff;"></div>
+        <div style="flex:1;">
+          <div class="f11 fw tw">Ayush Verma replied to your case</div>
+          <div class="f10 tg" style="margin-top:2px;line-height:1.4;">Check Job Safety — expert responded. 2 queries remaining.</div>
+          <div class="f10 td" style="margin-top:3px;">1 hour ago</div>
+        </div>
+      </div>
+      <div style="padding:5px 12px;background:#252525;font-size:10px;color:#666;flex-shrink:0;">Yesterday</div>
+      <div style="display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-bottom:1px solid #252525;">
+        <div class="ndot" style="background:#4caf50;"></div>
+        <div style="flex:1;">
+          <div class="f11 fw tw">Your clocks are ready for refresh</div>
+          <div class="f10 tg" style="margin-top:2px;line-height:1.4;">Audit window refreshed. Open the app to update your position.</div>
+          <div class="f10 td" style="margin-top:3px;">Yesterday 4:00 PM</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-bottom:1px solid #252525;">
+        <div class="ndot" style="background:#f0a030;"></div>
+        <div style="flex:1;">
+          <div class="f11 fw tw">Skill Half-Life clock at 30%</div>
+          <div class="f10 tg" style="margin-top:2px;line-height:1.4;">Your skills are depreciating. This clock drops below threshold in 2 days.</div>
+          <div class="f10 td" style="margin-top:3px;">Yesterday 11:00 AM</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-bottom:1px solid #252525;">
+        <div class="ndot" style="background:#666;"></div>
+        <div style="flex:1;">
+          <div class="f11 fw tw">Check Skill Security report ready</div>
+          <div class="f10 tg" style="margin-top:2px;line-height:1.4;">Your Decision Assurance Report has been generated. Tap to view.</div>
+          <div class="f10 td" style="margin-top:3px;">Yesterday 9:22 AM</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:9px;padding:10px 12px;">
+        <div class="ndot" style="background:#4caf50;"></div>
+        <div style="flex:1;">
+          <div class="f11 fw tw">Risk Expert assigned to your case</div>
+          <div class="f10 tg" style="margin-top:2px;line-height:1.4;">Ayush Verma, Director Yes Bank — will review within 72 hours.</div>
+          <div class="f10 td" style="margin-top:3px;">Yesterday 9:20 AM</div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <div class="ar">
+    <div class="an anr">
+      <div class="at">Dot colour legend: Red = critical action needed now. Blue = expert / chat event. Green = positive system event. Amber = warning / watch. Grey = informational. User reads urgency from colour before reading text.</div>
+      <div class="aln"><svg width="60" height="12"><polygon points="12,3 0,6 12,9" fill="#555"/><line x1="12" y1="6" x2="60" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- SLIDE 37 — Clock Turned Red Full-Screen Alert -->
+<div class="slide">
+<div class="sn">37</div>
+<div class="st">Clock critical alert — full-screen state when user opens app</div>
+<span class="sg tn">New</span>
+<div class="si">
+  <div class="al">
+    <div class="an anl">
+      <div class="at">When a clock has crossed below 30% threshold since the user's last visit, opening the app shows this full-screen alert before landing on Command Center. It is a deliberate interruption — not just a banner.</div>
+      <div class="aln"><svg width="60" height="12"><line x1="0" y1="6" x2="48" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/><polygon points="48,3 60,6 48,9" fill="#555"/></svg></div>
+    </div>
+    <div class="an anl">
+      <div class="at">The full-screen alert fires only once per threshold crossing — not on every app open. After user dismisses or acts on it, they land on Command Center normally. It does not repeat until the next threshold event.</div>
+      <div class="aln"><svg width="60" height="12"><line x1="0" y1="6" x2="48" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/><polygon points="48,3 60,6 48,9" fill="#555"/></svg></div>
+    </div>
+  </div>
+  <div class="pw"><div class="ph">
+    <div class="cam"></div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 16px;gap:14px;background:#1a0808;">
+      <div style="width:80px;height:80px;border-radius:50%;border:8px solid #e05050;background:#2a0808;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+        <div style="font-size:18px;font-weight:500;color:#e05050;">78%</div>
+        <div style="font-size:9px;color:#e05050;">AI EXP</div>
+      </div>
+      <div style="display:inline-flex;align-items:center;gap:4px;background:#3a1a1a;padding:3px 10px;border-radius:4px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:#e05050;"></div>
+        <div style="font-size:11px;color:#e05050;font-weight:500;letter-spacing:.04em;">RISK</div>
+      </div>
+      <div style="font-size:14px;font-weight:500;color:#fff;text-align:center;">Your AI Exposure has crossed the critical threshold</div>
+      <div style="font-size:11px;color:#999;text-align:center;line-height:1.5;">Your role automation exposure is at 78% — this is the high-risk zone. Your audit window has 3 days remaining.</div>
+      <div style="width:100%;background:#252525;border-radius:8px;padding:10px 12px;">
+        <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:5px;">
+          <div style="color:#666;">Safe zone</div><div style="color:#e05050;">Your position</div><div style="color:#666;">Max</div>
+        </div>
+        <div class="threshold-bar">
+          <div style="position:absolute;left:0;top:0;width:70%;height:8px;background:#2a2a2a;border-radius:4px;"></div>
+          <div style="position:absolute;left:0;top:0;height:8px;width:30%;background:#4caf50;border-radius:4px 0 0 4px;"></div>
+          <div style="position:absolute;left:30%;top:0;height:8px;width:40%;background:#f0a030;"></div>
+          <div style="position:absolute;left:70%;top:0;height:8px;width:30%;background:#e05050;border-radius:0 4px 4px 0;"></div>
+          <div style="position:absolute;left:78%;top:-4px;width:3px;height:16px;background:#fff;border-radius:2px;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:#555;margin-top:3px;">
+          <div>0%</div><div style="color:#e05050;font-weight:500;">You are here — 78%</div><div>100%</div>
+        </div>
+      </div>
+      <div class="btn btnp" style="width:100%;padding:10px 0;font-size:12px;">Run new audit now →</div>
+      <div style="font-size:11px;color:#555;cursor:pointer;">Dismiss — take me to Command Center</div>
+    </div>
+  </div></div>
+  <div class="ar">
+    <div class="an anr">
+      <div class="at">Position bar shows where the user sits across the full risk spectrum. Safe zone (green), watch zone (amber), risk zone (red). White marker = user's current position. Immediate visual context before reading any text.</div>
+      <div class="aln"><svg width="60" height="12"><polygon points="12,3 0,6 12,9" fill="#555"/><line x1="12" y1="6" x2="60" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+    </div>
+    <div class="an anr">
+      <div class="at">Two CTAs: primary is "Run new audit now" (orange). Secondary is "Dismiss" in grey — takes user to normal Command Center. User always has an exit. The interrupt is forceful but not trapping.</div>
+      <div class="aln"><svg width="60" height="12"><polygon points="12,3 0,6 12,9" fill="#555"/><line x1="12" y1="6" x2="60" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- SLIDE 38 — Re-Run Prompt Screen -->
+<div class="slide">
+<div class="sn">38</div>
+<div class="st">Re-run prompt — shows what changed and why now matters</div>
+<span class="sg tn">New</span>
+<div class="si">
+  <div class="al">
+    <div class="an anl">
+      <div class="at">Appears when user taps a clock critical CTA or a re-run notification. Shows exactly what changed since the last run — not just "please re-run". Gives the user a reason to act now rather than defer.</div>
+      <div class="aln"><svg width="60" height="12"><line x1="0" y1="6" x2="48" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/><polygon points="48,3 60,6 48,9" fill="#555"/></svg></div>
+    </div>
+    <div class="an anl">
+      <div class="at">Three signal cards show what has changed in the external environment since last audit. Each card is sourced. User sees the world has moved — not just that a timer expired. This makes the re-run feel urgent and worthwhile.</div>
+      <div class="aln"><svg width="60" height="12"><line x1="0" y1="6" x2="48" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/><polygon points="48,3 60,6 48,9" fill="#555"/></svg></div>
+    </div>
+  </div>
+  <div class="pw"><div class="ph">
+    <div class="cam"></div>
+    <div class="nav">
+      <div style="font-size:16px;color:#aaa;">←</div>
+      <div style="font-size:13px;color:#fff;font-weight:500;">Time to Re-Run</div>
+      <div></div>
+    </div>
+    <div class="scr" style="gap:8px;padding-top:8px;">
+      <div style="font-size:12px;font-weight:500;color:#fff;">A lot has changed since your last audit</div>
+      <div style="font-size:11px;color:#999;line-height:1.5;">Your last Check Job Safety was on <span style="color:#e8600a;">Jan 15, 2026</span>. Here is what has changed in your sector since then.</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="background:#252525;border-radius:8px;padding:9px 11px;border-left:3px solid #e05050;border-radius:0 8px 8px 0;">
+          <div style="font-size:10px;color:#e05050;font-weight:500;margin-bottom:2px;">New risk signal</div>
+          <div class="f11 tw" style="margin-bottom:3px;line-height:1.4;">Anthropic and OpenAI released 3 new PM-workflow automation tools in the last 60 days.</div>
+          <div class="f10 td">Source: ProductHunt · TechCrunch · Mar 2026</div>
+        </div>
+        <div style="background:#252525;border-radius:8px;padding:9px 11px;border-left:3px solid #f0a030;border-radius:0 8px 8px 0;">
+          <div style="font-size:10px;color:#f0a030;font-weight:500;margin-bottom:2px;">Market shift</div>
+          <div class="f11 tw" style="margin-bottom:3px;line-height:1.4;">SaaS hiring for senior PMs dropped 18% in India Q1 2026 vs Q1 2025.</div>
+          <div class="f10 td">Source: LinkedIn Jobs India · Apr 2026</div>
+        </div>
+        <div style="background:#252525;border-radius:8px;padding:9px 11px;border-left:3px solid #4a9eff;border-radius:0 8px 8px 0;">
+          <div style="font-size:10px;color:#4a9eff;font-weight:500;margin-bottom:2px;">Peer movement</div>
+          <div class="f11 tw" style="margin-bottom:3px;line-height:1.4;">68% of PMs in your peer group have added at least 1 AI tool to their active skill set.</div>
+          <div class="f10 td">Source: Hawksyn platform data · Apr 2026</div>
+        </div>
+      </div>
+      <div style="background:#1e1000;border:1px solid #3a2000;border-radius:8px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;">
+        <div><div class="f10 td">Re-run Check Job Safety</div><div style="font-size:13px;font-weight:500;color:#fff;margin-top:2px;">₹59/-</div></div>
+        <div class="f10 tg">Your data is saved</div>
+      </div>
+      <div class="btn btnp">Start re-run now →</div>
+      <div style="font-size:10px;color:#555;text-align:center;">Your previous answers are pre-filled. Update what has changed.</div>
+    </div>
+  </div></div>
+  <div class="ar">
+    <div class="an anr">
+      <div class="at">Price shown on this screen. User's previous answers are pre-filled in the MCQ — they only need to update what has changed. This reduces the re-run friction significantly and increases conversion to re-run.</div>
+      <div class="aln"><svg width="60" height="12"><polygon points="12,3 0,6 12,9" fill="#555"/><line x1="12" y1="6" x2="60" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- SLIDE 39 — Notification Settings -->
+<div class="slide">
+<div class="sn">39</div>
+<div class="st">Notification settings — user controls all alert types</div>
+<span class="sg tn">New</span>
+<div class="si">
+  <div class="al">
+    <div class="an anl">
+      <div class="at">User can control which notifications they receive. Each notification type has its own toggle. Critical clock alerts cannot be turned off — they are a core product safety feature. All others are optional.</div>
+      <div class="aln"><svg width="60" height="12"><line x1="0" y1="6" x2="48" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/><polygon points="48,3 60,6 48,9" fill="#555"/></svg></div>
+    </div>
+  </div>
+  <div class="pw"><div class="ph">
+    <div class="cam"></div>
+    <div class="nav">
+      <div style="font-size:16px;color:#aaa;">←</div>
+      <div style="font-size:13px;color:#fff;font-weight:500;">Notification Settings</div>
+      <div></div>
+    </div>
+    <div class="scr" style="gap:0;padding:0;">
+      <div style="padding:6px 12px 3px;background:#252525;flex-shrink:0;"><div class="sec">Clock alerts</div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid #252525;">
+        <div>
+          <div class="f12 tw">Clock critical alert</div>
+          <div class="f10 td" style="margin-top:2px;">Fires when clock drops below 30%</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <div style="font-size:10px;color:#666;font-style:italic;">Required</div>
+          <div style="width:30px;height:17px;border-radius:9px;background:#4caf50;position:relative;opacity:0.5;"><div style="position:absolute;width:13px;height:13px;background:#fff;border-radius:50%;top:2px;right:2px;"></div></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid #252525;">
+        <div>
+          <div class="f12 tw">Clock expired alert</div>
+          <div class="f10 td" style="margin-top:2px;">Fires when refresh becomes available</div>
+        </div>
+        <div style="width:30px;height:17px;border-radius:9px;background:#4caf50;position:relative;"><div style="position:absolute;width:13px;height:13px;background:#fff;border-radius:50%;top:2px;right:2px;"></div></div>
+      </div>
+      <div style="padding:6px 12px 3px;background:#252525;margin-top:2px;"><div class="sec">Expert & chat</div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid #252525;">
+        <div>
+          <div class="f12 tw">Expert replied</div>
+          <div class="f10 td" style="margin-top:2px;">Immediate alert when expert responds</div>
+        </div>
+        <div style="width:30px;height:17px;border-radius:9px;background:#4caf50;position:relative;"><div style="position:absolute;width:13px;height:13px;background:#fff;border-radius:50%;top:2px;right:2px;"></div></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid #252525;">
+        <div>
+          <div class="f12 tw">Chat closing soon</div>
+          <div class="f10 td" style="margin-top:2px;">3 days before 30-day chat lock</div>
+        </div>
+        <div style="width:30px;height:17px;border-radius:9px;background:#4caf50;position:relative;"><div style="position:absolute;width:13px;height:13px;background:#fff;border-radius:50%;top:2px;right:2px;"></div></div>
+      </div>
+      <div style="padding:6px 12px 3px;background:#252525;margin-top:2px;"><div class="sec">Reports & runs</div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid #252525;">
+        <div>
+          <div class="f12 tw">Report ready</div>
+          <div class="f10 td" style="margin-top:2px;">When DAR report is generated</div>
+        </div>
+        <div style="width:30px;height:17px;border-radius:9px;background:#4caf50;position:relative;"><div style="position:absolute;width:13px;height:13px;background:#fff;border-radius:50%;top:2px;right:2px;"></div></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid #252525;">
+        <div>
+          <div class="f12 tw">Re-run reminders</div>
+          <div class="f10 td" style="margin-top:2px;">Periodic reminders to re-run</div>
+        </div>
+        <div style="width:30px;height:17px;border-radius:9px;background:#444;position:relative;"><div style="position:absolute;width:13px;height:13px;background:#fff;border-radius:50%;top:2px;left:2px;"></div></div>
+      </div>
+      <div style="padding:6px 12px 3px;background:#252525;margin-top:2px;"><div class="sec">Platform</div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;">
+        <div>
+          <div class="f12 tw">Hawksyn product updates</div>
+          <div class="f10 td" style="margin-top:2px;">New cases and features</div>
+        </div>
+        <div style="width:30px;height:17px;border-radius:9px;background:#444;position:relative;"><div style="position:absolute;width:13px;height:13px;background:#fff;border-radius:50%;top:2px;left:2px;"></div></div>
+      </div>
+    </div>
+  </div></div>
+  <div class="ar">
+    <div class="an anr">
+      <div class="at">"Clock critical alert" toggle is greyed out and disabled — it cannot be turned off. It is a core product safety feature. All other notifications are optional. User controls their own engagement without compromising the product's integrity.</div>
+      <div class="aln"><svg width="60" height="12"><polygon points="12,3 0,6 12,9" fill="#555"/><line x1="12" y1="6" x2="60" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- SLIDE 40 — Clock Animation Spec Sheet -->
+<div class="slide" style="padding:44px 0 60px;">
+<div class="sn">40</div>
+<div class="st">Clock animation spec — all 4 states × behaviour × CTA logic</div>
+<span class="sg tspec">Spec</span>
+<div class="si" style="flex-direction:column;align-items:center;max-width:900px;">
+
+  <div style="font-size:11px;color:#666;margin-bottom:16px;text-align:center;">This is a specification sheet for the developer — not a mobile screen. Defines all 4 clock states, animation behaviour, threshold triggers and contextual CTA copy.</div>
+
+  <div class="spec-grid">
+
+    <!-- Green State -->
+    <div class="spec-card">
+      <div class="clk clkg" style="width:80px;height:80px;">
+        <div style="font-size:16px;font-weight:500;color:#4caf50;">64%</div>
+        <div style="font-size:9px;color:#4caf50;">SAMPLE</div>
+      </div>
+      <div class="spec-state state-g">SAFE</div>
+      <div class="spec-label tgr">Green State</div>
+      <div class="spec-sub">Clock ring: solid green (#4caf50)<br>Background: dark green (#0a1a0a)<br>Value text: green</div>
+      <div style="width:100%;margin-top:4px;">
+        <div style="font-size:10px;color:#666;margin-bottom:4px;font-weight:500;">Animation</div>
+        <div class="spec-sub">Ring is static — no pulse. Clock face subtly brightens on app open to draw attention. Ring fill depletes clockwise as days countdown.</div>
+      </div>
+      <div style="width:100%;margin-top:4px;">
+        <div style="font-size:10px;color:#666;margin-bottom:4px;font-weight:500;">Threshold</div>
+        <div class="spec-sub">Above 30% remaining = GREEN. No push notification. No alert.</div>
+      </div>
+      <div class="cta-box cta-g">CTA: "Tracking well. Next check in X days."</div>
+    </div>
+
+    <!-- Amber State -->
+    <div class="spec-card">
+      <div class="clk clka" style="width:80px;height:80px;">
+        <div style="font-size:16px;font-weight:500;color:#f0a030;">28%</div>
+        <div style="font-size:9px;color:#f0a030;">SAMPLE</div>
+      </div>
+      <div class="spec-state state-a">WATCH</div>
+      <div class="spec-label tam">Amber State</div>
+      <div class="spec-sub">Clock ring: amber (#f0a030)<br>Background: dark amber (#1a1000)<br>Value text: amber</div>
+      <div style="width:100%;margin-top:4px;">
+        <div style="font-size:10px;color:#666;margin-bottom:4px;font-weight:500;">Animation</div>
+        <div class="spec-sub">Ring pulses slowly (2s cycle) at 50% opacity variation. This is the first visible urgency signal. Draws the eye without alarming.</div>
+      </div>
+      <div style="width:100%;margin-top:4px;">
+        <div style="font-size:10px;color:#666;margin-bottom:4px;font-weight:500;">Threshold</div>
+        <div class="spec-sub">Between 30% and 15% remaining = AMBER. Slow pulse starts. No push notification yet.</div>
+      </div>
+      <div class="cta-box cta-a">CTA: "Approaching threshold. Re-run recommended in X days."</div>
+    </div>
+
+    <!-- Red State -->
+    <div class="spec-card">
+      <div class="clk clkr" style="width:80px;height:80px;">
+        <div style="font-size:16px;font-weight:500;color:#e05050;">8%</div>
+        <div style="font-size:9px;color:#e05050;">SAMPLE</div>
+        <div style="position:absolute;top:-2px;right:-2px;background:#e05050;border-radius:3px;padding:1px 4px;font-size:8px;color:#fff;font-weight:500;">RISK</div>
+      </div>
+      <div class="spec-state state-r">RISK</div>
+      <div class="spec-label trd">Red State</div>
+      <div class="spec-sub">Clock ring: red (#e05050)<br>Background: dark red (#1a0808)<br>Value text: red + RISK badge</div>
+      <div style="width:100%;margin-top:4px;">
+        <div style="font-size:10px;color:#666;margin-bottom:4px;font-weight:500;">Animation</div>
+        <div class="spec-sub">Ring pulses fast (0.8s cycle). RISK badge blinks independently at 1.5s cycle. Both animations run simultaneously.</div>
+      </div>
+      <div style="width:100%;margin-top:4px;">
+        <div style="font-size:10px;color:#666;margin-bottom:4px;font-weight:500;">Threshold</div>
+        <div class="spec-sub">Below 30% remaining = RED. <strong>Push notification fires once</strong> at 30% crossing. Full-screen alert fires on next app open.</div>
+      </div>
+      <div class="cta-box cta-r">CTA: "Your [clock name] is at critical level. Run a new audit now."</div>
+    </div>
+
+    <!-- Blue State -->
+    <div class="spec-card">
+      <div class="clk clkb" style="width:80px;height:80px;">
+        <div style="font-size:16px;font-weight:500;color:#4a9eff;">0</div>
+        <div style="font-size:9px;color:#4a9eff;">EXPIRED</div>
+      </div>
+      <div class="spec-state state-b">EXPIRED</div>
+      <div class="spec-label tbl">Blue State</div>
+      <div class="spec-sub">Clock ring: blue (#4a9eff)<br>Background: dark blue (#0a1020)<br>Value: shows 0 or "DONE"</div>
+      <div style="width:100%;margin-top:4px;">
+        <div style="font-size:10px;color:#666;margin-bottom:4px;font-weight:500;">Animation</div>
+        <div class="spec-sub">Ring is static full blue — no depletion animation. Refresh icon (↺) appears beside the clock value and pulses gently at 2s cycle to invite interaction.</div>
+      </div>
+      <div style="width:100%;margin-top:4px;">
+        <div style="font-size:10px;color:#666;margin-bottom:4px;font-weight:500;">Threshold</div>
+        <div class="spec-sub">Clock hits zero = BLUE. Admin unlock activates the refresh button. Push notification fires when admin unlocks. Countdown bar below clocks turns solid blue.</div>
+      </div>
+      <div class="cta-box cta-b">CTA: "Your clocks are ready for refresh. Tap to update." (after admin unlock)</div>
+    </div>
+
+  </div>
+
+  <!-- Transition rules -->
+  <div style="margin-top:24px;background:#1e1e1e;border-radius:12px;padding:16px 20px;width:100%;">
+    <div style="font-size:12px;font-weight:500;color:#e8600a;margin-bottom:12px;letter-spacing:.04em;">STATE TRANSITION RULES</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="background:#252525;border-radius:8px;padding:10px 12px;">
+        <div style="font-size:10px;color:#4caf50;font-weight:500;margin-bottom:4px;">GREEN → AMBER</div>
+        <div style="font-size:10px;color:#888;line-height:1.5;">Triggered when remaining window drops below 30%. Slow pulse animation starts. No push notification. No alert screen.</div>
+      </div>
+      <div style="background:#252525;border-radius:8px;padding:10px 12px;">
+        <div style="font-size:10px;color:#f0a030;font-weight:500;margin-bottom:4px;">AMBER → RED</div>
+        <div style="font-size:10px;color:#888;line-height:1.5;">Triggered when remaining window drops below 15%. Fast pulse + RISK badge. Push notification fires once. Full-screen alert on next app open.</div>
+      </div>
+      <div style="background:#252525;border-radius:8px;padding:10px 12px;">
+        <div style="font-size:10px;color:#e05050;font-weight:500;margin-bottom:4px;">RED → BLUE</div>
+        <div style="font-size:10px;color:#888;line-height:1.5;">Clock hits zero (window expired). Ring turns solid blue. Refresh button greyed out until admin unlocks. Value shows 0 or "EXPIRED".</div>
+      </div>
+      <div style="background:#252525;border-radius:8px;padding:10px 12px;">
+        <div style="font-size:10px;color:#4a9eff;font-weight:500;margin-bottom:4px;">BLUE → GREEN (reset)</div>
+        <div style="font-size:10px;color:#888;line-height:1.5;">User taps refresh after admin unlock. New audit window starts. Clock resets to full countdown. Ring transitions back to green. Push notification fires on admin unlock.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clock depletion animation spec -->
+  <div style="margin-top:16px;background:#1e1e1e;border-radius:12px;padding:16px 20px;width:100%;">
+    <div style="font-size:12px;font-weight:500;color:#e8600a;margin-bottom:12px;letter-spacing:.04em;">RING DEPLETION ANIMATION SPEC</div>
+    <div style="font-size:10px;color:#888;line-height:1.8;">
+      <div>→ Ring depletes clockwise from 12 o'clock position (top)</div>
+      <div>→ Full ring = full audit window remaining</div>
+      <div>→ Ring gap shows proportional days elapsed vs total window</div>
+      <div>→ Depletion is NOT real-time — ring updates only on app open</div>
+      <div>→ Ring colour transitions smoothly: Green → Amber → Red as thresholds are crossed</div>
+      <div>→ Transition animation duration: 600ms ease-in-out</div>
+      <div>→ Ring stroke width: 8px on 90×90px clock</div>
+      <div>→ Background circle always shows the dark tint version of the ring colour</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- SLIDE 41 — Sentinel Subscription Prompt (Bonus) -->
+<div class="slide" style="border-bottom:none;">
+<div class="sn">41</div>
+<div class="st">Sentinel subscription — re-engagement upsell prompt</div>
+<span class="sg tn">New</span>
+<div class="si">
+  <div class="al">
+    <div class="an anl">
+      <div class="at">Sentinel subscription prompt appears contextually — after a user completes their 2nd or 3rd re-run on the same case. The system identifies a pattern of repeated checking and offers automatic monitoring instead.</div>
+      <div class="aln"><svg width="60" height="12"><line x1="0" y1="6" x2="48" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/><polygon points="48,3 60,6 48,9" fill="#555"/></svg></div>
+    </div>
+    <div class="an anl">
+      <div class="at">Three Sentinel tiers: ₹299/month (1 case monitored), ₹599/month (3 cases), ₹999/month (all cases). Subscriber gets automatic re-run when window opens + priority expert assignment + trend alerts.</div>
+      <div class="aln"><svg width="60" height="12"><line x1="0" y1="6" x2="48" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/><polygon points="48,3 60,6 48,9" fill="#555"/></svg></div>
+    </div>
+  </div>
+  <div class="pw"><div class="ph">
+    <div class="cam"></div>
+    <div class="nav">
+      <div style="font-size:16px;color:#aaa;">←</div>
+      <div style="font-size:13px;color:#fff;font-weight:500;">Stay Ahead</div>
+      <div></div>
+    </div>
+    <div class="scr" style="gap:8px;padding-top:8px;">
+      <div style="text-align:center;padding:6px 0;">
+        <div style="font-size:18px;color:#e8600a;margin-bottom:4px;">🛰</div>
+        <div style="font-size:13px;font-weight:500;color:#fff;margin-bottom:4px;">You have checked Check Job Safety 3 times.</div>
+        <div style="font-size:11px;color:#999;line-height:1.5;">Let Hawksyn monitor it automatically and alert you the moment something changes.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="background:#1e1000;border:1.5px solid #e8600a;border-radius:10px;padding:10px 12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div style="font-size:12px;font-weight:500;color:#fff;">Sentinel — 1 Case</div>
+            <div style="font-size:12px;font-weight:500;color:#e8600a;">₹299/mo</div>
+          </div>
+          <div style="font-size:10px;color:#999;line-height:1.5;">Auto re-run · Trend alerts · Priority expert</div>
+        </div>
+        <div style="background:#252525;border:1px solid #3a3a3a;border-radius:10px;padding:10px 12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div style="font-size:12px;font-weight:500;color:#fff;">Sentinel — 3 Cases</div>
+            <div style="font-size:12px;font-weight:500;color:#e8600a;">₹599/mo</div>
+          </div>
+          <div style="font-size:10px;color:#999;line-height:1.5;">All 1-case features across 3 cases</div>
+        </div>
+        <div style="background:#252525;border:1px solid #3a3a3a;border-radius:10px;padding:10px 12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div style="font-size:12px;font-weight:500;color:#fff;">Sentinel — All Cases</div>
+            <div style="font-size:12px;font-weight:500;color:#e8600a;">₹999/mo</div>
+          </div>
+          <div style="font-size:10px;color:#999;line-height:1.5;">Unlimited case monitoring + Sentinel dashboard</div>
+        </div>
+      </div>
+      <div class="btn btnp">Start Sentinel monitoring →</div>
+      <div style="font-size:10px;color:#555;text-align:center;cursor:pointer;">No thanks — I will check manually</div>
+    </div>
+  </div></div>
+  <div class="ar">
+    <div class="an anr">
+      <div class="at">This prompt only appears after the 2nd or 3rd completed re-run on the same case. It is triggered by behaviour, not time. Users who re-run once may not be ready. Users who re-run 3 times have shown strong intent — they are the right audience for Sentinel.</div>
+      <div class="aln"><svg width="60" height="12"><polygon points="12,3 0,6 12,9" fill="#555"/><line x1="12" y1="6" x2="60" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+    </div>
+    <div class="an anr">
+      <div class="at">Orange border on the first Sentinel tier = recommended option. Natural anchor pricing — user sees ₹999 first, making ₹299 feel like a bargain. "No thanks" exit is always visible — no dark patterns.</div>
+      <div class="aln"><svg width="60" height="12"><polygon points="12,3 0,6 12,9" fill="#555"/><line x1="12" y1="6" x2="60" y2="6" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

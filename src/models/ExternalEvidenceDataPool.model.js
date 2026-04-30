@@ -24,13 +24,17 @@ const ExternalEvidenceDataPoolSchema = new mongoose.Schema({
     citationText: { type: String, required: true },
     confidenceScore: { type: Number, required: true },
     isValidated: { type: Boolean, required: true, default: false },
-    aeuId: { type: String, required: true }
+    aeuId: { type: String, required: true },
+    // Caching context for Deduplication (B33)
+    role: { type: String, default: null },
+    industry: { type: String, default: null }
 }, {
     timestamps: true,
     collection: 'external_evidence_data_pool'
 });
 
 // Indexes for performance
+ExternalEvidenceDataPoolSchema.index({ role: 1, industry: 1, geoValue: 1, fetchedAt: -1 });
 ExternalEvidenceDataPoolSchema.index({ signalId: 1 });
 ExternalEvidenceDataPoolSchema.index({ runId: 1 });
 ExternalEvidenceDataPoolSchema.index({ fetchedAt: 1 });

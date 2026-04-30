@@ -1,4 +1,6 @@
 const { db } = require('../models/index.model.js');
+const bcrypt = require('bcryptjs');
+
 const { refreshClocksAfterCase } = require('../services/clockService');
 const { scoreExpert, buildAssignmentReason } = require('../services/expertService');
 const { generateFormattedId } = require('../../utils/idGenerator');
@@ -663,9 +665,6 @@ exports.unlockExpertSupport = async (req, res) => {
     }
 };
 
-/**
- * Update Expert's Professional Profile & Payout Info
- */
 exports.updateExpertProfile = async (req, res) => {
     try {
         const id = req.user.id;
@@ -719,9 +718,6 @@ exports.updateExpertProfile = async (req, res) => {
     }
 };
 
-/**
- * Fetch Expert's own Profile Data
- */
 exports.getExpertProfile = async (req, res) => {
     try {
         const id = req.user.id;
@@ -734,9 +730,6 @@ exports.getExpertProfile = async (req, res) => {
     }
 };
 
-/**
- * Toggle Expert Availability (ON/OFF for new cases)
- */
 exports.toggleAvailability = async (req, res) => {
     try {
         const id = req.user.id;
@@ -757,9 +750,6 @@ exports.toggleAvailability = async (req, res) => {
     }
 };
 
-/**
- * Get Expert's Cases categorized by status (Assigned, Done)
- */
 exports.getExpertCases = async (req, res) => {
     try {
         const id = req.user.id;
@@ -813,5 +803,142 @@ exports.getExpertCases = async (req, res) => {
 
     } catch (error) {
         return RESPONSE.error(res, 500, 9999, error.message);
+    }
+};
+
+
+exports.toggleUserExpertStatus = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const {
+            isExpert,
+            caseId,
+            caseCategories,
+            specializations,
+            maxCaseload
+        } = req.body;
+
+        const user = await db.User.findById(userId);
+        if (!user) return RESPONSE.error(res, 404, 3001, 'User not found');
+
+        if (!isExpert && user.isExpert) {
+            return RESPONSE.error(res, 400, 1007, 'Expert status cannot be removed once granted. Please use the Block User feature if you wish to restrict access.');
+        }
+
+        user.isExpert = !!isExpert;
+        user.role = isExpert ? 'expert' : 'user';
+        if (isExpert) {
+            user.isExpertApplicant = false;
+        }
+        await user.save();
+
+        if (isExpert) {
+            let expert = await db.RiskAuditorRegistry.findOne({ email: user.email });
+
+            const auditorName = user.fullName || user.name || 'Expert Auditor';
+            const finalSpecializations = specializations || ["Generalist"];
+
+            // Handle caseCategories (allow both array and single caseId string for flexibility)
+            let categories = [];
+            if (Array.isArray(caseCategories)) {
+                categories = caseCategories;
+            } else if (caseCategories) {
+                categories = [caseCategories];
+            } else if (caseId) {
+                categories = [caseId];
+            } else {
+                categories = ['GENERAL'];
+            }
+
+            const expertConfig = {
+                auditorName,
+                email: user.email,
+                caseCategories: categories,
+                specializations: finalSpecializations,
+                maxCaseload: maxCaseload || 20,
+                isActive: true,
+                status: 'ACTIVE'
+            };
+
+            if (!expert) {
+                expertConfig.auditorId = `EXP_${Math.floor(Date.now() / 1000)}_${Math.floor(1000 + Math.random() * 9000)}`;
+                expertConfig.password = await bcrypt.hash('Expert@Hks123!', 10);
+                await db.RiskAuditorRegistry.create(expertConfig);
+            } else {
+                await db.RiskAuditorRegistry.updateOne(
+                    { email: user.email },
+                    { $set: expertConfig }
+                );
+            }
+        }
+
+        const msg = isExpert ? 'Promoted to Expert with specific Categories/Specializations' : 'Expert status confirmed';
+        return RESPONSE.success(res, 200, 1001, {
+            message: `User role updated. ${msg}`,
+            userId: user._id,
+            isExpert: user.isExpert,
+            caseCategories: isExpert ? (caseCategories || caseId) : undefined
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+exports.getAllExperts = async (req, res) => {
+    try {
+        const experts = await db.RiskAuditorRegistry.find().select('-password -refreshToken').sort({ createdAt: -1 });
+        return RESPONSE.success(res, 200, 1001, { total: experts.length, experts });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+exports.deleteExpert = async (req, res) => {
+    try {
+        const { id } = req.params; // Using MongoDB _id
+        const deleted = await db.RiskAuditorRegistry.findByIdAndDelete(id);
+        if (!deleted) return RESPONSE.error(res, 404, 1005, 'Expert not found');
+
+        return RESPONSE.success(res, 200, 1001, { message: 'Expert removed successfully' });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+exports.updateExpert = async (req, res) => {
+    try {
+        const { id } = req.params; // Expert's MongoDB _id
+        const { auditorName, caseId, specializations, maxCaseload, isActive, status } = req.body;
+
+        const expert = await db.RiskAuditorRegistry.findById(id);
+        if (!expert) return RESPONSE.error(res, 404, 1005, 'Expert not found');
+
+        // Build update object
+        const updateData = {};
+        if (auditorName) updateData.auditorName = auditorName;
+
+        // Map caseId (single) to caseCategories (array) for the model
+        if (caseId) {
+            updateData.caseCategories = [caseId];
+            updateData.caseId = caseId; // Keep caseId for legacy support
+        }
+
+        if (specializations) updateData.specializations = specializations;
+        if (maxCaseload !== undefined) updateData.maxCaseload = maxCaseload;
+        if (isActive !== undefined) updateData.isActive = isActive;
+        if (status) updateData.status = status;
+
+        const updatedExpert = await db.RiskAuditorRegistry.findByIdAndUpdate(
+            id,
+            { $set: updateData },
+            { new: true }
+        ).select('-password -refreshToken');
+
+        return RESPONSE.success(res, 200, 1001, {
+            message: 'Expert details updated successfully',
+            expert: updatedExpert
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
     }
 };

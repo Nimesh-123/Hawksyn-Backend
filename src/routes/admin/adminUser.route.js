@@ -1,6 +1,8 @@
 const express = require('express');
 const route = express.Router();
 const adminController = require('../../controllers/admin.controller.js');
+const expertController = require('../../controllers/expertController');
+
 
 /**
  * @swagger
@@ -145,6 +147,6 @@ route.get('/active', adminController.getActiveUsers);
 route.get('/deleted', adminController.getDeletedUsers);
 route.get('/:userId/details', adminController.getUserDetails);
 route.patch('/:userId/block', adminController.blockUser);
-route.patch('/:userId/toggle-expert', adminController.toggleUserExpertStatus);
+route.patch('/:userId/toggle-expert', expertController.toggleUserExpertStatus);
 
 module.exports = route;

@@ -1,4 +1,6 @@
 const CaseRegistry = require('../models/CaseRegistry.model');
+const RESPONSE = require('../../utils/response.js');
+
 const CaseIntentConfig = require('../models/CaseIntentConfig.model');
 const Playbooks = require('../models/Playbooks.model');
 const Payments = require('../models/Payments.model');
@@ -10,9 +12,6 @@ const { generateFormattedId } = require('../../utils/idGenerator');
 const financeService = require('../services/financeService');
 const notificationService = require('../services/notificationService');
 
-/**
- * API 1 â€” GET /api/payment/product
- */
 exports.getProduct = async (req, res) => {
     try {
         const { caseId } = req.query;
@@ -55,9 +54,6 @@ exports.getProduct = async (req, res) => {
     }
 };
 
-/**
- * API 2 â€” POST /api/payment/initiate
- */
 exports.initiatePayment = async (req, res) => {
     try {
         const { caseId, intentId, platform = 'test', paymentMethod = 'test_gateway', previousRunId } = req.body;
@@ -77,9 +73,9 @@ exports.initiatePayment = async (req, res) => {
             return res.status(400).json({ success: false, message: 'This intent is not available' });
         }
 
-        // â”€â”€ Check for existing PENDING payment â”€â”€
+        // ── Check for existing PENDING payment ──
         // Only allow one active pending payment at a time to avoid spam
-        const existingPayment = await Payments.findOne({ userId, caseId, intentId, status: 'PENDING' });
+        const existingPayment = await Payments.findOne({ userId, caseId, intentId, status: 'PENDING' }).sort({ createdAt: -1 });
         if (existingPayment) {
             return res.status(200).json({
                 success: true,
@@ -112,6 +108,47 @@ exports.initiatePayment = async (req, res) => {
             if (previousRun?.reRunSetup?.reRunPriceOverride) {
                 amount = previousRun.reRunSetup.reRunPriceOverride;
             }
+        }
+
+        // ── Handle Chat Extension Product (7-Day Validity) ──
+        if (req.body.productId === 'CHAT_EXTENSION') {
+            const chatRunId = req.body.runId;
+            if (!chatRunId) return res.status(400).json({ success: false, message: 'runId is required for chat extension' });
+            
+            const chatRun = await Runs.findOne({ runId: chatRunId });
+            if (!chatRun) return res.status(404).json({ success: false, message: 'Run not found' });
+
+            amount = isInternational ? 1.99 : 100; // Static price
+            const chatPaymentId = await generateFormattedId(Payments, 'PAY', 'paymentId');
+            const chatPurchaseId = `CHAT_EXT_${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
+            const chatPayment = new Payments({
+                paymentId: chatPaymentId,
+                userId,
+                caseId: chatRun.caseId,
+                intentId: chatRun.intentId,
+                runId: chatRunId,
+                productId: 'CHAT_EXTENSION',
+                purchaseId: chatPurchaseId,
+                amount: amount,
+                currency: isInternational ? 'USD' : 'INR',
+                status: 'PENDING',
+                isTestPayment: true,
+                paymentMethod: gateway
+            });
+
+            await chatPayment.save();
+            return res.status(200).json({
+                success: true,
+                data: {
+                    paymentId: chatPaymentId,
+                    purchaseId: chatPurchaseId,
+                    amount: amount,
+                    currency: chatPayment.currency,
+                    gateway: gateway,
+                    message: "Chat extension payment initiated."
+                }
+            });
         }
 
         const newPayment = new Payments({
@@ -151,9 +188,6 @@ exports.initiatePayment = async (req, res) => {
     }
 };
 
-/**
- * API 3 â€” POST /api/payment/verify
- */
 exports.verifyPayment = async (req, res) => {
     try {
         const { purchaseId, caseId, intentId } = req.body;
@@ -197,22 +231,17 @@ exports.verifyPayment = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Playbook not found' });
         }
 
-        // [RELAXED CHECK] Check UserProfile â€” Allow the flow to continue even for unconfirmed profiles for testing
+        // Check UserProfile
         const { UserProfile } = require('../models/index.model.js').db;
         const userProfile = await UserProfile.findOne({ userId }); 
         
-        if (!userProfile) {
-             console.warn(`[Payment] No profile found for ${userId}. Run will be created but cvSnapshot may be empty.`);
-        }
-
         // --- NEW: Deterministic Idempotency Check (Task 1) ---
-        // We use purchaseId as a natural requestId for the run
         const requestId = `REQ_${purchaseId}`;
         let run = await Runs.findOne({ requestId });
 
         if (!run) {
-            // Check legacy weak match (same intent, just created, no requestId yet)
-            run = await Runs.findOne({ userId, caseId, intentId, status: 'CREATED', requestId: { $exists: false } });
+            // Check legacy weak match
+            run = await Runs.findOne({ userId, caseId, intentId, status: 'CREATED', requestId: { $exists: false } }).sort({ createdAt: -1 });
         }
 
         if (!run) {
@@ -220,7 +249,7 @@ exports.verifyPayment = async (req, res) => {
             const runId = await generateFormattedId(Runs, 'RUN', 'runId');
             run = new Runs({
                 runId,
-                requestId, // Enforce uniqueness
+                requestId,
                 userId,
                 caseId,
                 intentId,
@@ -233,16 +262,16 @@ exports.verifyPayment = async (req, res) => {
                     attachedAt: userProfile?.confirmedAt || new Date(),
                     source: 'EXISTING'
                 },
-                previousRunId: payment.previousRunId || null, 
+                previousRunId: payment.previousRunId || null,
+                // B32: Re-run Policy managed by Admin (Default: Paid)
                 reRunSetup: {
-                    eligibleForFreeReRun: false, 
+                    eligibleForFreeReRun: false,
                     freeReRunExpiryDate: null,
                     reRunPriceOverride: null
                 }
             });
             await run.save();
         } else if (!run.requestId) {
-            // Self-correction for legacy runs
             run.requestId = requestId;
             await run.save();
         }
@@ -250,20 +279,40 @@ exports.verifyPayment = async (req, res) => {
         // Update payment
         payment.status = 'COMPLETED';
         payment.verifiedAt = new Date();
+        
+        // --- NEW: Chat Extension Logic ---
+        if (payment.productId === 'CHAT_EXTENSION') {
+            const runToExtend = await Runs.findOne({ runId: payment.runId });
+            if (runToExtend) {
+                const currentExpiry = runToExtend.chatExpiryDate || new Date();
+                const newExpiry = new Date(currentExpiry.getTime() + 7 * 24 * 60 * 60 * 1000);
+                runToExtend.chatExpiryDate = newExpiry;
+                await runToExtend.save();
+                
+                return res.status(200).json({
+                    success: true,
+                    data: {
+                        paymentId: payment.paymentId,
+                        runId: runToExtend.runId,
+                        newChatExpiryDate: newExpiry,
+                        message: "Chat validity extended by 7 days."
+                    }
+                });
+            }
+        }
+
         payment.runId = run.runId;
         await payment.save();
 
         // --- NEW: Finance & Audit Finalization (Sprint 8) ---
         try {
-            const user = await db.User.findById(userId);
-            if (user) {
-                const finData = await financeService.processPaymentFinalization(payment, user);
+            const userRecord = await User.findById(userId);
+            if (userRecord) {
+                const finData = await financeService.processPaymentFinalization(payment, userRecord);
                 if (finData.success) {
                     const invoice = await db.Invoice.findOne({ invoiceId: finData.invoiceId });
-                    await notificationService.notifyPaymentSuccess(payment, user, invoice);
+                    await notificationService.notifyPaymentSuccess(payment, userRecord, invoice);
                 }
-            } else {
-                console.error('[Payment-Verify] Finance Skip: User record not found for ID:', userId);
             }
         } catch (finErr) {
             console.error('[Payment-Verify] Post-processing Finance Error:', finErr);
@@ -287,10 +336,6 @@ exports.verifyPayment = async (req, res) => {
     }
 };
 
-/**
- * API 4 â€” GET /api/payment/status
- * Purpose: Check if user has already paid for a specific case/intent before showing payment UI.
- */
 exports.getPaymentStatus = async (req, res) => {
     try {
         const { caseId, intentId } = req.query;
@@ -300,38 +345,25 @@ exports.getPaymentStatus = async (req, res) => {
             return res.status(400).json({ success: false, message: 'caseId and intentId are required' });
         }
 
-        // 1. Check for completed payment
-        const completedPayment = await Payments.findOne({ userId, caseId, intentId, status: 'COMPLETED' });
+        // Find the LATEST completed payment to determine if current session is active
+        const completedPayment = await Payments.findOne({ userId, caseId, intentId, status: 'COMPLETED' }).sort({ createdAt: -1 });
 
-        // 2. Check for ANY run (active or completed) for this case/intent
         let activeRun = null;
         if (completedPayment && completedPayment.runId) {
             activeRun = await Runs.findOne({ runId: completedPayment.runId });
         } else {
+            // Fallback: Find the latest run if payment logic is bypassed or handled elsewhere
             activeRun = await Runs.findOne({ userId, caseId, intentId }).sort({ createdAt: -1 });
         }
 
-                // --- RE-RUN LOGIC ---
         const reRunSetup = activeRun?.reRunSetup;
         const isEligibleForFree = reRunSetup?.eligibleForFreeReRun === true && 
                                  (!reRunSetup?.freeReRunExpiryDate || new Date() <= new Date(reRunSetup.freeReRunExpiryDate));
 
+        // A run is considered "Finished" if it reached report stage
         const isRunFinished = activeRun && ['REPORT_COMPLETE', 'EXPERT_ASSIGNED'].includes(activeRun.status);
 
-        if ((completedPayment || activeRun) && !isRunFinished) {
-            return res.status(200).json({
-                success: true,
-                data: {
-                    isPaid: true,
-                    hasActiveRun: !!activeRun,
-                    runId: activeRun ? activeRun.runId : (completedPayment ? completedPayment.runId : null),
-                    status: activeRun ? "RESUME_RUN" : "PAYMENT_DONE_RUN_NOT_STARTED",
-                    runStatus: activeRun ? activeRun.status : null,
-                    message: activeRun ? "Resume your current run." : "Payment complete. Start your run."
-                }
-            });
-        }
-
+        // --- CORE FIX: If the latest run is finished, we MUST allow a new payment (Re-run) ---
         if (isRunFinished) {
             return res.status(200).json({
                 success: true,
@@ -348,8 +380,37 @@ exports.getPaymentStatus = async (req, res) => {
             });
         }
 
-        // 3. Check for pending payment
-        const pendingPayment = await Payments.findOne({ userId, caseId, intentId, status: 'PENDING' });
+        // If a payment exists but the run is NOT finished, we resume the session
+        if (completedPayment && activeRun && !isRunFinished) {
+            return res.status(200).json({
+                success: true,
+                data: {
+                    isPaid: true,
+                    hasActiveRun: true,
+                    runId: activeRun.runId,
+                    status: "RESUME_RUN",
+                    runStatus: activeRun.status,
+                    message: "Resume your current run."
+                }
+            });
+        }
+
+        // Check for payments that haven't been linked to a run yet
+        const unlinkedPayment = await Payments.findOne({ userId, caseId, intentId, status: 'COMPLETED', runId: { $exists: false } }).sort({ createdAt: -1 });
+        if (unlinkedPayment) {
+             return res.status(200).json({
+                success: true,
+                data: {
+                    isPaid: true,
+                    hasActiveRun: false,
+                    paymentId: unlinkedPayment.paymentId,
+                    status: "PAYMENT_DONE_RUN_NOT_STARTED",
+                    message: "Payment complete. Start your run."
+                }
+            });
+        }
+
+        const pendingPayment = await Payments.findOne({ userId, caseId, intentId, status: 'PENDING' }).sort({ createdAt: -1 });
 
         return res.status(200).json({
             success: true,
@@ -362,14 +423,12 @@ exports.getPaymentStatus = async (req, res) => {
             }
         });
 
+
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
-/**
- * API 5 â€” GET /api/payment/detail/:paymentId
- * Purpose: Get full receipt details for a specific payment
- */
+
 exports.getPaymentDetail = async (req, res) => {
     try {
         const { paymentId } = req.params;
@@ -380,7 +439,6 @@ exports.getPaymentDetail = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Payment record not found' });
         }
 
-        // Fetch Case and Intent names for the receipt
         const caseData = await CaseRegistry.findOne({ caseId: payment.caseId });
         const intentData = await require('../models/IntentTaxonomy.model').findOne({ intentId: payment.intentId });
 
@@ -410,10 +468,6 @@ exports.getPaymentDetail = async (req, res) => {
     }
 };
 
-/**
- * API 6 â€” GET /api/payment/list
- * Purpose: Get list of all payments for the authenticated user
- */
 exports.getAllPayments = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -424,7 +478,6 @@ exports.getAllPayments = async (req, res) => {
 
         const payments = await Payments.find(query).sort({ createdAt: -1 });
 
-        // Map payments to include full details for each record in the list
         const enrichedList = await Promise.all(payments.map(async (p) => {
             const caseData = await CaseRegistry.findOne({ caseId: p.caseId });
             const intentData = await require('../models/IntentTaxonomy.model').findOne({ intentId: p.intentId });
@@ -460,12 +513,6 @@ exports.getAllPayments = async (req, res) => {
     }
 };
 
-
-
-/**
- * API 7 — POST /api/payment/verify-and-recover
- * Purpose: Payment Failed Recovery (Slide 24) with cooling logic
- */
 exports.verifyAndRecover = async (req, res) => {
     try {
         const { purchaseId, paymentId } = req.body;
@@ -479,7 +526,6 @@ exports.verifyAndRecover = async (req, res) => {
         const payment = await Payments.findOne(query);
         if (!payment) return res.status(404).json({ success: false, message: 'Payment record not found' });
 
-        // 1. Cooling logic: If payment is very new (< 10 mins), wait for gateway sync
         const now = new Date();
         const created = new Date(payment.createdAt);
         const diffMinutes = (now - created) / (1000 * 60);
@@ -492,7 +538,6 @@ exports.verifyAndRecover = async (req, res) => {
             });
         }
 
-        // 2. Logic: Already completed
         if (payment.status === 'COMPLETED') {
             return res.status(200).json({
                 success: true,
@@ -502,12 +547,9 @@ exports.verifyAndRecover = async (req, res) => {
             });
         }
 
-        // 3. Simulated Debit Recheck (In production, call Razorpay/Stripe API here)
-        // For now, we simulate success if the user triggers recovery (UX Policy)
-        const isDebitConfirmed = true; // Simulated
+        const isDebitConfirmed = true; 
 
         if (isDebitConfirmed) {
-            // Reuse verification logic by spoofing request body
             req.body.purchaseId = payment.purchaseId;
             req.body.caseId = payment.caseId;
             req.body.intentId = payment.intentId;
@@ -532,30 +574,25 @@ exports.downloadUserInvoice = async (req, res) => {
         const { runId } = req.params;
         const userId = req.user.id;
 
-        // 1. Find Invoice
         const invoice = await db.Invoice.findOne({ runId, userId });
         if (!invoice) {
             return res.status(404).json({ success: false, message: 'Invoice record not found.' });
         }
 
-        // 2. If PDF missing, attempt regeneration (Self-healing)
         if (!invoice.pdfUrl) {
-            console.warn(`[Invoice] PDF missing for ${runId}. Attempting on-the-fly regeneration...`);
-            const user = await db.User.findById(userId);
-            const regenResult = await financeService.generateAndUploadInvoicePdf(invoice, user);
+            const userRecord = await db.User.findById(userId);
+            const regenResult = await financeService.generateAndUploadInvoicePdf(invoice, userRecord);
             
             if (!regenResult.success) {
                 return res.status(404).json({ 
                     success: false, 
-                    message: 'Invoice PDF is not ready yet. Please try again in a few minutes.',
+                    message: 'Invoice PDF is not ready yet.',
                     error: regenResult.error 
                 });
             }
-            // Update local invoice object to proceed
             invoice.pdfUrl = regenResult.pdfUrl;
         }
 
-        // 3. Serve from S3
         const key = 'invoices/' + invoice.invoiceNumber + '.pdf';
         const { Body, ContentType } = await s3Service.getFileStream(key);
         
@@ -570,6 +607,52 @@ exports.downloadUserInvoice = async (req, res) => {
     }
 };
 
+exports.adminGetAllPayments = async (req, res) => {
+    try {
+        const { page = 1, limit = 20, status } = req.query;
+        const filter = {};
+        if (status) filter.status = status;
+
+        const payments = await db.Payments.find(filter)
+            .sort({ createdAt: -1 })
+            .skip((Number(page) - 1) * Number(limit))
+            .limit(Number(limit))
+            .lean();
+
+        const total = await db.Payments.countDocuments(filter);
+
+        return RESPONSE.success(res, 200, 1001, {
+            payments,
+            total,
+            page: Number(page),
+            pages: Math.ceil(total / Number(limit))
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+exports.adminExportPaymentsCSV = async (req, res) => {
+    try {
+        const payments = await db.Payments.find({}).sort({ createdAt: -1 }).lean();
+
+        // CSV Headers - Updated to be more clear
+        let csv = 'Date,PaymentId,PurchaseId/GatewayID,Amount,Currency,Status,Gateway,CaseId,UserId\n';
+
+        payments.forEach(p => {
+            const rawDate = p.verifiedAt || p.createdAt || null;
+            const date = rawDate ? new Date(rawDate).toLocaleDateString('en-GB') : 'N/A';
+            const gateway = p.paymentMethod || 'Stripe';
+            csv += `${date},${p.paymentId},${p.purchaseId || 'N/A'},${p.amount},${p.currency || 'INR'},${p.status},${gateway},${p.caseId},${p.userId}\n`;
+        });
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=Hawksyn_Transactions.csv');
+
+        return res.status(200).send(csv);
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
 module.exports = exports;
-
-

@@ -2,13 +2,13 @@ const mongoose = require('mongoose');
 
 const UserClocksSchema = new mongoose.Schema({
     userId: { type: String, required: true, unique: true },
-    
+
     // Scores (Flat structure as used in controllers)
     aiExposureScore: { type: Number, default: 0 },
     careerMomentumScore: { type: Number, default: 0 },
     skillRelevanceScore: { type: Number, default: 0 },
     opportunityWindowScore: { type: Number, default: 0 },
-    
+
     careerMomentumMonths: { type: Number, default: 0 },
     opportunityWindowYears: { type: Number, default: 0 },
 
@@ -18,7 +18,7 @@ const UserClocksSchema = new mongoose.Schema({
     skillRelevanceJustification: { type: String, default: null },
     opportunityWindowJustification: { type: String, default: null },
     trendTrigger: { type: String, default: null },
-    
+
     // Previous Scores (for change detection)
     previousAiExposureScore: { type: Number, default: null },
     previousCareerMomentumScore: { type: Number, default: null },
@@ -26,10 +26,10 @@ const UserClocksSchema = new mongoose.Schema({
     previousOpportunityWindowScore: { type: Number, default: null },
 
     // Validity States
-    validityState: { 
-        type: String, 
-        enum: ['FROZEN', 'ACTIVE_CLOCK', 'ACTIVE_CASE'], 
-        default: 'FROZEN' 
+    validityState: {
+        type: String,
+        enum: ['FROZEN', 'ACTIVE_CLOCK', 'ACTIVE_CASE'],
+        default: 'FROZEN'
     },
     caseValidUntil: { type: Date, default: null },
     clockValidUntil: { type: Date, default: null },

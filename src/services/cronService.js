@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const { db } = require('../models/index.model');
 const notificationService = require('./notificationService');
+const signalService = require('./signalService');
 const logger = require('../../utils/logger');
 
 /**
@@ -19,8 +20,14 @@ class CronService {
             this.resetDailyCaseloads();
         });
 
+        // B35: Refresh Stale Market Signals (Every Wednesday at 3 AM)
+        cron.schedule('0 3 * * 3', () => {
+            signalService.refreshStaleSignals(30); // Refresh signals older than 30 days
+        });
+
         logger.info('[Cron] Notification Scheduler Initialized (Daily at 10 AM)');
         logger.info('[Cron] Daily Caseload Resetter Initialized (Daily at Midnight)');
+        logger.info('[Cron] Signal Refresh Service Initialized (Wednesdays at 3 AM)');
     }
 
     async resetDailyCaseloads() {

@@ -159,20 +159,26 @@ function detectSignificantChange(userClock, newScores, threshold = 15) {
 /**
  * Benchmarks Comparison
  */
-function getPeerBenchmarks(score, type) {
+/**
+ * Benchmarks Comparison - Compares User Score vs Market Median
+ */
+function getPeerBenchmarks(score, marketMedian, type) {
     const isInverted = (type === 'AI_EXPOSURE');
-    let top, median, bottom;
+    const median = Math.round(marketMedian);
+    let top, bottom;
 
+    // Calculate bands based on Market Median
     if (isInverted) {
-        top = Math.max(0, Math.round(score * 0.6));
-        median = Math.round(score);
-        bottom = Math.min(100, Math.round(score * 1.3));
+        // For AI Exposure: Lower is better (Top 20% means low risk)
+        top = Math.max(0, Math.round(median * 0.8));
+        bottom = Math.min(100, Math.round(median * 1.2));
     } else {
-        top = Math.min(100, Math.round(score * 1.25));
-        median = Math.round(score);
-        bottom = Math.max(0, Math.round(score * 0.7));
+        // For others: Higher is better (Top 20% means high momentum/skill)
+        top = Math.min(100, Math.round(median * 1.2));
+        bottom = Math.max(0, Math.round(median * 0.8));
     }
 
+    // Determine user position relative to market bands
     let userState = 'Median';
     if (isInverted) {
         if (score <= top) userState = 'Top 20%';
@@ -182,70 +188,71 @@ function getPeerBenchmarks(score, type) {
         else if (score <= bottom) userState = 'Bottom 20%';
     }
 
-    return { top20: top, median, bottom20: bottom, userState };
+    return { 
+        top20: top, 
+        median: median, 
+        bottom20: bottom, 
+        userState 
+    };
 }
 
 /**
  * UI Response Object
  */
-function buildClocksResponse(scores, userClock = {}) {
-    const aiScore = scores.aiExposureScore ?? 0;
-    const momScore = scores.careerMomentumScore ?? 0;
-    const sklScore = scores.skillRelevanceScore ?? 0;
-    const oppScore = scores.opportunityWindowScore ?? 0;
+/**
+ * UI Response Object - Compares User Score against Market Median
+ */
+function buildClocksResponse(userScores, userClock = {}, marketScores = null) {
+    // 1. Extract User Scores
+    const uAi  = userScores.aiExposureScore ?? 0;
+    const uMom = userScores.careerMomentumScore ?? 0;
+    const uSkl = userScores.skillRelevanceScore ?? 0;
+    const uOpp = userScores.opportunityWindowScore ?? 0;
+
+    // 2. Extract Market Medians (Fall back to user score if no market pulse exists)
+    const mAi  = marketScores?.aiExposureScore ?? uAi;
+    const mMom = marketScores?.careerMomentumScore ?? uMom;
+    const mSkl = marketScores?.skillRelevanceScore ?? uSkl;
+    const mOpp = marketScores?.opportunityWindowScore ?? uOpp;
+
+    // 3. Generate Benchmarks for each clock
+    const aiBench  = getPeerBenchmarks(uAi,  mAi,  'AI_EXPOSURE');
+    const momBench = getPeerBenchmarks(uMom, mMom, 'CAREER_MOMENTUM');
+    const sklBench = getPeerBenchmarks(uSkl, mSkl, 'SKILL_RELEVANCE');
+    const oppBench = getPeerBenchmarks(uOpp, mOpp, 'OPPORTUNITY_WINDOW');
 
     return {
         aiExposure: {
-            score: aiScore,
-            display: `${aiScore}%`,
-            risk: aiScore > 70 ? 'HIGH' : aiScore > 40 ? 'MEDIUM' : 'LOW',
-            color: aiScore > 70 ? 'RED' : aiScore > 40 ? 'AMBER' : 'GREEN',
-            showRiskBadge: aiScore > 70,
-            justification: userClock.aiExposureJustification || scores.aiExposureJustification || null,
-            benchmarks: {
-                top20: Math.max(0, aiScore - 14),
-                median: aiScore,
-                bottom20: Math.min(100, aiScore + 13),
-                userState: 'Median'
-            }
+            score: uAi,
+            display: `${uAi}%`,
+            risk: uAi > 70 ? 'HIGH' : uAi > 40 ? 'MEDIUM' : 'LOW',
+            color: uAi > 70 ? 'RED' : uAi > 40 ? 'AMBER' : 'GREEN',
+            showRiskBadge: uAi > 70,
+            justification: userClock.aiExposureJustification || userScores.aiExposureJustification || null,
+            benchmarks: aiBench
         },
         careerMomentum: {
-            score: momScore,
-            display: `${scores.careerMomentumMonths ?? 18}M`,
-            months: scores.careerMomentumMonths ?? 18,
-            color: momScore >= 70 ? 'GREEN' : momScore >= 40 ? 'AMBER' : 'RED',
-            justification: userClock.careerMomentumJustification || scores.careerMomentumJustification || null,
-            benchmarks: {
-                top20: Math.min(100, momScore + 15),
-                median: momScore,
-                bottom20: Math.max(0, momScore - 26),
-                userState: 'Median'
-            }
+            score: uMom,
+            display: `${userScores.careerMomentumMonths ?? 18}M`,
+            months: userScores.careerMomentumMonths ?? 18,
+            color: uMom >= 70 ? 'GREEN' : uMom >= 40 ? 'AMBER' : 'RED',
+            justification: userClock.careerMomentumJustification || userScores.careerMomentumJustification || null,
+            benchmarks: momBench
         },
         skillRelevance: {
-            score: sklScore,
-            display: `${sklScore}%`,
-            color: sklScore >= 70 ? 'GREEN' : sklScore >= 40 ? 'AMBER' : 'RED',
-            justification: userClock.skillRelevanceJustification || scores.skillRelevanceJustification || null,
-            benchmarks: {
-                top20: Math.min(100, sklScore + 28),
-                median: sklScore,
-                bottom20: Math.max(0, sklScore - 28),
-                userState: 'Median'
-            }
+            score: uSkl,
+            display: `${uSkl}%`,
+            color: uSkl >= 70 ? 'GREEN' : uSkl >= 40 ? 'AMBER' : 'RED',
+            justification: userClock.skillRelevanceJustification || userScores.skillRelevanceJustification || null,
+            benchmarks: sklBench
         },
         opportunityWindow: {
-            score: oppScore,
-            display: `${scores.opportunityWindowYears ?? 2}YRS`,
-            years: scores.opportunityWindowYears ?? 2,
+            score: uOpp,
+            display: `${userScores.opportunityWindowYears ?? 2}YRS`,
+            years: userScores.opportunityWindowYears ?? 2,
             color: 'BLUE',
-            justification: userClock.opportunityWindowJustification || scores.opportunityWindowJustification || null,
-            benchmarks: {
-                top20: Math.min(100, oppScore + 9),
-                median: oppScore,
-                bottom20: Math.max(0, oppScore - 12),
-                userState: 'Median'
-            }
+            justification: userClock.opportunityWindowJustification || userScores.opportunityWindowJustification || null,
+            benchmarks: oppBench
         }
     };
 }
@@ -309,6 +316,7 @@ async function recalibrateForUser(userId, profile) {
                     daysLeft: validityDays,
                     lastCalculatedBy: 'PROFILE_CONFIRM',
                     lastCalculatedAt: new Date(),
+                    pulseId: pulse?.pulseId || null,
                     ...clockScores,
                     updatedAt: new Date()
                 }
@@ -328,6 +336,7 @@ async function recalibrateForUser(userId, profile) {
             opportunityWindowScore: clockScores.opportunityWindowScore,
             careerMomentumMonths: clockScores.careerMomentumMonths || 0,
             opportunityWindowYears: clockScores.opportunityWindowYears || 0,
+            pulseId: pulse?.pulseId || null,
             triggeredBy: 'AUTO_OPEN',
             calculatedAt: new Date()
         });
@@ -407,6 +416,23 @@ async function refreshClocksAfterCase(userId, runId) {
         );
 
         console.log(`[ClockService] ✅ Clocks refreshed for user ${userId} — 30 days`);
+
+        // ── NEW: Record Snapshot in History ──
+        const historyId = `CLK_HIST_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+        await db.ClockHistory.create({
+            historyId,
+            userId: String(userId),
+            aiExposureScore: clockScores.aiExposureScore,
+            careerMomentumScore: clockScores.careerMomentumScore,
+            skillRelevanceScore: clockScores.skillRelevanceScore,
+            opportunityWindowScore: clockScores.opportunityWindowScore,
+            careerMomentumMonths: clockScores.careerMomentumMonths || 0,
+            opportunityWindowYears: clockScores.opportunityWindowYears || 0,
+            pulseId: null, // CASE_RUN is based on Run context, not a specific market pulse
+            triggeredBy: 'CASE_RUN',
+            calculatedAt: new Date()
+        });
+
         return true;
     } catch (err) {
         console.warn(`[ClockService] ⚠️ Refresh failed:`, err.message);
