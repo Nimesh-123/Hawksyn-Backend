@@ -13,6 +13,8 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+const { aiSemaphore } = require('../../utils/concurrency.js');
+
 /**
  * Universal JSON LLM Caller
  * Returns parsed JSON from whichever provider succeeds.
@@ -23,7 +25,17 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
  * @returns {Promise<Object>} - Parsed JSON response including duration & usage
  */
 async function generateJSON(prompt, systemPrompt = 'You are a JSON-only responder. Return only valid JSON. No markdown. No explanation.', forceProvider = null) {
+    await aiSemaphore.acquire();
+    try {
+        return await _executeGenerateJSON(prompt, systemPrompt, forceProvider);
+    } finally {
+        aiSemaphore.release();
+    }
+}
+
+async function _executeGenerateJSON(prompt, systemPrompt, forceProvider) {
     const startTime = Date.now();
+
 
     // --- Step 0: FORCED PROVIDER (Optional) ---
     if (forceProvider === 'Gemini') {
@@ -187,6 +199,15 @@ function parseCleanJSON(raw, providerName) {
  * Returns raw text from whichever provider succeeds.
  */
 async function generateText(prompt, systemPrompt = 'You are a helpful assistant.', forceProvider = null) {
+    await aiSemaphore.acquire();
+    try {
+        return await _executeGenerateText(prompt, systemPrompt, forceProvider);
+    } finally {
+        aiSemaphore.release();
+    }
+}
+
+async function _executeGenerateText(prompt, systemPrompt, forceProvider) {
     const startTime = Date.now();
 
     // --- Step 0: FORCED PROVIDER (Optional) ---
