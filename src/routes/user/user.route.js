@@ -222,7 +222,7 @@ route.post('/upload-cv', upload.single('cv'), userController.uploadCV);
  * @swagger
  * /user/trends:
  *   get:
- *     summary: Fetch personalized, CV-derived market trends and benchmarks (Slide 14)
+ *     summary: Fetch personalized, CV-derived market trends and benchmarks
  *     tags: ["8. Command Center & Trends"]
  *     security:
  *       - bearerAuth: []
@@ -236,7 +236,7 @@ route.post('/upload-cv', upload.single('cv'), userController.uploadCV);
  * @swagger
  * /user/runs/compare:
  *   get:
- *     summary: Deep comparison between two runs (Slide 45)
+ *     summary: Deep comparison between two runs
  *     tags: ["6. My Records & Reports"]
  *     security:
  *       - bearerAuth: []
@@ -259,7 +259,7 @@ route.get('/trends', userController.getTrends);
  * @swagger
  * /user/credits/unlock:
  *   post:
- *     summary: Use credits to unlock expert support for a specific run (Slide 53-54)
+ *     summary: Use credits to unlock expert support for a specific run
  *     tags: ["7. Expert Support & Chat"]
  *     security:
  *       - bearerAuth: []

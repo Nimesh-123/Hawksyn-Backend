@@ -62,7 +62,7 @@ async function buildRunSummary(run) {
         completedAt: run.completedAt,
         reRunInDays: reRunInDays,
         canReRun: canReRun,
-        // ── NEW: Re-Run Policy Details (Task: User Visibility) ──
+        // ── Re-Run Policy Details ──
         reRunPolicy: {
             isFree: (run.reRunSetup?.eligibleForFreeReRun === true) &&
                 (!run.reRunSetup?.freeReRunExpiryDate || new Date() <= new Date(run.reRunSetup.freeReRunExpiryDate)),
@@ -90,61 +90,85 @@ exports.getAllRecords = async (req, res) => {
             return res.status(200).json({ success: true, data: { records: [], timeline: [] } });
         }
 
-        // Process all runs to get base summaries + delta
-        let processed = await Promise.all(runs.map(async (run) => {
+        // Process all runs to get base summaries
+        const processed = await Promise.all(runs.map(async (run) => {
             return await buildRunSummary(run);
         }));
 
-        // ── Apply Comparison (Delta) Logic ──
-        processed.forEach((run, index) => {
-            let delta = {
-                riskChange: 0,
-                verdictChanged: false,
-                newAssumptions: false,
-                isFresh: false
-            };
-            const olderRun = processed[index + 1];
-
-            // Unified baseline logic
-            run.isBaseline = (totalRuns > 1 && index === processed.length - 1) || (totalRuns === 1);
-            run.runLabel = run.isBaseline ? "Baseline" : "Re-run";
-
-            if (olderRun) {
-                const olderRisk = (100 - (olderRun.accuracyScore || 50));
-                const newerRisk = (100 - (run.accuracyScore || 50));
-                delta.riskChange = newerRisk - olderRisk;
-                delta.verdictChanged = String(run.verdict).toLowerCase() !== String(olderRun.verdict).toLowerCase();
-
-                // Compare assumptions
-                delta.newAssumptions = run.accuracyScore !== olderRun.accuracyScore;
-            } else {
-                delta.isFresh = true;
-            }
-
-            run.delta = delta;
+        // ── Group by Case ID for Incremental Comparison ──
+        const casesGroups = {};
+        processed.forEach(run => {
+            if (!casesGroups[run.caseId]) casesGroups[run.caseId] = [];
+            casesGroups[run.caseId].push(run);
         });
+
+        // Calculate Deltas per Group
+        Object.keys(casesGroups).forEach(caseId => {
+            const group = casesGroups[caseId];
+            // Sort group by date descending (Newest first)
+            group.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            group.forEach((run, index) => {
+                let delta = {
+                    riskChange: 0,
+                    verdictChanged: false,
+                    newAssumptions: false,
+                    isFresh: false
+                };
+
+                const olderRunInCase = group[index + 1];
+
+                // Baseline logic is now PER CASE
+                run.isBaseline = (group.length > 1 && index === group.length - 1) || (group.length === 1);
+                run.runLabel = run.isBaseline ? "Baseline" : "Re-run";
+
+                if (olderRunInCase) {
+                    const olderRisk = (100 - (olderRunInCase.accuracyScore || 50));
+                    const newerRisk = (100 - (run.accuracyScore || 50));
+                    delta.riskChange = newerRisk - olderRisk;
+                    delta.verdictChanged = String(run.verdict).toLowerCase() !== String(olderRunInCase.verdict).toLowerCase();
+                    delta.newAssumptions = run.accuracyScore !== olderRunInCase.accuracyScore;
+                } else {
+                    delta.isFresh = true;
+                }
+                run.delta = delta;
+            });
+        });
+
+        let finalProcessed = [...processed];
 
         // ── Apply Filtering ──
         if (filterBy === 'Changes only') {
-            processed = processed.filter(r => r.delta.riskChange !== 0 || r.delta.verdictChanged);
+            finalProcessed = finalProcessed.filter(r => r.delta.riskChange !== 0 || r.delta.verdictChanged);
         } else if (filterBy === 'Baseline vs Latest') {
-            // Only keep the newest and the baseline
-            if (processed.length >= 2) {
-                processed = [processed[0], processed[processed.length - 1]];
-            }
+            // Keep latest and baseline for each case type
+            const filtered = [];
+            Object.keys(casesGroups).forEach(cid => {
+                const group = casesGroups[cid];
+                if (group.length >= 2) {
+                    filtered.push(group[0]); // Latest
+                    filtered.push(group[group.length - 1]); // Baseline
+                } else if (group.length === 1) {
+                    filtered.push(group[0]);
+                }
+            });
+            finalProcessed = filtered;
         }
 
         // ── Apply Sorting ──
         if (sortBy === 'Oldest to newest') {
-            processed.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            finalProcessed.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
         } else {
-            processed.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            finalProcessed.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         }
 
-        // Pagination (After filtering/sorting)
-        const paginated = processed.slice((Number(page) - 1) * Number(limit), Number(page) * Number(limit));
 
-        const timeline = processed.slice(0, 3).reverse().map(r => ({
+        // Pagination (After filtering/sorting)
+        const paginated = finalProcessed.slice((Number(page) - 1) * Number(limit), Number(page) * Number(limit));
+
+
+        const timeline = finalProcessed.slice(0, 3).reverse().map(r => ({
+
             date: r.createdAt,
             riskScore: (100 - (r.accuracyScore || 50)),
             verdict: r.verdict,
@@ -173,7 +197,11 @@ exports.getAllRecords = async (req, res) => {
                 trendStatement,
                 timeline,
                 records: paginated,
+                total: finalProcessed.length,
+                page: Number(page),
+                pages: Math.ceil(finalProcessed.length / Number(limit)),
                 canRunNewCase: true
+
             }
         });
 
@@ -183,10 +211,6 @@ exports.getAllRecords = async (req, res) => {
     }
 };
 
-// ════════════════════════════════════════════════════════════
-// CONTROLLER 2 — getRunDetail
-// GET /api/v1/users/:userId/records/:runId
-// ════════════════════════════════════════════════════════════
 exports.getRunDetail = async (req, res) => {
     try {
         const { userId, runId } = req.params;
@@ -316,11 +340,6 @@ exports.getRunDetail = async (req, res) => {
     }
 };
 
-/**
- * API 3 — POST /api/v1/users/:userId/records/initiate-rerun
- * Purpose: Start a new assessment session for an existing completed run.
- * Frontend only sends `runId` — backend auto-fetches caseId & intentId from it.
- */
 exports.initiateReRun = async (req, res) => {
     try {
         const { userId } = req.params;
@@ -409,10 +428,6 @@ exports.initiateReRun = async (req, res) => {
     }
 };
 
-/**
- * API 4 — GET /user/runs/compare?baseline=X&latest=Y
- * Purpose: Deep comparison between two runs (Slide 45)
- */
 exports.compareRuns = async (req, res) => {
     try {
         const { baseline: baselineId, latest: latestId } = req.query;
@@ -444,7 +459,7 @@ exports.compareRuns = async (req, res) => {
         const deltaScore = lateRisk - baseRisk;
         const verdictChanged = baseline.verdict !== latest.verdict;
 
-        // --- Logic: Decision Direction AI Summary (Slide 45) ---
+        // --- Logic: Decision Direction AI Summary ---
         let deltaType = deltaScore > 0 ? 'DETERIORATION' : (deltaScore < 0 ? 'IMPROVEMENT' : 'STABLE');
         let absDelta = Math.abs(deltaScore);
 

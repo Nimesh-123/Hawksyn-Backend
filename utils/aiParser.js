@@ -190,9 +190,9 @@ const smartCVParser = async (buffer, fileName, mimetype) => {
 
         const charCount = trimmedText.length;
         const isBigFile = charCount >= DUAL_THRESHOLD;
-        const forcedProvider = isBigFile ? 'Gemini' : null;
+        const forcedProvider = null; // Always try Claude first (Primary)
 
-        console.log(`[AI Parser] Processing ${fileName} (${charCount} chars) | Strategy: ${isBigFile ? 'Parallel Gemini' : 'Parallel Claude'}...`);
+        console.log(`[AI Parser] Processing ${fileName} (${charCount} chars) | Strategy: Unified Claude-Primary...`);
 
         await aiSemaphore.acquire();
         try {
@@ -203,7 +203,7 @@ const smartCVParser = async (buffer, fileName, mimetype) => {
             ]);
 
             const totalDuration = (Date.now() - totalStartTime) / 1000;
-            const modelLabel = isBigFile ? `Gemini (Parallel)` : `Claude (Parallel)`;
+            const modelLabel = `Unified Chain (Primary: Claude)`;
             
             const standardized = mergeParallelResults(bgResponse.data, skillsResponse.data, totalDuration, modelLabel);
 

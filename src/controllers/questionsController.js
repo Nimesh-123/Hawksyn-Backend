@@ -135,7 +135,7 @@ exports.getNextQuestions = async (req, res) => {
         // 8. Take next batch of 1 (Requirement: 1 per screen)
         const BATCH_SIZE = 1;
         const currentBatch = visibleQuestions.slice(0, BATCH_SIZE);
-        const batchNumber = rasRecords.length + 1;
+        const batchNumber = answeredQuestionIds.length + 1;
 
         // 9. Fetch full question details
         const questionDetails = await Promise.all(
@@ -209,17 +209,16 @@ exports.saveAnswers = async (req, res) => {
             return res.status(404).json({ success: false, message: "Run not found" });
         }
 
-        // 2. Check for existing record
-        const existing = await db.Ras.findOne({
+        // 2. Check for existing record (We now use a single record per run for all answers)
+        const existingRecord = await db.Ras.findOne({
             runId: runId,
             stepNo: 3,
-            artifactType: 'OBJECTIVE_INPUTS_CAPTURED',
-            'artifactJson.batchNumber': batchNumber
+            artifactType: 'OBJECTIVE_INPUTS_CAPTURED'
         });
 
         // LOCKING LOGIC: Only prevent edit if processing has already started
         const processingStatuses = ['SIGNALS_COLLECTED', 'INTEGRITY_COMPLETE', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED'];
-        if (existing && processingStatuses.includes(run.status)) {
+        if (existingRecord && processingStatuses.includes(run.status)) {
             return res.status(400).json({
                 success: false,
                 message: "This audit has moved to analysis. Answers are now locked."
@@ -279,11 +278,33 @@ exports.saveAnswers = async (req, res) => {
             }
         }
 
-        // 4. Save to RAS (Update if exists, else Create)
-        const rasId = existing?.rasId || `RAS_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+        // 4. Save to RAS (Append to existing or Create new)
+        const rasId = existingRecord?.rasId || `RAS_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+        const newBatchAnswers = answers.map(a => ({
+            questionId: a.questionId,
+            answerValue: a.answerValue,
+            answerLabel: a.answerLabel || null,
+            answeredAt: new Date()
+        }));
+
+        let finalAnswers = [];
+        if (existingRecord && existingRecord.artifactJson?.answers) {
+            finalAnswers = [...existingRecord.artifactJson.answers];
+            // If user re-submits a question (e.g. Back button), update existing index, else push
+            newBatchAnswers.forEach(newA => {
+                const idx = finalAnswers.findIndex(fa => fa.questionId === newA.questionId);
+                if (idx !== -1) {
+                    finalAnswers[idx] = newA;
+                } else {
+                    finalAnswers.push(newA);
+                }
+            });
+        } else {
+            finalAnswers = newBatchAnswers;
+        }
 
         await db.Ras.findOneAndUpdate(
-            { runId, stepNo: 3, artifactType: 'OBJECTIVE_INPUTS_CAPTURED', 'artifactJson.batchNumber': batchNumber },
+            { runId, stepNo: 3, artifactType: 'OBJECTIVE_INPUTS_CAPTURED' },
             {
                 $set: {
                     rasId,
@@ -292,13 +313,8 @@ exports.saveAnswers = async (req, res) => {
                     artifactType: 'OBJECTIVE_INPUTS_CAPTURED',
                     artifactVersion: 1,
                     artifactJson: {
-                        batchNumber,
-                        answers: answers.map(a => ({
-                            questionId: a.questionId,
-                            answerValue: a.answerValue,
-                            answerLabel: a.answerLabel || null,
-                            answeredAt: new Date()
-                        })),
+                        batchNumber: 1, // Single consolidated batch
+                        answers: finalAnswers,
                         completeness: 'PASS'
                     },
                     status: 'FINAL'

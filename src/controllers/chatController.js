@@ -71,6 +71,9 @@ exports.sendMessage = async (req, res) => {
         const { content, type, fileUrl, fileName, fileSize } = req.body;
         const userId = req.user.id;
 
+        // Normalize type to uppercase for Mongoose Enum validation (TEXT, AUDIO, etc)
+        const msgType = (type || 'TEXT').toUpperCase();
+
         const run = await db.Runs.findOne({ runId });
         if (!run) return RESPONSE.error(res, 404, 3001, "Run not found");
 
@@ -93,7 +96,7 @@ exports.sendMessage = async (req, res) => {
             senderType: 'USER',
             senderName: req.user.name || 'User',
             content,
-            type: type || 'TEXT',
+            type: msgType,
             fileUrl,
             fileName,
             fileSize,

@@ -316,6 +316,7 @@ async function recalibrateForUser(userId, profile) {
                     daysLeft: validityDays,
                     lastCalculatedBy: 'PROFILE_CONFIRM',
                     lastCalculatedAt: new Date(),
+                    pulseId: pulse?.pulseId || null,
                     ...clockScores,
                     updatedAt: new Date()
                 }
@@ -335,6 +336,7 @@ async function recalibrateForUser(userId, profile) {
             opportunityWindowScore: clockScores.opportunityWindowScore,
             careerMomentumMonths: clockScores.careerMomentumMonths || 0,
             opportunityWindowYears: clockScores.opportunityWindowYears || 0,
+            pulseId: pulse?.pulseId || null,
             triggeredBy: 'AUTO_OPEN',
             calculatedAt: new Date()
         });
@@ -414,6 +416,23 @@ async function refreshClocksAfterCase(userId, runId) {
         );
 
         console.log(`[ClockService] ✅ Clocks refreshed for user ${userId} — 30 days`);
+
+        // ── NEW: Record Snapshot in History ──
+        const historyId = `CLK_HIST_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+        await db.ClockHistory.create({
+            historyId,
+            userId: String(userId),
+            aiExposureScore: clockScores.aiExposureScore,
+            careerMomentumScore: clockScores.careerMomentumScore,
+            skillRelevanceScore: clockScores.skillRelevanceScore,
+            opportunityWindowScore: clockScores.opportunityWindowScore,
+            careerMomentumMonths: clockScores.careerMomentumMonths || 0,
+            opportunityWindowYears: clockScores.opportunityWindowYears || 0,
+            pulseId: null, // CASE_RUN is based on Run context, not a specific market pulse
+            triggeredBy: 'CASE_RUN',
+            calculatedAt: new Date()
+        });
+
         return true;
     } catch (err) {
         console.warn(`[ClockService] ⚠️ Refresh failed:`, err.message);

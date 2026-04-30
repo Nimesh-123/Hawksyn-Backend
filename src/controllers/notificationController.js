@@ -5,7 +5,6 @@ const RESPONSE = require('../../utils/response');
  * Controller to manage In-App Notifications for Users and Admins
  */
 
-// 1. Get Notifications (Paginated)
 exports.getNotifications = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -42,7 +41,6 @@ exports.getNotifications = async (req, res) => {
     }
 };
 
-// 2. Mark Multiple as Read
 exports.markAsRead = async (req, res) => {
     try {
         const { notificationIds } = req.body; // Array of IDs
@@ -62,7 +60,6 @@ exports.markAsRead = async (req, res) => {
     }
 };
 
-// 3. Mark All as Read
 exports.markAllAsRead = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -83,7 +80,6 @@ exports.markAllAsRead = async (req, res) => {
     }
 };
 
-// 4. Delete Notification (Soft Delete)
 exports.deleteNotification = async (req, res) => {
     try {
         const { id } = req.params;
@@ -94,7 +90,6 @@ exports.deleteNotification = async (req, res) => {
     }
 };
 
-// 5. Standalone Count (Slide 17)
 exports.getUnreadCount = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -114,7 +109,6 @@ exports.getUnreadCount = async (req, res) => {
     }
 };
 
-// 6. Update Notification Preferences (Slide 39)
 exports.updatePreferences = async (req, res) => {
     try {
         const { 
@@ -130,7 +124,7 @@ exports.updatePreferences = async (req, res) => {
         if (push !== undefined)  updateData['notificationPreferences.push'] = push;
         if (email !== undefined) updateData['notificationPreferences.email'] = email;
 
-        // Slide 39 Toggles
+        // Notification Toggles
         if (clockExpired !== undefined)  updateData['notificationPreferences.clockExpired'] = clockExpired;
         if (expertReplied !== undefined) updateData['notificationPreferences.expertReplied'] = expertReplied;
         if (chatClosing !== undefined)   updateData['notificationPreferences.chatClosing'] = chatClosing;
@@ -138,7 +132,7 @@ exports.updatePreferences = async (req, res) => {
         if (rerunReminder !== undefined) updateData['notificationPreferences.rerunReminder'] = rerunReminder;
         if (productUpdates !== undefined) updateData['notificationPreferences.productUpdates'] = productUpdates;
 
-        // ENFORCEMENT: clockCritical is LOCKED to true per Slide 39
+        // ENFORCEMENT: clockCritical is LOCKED to true
         // Even if the client sends false, we force it to true.
         if (clockCritical !== undefined) {
             updateData['notificationPreferences.clockCritical'] = true; 

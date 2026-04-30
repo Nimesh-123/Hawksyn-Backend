@@ -26,6 +26,8 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 } // 10 MB limit
 });
 
+const { authenticate } = require('../../middleware/authorization/authorization.js');
+
 /**
  * @swagger
  * /chat/upload:
@@ -44,7 +46,7 @@ const upload = multer({
  *                 type: string
  *                 format: binary
  */
-route.post('/upload', upload.single('file'), chatController.uploadAttachment);
+route.post('/upload', authenticate, upload.single('file'), chatController.uploadAttachment);
 
 /**
  * @swagger
@@ -60,7 +62,7 @@ route.post('/upload', upload.single('file'), chatController.uploadAttachment);
  *         required: true
  *         schema: { type: string }
  */
-route.get('/history/:runId', chatController.getChatHistory);
-route.post('/send/:runId', chatController.sendMessage);
+route.get('/history/:runId', authenticate, chatController.getChatHistory);
+route.post('/send/:runId', authenticate, chatController.sendMessage);
 
 module.exports = route;

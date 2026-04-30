@@ -1,14 +1,11 @@
 const { db } = require('../models/index.model.js');
 const {
     buildSignalPrompt,
-    callOpenAI,
+    callUnifiedAI,
     validateSignals,
     buildCoverage
 } = require('../../utils/signalHelpers.js');
 
-/**
- * API — POST /api/v1/runs/:runId/signals/collect
- */
 exports.collectSignals = async (req, res) => {
     try {
         const { runId } = req.params;
@@ -97,9 +94,9 @@ exports.collectSignals = async (req, res) => {
         const prompt = buildSignalPrompt({ ...promptContext, taxonomy });
 
         const cacheThreshold = new Date();
-        cacheThreshold.setDate(cacheThreshold.getDate() - 7); // 7-day cache window (B35)
+        cacheThreshold.setDate(cacheThreshold.getDate() - 7); // 7-day cache window
 
-        // 3. Signal Deduplication Check (B33 - No re-ingestion if fresh)
+        // 3. Signal Deduplication Check (No re-ingestion if fresh)
         const cachedSignals = await db.ExternalEvidenceDataPool.find({
             geoValue: promptContext.location,
             industry: promptContext.industry,
@@ -118,7 +115,7 @@ exports.collectSignals = async (req, res) => {
             .map(t => t.signalId);
 
         if (missingSignalIds.length === 0 && cachedSignals.length >= taxonomy.length) {
-            console.log(`[Signals-B33] Cache hit! Reusing ${cachedSignals.length} fresh signals for ${promptContext.role}`);
+            console.log(`[Signals] Cache hit! Reusing ${cachedSignals.length} fresh signals for ${promptContext.role}`);
             cachedSignals.forEach(cs => {
                 signals.signals[cs.signalId] = {
                     value: cs.signalValue,
@@ -131,9 +128,9 @@ exports.collectSignals = async (req, res) => {
             });
             collectionStatus = 'CACHED';
         } else {
-            console.log(`[Signals-B33] Cache miss for ${missingSignalIds.length} signals. Calling AI Research...`);
+            console.log(`[Signals] Cache miss for ${missingSignalIds.length} signals. Calling Unified AI Research (Primary: Claude)...`);
             try {
-                const initialCall = await callOpenAI(prompt);
+                const initialCall = await callUnifiedAI(prompt);
                 let parsed = initialCall.data;
                 let usage = initialCall.usage;
                 totalDuration = parseFloat(initialCall.duration);
@@ -142,7 +139,7 @@ exports.collectSignals = async (req, res) => {
 
                 if (!validation.valid) {
                     const retryPrompt = `${prompt}\n\nCORRECTION REQUIRED: Previous response failed validation.\nReason: ${validation.reason}\n\nReturn ONLY valid JSON matching the taxonomy.`;
-                    const retryCall = await callOpenAI(retryPrompt);
+                    const retryCall = await callUnifiedAI(retryPrompt);
                     
                     usage.promptTokens += retryCall.usage.promptTokens;
                     usage.completionTokens += retryCall.usage.completionTokens;

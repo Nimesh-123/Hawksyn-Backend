@@ -401,10 +401,6 @@ exports.uploadCV = async (req, res) => {
     }
 };
 
-/**
- * GET /user/trends
- * Fetch personalized, CV-derived market trends and benchmarks (Slide 14)
- */
 exports.getTrends = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -513,9 +509,6 @@ exports.getTrends = async (req, res) => {
     }
 };
 
-/**
- * Update User's FCM Token for Push Notifications
- */
 exports.updateFcmToken = async (req, res) => {
     try {
         const { fcmToken } = req.body;
@@ -529,9 +522,6 @@ exports.updateFcmToken = async (req, res) => {
     }
 };
 
-/**
- * Logout from all devices by clearing the refresh token
- */
 exports.logoutAll = async (req, res) => {
     try {
         await db.User.findByIdAndUpdate(req.user.id, { $set: { refreshToken: null } });
@@ -541,9 +531,6 @@ exports.logoutAll = async (req, res) => {
     }
 };
 
-/**
- * Change M-PIN using the old PIN
- */
 exports.changeMPin = async (req, res) => {
     try {
         const { oldPin, newPin } = req.body;
@@ -562,9 +549,6 @@ exports.changeMPin = async (req, res) => {
     }
 };
 
-/**
- * DPDP Compliance: Download all user data in JSON format
- */
 exports.downloadUserData = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -595,10 +579,6 @@ exports.downloadUserData = async (req, res) => {
     }
 };
 
-/**
- * User requests to become an Expert (Auditor)
- * Sets role to 'expert' and creates a pending record in RiskAuditorRegistry
- */
 exports.applyAsExpert = async (req, res) => {
     try {
         const user = await db.User.findById(req.user.id);

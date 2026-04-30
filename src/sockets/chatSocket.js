@@ -2,10 +2,6 @@ const ChatMessage = require('../models/ChatMessage.model');
 const Runs = require('../models/Runs.model');
 const { db } = require('../models/index.model.js');
 
-/**
- * PRODUCTION CHAT SOCKET HANDLER
- * - Updated to use 7-day chatExpiryDate (Slide 30 Logic)
- */
 exports.initChatSocket = (io) => {
 
     io.on('connection', (socket) => {

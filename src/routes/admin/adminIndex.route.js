@@ -8,6 +8,8 @@ const adminProfileRoute = require('./adminProfile.route.js');
 const adminManageRoute = require('./adminManage.route.js');
 const adminReportsRoute = require('./adminReports.route.js');
 const adminPlaybookRoute = require('./adminPlaybook.route.js');
+const paymentController = require('../../controllers/paymentController');
+
 
 // Mount Sub-Routes
 route.use('/users', adminUserRoute);
@@ -36,8 +38,8 @@ route.get('/signals/summary', adminController.getDashboardStats);
 route.get('/signals/volume', adminController.getSignalVolumeSummary);
 
 // Financials
-route.get('/payments/all', adminController.getAllPayments);
-route.get('/payments/export', adminController.exportPaymentsCSV);
+route.get('/payments/all', paymentController.adminGetAllPayments);
+route.get('/payments/export', paymentController.adminExportPaymentsCSV);
 
 // Operational Pipeline (Kanban Board)
 const caseController = require('../../controllers/caseController');

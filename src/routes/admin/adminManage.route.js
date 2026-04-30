@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../../controllers/admin.controller');
+const expertController = require('../../controllers/expertController');
+
 
 /**
  * @swagger
@@ -76,17 +78,6 @@ router.delete('/:id', adminController.deleteSubAdmin);
 
 /**
  * @swagger
- * /admin/manage/experts/create:
- *   post:
- *     summary: Register a new Expert (Risk Auditor)
- *     tags: ["9. Admin: Dashboard"]
- *     security:
- *       - bearerAuth: []
- */
-router.post('/experts/create', adminController.createExpert);
-
-/**
- * @swagger
  * /admin/manage/experts/list:
  *   get:
  *     summary: List all registered experts
@@ -94,7 +85,7 @@ router.post('/experts/create', adminController.createExpert);
  *     security:
  *       - bearerAuth: []
  */
-router.get('/experts/list', adminController.getAllExperts);
+router.get('/experts/list', expertController.getAllExperts);
 
 /**
  * @swagger
@@ -105,7 +96,7 @@ router.get('/experts/list', adminController.getAllExperts);
  *     security:
  *       - bearerAuth: []
  */
-router.patch('/experts/:id', adminController.updateExpert);
+router.patch('/experts/:id', expertController.updateExpert);
 
 /**
  * @swagger
@@ -116,7 +107,7 @@ router.patch('/experts/:id', adminController.updateExpert);
  *     security:
  *       - bearerAuth: []
  */
-router.delete('/experts/:id', adminController.deleteExpert);
+router.delete('/experts/:id', expertController.deleteExpert);
 
 /**
  * @swagger
@@ -142,4 +133,38 @@ router.get('/cv-audit/download/:id', adminController.downloadCvAuditS3);
  */
 router.get('/cv-audit/:id', adminController.getCvAuditDetails);
 
+/**
+ * @swagger
+ * /admin/manage/credits/update:
+ *   post:
+ *     summary: Manually update user credits (Admin Only)
+ *     tags: ["9. Admin: Dashboard"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               checksDelta:
+ *                 type: number
+ *                 description: Amount to add/subtract from Hawk Checks
+ *               chatDelta:
+ *                 type: number
+ *                 description: Amount to add/subtract from Expert Queries
+ *               note:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Credits updated successfully
+ */
+router.post('/credits/update', adminController.updateUserCredits);
+
 module.exports = router;
+

@@ -1,4 +1,6 @@
 const CaseRegistry = require('../models/CaseRegistry.model');
+const RESPONSE = require('../../utils/response.js');
+
 const CaseIntentConfig = require('../models/CaseIntentConfig.model');
 const Playbooks = require('../models/Playbooks.model');
 const Payments = require('../models/Payments.model');
@@ -10,9 +12,6 @@ const { generateFormattedId } = require('../../utils/idGenerator');
 const financeService = require('../services/financeService');
 const notificationService = require('../services/notificationService');
 
-/**
- * API 1 — GET /api/payment/product
- */
 exports.getProduct = async (req, res) => {
     try {
         const { caseId } = req.query;
@@ -55,9 +54,6 @@ exports.getProduct = async (req, res) => {
     }
 };
 
-/**
- * API 2 — POST /api/payment/initiate
- */
 exports.initiatePayment = async (req, res) => {
     try {
         const { caseId, intentId, platform = 'test', paymentMethod = 'test_gateway', previousRunId } = req.body;
@@ -79,7 +75,7 @@ exports.initiatePayment = async (req, res) => {
 
         // ── Check for existing PENDING payment ──
         // Only allow one active pending payment at a time to avoid spam
-        const existingPayment = await Payments.findOne({ userId, caseId, intentId, status: 'PENDING' });
+        const existingPayment = await Payments.findOne({ userId, caseId, intentId, status: 'PENDING' }).sort({ createdAt: -1 });
         if (existingPayment) {
             return res.status(200).json({
                 success: true,
@@ -192,9 +188,6 @@ exports.initiatePayment = async (req, res) => {
     }
 };
 
-/**
- * API 3 — POST /api/payment/verify
- */
 exports.verifyPayment = async (req, res) => {
     try {
         const { purchaseId, caseId, intentId } = req.body;
@@ -248,7 +241,7 @@ exports.verifyPayment = async (req, res) => {
 
         if (!run) {
             // Check legacy weak match
-            run = await Runs.findOne({ userId, caseId, intentId, status: 'CREATED', requestId: { $exists: false } });
+            run = await Runs.findOne({ userId, caseId, intentId, status: 'CREATED', requestId: { $exists: false } }).sort({ createdAt: -1 });
         }
 
         if (!run) {
@@ -343,9 +336,6 @@ exports.verifyPayment = async (req, res) => {
     }
 };
 
-/**
- * API 4 — GET /api/payment/status
- */
 exports.getPaymentStatus = async (req, res) => {
     try {
         const { caseId, intentId } = req.query;
@@ -355,12 +345,14 @@ exports.getPaymentStatus = async (req, res) => {
             return res.status(400).json({ success: false, message: 'caseId and intentId are required' });
         }
 
-        const completedPayment = await Payments.findOne({ userId, caseId, intentId, status: 'COMPLETED' });
+        // Find the LATEST completed payment to determine if current session is active
+        const completedPayment = await Payments.findOne({ userId, caseId, intentId, status: 'COMPLETED' }).sort({ createdAt: -1 });
 
         let activeRun = null;
         if (completedPayment && completedPayment.runId) {
             activeRun = await Runs.findOne({ runId: completedPayment.runId });
         } else {
+            // Fallback: Find the latest run if payment logic is bypassed or handled elsewhere
             activeRun = await Runs.findOne({ userId, caseId, intentId }).sort({ createdAt: -1 });
         }
 
@@ -368,22 +360,10 @@ exports.getPaymentStatus = async (req, res) => {
         const isEligibleForFree = reRunSetup?.eligibleForFreeReRun === true && 
                                  (!reRunSetup?.freeReRunExpiryDate || new Date() <= new Date(reRunSetup.freeReRunExpiryDate));
 
+        // A run is considered "Finished" if it reached report stage
         const isRunFinished = activeRun && ['REPORT_COMPLETE', 'EXPERT_ASSIGNED'].includes(activeRun.status);
 
-        if ((completedPayment || activeRun) && !isRunFinished) {
-            return res.status(200).json({
-                success: true,
-                data: {
-                    isPaid: true,
-                    hasActiveRun: !!activeRun,
-                    runId: activeRun ? activeRun.runId : (completedPayment ? completedPayment.runId : null),
-                    status: activeRun ? "RESUME_RUN" : "PAYMENT_DONE_RUN_NOT_STARTED",
-                    runStatus: activeRun ? activeRun.status : null,
-                    message: activeRun ? "Resume your current run." : "Payment complete. Start your run."
-                }
-            });
-        }
-
+        // --- CORE FIX: If the latest run is finished, we MUST allow a new payment (Re-run) ---
         if (isRunFinished) {
             return res.status(200).json({
                 success: true,
@@ -400,7 +380,37 @@ exports.getPaymentStatus = async (req, res) => {
             });
         }
 
-        const pendingPayment = await Payments.findOne({ userId, caseId, intentId, status: 'PENDING' });
+        // If a payment exists but the run is NOT finished, we resume the session
+        if (completedPayment && activeRun && !isRunFinished) {
+            return res.status(200).json({
+                success: true,
+                data: {
+                    isPaid: true,
+                    hasActiveRun: true,
+                    runId: activeRun.runId,
+                    status: "RESUME_RUN",
+                    runStatus: activeRun.status,
+                    message: "Resume your current run."
+                }
+            });
+        }
+
+        // Check for payments that haven't been linked to a run yet
+        const unlinkedPayment = await Payments.findOne({ userId, caseId, intentId, status: 'COMPLETED', runId: { $exists: false } }).sort({ createdAt: -1 });
+        if (unlinkedPayment) {
+             return res.status(200).json({
+                success: true,
+                data: {
+                    isPaid: true,
+                    hasActiveRun: false,
+                    paymentId: unlinkedPayment.paymentId,
+                    status: "PAYMENT_DONE_RUN_NOT_STARTED",
+                    message: "Payment complete. Start your run."
+                }
+            });
+        }
+
+        const pendingPayment = await Payments.findOne({ userId, caseId, intentId, status: 'PENDING' }).sort({ createdAt: -1 });
 
         return res.status(200).json({
             success: true,
@@ -413,14 +423,12 @@ exports.getPaymentStatus = async (req, res) => {
             }
         });
 
+
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
 
-/**
- * API 5 — GET /api/payment/detail/:paymentId
- */
 exports.getPaymentDetail = async (req, res) => {
     try {
         const { paymentId } = req.params;
@@ -460,9 +468,6 @@ exports.getPaymentDetail = async (req, res) => {
     }
 };
 
-/**
- * API 6 — GET /api/payment/list
- */
 exports.getAllPayments = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -508,9 +513,6 @@ exports.getAllPayments = async (req, res) => {
     }
 };
 
-/**
- * API 7 — POST /api/payment/verify-and-recover
- */
 exports.verifyAndRecover = async (req, res) => {
     try {
         const { purchaseId, paymentId } = req.body;
@@ -602,6 +604,54 @@ exports.downloadUserInvoice = async (req, res) => {
     } catch (err) {
         console.error('[User Invoice Error]', err);
         return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+exports.adminGetAllPayments = async (req, res) => {
+    try {
+        const { page = 1, limit = 20, status } = req.query;
+        const filter = {};
+        if (status) filter.status = status;
+
+        const payments = await db.Payments.find(filter)
+            .sort({ createdAt: -1 })
+            .skip((Number(page) - 1) * Number(limit))
+            .limit(Number(limit))
+            .lean();
+
+        const total = await db.Payments.countDocuments(filter);
+
+        return RESPONSE.success(res, 200, 1001, {
+            payments,
+            total,
+            page: Number(page),
+            pages: Math.ceil(total / Number(limit))
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+exports.adminExportPaymentsCSV = async (req, res) => {
+    try {
+        const payments = await db.Payments.find({}).sort({ createdAt: -1 }).lean();
+
+        // CSV Headers - Updated to be more clear
+        let csv = 'Date,PaymentId,PurchaseId/GatewayID,Amount,Currency,Status,Gateway,CaseId,UserId\n';
+
+        payments.forEach(p => {
+            const rawDate = p.verifiedAt || p.createdAt || null;
+            const date = rawDate ? new Date(rawDate).toLocaleDateString('en-GB') : 'N/A';
+            const gateway = p.paymentMethod || 'Stripe';
+            csv += `${date},${p.paymentId},${p.purchaseId || 'N/A'},${p.amount},${p.currency || 'INR'},${p.status},${gateway},${p.caseId},${p.userId}\n`;
+        });
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=Hawksyn_Transactions.csv');
+
+        return res.status(200).send(csv);
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
     }
 };
 

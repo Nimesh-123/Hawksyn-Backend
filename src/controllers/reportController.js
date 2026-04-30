@@ -22,9 +22,6 @@ const {
 
 
 
-/**
- * API — Generate Assessment Report (Step 6)
- */
 exports.generateReport = async (req, res) => {
     console.time("Report_Gen");
     const startTime = Date.now();
@@ -238,7 +235,7 @@ exports.generateReport = async (req, res) => {
             artifactType: 'FINAL_REPORT', artifactJson: finalReport
         });
 
-        // --- NEW: Immutable S3 Snapshots (Sprint 7/8) ---
+        // --- Immutable S3 Snapshots ---
         let reportPdfUrl = null;
         try {
             // 1. JSON Snapshot
@@ -287,9 +284,6 @@ exports.generateReport = async (req, res) => {
     }
 };
 
-/**
- * API — Download PDF
- */
 exports.downloadReport = async (req, res) => {
     try {
         const { runId } = req.params;
@@ -313,9 +307,6 @@ exports.downloadReport = async (req, res) => {
     } catch (err) { return res.status(500).json({ success: false, message: err.message }); }
 };
 
-/**
- * API — Email PDF
- */
 exports.sendReportEmail = async (req, res) => {
     try {
         const { runId } = req.params;
@@ -351,9 +342,6 @@ exports.sendReportEmail = async (req, res) => {
     } catch (err) { return res.status(500).json({ success: false, message: err.message }); }
 };
 
-/**
- * API — Refresh a specific Report Section (Sprint 7/8 Audit Trail)
- */
 exports.refreshReportSection = async (req, res) => {
     try {
         const { runId } = req.params;
@@ -417,7 +405,7 @@ exports.refreshReportSection = async (req, res) => {
 
         finalizedReport.sections[sectionIndex] = newSectionData;
 
-        // 5. Audit Log (Task D35)
+        // 5. Audit Log
         await db.AuditLog.create({
             action: 'REPORT_SECTION_REFRESH',
             userId: req.user?._id,
