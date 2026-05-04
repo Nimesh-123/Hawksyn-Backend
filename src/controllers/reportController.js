@@ -99,107 +99,104 @@ exports.generateReport = async (req, res) => {
             goldExamples.map((ex, i) => `[Ex ${i + 1}]\n${JSON.stringify(ex.sections?.map(s => ({ id: s.sectionId, content: s.content })) || ex, null, 2)}`).join('\n\n')
             : "";
 
-        // 4. Parallel Generation of Sections
-        const sectionPromises = sections.map(async (section) => {
-            const prompt = promptsMap[section.sectionId];
-            const sectionOut = {
-                sectionId: section.sectionId,
-                sectionName: section.sectionName,
-                sectionType: section.sectionType,
-                sectionOrder: section.sectionOrder,
-                promptVersion: prompt?.promptVersion || 1, // Capture for Audit Trail
-                status: 'PENDING'
-            };
+        // 4. Batched Generation of Sections (Stable Processing)
+        const reportSections = [];
+        const batchSize = 3;
+        for (let i = 0; i < sections.length; i += batchSize) {
+            const batch = sections.slice(i, i + batchSize);
+            console.log(`[Report-Gen] Processing batch ${Math.ceil((i + 1) / batchSize)}/${Math.ceil(sections.length / batchSize)}...`);
+            
+            const batchPromises = batch.map(async (section) => {
+                const prompt = promptsMap[section.sectionId];
+                const sectionOut = {
+                    sectionId: section.sectionId,
+                    sectionName: section.sectionName,
+                    sectionType: section.sectionType,
+                    sectionOrder: section.sectionOrder,
+                    promptVersion: prompt?.promptVersion || 1,
+                    status: 'PENDING'
+                };
 
-            const anchorCheck = checkAnchors(section, integrityPack, externalCoverage);
-            if (!anchorCheck.allCovered && section.fallbackPolicy === 'ESCALATE') {
-                sectionOut.status = 'ESCALATED';
-                sectionOut.content = "Missing required evidence anchors.";
-                return sectionOut;
-            }
+                const anchorCheck = checkAnchors(section, integrityPack, externalCoverage);
+                if (!anchorCheck.allCovered && section.fallbackPolicy === 'ESCALATE') {
+                    sectionOut.status = 'ESCALATED';
+                    sectionOut.content = "Missing required evidence anchors.";
+                    return sectionOut;
+                }
 
-            if (!prompt) {
-                sectionOut.status = 'SKIPPED';
-                return sectionOut;
-            }
+                if (!prompt) {
+                    sectionOut.status = 'SKIPPED';
+                    return sectionOut;
+                }
 
-            // Resolve Dynamic Evidence for this section
-            const sectionPlaceholders = { ...placeholders };
-            if (prompt.evidencePlaceholdersJson) {
-                for (const [phKey, ref] of Object.entries(prompt.evidencePlaceholdersJson)) {
-                    // 1. New Structured Object Mapping
-                    if (ref && typeof ref === 'object') {
-                        if (ref.source === 'answers' && ref.questionId) {
-                            sectionPlaceholders[phKey] = placeholders[ref.questionId] || 'N/A';
-                        } else if (ref.source === 'signals' || ref.source === 'externalSignals') {
-                            if (ref.signalId) {
-                                const sigRef = externalSignals?.[ref.signalId];
-                                sectionPlaceholders[phKey] = sigRef ? String(sigRef[ref.field || 'value'] || 'N/A') : 'N/A';
-                            } else if (Array.isArray(ref.filter)) {
-                                const filtered = {};
-                                ref.filter.forEach(fid => {
-                                    if (externalSignals?.[fid]) filtered[fid] = externalSignals[fid];
-                                });
-                                sectionPlaceholders[phKey] = JSON.stringify(filtered, null, 2);
+                const sectionPlaceholders = { ...placeholders };
+                if (prompt.evidencePlaceholdersJson) {
+                    for (const [phKey, ref] of Object.entries(prompt.evidencePlaceholdersJson)) {
+                        if (ref && typeof ref === 'object') {
+                            if (ref.source === 'answers' && ref.questionId) {
+                                sectionPlaceholders[phKey] = placeholders[ref.questionId] || 'N/A';
+                            } else if (ref.source === 'signals' || ref.source === 'externalSignals') {
+                                if (ref.signalId) {
+                                    const sigRef = externalSignals?.[ref.signalId];
+                                    sectionPlaceholders[phKey] = sigRef ? String(sigRef[ref.field || 'value'] || 'N/A') : 'N/A';
+                                }
+                            } else if (ref.source === 'integrity' && ref.path) {
+                                sectionPlaceholders[phKey] = String(getDeepValue(integrityPack, ref.path) || 'N/A');
                             }
-                        } else if (ref.source === 'integrity' && ref.path) {
-                            sectionPlaceholders[phKey] = String(getDeepValue(integrityPack, ref.path) || 'N/A');
+                            continue;
                         }
-                        continue;
-                    }
-
-                    // 2. Legacy String-based Mapping
-                    if (typeof ref === 'string') {
-                        if (ref.startsWith('Q_')) {
-                            sectionPlaceholders[phKey] = placeholders[ref] || 'N/A';
-                        } else if (ref.startsWith('integrityPack.')) {
-                            sectionPlaceholders[phKey] = String(getDeepValue(integrityPack, ref.replace('integrityPack.', '')) || 'N/A');
-                        } else if (ref.startsWith('externalSignals.')) {
-                            sectionPlaceholders[phKey] = String(getDeepValue(externalSignals, ref.replace('externalSignals.', '')) || 'N/A');
-                        } else {
-                            const deepVal = getDeepValue(normalizedProfile, ref);
-                            sectionPlaceholders[phKey] = (deepVal !== undefined && deepVal !== null) ? String(deepVal) : (placeholders[ref] || 'N/A');
+                        if (typeof ref === 'string') {
+                            if (ref.startsWith('Q_')) {
+                                sectionPlaceholders[phKey] = placeholders[ref] || 'N/A';
+                            } else if (ref.startsWith('integrityPack.')) {
+                                sectionPlaceholders[phKey] = String(getDeepValue(integrityPack, ref.replace('integrityPack.', '')) || 'N/A');
+                            } else if (ref.startsWith('externalSignals.')) {
+                                sectionPlaceholders[phKey] = String(getDeepValue(externalSignals, ref.replace('externalSignals.', '')) || 'N/A');
+                            } else {
+                                const deepVal = getDeepValue(normalizedProfile, ref);
+                                sectionPlaceholders[phKey] = (deepVal !== undefined && deepVal !== null) ? String(deepVal) : (placeholders[ref] || 'N/A');
+                            }
                         }
                     }
                 }
-            }
 
-            try {
-                let userPrompt = fillPrompt(prompt.userPrompt, sectionPlaceholders);
-                if (!anchorCheck.allCovered) userPrompt += `\n[NOTE: Missing evidence: ${[...anchorCheck.missingInternal, ...anchorCheck.missingExternal].join(', ')}]`;
+                try {
+                    let userPrompt = fillPrompt(prompt.userPrompt, sectionPlaceholders);
+                    if (!anchorCheck.allCovered) userPrompt += `\n[NOTE: Missing evidence: ${[...anchorCheck.missingInternal, ...anchorCheck.missingExternal].join(', ')}]`;
 
-                const llmResult = await callLLM({
-                    modelFamily: prompt.modelFamily,
-                    forceProvider: 'Gemini',
-                    systemPrompt: (prompt.systemPrompt || '') +
-                        "\n\n--- COMPREHENSIVE EVIDENCE PACKAGE ---\n" +
-                        JSON.stringify(placeholders, null, 2) +
-                        "\n\nSTRICT GROUNDING RULES:\n" +
-                        "1. Use the provided EVIDENCE PACKAGE as the primary source of truth.\n" +
-                        "2. If a specific placeholder is N/A but the evidence package has the data, use the data from the package.\n" +
-                        "3. Do not say data is missing if it is in the package above.\n" +
-                        "4. DO NOT mention surveys, inventories, or frameworks (e.g. 'Burnout Inventory', 'Stress Survey') unless they appear explicitly in the evidence.\n" +
-                        "5. If specific evidence is missing, do not simply state 'UNKNOWN'. Instead, provide a professional 'Pro-Tip' or 'General Advisory' relevant to the section's topic and the user's role (e.g., Backend Engineer), ensuring the feedback remains valuable even with data gaps.\n" +
-                        goldContextBlock,
-                    userPrompt,
-                    temperature: prompt.temperature || 0.3,
-                    maxTokens: prompt.maxTokens || 1500
-                });
+                    const llmResult = await callLLM({
+                        modelFamily: prompt.modelFamily,
+                        forceProvider: 'Gemini',
+                        systemPrompt: (prompt.systemPrompt || '') +
+                            "\n\n--- COMPREHENSIVE EVIDENCE PACKAGE ---\n" +
+                            JSON.stringify(placeholders, null, 2) +
+                            "\n\nSTRICT GROUNDING RULES:\n" +
+                            "1. Use the provided EVIDENCE PACKAGE as the primary source of truth.\n" +
+                            "2. Do not say data is missing if it is in the package above.\n" +
+                            "3. DO NOT mention surveys or inventories unless they appear explicitly in the evidence.\n" +
+                            "4. If specific evidence is missing, provide a professional 'Pro-Tip' relevant to the user's role: " + (normalizedProfile.currentRoleTitle || 'Professional'),
+                        userPrompt,
+                        temperature: prompt.temperature || 0.3,
+                        maxTokens: prompt.maxTokens || 1500
+                    });
 
-                sectionOut.content = applyCertaintyCap(llmResult.text, prompt.certaintyCapPercent || 85, integrityPack.accuracy?.band);
-                sectionOut.status = anchorCheck.allCovered ? 'COMPLETE' : 'DEGRADED';
-                sectionOut.tokenUsage = llmResult.usageMetadata;
-                sectionOut.duration = llmResult.duration;
-                return sectionOut;
-            } catch (llmErr) {
-                console.error(`[Report-Gen] CRITICAL SECTION FAILURE (${section.sectionId}):`, llmErr.message);
-                sectionOut.status = 'LLM_ERROR';
-                sectionOut.content = 'Generation failed.';
-                return sectionOut;
-            }
-        });
+                    sectionOut.content = applyCertaintyCap(llmResult.text, prompt.certaintyCapPercent || 85, integrityPack.accuracy?.band);
+                    sectionOut.status = anchorCheck.allCovered ? 'COMPLETE' : 'DEGRADED';
+                    sectionOut.tokenUsage = llmResult.usageMetadata;
+                    sectionOut.duration = llmResult.duration;
+                    return sectionOut;
+                } catch (llmErr) {
+                    console.error(`[Report-Gen] SECTION FAILURE (${section.sectionId}):`, llmErr.message);
+                    sectionOut.status = 'LLM_ERROR';
+                    sectionOut.content = 'Generation failed.';
+                    return sectionOut;
+                }
+            });
 
-        const reportSections = await Promise.all(sectionPromises);
+            const batchResults = await Promise.all(batchPromises);
+            reportSections.push(...batchResults);
+        }
+
 
         // 5. Final Assembly & Aggregation
         const totalDuration = (Date.now() - startTime) / 1000;
