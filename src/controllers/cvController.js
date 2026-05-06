@@ -2,6 +2,7 @@ const { db } = require('../models/index.model.js');
 const { uploadFile, deleteFile } = require('../../utils/s3');
 const { smartCVParser } = require('../../utils/aiParser');
 const notificationService = require('../services/notificationService');
+const { createAuditLog } = require('../../utils/auditLogger.js');
 
 /**
  * Handle "Continue with existing CV" choice.
@@ -80,6 +81,12 @@ exports.keepExistingCv = async (req, res) => {
             },
             { new: true }
         );
+
+        await createAuditLog(req, 'CV_ATTACHED', userId, {
+            runId,
+            source: 'EXISTING',
+            cvUrl: userProfile.cvUrl
+        });
 
         const rasId = `RAS_PROFILE_${runId}`;
         await db.Ras.findOneAndUpdate(
@@ -178,6 +185,7 @@ exports.uploadRunCv = async (req, res) => {
         let parserStatus = "FAILED";
 
         try {
+            await createAuditLog(req, 'CV_PARSING_STARTED', userId, { runId, fileName: file.originalname });
             extractedData = await smartCVParser(file.buffer, file.originalname, file.mimetype);
 
             if (extractedData && extractedData.isCv === false) {
@@ -200,13 +208,10 @@ exports.uploadRunCv = async (req, res) => {
                 });
 
                 // --- NEW: Log Failure Reason (User Request) ---
-                await db.auditLog.create({
-                    action: 'CV_PARSING_REJECTED',
-                    entityId: runId,
-                    entityType: 'RUN',
-                    performedBy: userId,
-                    severity: 'MEDIUM',
-                    details: `Document rejected: Not a valid Resume/CV. Original file: ${file.originalname}`
+                await createAuditLog(req, 'CV_PARSING_REJECTED', userId, {
+                    runId,
+                    fileName: file.originalname,
+                    reason: 'Not a valid Resume/CV'
                 });
 
                 return res.status(400).json({
@@ -227,13 +232,10 @@ exports.uploadRunCv = async (req, res) => {
         } catch (aiError) {
             console.error("[AI Extraction Failed]", aiError.message);
             // --- NEW: Log AI Pipeline Failure ---
-            await db.auditLog.create({
-                action: 'CV_PARSING_FAILED',
-                entityId: runId,
-                entityType: 'RUN',
-                performedBy: userId,
-                severity: 'HIGH',
-                details: `AI Extraction Crash: ${aiError.message}. File: ${file.originalname}`
+            await createAuditLog(req, 'CV_PARSING_FAILED', userId, {
+                runId,
+                fileName: file.originalname,
+                error: aiError.message
             });
         }
 
@@ -245,13 +247,10 @@ exports.uploadRunCv = async (req, res) => {
         if (isExtractionBlank && parserStatus !== "FAILED") {
             parserStatus = "EMPTY";
             // --- NEW: Log Empty Extraction ---
-            await db.auditLog.create({
-                action: 'CV_PARSING_EMPTY',
-                entityId: runId,
-                entityType: 'RUN',
-                performedBy: userId,
-                severity: 'MEDIUM',
-                details: `Document parsed but yielded no meaningful data. Likely scanned PDF or unreadable font. File: ${file.originalname}`
+            await createAuditLog(req, 'CV_PARSING_EMPTY', userId, {
+                runId,
+                fileName: file.originalname,
+                reason: 'No meaningful data extracted'
             });
         }
 

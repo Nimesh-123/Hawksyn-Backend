@@ -96,17 +96,25 @@ function sanitizeParsedData(parsedData) {
     }
 
     // PROBLEM 6 — languagesSpoken array (Sync with AEU list)
-    if (!Array.isArray(skills.languagesSpoken) || skills.languagesSpoken.length === 0) {
-        skills.languagesSpoken = aeuList
-            .filter(aeu => {
-                const f = (aeu.fact || "").trim();
-                return f.toLowerCase().startsWith('language:');
-            })
-            .map(aeu => {
-                const parts = aeu.fact.split(':');
-                return parts[1] ? parts[1].trim() : "";
-            })
-            .filter(Boolean);
+    // Always ensure it's removed from skills to satisfy frontend requirement
+    if (skills.languagesSpoken) delete skills.languagesSpoken;
+
+    if (!Array.isArray(composition.languagesSpoken) || composition.languagesSpoken.length === 0) {
+        // Try to recover from result.languages if available (from consolidated result)
+        if (Array.isArray(parsedData.structured?.composition?.languagesSpoken)) {
+             composition.languagesSpoken = parsedData.structured.composition.languagesSpoken;
+        } else {
+            composition.languagesSpoken = aeuList
+                .filter(aeu => {
+                    const f = (aeu.fact || "").trim();
+                    return f.toLowerCase().startsWith('language:');
+                })
+                .map(aeu => {
+                    const parts = aeu.fact.split(':');
+                    return parts[1] ? parts[1].trim() : "";
+                })
+                .filter(Boolean);
+        }
     }
 
     // Sync Technical/Soft Skills from AEU if they are empty

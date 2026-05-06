@@ -8,6 +8,7 @@ const adminProfileRoute = require('./adminProfile.route.js');
 const adminManageRoute = require('./adminManage.route.js');
 const adminReportsRoute = require('./adminReports.route.js');
 const adminPlaybookRoute = require('./adminPlaybook.route.js');
+const adminConfigRoute = require('./adminConfig.route.js');
 const paymentController = require('../../controllers/paymentController');
 
 
@@ -18,6 +19,7 @@ route.use('/profile', adminProfileRoute);
 route.use('/manage', adminManageRoute);
 route.use('/reports', adminReportsRoute); // AI Training Data — Report Rating
 route.use('/playbook', adminPlaybookRoute);
+route.use('/config', adminConfigRoute);
 
 /**
  * @swagger

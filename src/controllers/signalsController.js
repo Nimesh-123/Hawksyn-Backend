@@ -5,6 +5,7 @@ const {
     validateSignals,
     buildCoverage
 } = require('../../utils/signalHelpers.js');
+const { createAuditLog } = require('../../utils/auditLogger.js');
 
 exports.collectSignals = async (req, res) => {
     try {
@@ -301,6 +302,14 @@ exports.collectSignals = async (req, res) => {
         await db.Runs.updateOne({ runId }, { $set: { status: 'SIGNALS_COLLECTED' } });
 
         const totalDurationLabel = `${totalDuration.toFixed(2)}s`;
+
+        // Audit Log
+        await createAuditLog(req, 'EXTERNAL_SIGNALS_FETCHED', run.userId, { 
+            runId, 
+            status: collectionStatus,
+            signalsCount: Object.keys(finalSignalsMap).length,
+            duration: totalDurationLabel 
+        });
 
         return res.status(200).json({
             success: true,

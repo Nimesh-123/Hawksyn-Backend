@@ -11,6 +11,7 @@ const crypto = require('crypto');
 const { generateFormattedId } = require('../../utils/idGenerator');
 const financeService = require('../services/financeService');
 const notificationService = require('../services/notificationService');
+const { createAuditLog } = require('../../utils/auditLogger.js');
 
 exports.getProduct = async (req, res) => {
     try {
@@ -169,6 +170,14 @@ exports.initiatePayment = async (req, res) => {
 
         await newPayment.save();
 
+        await createAuditLog(req, 'PAYMENT_INITIATED', userId, {
+            paymentId,
+            purchaseId,
+            amount: newPayment.amount,
+            currency: newPayment.currency,
+            productId: newPayment.productId
+        });
+
         return res.status(200).json({
             success: true,
             data: {
@@ -303,6 +312,13 @@ exports.verifyPayment = async (req, res) => {
 
         payment.runId = run.runId;
         await payment.save();
+
+        await createAuditLog(req, 'PAYMENT_VERIFIED', userId, {
+            paymentId: payment.paymentId,
+            runId: run.runId,
+            amount: payment.amount,
+            currency: payment.currency
+        });
 
         // --- NEW: Finance & Audit Finalization (Sprint 8) ---
         try {

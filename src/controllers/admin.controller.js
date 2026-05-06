@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const RESPONSE = require('../../utils/response.js');
 const s3Service = require('../../utils/s3');
 const notificationService = require('../services/notificationService');
+const { createAuditLog } = require('../../utils/auditLogger.js');
 
 exports.getDashboardStats = async (req, res) => {
     try {
@@ -175,7 +176,6 @@ exports.getUserDetails = async (req, res) => {
         // Fetch additional data for Admin to see
         const profile = await db.UserProfile.findOne({ userId });
         const runsData = await db.Runs.find({ userId }).sort({ createdAt: -1 }).lean();
-        const auditLogs = await db.AuditLog.find({ userId }).sort({ createdAt: -1 }).limit(10);
 
         // Enrich runs with rasId and qualityRating from Ras collection
         const runIds = runsData.map(r => r.runId);
@@ -205,8 +205,7 @@ exports.getUserDetails = async (req, res) => {
         return RESPONSE.success(res, 200, 1001, {
             user,
             profile,
-            runs: enrichedRuns,
-            auditLogs
+            runs: enrichedRuns
         });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
@@ -416,6 +415,31 @@ exports.deleteSubAdmin = async (req, res) => {
 
 exports.getDashboardStats = async (req, res) => {
     try {
+        const { financialYear } = req.query; // Format: "2024-25"
+
+        // 1. Calculate Financial Year Date Range
+        let startDate, endDate;
+        const now = new Date();
+        const currentMonth = now.getMonth(); // 0-11
+        const currentYear = now.getFullYear();
+
+        if (financialYear && financialYear.includes('-')) {
+            const [startYearStr] = financialYear.split('-');
+            const startYear = parseInt(startYearStr);
+            startDate = new Date(startYear, 3, 1, 0, 0, 0, 0); // April 1st
+            endDate = new Date(startYear + 1, 2, 31, 23, 59, 59, 999); // March 31st
+        } else {
+            // Default: Current Financial Year
+            // If current month is Jan-Mar (0-2), FY started last year.
+            // If current month is Apr-Dec (3-11), FY started this year.
+            const fyStartYear = currentMonth < 3 ? currentYear - 1 : currentYear;
+            startDate = new Date(fyStartYear, 3, 1, 0, 0, 0, 0);
+            endDate = new Date(fyStartYear + 1, 2, 31, 23, 59, 59, 999);
+        }
+
+        const dateFilter = { createdAt: { $gte: startDate, $lte: endDate } };
+
+        // Real-time markers (independent of FY selection for current awareness)
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
 
@@ -423,29 +447,38 @@ exports.getDashboardStats = async (req, res) => {
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         sevenDaysAgo.setHours(0, 0, 0, 0);
 
-        // 1. User & Report Summaries
-        const totalUsers = await db.User.countDocuments();
+        // 2. User & Report Summaries (Filtered by Business Year)
+        const totalUsers = await db.User.countDocuments(dateFilter);
         const newUsersToday = await db.User.countDocuments({ createdAt: { $gte: todayStart } });
-        const totalRuns = await db.Runs.countDocuments();
-        const completedRuns = await db.Runs.countDocuments({ status: 'REPORT_COMPLETE' });
-        const processingRuns = await db.Runs.countDocuments({ status: { $nin: ['REPORT_COMPLETE'] } });
-
-        // 2. Financial Metrics (Total & Breakdown by Case)
+        
+        const totalRuns = await db.Runs.countDocuments(dateFilter);
+        const completedRuns = await db.Runs.countDocuments({ ...dateFilter, status: 'REPORT_COMPLETE' });
+        
+        // 3. Financial Metrics (Filtered by Business Year)
         const revenueResult = await db.Payments.aggregate([
-            { $match: { status: 'COMPLETED' } },
+            { $match: { status: 'COMPLETED', createdAt: { $gte: startDate, $lte: endDate } } },
             { $group: { _id: null, total: { $sum: "$amount" } } }
         ]);
         const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
 
-        // 3. Detailed Assessment Status Breakdown
-        const draftRuns = await db.Runs.countDocuments({ status: 'CREATED' }); // Started but no CV
-        const intakeDropped = await db.Runs.countDocuments({ status: { $in: ['CV_UPLOADED', 'PROFILE_CONFIRMED'] } }); // CV uploaded but not moved to AI
-        const activeProcessing = await db.Runs.countDocuments({ status: { $in: ['QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED', 'EXTRACTING', 'CONTRA_CHECK', 'SIGNAL_PULL', 'SYNTHESIZING', 'INTEGRITY_COMPLETE', 'EXPERT_ASSIGNED'] } });
-        const failedRuns = await db.Runs.countDocuments({ status: 'PROCESSING_FAILED' });
-        const paidAssessmentCount = await db.Payments.countDocuments({ status: 'COMPLETED' });
+        // 4. Detailed Assessment Status Breakdown (FY Scoped)
+        const draftRuns = await db.Runs.countDocuments({ ...dateFilter, status: 'CREATED' });
+        const intakeDropped = await db.Runs.countDocuments({ 
+            ...dateFilter, 
+            status: { $in: ['CV_UPLOADED', 'PROFILE_CONFIRMED'] } 
+        });
+        const activeProcessing = await db.Runs.countDocuments({ 
+            ...dateFilter, 
+            status: { $in: ['QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED', 'EXTRACTING', 'CONTRA_CHECK', 'SIGNAL_PULL', 'SYNTHESIZING', 'INTEGRITY_COMPLETE', 'EXPERT_ASSIGNED'] } 
+        });
+        const failedRuns = await db.Runs.countDocuments({ ...dateFilter, status: 'PROCESSING_FAILED' });
+        const paidAssessmentCount = await db.Payments.countDocuments({ 
+            status: 'COMPLETED', 
+            createdAt: { $gte: startDate, $lte: endDate } 
+        });
 
         const revenueByCase = await db.Payments.aggregate([
-            { $match: { status: 'COMPLETED' } },
+            { $match: { status: 'COMPLETED', createdAt: { $gte: startDate, $lte: endDate } } },
             { $group: { _id: "$caseId", revenue: { $sum: "$amount" } } },
             {
                 $lookup: {
@@ -465,8 +498,9 @@ exports.getDashboardStats = async (req, res) => {
             { $sort: { revenue: -1 } }
         ]);
 
-        // 3. Case Distribution (Pie Chart Data)
+        // 5. Case Distribution (FY Scoped)
         const caseMix = await db.Runs.aggregate([
+            { $match: dateFilter },
             { $group: { _id: "$caseId", count: { $sum: 1 } } },
             {
                 $lookup: {
@@ -486,7 +520,7 @@ exports.getDashboardStats = async (req, res) => {
             { $sort: { count: -1 } }
         ]);
 
-        // 4. Daily Activity Trend (Last 7 Days)
+        // 6. Daily Activity Trend (Last 7 Days - Always real-time relative to now)
         const dailyActivity = await db.Runs.aggregate([
             { $match: { createdAt: { $gte: sevenDaysAgo } } },
             {
@@ -499,6 +533,11 @@ exports.getDashboardStats = async (req, res) => {
         ]);
 
         return RESPONSE.success(res, 200, 1001, {
+            activePeriod: {
+                label: financialYear || `${startDate.getFullYear()}-${(startDate.getFullYear() + 1).toString().slice(-2)}`,
+                start: startDate,
+                end: endDate
+            },
             stats: {
                 summary: {
                     users: { total: totalUsers, newToday: newUsersToday },
@@ -611,6 +650,13 @@ exports.submitExpertReview = async (req, res) => {
         }
 
         await db.Runs.updateOne({ runId }, { $set: updateData });
+
+        await createAuditLog(req, 'EXPERT_REVIEW_SUBMITTED', run.userId, { 
+            runId, 
+            expertId: expertId || run.expertId,
+            verdict: verdictOverride || run.verdict,
+            comments: auditComments
+        });
 
         // --- NEW: Auditor Review Complete Notification (#6) ---
         try {
@@ -953,6 +999,13 @@ exports.updateReRunPolicy = async (req, res) => {
         run.markModified('reRunSetup');
         await run.save();
 
+        await createAuditLog(req, 'RERUN_POLICY_UPDATED', run.userId, { 
+            runId, 
+            eligible: eligibleForFreeReRun,
+            expiry: freeReRunExpiryDate,
+            priceOverride: reRunPriceOverride
+        });
+
         // PUSH NOTIFICATION: Trigger if it's explicitly unlocked for free
         if (eligibleForFreeReRun === true) {
             const notificationService = require('../services/notificationService');
@@ -1165,16 +1218,37 @@ exports.getCvAuditDetails = async (req, res) => {
 
 exports.getSignalVolumeSummary = async (req, res) => {
     try {
+        const { financialYear } = req.query;
+
+        // 1. Calculate Financial Year Date Range
+        let startDate, endDate;
+        if (financialYear && financialYear.includes('-')) {
+            const [startYearStr] = financialYear.split('-');
+            const startYear = parseInt(startYearStr);
+            startDate = new Date(startYear, 3, 1, 0, 0, 0, 0); // April 1st
+            endDate = new Date(startYear + 1, 2, 31, 23, 59, 59, 999); // March 31st
+        } else {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            const fyStartYear = currentMonth < 3 ? currentYear - 1 : currentYear;
+            startDate = new Date(fyStartYear, 3, 1, 0, 0, 0, 0);
+            endDate = new Date(fyStartYear + 1, 2, 31, 23, 59, 59, 999);
+        }
+
+        const dateFilter = { fetchedAt: { $gte: startDate, $lte: endDate } };
+
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
         // 1. Domain-wise Distribution (based on caseId)
         const domainDist = await db.ExternalEvidenceDataPool.aggregate([
+            { $match: dateFilter },
             { $group: { _id: "$caseId", count: { $sum: 1 } } },
             { $sort: { count: -1 } }
         ]);
 
-        // 2. Daily Ingestion Trend (Last 7 Days)
+        // 2. Daily Ingestion Trend (Last 7 Days - Always relative to now for recency)
         const trend = await db.ExternalEvidenceDataPool.aggregate([
             { $match: { fetchedAt: { $gte: sevenDaysAgo } } },
             {
@@ -1186,16 +1260,18 @@ exports.getSignalVolumeSummary = async (req, res) => {
             { $sort: { _id: 1 } }
         ]);
 
-        // 3. Source Distribution
+        // 3. Source Distribution (FY Scoped)
         const sourceDist = await db.ExternalEvidenceDataPool.aggregate([
+            { $match: dateFilter },
             { $group: { _id: "$sourceId", count: { $sum: 1 } } },
             { $limit: 10 },
             { $sort: { count: -1 } }
         ]);
 
-        // 4. Overalls
-        const totalSignals = await db.ExternalEvidenceDataPool.countDocuments();
+        // 4. Overalls (FY Scoped)
+        const totalSignals = await db.ExternalEvidenceDataPool.countDocuments(dateFilter);
         const freshSignals = await db.ExternalEvidenceDataPool.countDocuments({
+            ...dateFilter,
             freshnessExpiresAt: { $gt: new Date() }
         });
 
@@ -1253,6 +1329,37 @@ exports.updateUserCredits = async (req, res) => {
             newChecksBalance: userCredits.checksBalance,
             newChatBalance: userCredits.expertChatBalance,
             message: 'User credits updated successfully'
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+/**
+ * GET — Global or User-Specific Audit Logs for Admin
+ * Supports: Pagination, UserId filter
+ */
+exports.getAuditLogs = async (req, res) => {
+    try {
+        const { userId, page = 1, limit = 10 } = req.query;
+        const query = {};
+        if (userId) query.userId = userId;
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const logs = await db.AuditLog.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit))
+            .lean();
+
+        const total = await db.AuditLog.countDocuments(query);
+
+        return RESPONSE.success(res, 200, 1001, {
+            logs,
+            total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            hasNextPage: total > skip + logs.length
         });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);

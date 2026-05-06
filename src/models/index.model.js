@@ -28,6 +28,8 @@ db.EvaluationLibraryRegistry = require('./EvaluationLibraryRegistry.model');
 db.GuardrailRegistry = require('./GuardrailRegistry.model');
 db.DecisionAssuranceSections = require('./DecisionAssuranceSections.model');
 db.PromptConfigRegistry = require('./PromptConfigRegistry.model');
+db.ObjectiveScoringTaxonomy = require('./ObjectiveScoringTaxonomy.model');
+db.AiPrompt = require('./AiPrompt.model.js');
 db.Runs = require('./Runs.model');
 db.Payments = require('./Payments.model');
 db.Invoice = require('./Invoice.model');
@@ -53,6 +55,7 @@ db.UserCredits  = require('./UserCredits.model');
 db.ExpertQuery = require('./ExpertQuery.model');
 db.ChatMessage = require('./ChatMessage.model');
 db.Notifications = require('./Notification.model.js');
+db.SystemConfig = require('./SystemConfig.model');
 db.FAQ = require('./FAQ.model.js');
 db.LegalContent = require('./LegalContent.model.js');
 

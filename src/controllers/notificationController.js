@@ -16,6 +16,7 @@ exports.getNotifications = async (req, res) => {
         // Logic: Admin gets all admin-targeted alerts, Users get only their own
         if (role === 'admin' || role === 'sub_admin') {
             query.targetRole = { $in: ['admin', 'sub_admin', 'ALL'] };
+            query.type = { $ne: 'INTAKE_COMPLETE' };
         } else if (role === 'expert') {
             query.targetRole = { $in: ['expert', 'ALL'] };
         } else {
