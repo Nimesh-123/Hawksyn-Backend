@@ -118,11 +118,11 @@ exports.verifyOTP = async (req, res) => {
 exports.setPin = async (req, res) => {
     try {
         const { email, mPin, confirmMPin } = req.body;
-        if (mPin !== confirmMPin) return RESPONSE.error(res, 400, 3005);
+        if (mPin !== confirmMPin) return RESPONSE.error(res, 400, 3005, "MPIN and Confirm MPIN do not match");
 
         const commonPins = ['1234', '1111', '0000', '1212', '2580', '1379'];
         if (commonPins.includes(mPin)) {
-            return RESPONSE.error(res, 400, 3013);
+            return RESPONSE.error(res, 400, 3013, "The provided PIN is too common and is blocked for security reasons.");
         }
 
         const user = await db.User.findOne({ email, isDeleted: false });
@@ -159,7 +159,7 @@ exports.loginWithPin = async (req, res) => {
             user.wrongPinCount += 1;
             if (user.wrongPinCount >= 5) user.isBlocked = true;
             await user.save();
-            return RESPONSE.error(res, 401, 3004);
+            return RESPONSE.error(res, 401, 3004, "The M-PIN you entered is incorrect. Please try again.");
         }
 
         user.wrongPinCount = 0;
@@ -536,9 +536,15 @@ exports.changeMPin = async (req, res) => {
         const { oldPin, newPin } = req.body;
         const user = await db.User.findById(req.user.id);
 
-        const bcrypt = require('bcryptjs');
+        if (!user || !user.mPin) return RESPONSE.error(res, 404, 3001, "User or current PIN not found.");
+
         const isMatch = await bcrypt.compare(String(oldPin), user.mPin);
-        if (!isMatch) return RESPONSE.error(res, 401, 3012, "Incorrect old PIN.");
+        if (!isMatch) return RESPONSE.error(res, 401, 3012, "The old PIN you entered is incorrect.");
+
+        const commonPins = ['1234', '1111', '0000', '1212', '2580', '1379'];
+        if (commonPins.includes(String(newPin))) {
+            return RESPONSE.error(res, 400, 3013, "The new PIN is too common. Please choose a more secure one.");
+        }
 
         user.mPin = await bcrypt.hash(String(newPin), 10);
         await user.save();

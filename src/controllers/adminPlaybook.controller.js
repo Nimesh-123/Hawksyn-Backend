@@ -107,7 +107,7 @@ exports.downloadPlaybookTemplate = async (req, res) => {
 
     } catch (error) {
         console.error('[DownloadTemplate Error]:', error);
-        return res.status(500).json({ success: false, message: 'Error generating template.', error: error.message });
+        return res.status(500).json({ success: false, message: `Failed to generate template: ${error.message}`, error: error.message });
     }
 };
 
@@ -362,6 +362,45 @@ exports.uploadPlaybook = async (req, res) => {
                         }
                     }
                 });
+                
+                // (D2) Strict Type Validation against Model Schema
+                const schemaPaths = db[config.model].schema.paths;
+                Object.keys(normalizedRow).forEach(field => {
+                    const val = normalizedRow[field];
+                    const schemaType = schemaPaths[field];
+                    if (!schemaType || val === null || val === undefined) return;
+
+                    // 1. Number Validation
+                    if (schemaType.instance === 'Number' && typeof val !== 'number') {
+                        const parsedNum = Number(val);
+                        if (isNaN(parsedNum)) errors.push({ sheet: sheetName, row: rowNum, field, error: `Value '${val}' must be a Number.` });
+                        else normalizedRow[field] = parsedNum;
+                    }
+
+                    // 2. Boolean Validation
+                    if (schemaType.instance === 'Boolean' && typeof val !== 'boolean') {
+                        if (typeof val === 'string') {
+                            const lowVal = val.toLowerCase();
+                            if (['true', 'yes', '1', 'y'].includes(lowVal)) normalizedRow[field] = true;
+                            else if (['false', 'no', '0', 'n'].includes(lowVal)) normalizedRow[field] = false;
+                            else errors.push({ sheet: sheetName, row: rowNum, field, error: `Value '${val}' must be a Boolean.` });
+                        } else errors.push({ sheet: sheetName, row: rowNum, field, error: `Value '${val}' must be a Boolean.` });
+                    }
+
+                    // 3. Enum Validation
+                    if (schemaType.options && schemaType.options.enum) {
+                        if (!schemaType.options.enum.includes(val)) {
+                            errors.push({ sheet: sheetName, row: rowNum, field, error: `Value '${val}' is invalid. Allowed: ${schemaType.options.enum.join(', ')}` });
+                        }
+                    }
+                });
+
+                // (E) Skip rows that are clearly headers or documentation (missing sectionId/caseId)
+                if (baseName.includes('OST') || baseName.includes('DAST') || baseName.includes('PCR')) {
+                    if (!normalizedRow.sectionId || !normalizedRow.caseId) {
+                        return null; // Skip chapter headers
+                    }
+                }
 
                 return normalizedRow;
             }).filter(r => r !== null);
@@ -425,7 +464,7 @@ exports.uploadPlaybook = async (req, res) => {
 
     } catch (error) {
         console.error('[UploadPlaybook Error]:', error);
-        return res.status(500).json({ success: false, message: 'Internal Server Error during Excel parsing.', error: error.message });
+        return res.status(500).json({ success: false, message: `Playbook parsing failed: ${error.message}`, error: error.message });
     }
 };
 
@@ -451,11 +490,14 @@ exports.confirmImport = async (req, res) => {
         if (!targetCaseId) {
             for (const sheetName of Object.keys(parsedData)) {
                 const rows = parsedData[sheetName];
-                if (rows && rows.length > 0) {
-                    const firstRow = rows[0];
-                    targetCaseId = firstRow.targetCaseId || firstRow.caseId || firstRow.caseScope;
-                    if (targetCaseId) break;
+                if (rows && Array.isArray(rows)) {
+                    // Search all rows in this sheet for a caseId identifier
+                    for (const row of rows) {
+                        targetCaseId = row.targetCaseId || row.caseId || row.caseScope;
+                        if (targetCaseId) break;
+                    }
                 }
+                if (targetCaseId) break;
             }
         }
 
@@ -580,7 +622,7 @@ exports.confirmImport = async (req, res) => {
             'rcmId', 'crtId', 'cqmtId', 'elrId', 'moiId', 'moiqmId', 'playbookVersionId', 'playbookId',
             'ruleId', 'dependencyRuleId', 'redFlagId', 'intentId', 'grRuleId', 'promptId', 'scoringRuleId',
             'droId', 'sectionId', 'caseId', 'questionId', 'warningId', 'warningMappingId', 'contradictionId',
-            'constraintId', 'cttId', 'accuracyPolicyId', 'signalId', 'sourceId', 'patternKeyId', 'ierId'
+            'constraintId', 'cttId', 'accuracyPolicyId', 'signalId', 'sourceId', 'patternKeyId', 'ierId', 'schemaId', 'pcrPromptId'
         ];
 
         for (const modelName of Object.keys(modelToInsertData)) {
@@ -685,7 +727,7 @@ exports.confirmImport = async (req, res) => {
         await session.abortTransaction();
         session.endSession();
         console.error('[ConfirmImport Error]:', error);
-        return res.status(500).json({ success: false, message: 'Transaction rolled back due to error.', error: error.message });
+        return res.status(500).json({ success: false, message: `Playbook import failed: ${error.message}`, error: error.message });
     }
 };
 

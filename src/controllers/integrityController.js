@@ -1,5 +1,7 @@
 const { db } = require('../models/index.model.js');
 const notificationService = require('../services/notificationService');
+const clockService = require('../services/clockService.js');
+const { createAuditLog } = require('../../utils/auditLogger.js');
 const {
     getConstraintBand,
     evaluateRuleJson,
@@ -78,6 +80,8 @@ exports.runIntegrityEngine = async (req, res) => {
     try {
         const run = await db.Runs.findOne({ runId });
         if (!run) return res.status(404).json({ success: false, message: 'Run not found' });
+        
+        await createAuditLog(req, 'INTEGRITY_RUN_STARTED', run.userId, { runId });
         
         const allowedStatuses = ['PROFILE_CONFIRMED', 'QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED', 'INTEGRITY_COMPLETE', 'REPORT_COMPLETE', 'EXPERT_ASSIGNED', 'PROCESSING_FAILED', 'CASE_FILE_LOCKED'];
         if (!allowedStatuses.includes(run.status)) {
@@ -382,6 +386,12 @@ exports.runIntegrityEngine = async (req, res) => {
         });
 
         await db.Runs.updateOne({ runId }, { $set: { status: 'INTEGRITY_COMPLETE' } });
+        await createAuditLog(req, 'INTEGRITY_RUN_COMPLETED', run.userId, { 
+            runId, 
+            verdict: integrityPack.verdict,
+            accuracyScore: accuracyScore
+        });
+        await clockService.refreshClocksAfterCase(run.userId, runId);
 
         // --- NEW: Step 4 In-Session Alerts (#3 & #4) ---
         try {
@@ -434,7 +444,8 @@ exports.runIntegrityEngine = async (req, res) => {
 
         return res.status(500).json({ 
             success: false, 
-            message: error.message,
+            message: `Integrity analysis failed: ${error.message}`,
+            error: error.message,
             failureStep: failureStep
         });
     }

@@ -1,6 +1,7 @@
 const { db } = require('../models/index.model.js');
 const { evaluateDependencyRule } = require('../../utils/evaluationHelpers.js');
 const notificationService = require('../services/notificationService');
+const { createAuditLog } = require('../../utils/auditLogger.js');
 
 /**
  * API 1 — GET /api/runs/:runId/questions/next
@@ -121,6 +122,7 @@ exports.getNextQuestions = async (req, res) => {
             if (!terminalSteps.includes(run.status)) {
                 await db.Runs.updateOne({ runId }, { $set: { status: 'QUESTIONS_CONFIRMED' } });
                 notificationService.notifyIntakeComplete(runId);
+                await createAuditLog(req, 'INTAKE_LOCKED', run.userId, { runId, message: "All objective questions answered and locked." });
             }
 
             return res.status(200).json({
@@ -350,6 +352,7 @@ exports.saveAnswers = async (req, res) => {
             if (answeredQuestionIds.size >= allMappings.length) {
                 await db.Runs.updateOne({ runId }, { $set: { status: 'QUESTIONS_CONFIRMED' } });
                 notificationService.notifyIntakeComplete(runId);
+                await createAuditLog(req, 'INTAKE_LOCKED', run.userId, { runId, message: "Objective answers threshold reached and locked." });
             }
         }
 

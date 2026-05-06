@@ -1,5 +1,7 @@
 const { db } = require('../models/index.model.js');
 const { generateFormattedId } = require('../../utils/idGenerator');
+const { getChatSettings } = require('../../utils/configHelper.js');
+const { createAuditLog } = require('../../utils/auditLogger.js');
 
 
 async function buildRunSummary(run) {
@@ -68,6 +70,10 @@ async function buildRunSummary(run) {
                 (!run.reRunSetup?.freeReRunExpiryDate || new Date() <= new Date(run.reRunSetup.freeReRunExpiryDate)),
             expiry: run.reRunSetup?.freeReRunExpiryDate || null,
             priceOverride: run.reRunSetup?.reRunPriceOverride || null
+        },
+        chatSupport: {
+            isFree: run.chatExpiryDate ? new Date() <= new Date(run.chatExpiryDate) : false,
+            expiryDate: run.chatExpiryDate || null
         }
     };
 }
@@ -324,7 +330,24 @@ exports.getRunDetail = async (req, res) => {
                     (!run.reRunSetup?.freeReRunExpiryDate || new Date() <= new Date(run.reRunSetup.freeReRunExpiryDate)),
                 expiry: run.reRunSetup?.freeReRunExpiryDate || null,
                 priceOverride: run.reRunSetup?.reRunPriceOverride || null
-            }
+            },
+            // --- NEW: Chat Support Info ---
+            chatSupport: await (async () => {
+                const settings = await getChatSettings();
+                const freeDays = settings.freeDaysAfterExpertAssign || 30;
+                const charge = settings.chatChargePerMonth || 500;
+                const isFree = run.chatExpiryDate ? new Date() <= new Date(run.chatExpiryDate) : false;
+                
+                return {
+                    isFreeActive: isFree,
+                    freeWindowDays: freeDays,
+                    expiryDate: run.chatExpiryDate || null,
+                    chargePerQuery: charge,
+                    displayMessage: isFree 
+                        ? `Expert support is FREE until ${new Date(run.chatExpiryDate).toLocaleDateString()}.`
+                        : `Free window expired. Expert support is now INR ${charge} per query.`
+                };
+            })()
         };
 
 
@@ -403,6 +426,13 @@ exports.initiateReRun = async (req, res) => {
 
         // 5. Generate New runId
         const newRunId = await generateFormattedId(db.Runs, 'RUN', 'runId');
+
+        await createAuditLog(req, 'RE_RUN_INITIATED', userId, {
+            previousRunId,
+            caseId,
+            intentId,
+            isFree: eligibleForFree
+        });
 
         // 5. Return Policy & Proceed to Payment Flow
         return res.status(200).json({

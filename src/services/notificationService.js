@@ -38,16 +38,14 @@ class NotificationService {
             const adminEmail = process.env.SYSTEM_ADMIN_EMAIL || 'admin@hawksyn.com';
             const userName = run.userId?.name || 'A Client';
 
-            // 1. Create In-App Notification record for Admin
-            await db.Notifications.create({
-                targetRole: 'admin',
-                type: 'INTAKE_COMPLETE',
-                title: 'New Intake Completed',
-                message: `Client ${userName} has submitted objective inputs for Case ${run.caseId}. Ready for analysis.`,
-                metadata: { runId, caseId: run.caseId }
+            // 0. Check if notification already exists to prevent duplicates
+            const existing = await db.Notifications.findOne({ 
+                'metadata.runId': runId, 
+                type: 'INTAKE_COMPLETE' 
             });
+            if (existing) return;
 
-            // 2. Create In-App Notification record for User (Step 3)
+            // 1. Create In-App Notification record for User (Step 3)
             await db.Notifications.create({
                 userId: run.userId._id,
                 targetRole: 'user',
@@ -102,26 +100,30 @@ class NotificationService {
                 metadata: { runId, caseId: run.caseId }
             });
 
+            const prefs = run.userId.notificationPreferences || {};
+
             // 2. Send Email
-            await sendEmail({
-                email: run.userId.email,
-                subject: `✅ Your Hawksyn Risk Audit is Ready: ${run.caseId}`,
-                message: `Hello ${run.userId.name || 'User'}, your risk audit processing is complete. You can now view and download your report.`,
-                html: `
-                    <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
-                        <h2 style="color: #27ae60;">Audit Report Ready</h2>
-                        <p>The processing for your request <b>${run.caseId}</b> has been completed successfully.</p>
-                        <p>Our intelligence engine has mapped your risk profile and the final report is securely generated.</p>
-                        <p style="margin-top: 20px;">
-                            <a href="${process.env.CLIENT_PORTAL_URL}/reports/${runId}" style="background: #27ae60; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View My Report</a>
-                        </p>
-                        <p style="color: #7f8c8d; font-size: 12px; margin-top: 30px;">Ref ID: ${runId}</p>
-                    </div>
-                `
-            });
+            if (prefs.email !== false && prefs.reportReady !== false) {
+                await sendEmail({
+                    email: run.userId.email,
+                    subject: `✅ Your Hawksyn Risk Audit is Ready: ${run.caseId}`,
+                    message: `Hello ${run.userId.name || 'User'}, your risk audit processing is complete. You can now view and download your report.`,
+                    html: `
+                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
+                            <h2 style="color: #27ae60;">Audit Report Ready</h2>
+                            <p>The processing for your request <b>${run.caseId}</b> has been completed successfully.</p>
+                            <p>Our intelligence engine has mapped your risk profile and the final report is securely generated.</p>
+                            <p style="margin-top: 20px;">
+                                <a href="${process.env.CLIENT_PORTAL_URL}/reports/${runId}" style="background: #27ae60; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View My Report</a>
+                            </p>
+                            <p style="color: #7f8c8d; font-size: 12px; margin-top: 30px;">Ref ID: ${runId}</p>
+                        </div>
+                    `
+                });
+            }
 
             // 3. Send Push Notification
-            if (run.userId.fcmToken) {
+            if (run.userId.fcmToken && prefs.push !== false && prefs.reportReady !== false) {
                 await this.sendPushNotification(
                     run.userId.fcmToken, 
                     'Report Ready', 
@@ -194,30 +196,34 @@ class NotificationService {
                 metadata: { paymentId: payment.paymentId, invoiceId: invoice.invoiceId, runId: payment.runId }
             });
 
+            const prefs = user.notificationPreferences || {};
+
             // 2. Email Confirmation
-            await sendEmail({
-                email: user.email,
-                subject: `Payment Successful: Hawksyn Order ${payment.gatewayOrderId}`,
-                message: `Thank you, your payment of ${payment.currency} ${payment.amount} has been received.`,
-                html: `
-                    <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
-                        <h2 style="color: #E8600A;">Payment Received</h2>
-                        <p>Hello <b>${user.fullName || user.name || 'Valued Client'}</b>,</p>
-                        <p>Thank you for your trust in Hawksyn. We have successfully received your payment.</p>
-                        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                            <p style="margin: 0;"><b>Amount Paid:</b> ${payment.currency} ${payment.amount}</p>
-                            <p style="margin: 5px 0 0 0;"><b>Invoice Number:</b> ${invoice.invoiceNumber}</p>
+            if (prefs.email !== false) {
+                await sendEmail({
+                    email: user.email,
+                    subject: `Payment Successful: Hawksyn Order ${payment.gatewayOrderId}`,
+                    message: `Thank you, your payment of ${payment.currency} ${payment.amount} has been received.`,
+                    html: `
+                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
+                            <h2 style="color: #E8600A;">Payment Received</h2>
+                            <p>Hello <b>${user.fullName || user.name || 'Valued Client'}</b>,</p>
+                            <p>Thank you for your trust in Hawksyn. We have successfully received your payment.</p>
+                            <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                                <p style="margin: 0;"><b>Amount Paid:</b> ${payment.currency} ${payment.amount}</p>
+                                <p style="margin: 5px 0 0 0;"><b>Invoice Number:</b> ${invoice.invoiceNumber}</p>
+                            </div>
+                            <p>Your assessment process has been prioritized and is now in the analysis stage.</p>
+                            <p style="margin-top: 20px;">
+                                <a href="${process.env.CLIENT_PORTAL_URL}/transactions" style="background: #E8600A; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View My Invoices</a>
+                            </p>
                         </div>
-                        <p>Your assessment process has been prioritized and is now in the analysis stage.</p>
-                        <p style="margin-top: 20px;">
-                            <a href="${process.env.CLIENT_PORTAL_URL}/transactions" style="background: #E8600A; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View My Invoices</a>
-                        </p>
-                    </div>
-                `
-            });
+                    `
+                });
+            }
 
             // 3. Send Push Notification
-            if (user.fcmToken) {
+            if (user.fcmToken && prefs.push !== false) {
                 await this.sendPushNotification(
                     user.fcmToken,
                     'Payment Confirmation',
@@ -258,14 +264,36 @@ class NotificationService {
                     metadata: { runId }
                 });
 
+                const prefs = user.notificationPreferences || {};
+
                 // Push to User
-                if (user.fcmToken) {
+                if (user.fcmToken && prefs.push !== false) {
                     await this.sendPushNotification(
                         user.fcmToken,
                         'Expert Assigned',
                         `Your case has been assigned to ${expert.name || 'an expert'}. Expected review within 72 hours.`,
                         { runId, type: 'EXPERT_ASSIGNED' }
                     );
+                }
+
+                // Email to User
+                if (prefs.email !== false) {
+                    await sendEmail({
+                        email: user.email,
+                        subject: `Expert Assigned to Your Case: ${runId.slice(-6)}`,
+                        message: `Your case has been assigned to ${expert.name || 'an expert'}. Expected review within 72 hours.`,
+                        html: `
+                            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
+                                <h2 style="color: #2980b9;">Expert Assigned</h2>
+                                <p>Hello <b>${user.fullName || user.name || 'User'}</b>,</p>
+                                <p>An expert auditor (<b>${expert.name || 'Risk Specialist'}</b>) has been assigned to review your case <b>${runId.slice(-6)}</b>.</p>
+                                <p>The auditor will validate your risk profile and certification within 72 hours.</p>
+                                <p style="margin-top: 20px;">
+                                    <a href="${process.env.CLIENT_PORTAL_URL}/cases" style="background: #2980b9; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Track Case Status</a>
+                                </p>
+                            </div>
+                        `
+                    });
                 }
             }
             logger.info(`[Notification] Expert assignment alerts sent for Run ${runId}`);
@@ -288,8 +316,30 @@ class NotificationService {
                 metadata: { runId }
             });
 
-            if (user.fcmToken) {
+            const prefs = user.notificationPreferences || {};
+
+            if (user.fcmToken && prefs.push !== false) {
                 await this.sendPushNotification(user.fcmToken, 'Auditor Review Complete ✅', 'Your report now includes expert validation.', { runId });
+            }
+
+            // Email to User
+            if (prefs.email !== false) {
+                await sendEmail({
+                    email: user.email,
+                    subject: `Auditor Review Complete: ${runId.slice(-6)}`,
+                    message: `Your auditor has completed their review. Your report now includes expert validation.`,
+                    html: `
+                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
+                            <h2 style="color: #27ae60;">Auditor Review Complete</h2>
+                            <p>Hello <b>${user.fullName || user.name || 'User'}</b>,</p>
+                            <p>Your auditor has finalized their review for case <b>${runId.slice(-6)}</b>.</p>
+                            <p>The report has been updated with expert validation and a certified verdict.</p>
+                            <p style="margin-top: 20px;">
+                                <a href="${process.env.CLIENT_PORTAL_URL}/reports/${runId}" style="background: #27ae60; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Certified Report</a>
+                            </p>
+                        </div>
+                    `
+                });
             }
         } catch (error) { logger.error(`[Notif Error] Review Complete: ${error.message}`); }
     }
@@ -312,8 +362,29 @@ class NotificationService {
                 message: msg,
                 metadata: { runId, daysRemaining }
             });
-            if (user.fcmToken) {
+            const prefs = user.notificationPreferences || {};
+
+            if (user.fcmToken && prefs.push !== false) {
                 await this.sendPushNotification(user.fcmToken, title, msg, { runId, daysRemaining });
+            }
+
+            // Email to User
+            if (prefs.email !== false) {
+                await sendEmail({
+                    email: user.email,
+                    subject: `⚠️ ${title}`,
+                    message: msg,
+                    html: `
+                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
+                            <h2 style="color: #e67e22;">Verdict Expiry Warning</h2>
+                            <p>Hello <b>${user.fullName || user.name || 'User'}</b>,</p>
+                            <p>${msg}</p>
+                            <p style="margin-top: 20px;">
+                                <a href="${process.env.CLIENT_PORTAL_URL}/cases" style="background: #e67e22; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Review My Cases</a>
+                            </p>
+                        </div>
+                    `
+                });
             }
         } catch (error) { logger.error(`[Notif Error] Expiry: ${error.message}`); }
     }
@@ -347,8 +418,29 @@ class NotificationService {
                 message: `Your auditor has responded. Open to continue the conversation.`,
                 metadata: { runId }
             });
-            if (user.fcmToken) {
+            const prefs = user.notificationPreferences || {};
+
+            if (user.fcmToken && prefs.push !== false && prefs.expertReplied !== false) {
                 await this.sendPushNotification(user.fcmToken, 'Expert Replied in Chat 💬', 'Your auditor has responded. Open to chat.', { runId });
+            }
+
+            // Email to User
+            if (prefs.email !== false && prefs.expertReplied !== false) {
+                await sendEmail({
+                    email: user.email,
+                    subject: `New Message from Auditor: ${runId.slice(-6)}`,
+                    message: `Your auditor has responded to your message.`,
+                    html: `
+                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
+                            <h2 style="color: #9b59b6;">New Message</h2>
+                            <p>Hello <b>${user.fullName || user.name || 'User'}</b>,</p>
+                            <p>Your auditor has responded to your inquiry for case <b>${runId.slice(-6)}</b>.</p>
+                            <p style="margin-top: 20px;">
+                                <a href="${process.env.CLIENT_PORTAL_URL}/chat/${runId}" style="background: #9b59b6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reply in Chat</a>
+                            </p>
+                        </div>
+                    `
+                });
             }
         } catch (error) { logger.error(`[Notif Error] Chat Reply: ${error.message}`); }
     }
@@ -411,8 +503,30 @@ class NotificationService {
                 message: 'CV Analyzed Successfully. Professional risk markers identified. Continue with Step 2.',
                 metadata: { runId }
             });
-            if (user.fcmToken) {
+            const prefs = user.notificationPreferences || {};
+
+            if (user.fcmToken && prefs.push !== false) {
                 await this.sendPushNotification(user.fcmToken, 'CV Analyzed ✅', 'Professional risk markers identified. Continue with Step 2.', { runId });
+            }
+
+            // Email to User
+            if (prefs.email !== false) {
+                await sendEmail({
+                    email: user.email,
+                    subject: `CV Analysis Complete: ${runId.slice(-6)}`,
+                    message: `Professional risk markers identified. Continue with Step 2.`,
+                    html: `
+                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
+                            <h2 style="color: #27ae60;">CV Analysis Successful</h2>
+                            <p>Hello <b>${user.fullName || user.name || 'User'}</b>,</p>
+                            <p>Our intelligence engine has successfully analyzed your CV for case <b>${runId.slice(-6)}</b>.</p>
+                            <p>Professional risk markers have been identified. You can now proceed to the next step of the assessment.</p>
+                            <p style="margin-top: 20px;">
+                                <a href="${process.env.CLIENT_PORTAL_URL}/intake/${runId}" style="background: #27ae60; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Continue to Step 2</a>
+                            </p>
+                        </div>
+                    `
+                });
             }
         } catch (error) { logger.error('Parsing Notif Error: ' + error.message); }
     }
@@ -451,8 +565,30 @@ class NotificationService {
                 metadata: { runId }
             });
 
-            if (user.fcmToken) {
+            const prefs = user.notificationPreferences || {};
+
+            if (user.fcmToken && prefs.push !== false && prefs.rerunReminder !== false) {
                 await this.sendPushNotification(user.fcmToken, title, msg, { runId, type: 'RERUN_UNLOCKED' });
+            }
+
+            // Email to User
+            if (prefs.email !== false && prefs.rerunReminder !== false) {
+                await sendEmail({
+                    email: user.email,
+                    subject: `Free Re-run Available: ${run.caseId}`,
+                    message: msg,
+                    html: `
+                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
+                            <h2 style="color: #3498db;">Re-run Unlocked 🚀</h2>
+                            <p>Hello <b>${user.fullName || user.name || 'User'}</b>,</p>
+                            <p>Good news! Your case <b>${run.caseId}</b> has been unlocked for a free re-run.</p>
+                            <p>You can now update your data and run the analysis again to get a fresh perspective.</p>
+                            <p style="margin-top: 20px;">
+                                <a href="${process.env.CLIENT_PORTAL_URL}/cases" style="background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Re-run Case Now</a>
+                            </p>
+                        </div>
+                    `
+                });
             }
         } catch (error) { logger.error(`[Notif Error] Re-run: ${error.message}`); }
     }
@@ -477,8 +613,29 @@ class NotificationService {
                 metadata: { clockName, value }
             });
 
-            if (user.fcmToken) {
+            const prefs = user.notificationPreferences || {};
+
+            if (user.fcmToken && prefs.push !== false && prefs.clockCritical !== false) {
                 await this.sendPushNotification(user.fcmToken, title, msg, { type: 'CLOCK_CRITICAL', clockName });
+            }
+
+            // Email to User
+            if (prefs.email !== false && prefs.clockCritical !== false) {
+                await sendEmail({
+                    email: user.email,
+                    subject: `⚠️ Critical Alert: ${clockName} Drop`,
+                    message: msg,
+                    html: `
+                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #c0392b;">
+                            <h2 style="color: #c0392b;">Clock Critical Warning</h2>
+                            <p>Hello <b>${user.fullName || user.name || 'User'}</b>,</p>
+                            <p>${msg}</p>
+                            <p style="margin-top: 20px;">
+                                <a href="${process.env.CLIENT_PORTAL_URL}/dashboard" style="background: #c0392b; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Check Dashboard</a>
+                            </p>
+                        </div>
+                    `
+                });
             }
         } catch (error) { logger.error(`[Notif Error] Clock Critical: ${error.message}`); }
     }

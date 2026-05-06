@@ -144,7 +144,7 @@ exports.getCommandCenter = async (req, res) => {
 
     } catch (error) {
         console.error('[CommandCenter] Error:', error);
-        return res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: `Command center loading failed: ${error.message}`, error: error.message });
     }
 };
 
@@ -163,11 +163,6 @@ exports.runHawk = async (req, res) => {
             });
         }
 
-        const userCredits = await db.UserCredits.findOne({ userId });
-        if (!userCredits || userCredits.checksBalance < 1) {
-            return res.status(402).json({ success: false, message: 'Insufficient Hawk Checks.' });
-        }
-
         const userProfile = await db.UserProfile.findOne({ userId });
         const profileData = userProfile?.confirmedProfile || userProfile?.originalParsedData?.structured || {};
 
@@ -183,23 +178,6 @@ exports.runHawk = async (req, res) => {
         const newScores = await generateClockScores(dataForGemini);
         const significantChange = detectSignificantChange(userClock, newScores);
         const clockValidUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-        const newBalance = userCredits.checksBalance - 1;
-        await db.UserCredits.findOneAndUpdate(
-            { userId },
-            {
-                $set: { checksBalance: newBalance },
-                $push: {
-                    transactions: {
-                        type: 'HAWK_CONSUME',
-                        amount: -1,
-                        balanceAfter: newBalance,
-                        note: `Hawk recalibration — ${new Date().toISOString()}`,
-                        createdAt: new Date()
-                    }
-                }
-            }
-        );
 
         await db.UserClocks.findOneAndUpdate(
             { userId },
@@ -229,8 +207,6 @@ exports.runHawk = async (req, res) => {
             success: true,
             data: {
                 hawkRun: true,
-                creditConsumed: true,
-                checksBalance: newBalance,
                 validityState: 'ACTIVE_CLOCK',
                 clockValidUntil,
                 daysLeft: 7,
@@ -243,7 +219,7 @@ exports.runHawk = async (req, res) => {
 
     } catch (error) {
         console.error('[CommandCenter] runHawk error:', error);
-        return res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: `Hawk calibration failed: ${error.message}`, error: error.message });
     }
 };
 
@@ -278,7 +254,7 @@ exports.refreshClocksFromCase = async (req, res) => {
 
         return res.status(200).json({ success: true, message: 'Clocks validity refreshed successfully.' });
     } catch (error) {
-        return res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: `Clock refresh failed: ${error.message}`, error: error.message });
     }
 };
 
@@ -297,7 +273,7 @@ exports.getCredits = async (req, res) => {
 
         return res.status(200).json({ success: true, data: userCredits });
     } catch (error) {
-        return res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: `Failed to fetch credits: ${error.message}`, error: error.message });
     }
 };
 
@@ -306,6 +282,6 @@ exports.runTrendEngineManual = async (req, res) => {
         await runTrendEngine();
         return res.status(200).json({ success: true, message: 'Trend Engine run complete' });
     } catch (err) {
-        return res.status(500).json({ success: false, message: err.message });
+        return res.status(500).json({ success: false, message: `Trend engine execution failed: ${err.message}`, error: err.message });
     }
 };

@@ -1,5 +1,6 @@
 const { db } = require('../models/index.model.js');
 const notificationService = require('../services/notificationService');
+const { createAuditLog } = require('../../utils/auditLogger.js');
 const { callLLM } = require('../../utils/evaluationHelpers.js');
 const clockService = require('../services/clockService.js');
 const { buildReportHtml } = require('../templates/reportTemplate.js');
@@ -8,6 +9,7 @@ const s3Service = require('../../utils/s3');
 const path = require('path');
 const fs = require('fs');
 const nodemailer = require('nodemailer');
+const { getChatSettings } = require('../../utils/configHelper.js');
 
 const {
     anonymizeReport,
@@ -72,17 +74,21 @@ exports.generateReport = async (req, res) => {
         const questionsMap = {};
         for (const q of questionDocs) questionsMap[q.questionId] = q;
 
-        // 2. Load Configuration (ELR, Sections, Prompts)
-        const [elr, sections, promptDocs] = await Promise.all([
+        // 2. Load Configuration (ELR, Sections, Prompts, OST Contracts)
+        const [elr, sections, promptDocs, ostDocs] = await Promise.all([
             db.EvaluationLibraryRegistry.findOne({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] }, isActive: true }),
             db.DecisionAssuranceSections.find({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] }, isActive: true }).sort({ sectionOrder: 1 }),
-            db.PromptConfigRegistry.find({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] }, isActive: true })
+            db.PromptConfigRegistry.find({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] }, isActive: true }),
+            db.ObjectiveScoringTaxonomy.find({ caseId: run.caseId, isActive: true })
         ]);
 
         if (!sections.length) return res.status(404).json({ success: false, message: 'No sections configured.' });
 
         const promptsMap = {};
         for (const p of promptDocs) promptsMap[p.sectionId] = p;
+
+        const ostMap = {};
+        for (const o of ostDocs) ostMap[o.sectionId] = o;
 
         // 3. Build RAG & Mapping Context
         const placeholders = buildPlaceholderMap(
@@ -99,107 +105,117 @@ exports.generateReport = async (req, res) => {
             goldExamples.map((ex, i) => `[Ex ${i + 1}]\n${JSON.stringify(ex.sections?.map(s => ({ id: s.sectionId, content: s.content })) || ex, null, 2)}`).join('\n\n')
             : "";
 
-        // 4. Parallel Generation of Sections
-        const sectionPromises = sections.map(async (section) => {
-            const prompt = promptsMap[section.sectionId];
-            const sectionOut = {
-                sectionId: section.sectionId,
-                sectionName: section.sectionName,
-                sectionType: section.sectionType,
-                sectionOrder: section.sectionOrder,
-                promptVersion: prompt?.promptVersion || 1, // Capture for Audit Trail
-                status: 'PENDING'
-            };
+        // 4. Batched Generation of Sections (Stable Processing)
+        const reportSections = [];
+        const batchSize = 3;
+        for (let i = 0; i < sections.length; i += batchSize) {
+            const batch = sections.slice(i, i + batchSize);
+            console.log(`[Report-Gen] Processing batch ${Math.ceil((i + 1) / batchSize)}/${Math.ceil(sections.length / batchSize)}...`);
+            
+            const batchPromises = batch.map(async (section) => {
+                const prompt = promptsMap[section.sectionId];
+                const ostConfig = ostMap[section.sectionId];
+                const sectionOut = {
+                    sectionId: section.sectionId,
+                    sectionName: section.sectionName,
+                    sectionType: section.sectionType,
+                    sectionOrder: section.sectionOrder,
+                    promptVersion: prompt?.promptVersion || 1,
+                    status: 'PENDING',
+                    ostMetadata: ostConfig ? {
+                        primaryOutputType: ostConfig.primaryOutputType,
+                        chartType: ostConfig.chartType,
+                        chartLibrary: ostConfig.chartLibrary,
+                        frontendRenderSpec: ostConfig.frontendRenderSpec,
+                        wordLimit: ostConfig.wordLimit,
+                        scientificReference: ostConfig.scientificReference
+                    } : null
+                };
 
-            const anchorCheck = checkAnchors(section, integrityPack, externalCoverage);
-            if (!anchorCheck.allCovered && section.fallbackPolicy === 'ESCALATE') {
-                sectionOut.status = 'ESCALATED';
-                sectionOut.content = "Missing required evidence anchors.";
-                return sectionOut;
-            }
+                const anchorCheck = checkAnchors(section, integrityPack, externalCoverage);
+                if (!anchorCheck.allCovered && section.fallbackPolicy === 'ESCALATE') {
+                    sectionOut.status = 'ESCALATED';
+                    sectionOut.content = "Missing required evidence anchors.";
+                    return sectionOut;
+                }
 
-            if (!prompt) {
-                sectionOut.status = 'SKIPPED';
-                return sectionOut;
-            }
+                if (!prompt) {
+                    sectionOut.status = 'SKIPPED';
+                    return sectionOut;
+                }
 
-            // Resolve Dynamic Evidence for this section
-            const sectionPlaceholders = { ...placeholders };
-            if (prompt.evidencePlaceholdersJson) {
-                for (const [phKey, ref] of Object.entries(prompt.evidencePlaceholdersJson)) {
-                    // 1. New Structured Object Mapping
-                    if (ref && typeof ref === 'object') {
-                        if (ref.source === 'answers' && ref.questionId) {
-                            sectionPlaceholders[phKey] = placeholders[ref.questionId] || 'N/A';
-                        } else if (ref.source === 'signals' || ref.source === 'externalSignals') {
-                            if (ref.signalId) {
-                                const sigRef = externalSignals?.[ref.signalId];
-                                sectionPlaceholders[phKey] = sigRef ? String(sigRef[ref.field || 'value'] || 'N/A') : 'N/A';
-                            } else if (Array.isArray(ref.filter)) {
-                                const filtered = {};
-                                ref.filter.forEach(fid => {
-                                    if (externalSignals?.[fid]) filtered[fid] = externalSignals[fid];
-                                });
-                                sectionPlaceholders[phKey] = JSON.stringify(filtered, null, 2);
+                const sectionPlaceholders = { ...placeholders };
+                if (prompt.evidencePlaceholdersJson) {
+                    for (const [phKey, ref] of Object.entries(prompt.evidencePlaceholdersJson)) {
+                        if (ref && typeof ref === 'object') {
+                            if (ref.source === 'answers' && ref.questionId) {
+                                sectionPlaceholders[phKey] = placeholders[ref.questionId] || 'N/A';
+                            } else if (ref.source === 'signals' || ref.source === 'externalSignals') {
+                                if (ref.signalId) {
+                                    const sigRef = externalSignals?.[ref.signalId];
+                                    sectionPlaceholders[phKey] = sigRef ? String(sigRef[ref.field || 'value'] || 'N/A') : 'N/A';
+                                }
+                            } else if (ref.source === 'integrity' && ref.path) {
+                                sectionPlaceholders[phKey] = String(getDeepValue(integrityPack, ref.path) || 'N/A');
                             }
-                        } else if (ref.source === 'integrity' && ref.path) {
-                            sectionPlaceholders[phKey] = String(getDeepValue(integrityPack, ref.path) || 'N/A');
+                            continue;
                         }
-                        continue;
-                    }
-
-                    // 2. Legacy String-based Mapping
-                    if (typeof ref === 'string') {
-                        if (ref.startsWith('Q_')) {
-                            sectionPlaceholders[phKey] = placeholders[ref] || 'N/A';
-                        } else if (ref.startsWith('integrityPack.')) {
-                            sectionPlaceholders[phKey] = String(getDeepValue(integrityPack, ref.replace('integrityPack.', '')) || 'N/A');
-                        } else if (ref.startsWith('externalSignals.')) {
-                            sectionPlaceholders[phKey] = String(getDeepValue(externalSignals, ref.replace('externalSignals.', '')) || 'N/A');
-                        } else {
-                            const deepVal = getDeepValue(normalizedProfile, ref);
-                            sectionPlaceholders[phKey] = (deepVal !== undefined && deepVal !== null) ? String(deepVal) : (placeholders[ref] || 'N/A');
+                        if (typeof ref === 'string') {
+                            if (ref.startsWith('Q_')) {
+                                sectionPlaceholders[phKey] = placeholders[ref] || 'N/A';
+                            } else if (ref.startsWith('integrityPack.')) {
+                                sectionPlaceholders[phKey] = String(getDeepValue(integrityPack, ref.replace('integrityPack.', '')) || 'N/A');
+                            } else if (ref.startsWith('externalSignals.')) {
+                                sectionPlaceholders[phKey] = String(getDeepValue(externalSignals, ref.replace('externalSignals.', '')) || 'N/A');
+                            } else {
+                                const deepVal = getDeepValue(normalizedProfile, ref);
+                                sectionPlaceholders[phKey] = (deepVal !== undefined && deepVal !== null) ? String(deepVal) : (placeholders[ref] || 'N/A');
+                            }
                         }
                     }
                 }
-            }
 
-            try {
-                let userPrompt = fillPrompt(prompt.userPrompt, sectionPlaceholders);
-                if (!anchorCheck.allCovered) userPrompt += `\n[NOTE: Missing evidence: ${[...anchorCheck.missingInternal, ...anchorCheck.missingExternal].join(', ')}]`;
+                try {
+                    let userPrompt = fillPrompt(prompt.userPrompt, sectionPlaceholders);
+                    if (!anchorCheck.allCovered) userPrompt += `\n[NOTE: Missing evidence: ${[...anchorCheck.missingInternal, ...anchorCheck.missingExternal].join(', ')}]`;
 
-                const llmResult = await callLLM({
-                    modelFamily: prompt.modelFamily,
-                    forceProvider: 'Gemini',
-                    systemPrompt: (prompt.systemPrompt || '') +
-                        "\n\n--- COMPREHENSIVE EVIDENCE PACKAGE ---\n" +
-                        JSON.stringify(placeholders, null, 2) +
-                        "\n\nSTRICT GROUNDING RULES:\n" +
-                        "1. Use the provided EVIDENCE PACKAGE as the primary source of truth.\n" +
-                        "2. If a specific placeholder is N/A but the evidence package has the data, use the data from the package.\n" +
-                        "3. Do not say data is missing if it is in the package above.\n" +
-                        "4. DO NOT mention surveys, inventories, or frameworks (e.g. 'Burnout Inventory', 'Stress Survey') unless they appear explicitly in the evidence.\n" +
-                        "5. If specific evidence is missing, do not simply state 'UNKNOWN'. Instead, provide a professional 'Pro-Tip' or 'General Advisory' relevant to the section's topic and the user's role (e.g., Backend Engineer), ensuring the feedback remains valuable even with data gaps.\n" +
-                        goldContextBlock,
-                    userPrompt,
-                    temperature: prompt.temperature || 0.3,
-                    maxTokens: prompt.maxTokens || 1500
-                });
+                    const ostContract = ostMap[section.sectionId]?.llmJsonContract;
+                    
+                    const llmResult = await callLLM({
+                        modelFamily: prompt.modelFamily,
+                        forceProvider: 'Gemini',
+                        systemPrompt: (prompt.systemPrompt || '') +
+                            (ostContract ? `\n\nCRITICAL OUTPUT FORMAT (JSON ONLY):\n${ostContract}` : '') +
+                            "\n\n--- COMPREHENSIVE EVIDENCE PACKAGE ---\n" +
+                            JSON.stringify(placeholders, null, 2) +
+                            "\n\nSTRICT GROUNDING RULES:\n" +
+                            "1. Use the provided EVIDENCE PACKAGE as the primary source of truth.\n" +
+                            "2. Do not say data is missing if it is in the package above.\n" +
+                            "3. DO NOT mention surveys or inventories unless they appear explicitly in the evidence.\n" +
+                            "4. STRUCTURE: Use Bullet Points (•) for multi-sentence descriptions, action items, or key findings to ensure high readability.\n" +
+                            "5. If specific evidence is missing, provide a professional 'Pro-Tip' relevant to the user's role: " + (normalizedProfile.currentRoleTitle || 'Professional'),
+                        userPrompt,
+                        temperature: prompt.temperature || 0.3,
+                        maxTokens: prompt.maxTokens || 1500
+                    });
 
-                sectionOut.content = applyCertaintyCap(llmResult.text, prompt.certaintyCapPercent || 85, integrityPack.accuracy?.band);
-                sectionOut.status = anchorCheck.allCovered ? 'COMPLETE' : 'DEGRADED';
-                sectionOut.tokenUsage = llmResult.usageMetadata;
-                sectionOut.duration = llmResult.duration;
-                return sectionOut;
-            } catch (llmErr) {
-                console.error(`[Report-Gen] CRITICAL SECTION FAILURE (${section.sectionId}):`, llmErr.message);
-                sectionOut.status = 'LLM_ERROR';
-                sectionOut.content = 'Generation failed.';
-                return sectionOut;
-            }
-        });
+                    sectionOut.content = applyCertaintyCap(llmResult.text, prompt.certaintyCapPercent || 85, integrityPack.accuracy?.band);
+                    sectionOut.status = anchorCheck.allCovered ? 'COMPLETE' : 'DEGRADED';
+                    sectionOut.tokenUsage = llmResult.usageMetadata;
+                    sectionOut.duration = llmResult.duration;
+                    return sectionOut;
+                } catch (llmErr) {
+                    console.error(`[Report-Gen] SECTION FAILURE (${section.sectionId}):`, llmErr.message);
+                    sectionOut.status = 'LLM_ERROR';
+                    sectionOut.content = 'Generation failed.';
+                    return sectionOut;
+                }
+            });
 
-        const reportSections = await Promise.all(sectionPromises);
+            const batchResults = await Promise.all(batchPromises);
+            reportSections.push(...batchResults);
+        }
+
 
         // 5. Final Assembly & Aggregation
         const totalDuration = (Date.now() - startTime) / 1000;
@@ -260,27 +276,50 @@ exports.generateReport = async (req, res) => {
             console.error('[Report-S3] Automation Failed:', s3Err.message);
         }
 
-        await db.Runs.updateOne({ runId }, {
-            $set: {
-                verdict,
-                finalReport,
-                reportPdfUrl,
-                status: 'REPORT_COMPLETE',
-                chatExpiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-                completedAt: new Date()
-            }
-        });
+            const settings = await getChatSettings();
+            const freeDays = settings.freeDaysAfterExpertAssign || 30;
+            const chatExpiryDate = new Date(Date.now() + freeDays * 24 * 60 * 60 * 1000);
+
+            await db.Runs.updateOne({ runId }, {
+                $set: {
+                    verdict,
+                    finalReport,
+                    reportPdfUrl,
+                    status: 'REPORT_COMPLETE',
+                    chatExpiryDate,
+                    completedAt: new Date()
+                }
+            });
+
+            await createAuditLog(req, 'REPORT_GENERATED', run.userId, { 
+                runId, 
+                verdict: finalReport.verdict,
+                compositeScore: finalReport.compositeScore,
+                duration: finalReport.totalDuration
+            });
         clockService.refreshClocksAfterCase(run.userId, runId);
 
         // Trigger Final Notification
         notificationService.notifyProcessingSuccess(runId);
 
         console.timeEnd("Report_Gen");
-        return res.status(200).json({ success: true, data: { verdict, report: finalReport } });
+        return res.status(200).json({ 
+            success: true, 
+            data: { 
+                verdict, 
+                report: finalReport,
+                chatSupport: {
+                    isFreeActive: true,
+                    freeWindowDays: freeDays,
+                    expiryDate: chatExpiryDate,
+                    displayMessage: `Expert support is FREE until ${new Date(chatExpiryDate).toLocaleDateString()}.`
+                }
+            } 
+        });
 
     } catch (error) {
         console.error('[Report Engine Error]', error.message);
-        return res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: `Report generation failed: ${error.message}`, error: error.message });
     }
 };
 
@@ -304,7 +343,9 @@ exports.downloadReport = async (req, res) => {
         const pdfBuffer = await generatePdfFromHtml(html);
         res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename=Report_${runId}.pdf` });
         return res.send(pdfBuffer);
-    } catch (err) { return res.status(500).json({ success: false, message: err.message }); }
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Report download failed: ${err.message}`, error: err.message });
+    }
 };
 
 exports.sendReportEmail = async (req, res) => {
@@ -339,7 +380,9 @@ exports.sendReportEmail = async (req, res) => {
         });
 
         return res.status(200).json({ success: true, message: "Email sent." });
-    } catch (err) { return res.status(500).json({ success: false, message: err.message }); }
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Email sending failed: ${err.message}`, error: err.message });
+    }
 };
 
 exports.refreshReportSection = async (req, res) => {
@@ -350,10 +393,11 @@ exports.refreshReportSection = async (req, res) => {
         if (!runId || !sectionId) return res.status(400).json({ success: false, message: 'runId and sectionId are required.' });
 
         // 1. Load Data
-        const [run, reportArtifact, prompt] = await Promise.all([
+        const [run, reportArtifact, prompt, ost] = await Promise.all([
             db.Runs.findOne({ runId }),
             db.Ras.findOne({ runId, artifactType: 'FINAL_REPORT' }),
-            db.PromptConfigRegistry.findOne({ sectionId, isActive: true }) // Find latest active prompt
+            db.PromptConfigRegistry.findOne({ sectionId, isActive: true }), // Find latest active prompt
+            db.ObjectiveScoringTaxonomy.findOne({ sectionId, isActive: true }) // Find latest active contract
         ]);
 
         if (!run) return res.status(404).json({ success: false, message: 'Run not found.' });
@@ -390,7 +434,7 @@ exports.refreshReportSection = async (req, res) => {
 
         const llmResult = await callLLM({
             modelFamily: prompt.modelFamily,
-            systemPrompt: prompt.systemPrompt,
+            systemPrompt: (prompt.systemPrompt || '') + (ost?.llmJsonContract ? `\n\nCRITICAL OUTPUT FORMAT (JSON ONLY):\n${ost.llmJsonContract}` : ''),
             userPrompt,
             temperature: 0.3
         });
@@ -400,6 +444,14 @@ exports.refreshReportSection = async (req, res) => {
             ...oldSectionData,
             content: llmResult.text || llmResult,
             promptVersion: prompt.promptVersion,
+            ostMetadata: ost ? {
+                primaryOutputType: ost.primaryOutputType,
+                chartType: ost.chartType,
+                chartLibrary: ost.chartLibrary,
+                frontendRenderSpec: ost.frontendRenderSpec,
+                wordLimit: ost.wordLimit,
+                scientificReference: ost.scientificReference
+            } : oldSectionData.ostMetadata,
             refreshedAt: new Date()
         };
 
@@ -430,6 +482,6 @@ exports.refreshReportSection = async (req, res) => {
 
     } catch (error) {
         console.error('[RefreshSection] Error:', error);
-        return res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: `Section refresh failed: ${error.message}`, error: error.message });
     }
 };

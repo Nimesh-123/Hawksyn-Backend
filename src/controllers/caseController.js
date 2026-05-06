@@ -4,6 +4,7 @@ const CaseIntentConfig = require('../models/CaseIntentConfig.model');
 const Playbooks = require('../models/Playbooks.model');
 const Runs = require('../models/Runs.model');
 const { db } = require('../models/index.model.js');
+const { createAuditLog } = require('../../utils/auditLogger.js');
 
 
 /**
@@ -370,6 +371,12 @@ exports.revertRunStatus = async (req, res) => {
                 failureStep: null,
                 failureReason: null
             }
+        });
+
+        await createAuditLog(req, 'RUN_STATUS_REVERTED', req.user.id, {
+            runId,
+            targetStatus,
+            performedBy: req.user.email
         });
 
         return res.status(200).json({

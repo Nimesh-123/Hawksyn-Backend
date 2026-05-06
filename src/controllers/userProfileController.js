@@ -1,5 +1,6 @@
 const { db } = require('../models/index.model.js');
 const clockService = require('../services/clockService.js');
+const { createAuditLog } = require('../../utils/auditLogger.js');
 const { UserProfile } = db;
 
 
@@ -153,6 +154,12 @@ exports.updateUserProfile = async (req, res) => {
         userProfile.markModified('confirmedProfile');
         userProfile.markModified('overrideMap');
         await userProfile.save();
+
+        await createAuditLog(req, 'PROFILE_UPDATED', req.user.id, {
+            fieldsChanged: builtOverrideMap.fieldsChanged,
+            assumptionsConfirmed: builtOverrideMap.assumptionsConfirmed.length,
+            assumptionsCorrected: builtOverrideMap.assumptionsCorrected.length
+        });
 
         // --- NEW: Profile Conflict Notification (#13) ---
         if (builtOverrideMap.fieldsChanged.length > 0) {
