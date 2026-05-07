@@ -10,6 +10,7 @@ const { getUserActiveCv } = require('../../utils/cvHelper.js');
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const { detectRegionFromIP } = require('../../utils/regionHelper.js');
+const { calculateAICost } = require('../../utils/aiCostHelper');
 
 
 const prepareUserResponse = async (user) => {
@@ -320,6 +321,8 @@ exports.uploadCV = async (req, res) => {
                     parserStatus: 'NOT_A_CV',
                     errorReason: 'Detected as non-CV document.',
                     parserMetadata: extractedData ? {
+                        llm: extractedData.llm,
+                        model: extractedData.model,
                         modelUsed: extractedData.modelUsed,
                         duration: extractedData.totalPipelineDuration,
                         tokenUsage: extractedData.tokenUsage
@@ -369,6 +372,8 @@ exports.uploadCV = async (req, res) => {
             parserStatus,
             errorReason,
             parserMetadata: extractedData ? {
+                llm: extractedData.llm,
+                model: extractedData.model,
                 modelUsed: extractedData.modelUsed,
                 duration: extractedData.totalPipelineDuration,
                 tokenUsage: extractedData.tokenUsage
@@ -393,7 +398,9 @@ exports.uploadCV = async (req, res) => {
         return RESPONSE.success(res, 200, 1001, {
             message: "CV processed successfully",
             cvUrl: fileUrl,
-            parsedData: extractedData
+            parsedData: extractedData,
+            tokenUsage: extractedData?.tokenUsage || null,
+            cost: extractedData?.tokenUsage ? calculateAICost(extractedData.llm + '-' + extractedData.model, extractedData.tokenUsage) : 0
         });
     } catch (error) {
         console.error("[Upload Fail]", error.message);

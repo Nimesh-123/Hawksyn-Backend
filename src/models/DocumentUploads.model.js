@@ -33,6 +33,8 @@ const documentUploadsSchema = new mongoose.Schema(
             default: null
         },
         parserMetadata: {
+            llm: { type: String },
+            model: { type: String },
             modelUsed: { type: String },
             duration: { type: String },
             tokenUsage: { type: mongoose.Schema.Types.Mixed }

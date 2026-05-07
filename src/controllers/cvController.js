@@ -3,6 +3,8 @@ const { uploadFile, deleteFile } = require('../../utils/s3');
 const { smartCVParser } = require('../../utils/aiParser');
 const notificationService = require('../services/notificationService');
 const { createAuditLog } = require('../../utils/auditLogger.js');
+const { calculateAICost, convertToLocalCurrency } = require('../../utils/aiCostHelper');
+const { detectRegionFromIP } = require('../../utils/regionHelper');
 
 /**
  * Handle "Continue with existing CV" choice.
@@ -200,6 +202,8 @@ exports.uploadRunCv = async (req, res) => {
                     parserStatus: 'NOT_A_CV',
                     errorReason: 'Detected as non-CV document.',
                     parserMetadata: extractedData ? {
+                        llm: extractedData.llm,
+                        model: extractedData.model,
                         modelUsed: extractedData.modelUsed,
                         duration: extractedData.totalPipelineDuration,
                         tokenUsage: extractedData.tokenUsage
@@ -269,6 +273,13 @@ exports.uploadRunCv = async (req, res) => {
             cvUrl: fileUrl,
             parsedCvData: dbSafeParsedData,
             parserStatus: parserStatus,
+            parserMetadata: extractedData ? {
+                llm: extractedData.llm,
+                model: extractedData.model,
+                modelUsed: extractedData.modelUsed,
+                duration: extractedData.totalPipelineDuration,
+                tokenUsage: extractedData.tokenUsage
+            } : null,
             isActive: true
         });
 
@@ -318,6 +329,10 @@ exports.uploadRunCv = async (req, res) => {
                 message: finalMessage,
                 cvUrl: fileUrl,
                 parsedData: extractedData,
+                tokenUsage: extractedData?.tokenUsage || null,
+                cost: extractedData?.tokenUsage ? calculateAICost(extractedData.llm + '-' + extractedData.model, extractedData.tokenUsage) : 0,
+                localCost: extractedData?.tokenUsage ? convertToLocalCurrency(calculateAICost(extractedData.llm + '-' + extractedData.model, extractedData.tokenUsage), detectRegionFromIP(req.ip || '122.161.48.0').currency).amount : 0,
+                localCurrency: detectRegionFromIP(req.ip || '122.161.48.0').currency,
                 source: "REUPLOADED"
             }
         });

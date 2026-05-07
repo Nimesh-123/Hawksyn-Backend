@@ -1,6 +1,7 @@
 const { db } = require('../models/index.model.js');
 const notificationService = require('../services/notificationService');
 const { createAuditLog } = require('../../utils/auditLogger.js');
+const { calculateAICost } = require('../../utils/aiCostHelper');
 const { callLLM } = require('../../utils/evaluationHelpers.js');
 const clockService = require('../services/clockService.js');
 const { buildReportHtml } = require('../templates/reportTemplate.js');
@@ -239,6 +240,8 @@ exports.generateReport = async (req, res) => {
             confidence: integrityPack.confidence || 'MEDIUM',
             accuracyScore: integrityPack.accuracy?.score || 0,
             accuracyBand: integrityPack.accuracy?.band || 'UNKNOWN',
+            redFlags: integrityPack.redFlags?.triggered || [],
+            warnings: integrityPack.warnings || [],
             tokenUsage: totalTokenUsage,
             totalDuration: `${totalDuration.toFixed(2)}s`,
             generatedAt: new Date()
@@ -308,6 +311,7 @@ exports.generateReport = async (req, res) => {
             data: { 
                 verdict, 
                 report: finalReport,
+                cost: calculateAICost(finalReport.modelFamily || 'Anthropic-Haiku', finalReport.tokenUsage),
                 chatSupport: {
                     isFreeActive: true,
                     freeWindowDays: freeDays,

@@ -8,6 +8,9 @@ const {
     buildClocksResponse,
     generateClockScores
 } = require('../services/clockService');
+const { calculateAICost } = require('../../utils/aiCostHelper');
+const { convertToLocalCurrency } = require('../../utils/aiCostHelper');
+const { detectRegionFromIP } = require('../../utils/regionHelper');
 
 async function saveClockHistory(userId, scores, type, pulseId) {
     try {
@@ -137,6 +140,10 @@ exports.getCommandCenter = async (req, res) => {
             significantChange: false,
             canRefresh:        userClock.validityState === 'FROZEN',
             experts:           assignedExperts,
+            tokenUsage:        userClock.tokenUsage || null,
+            cost:              userClock.tokenUsage ? calculateAICost((userClock.llm || 'Anthropic') + '-' + (userClock.model || 'Haiku'), userClock.tokenUsage) : 0,
+            localCost:         userClock.tokenUsage ? convertToLocalCurrency(calculateAICost((userClock.llm || 'Anthropic') + '-' + (userClock.model || 'Haiku'), userClock.tokenUsage), detectRegionFromIP(req.ip || '122.161.48.0').currency).amount : 0,
+            localCurrency:     detectRegionFromIP(req.ip || '122.161.48.0').currency,
             message:           'Command center loaded successfully.'
         };
 
@@ -208,6 +215,10 @@ exports.runHawk = async (req, res) => {
             data: {
                 hawkRun: true,
                 validityState: 'ACTIVE_CLOCK',
+                tokenUsage: newScores.tokenUsage,
+                cost: calculateAICost(newScores.llm + '-' + newScores.model, newScores.tokenUsage),
+                localCost: convertToLocalCurrency(calculateAICost(newScores.llm + '-' + newScores.model, newScores.tokenUsage), detectRegionFromIP(req.ip || '122.161.48.0').currency).amount,
+                localCurrency: detectRegionFromIP(req.ip || '122.161.48.0').currency,
                 clockValidUntil,
                 daysLeft: 7,
                 clocks: buildClocksResponse(newScores, newScores, newScores), // Benchmarks relative to fresh AI scores
@@ -250,9 +261,22 @@ exports.refreshClocksFromCase = async (req, res) => {
             updatedAt: new Date()
         };
 
-        await db.UserClocks.findOneAndUpdate({ userId }, { $set: updateData }, { upsert: true });
+        const updatedClock = await db.UserClocks.findOneAndUpdate({ userId }, { $set: updateData }, { upsert: true, new: true });
+        
+        const usage = updatedClock.tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+        const usdCost = calculateAICost((updatedClock.llm || 'Anthropic') + '-' + (updatedClock.model || 'Haiku'), usage);
+        const local = convertToLocalCurrency(usdCost, detectRegionFromIP(req.ip || '122.161.48.0').currency);
 
-        return res.status(200).json({ success: true, message: 'Clocks validity refreshed successfully.' });
+        return res.status(200).json({ 
+            success: true, 
+            message: 'Clocks validity refreshed successfully.',
+            data: {
+                tokenUsage: usage,
+                cost: usdCost,
+                localCost: local.amount,
+                localCurrency: local.currency
+            }
+        });
     } catch (error) {
         return res.status(500).json({ success: false, message: `Clock refresh failed: ${error.message}`, error: error.message });
     }

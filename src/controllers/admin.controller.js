@@ -1,39 +1,14 @@
 const { db } = require('../models/index.model.js');
+const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const RESPONSE = require('../../utils/response.js');
 const s3Service = require('../../utils/s3');
 const notificationService = require('../services/notificationService');
 const { createAuditLog } = require('../../utils/auditLogger.js');
+const { calculateAICost, extractUsage, convertToLocalCurrency } = require('../../utils/aiCostHelper');
+const { detectRegionFromIP } = require('../../utils/regionHelper');
 
-exports.getDashboardStats = async (req, res) => {
-    try {
-        const totalUsers = await db.User.countDocuments({ role: 'user' });
-        const activeRuns = await db.Runs.countDocuments({ status: { $nin: ['REPORT_COMPLETE', 'FAILED'] } });
-
-        // Pending Audits (Kanban Columns: INTAKE, ANALYSIS, REVIEW)
-        const pendingAudits = await db.Runs.countDocuments({
-            status: { $in: ['CREATED', 'CV_UPLOADED', 'ANALYSING', 'INTEGRITY_CHECK_PASSED', 'EXPERT_ASSIGNED'] }
-        });
-
-        // Revenue (Sum of successful payments)
-        const revenueData = await db.Payments.aggregate([
-            { $match: { status: 'COMPLETED' } },
-            { $group: { _id: null, total: { $sum: "$amount" } } }
-        ]);
-        const totalRevenue = revenueData.length > 0 ? revenueData[0].total : 0;
-
-        return RESPONSE.success(res, 200, 1001, {
-            totalUsers,
-            activeRuns,
-            pendingAudits,
-            totalRevenue,
-            currency: 'INR'
-        });
-    } catch (err) {
-        return RESPONSE.error(res, 500, 9999, err.message);
-    }
-};
 
 exports.adminSignup = async (req, res) => {
     try {
@@ -110,6 +85,33 @@ exports.adminLogin = async (req, res) => {
     }
 };
 
+/**
+ * Verify Admin Password (for sensitive UI actions)
+ * POST /api/v1/admin/verify-password
+ */
+exports.verifyAdminPassword = async (req, res) => {
+    try {
+        const { password } = req.body;
+        if (!password) {
+            return RESPONSE.error(res, 400, 1002, 'Password is required');
+        }
+
+        const admin = await db.Admin.findById(req.user.id);
+        if (!admin) {
+            return RESPONSE.error(res, 404, 1005, 'Admin not found');
+        }
+
+        const isMatch = await bcrypt.compare(password, admin.password);
+        if (!isMatch) {
+            return RESPONSE.error(res, 401, 1005, 'Invalid password');
+        }
+
+        return RESPONSE.success(res, 200, 1006, { verified: true }, 'Password verified successfully');
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
 exports.getAllUsers = async (req, res) => {
     try {
         const { page = 1, limit = 10 } = req.query;
@@ -170,6 +172,11 @@ exports.getDeletedUsers = async (req, res) => {
 exports.getUserDetails = async (req, res) => {
     try {
         const { userId } = req.params;
+        
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return RESPONSE.error(res, 400, 1002, 'Invalid User ID format');
+        }
+
         const user = await db.User.findById(userId);
         if (!user) return RESPONSE.error(res, 404, 3001, 'User not found');
 
@@ -219,6 +226,10 @@ exports.blockUser = async (req, res) => {
     try {
         const { userId } = req.params;
         const { isBlocked } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return RESPONSE.error(res, 400, 1002, 'Invalid User ID format');
+        }
 
         const user = await db.User.findById(userId);
         if (!user) return RESPONSE.error(res, 404, 3001, 'User not found');
@@ -417,27 +428,30 @@ exports.getDashboardStats = async (req, res) => {
     try {
         const { financialYear } = req.query; // Format: "2024-25"
 
-        // 1. Calculate Financial Year Date Range
-        let startDate, endDate;
         const now = new Date();
         const currentMonth = now.getMonth(); // 0-11
         const currentYear = now.getFullYear();
+        let startDate, endDate;
+        let dateFilter = {};
+        let paymentMatch = { status: 'COMPLETED' };
 
-        if (financialYear && financialYear.includes('-')) {
+        if (financialYear === 'ALL') {
+            startDate = new Date(0); // Beginning of time
+            endDate = new Date(); // Now
+        } else if (financialYear && financialYear.includes('-')) {
             const [startYearStr] = financialYear.split('-');
             const startYear = parseInt(startYearStr);
-            startDate = new Date(startYear, 3, 1, 0, 0, 0, 0); // April 1st
-            endDate = new Date(startYear + 1, 2, 31, 23, 59, 59, 999); // March 31st
+            startDate = new Date(startYear, 3, 1, 0, 0, 0, 0);
+            endDate = new Date(startYear + 1, 2, 31, 23, 59, 59, 999);
+            dateFilter = { createdAt: { $gte: startDate, $lte: endDate } };
+            paymentMatch.createdAt = { $gte: startDate, $lte: endDate };
         } else {
-            // Default: Current Financial Year
-            // If current month is Jan-Mar (0-2), FY started last year.
-            // If current month is Apr-Dec (3-11), FY started this year.
             const fyStartYear = currentMonth < 3 ? currentYear - 1 : currentYear;
             startDate = new Date(fyStartYear, 3, 1, 0, 0, 0, 0);
             endDate = new Date(fyStartYear + 1, 2, 31, 23, 59, 59, 999);
+            dateFilter = { createdAt: { $gte: startDate, $lte: endDate } };
+            paymentMatch.createdAt = { $gte: startDate, $lte: endDate };
         }
-
-        const dateFilter = { createdAt: { $gte: startDate, $lte: endDate } };
 
         // Real-time markers (independent of FY selection for current awareness)
         const todayStart = new Date();
@@ -456,7 +470,7 @@ exports.getDashboardStats = async (req, res) => {
         
         // 3. Financial Metrics (Filtered by Business Year)
         const revenueResult = await db.Payments.aggregate([
-            { $match: { status: 'COMPLETED', createdAt: { $gte: startDate, $lte: endDate } } },
+            { $match: paymentMatch },
             { $group: { _id: null, total: { $sum: "$amount" } } }
         ]);
         const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
@@ -472,13 +486,10 @@ exports.getDashboardStats = async (req, res) => {
             status: { $in: ['QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED', 'EXTRACTING', 'CONTRA_CHECK', 'SIGNAL_PULL', 'SYNTHESIZING', 'INTEGRITY_COMPLETE', 'EXPERT_ASSIGNED'] } 
         });
         const failedRuns = await db.Runs.countDocuments({ ...dateFilter, status: 'PROCESSING_FAILED' });
-        const paidAssessmentCount = await db.Payments.countDocuments({ 
-            status: 'COMPLETED', 
-            createdAt: { $gte: startDate, $lte: endDate } 
-        });
+        const paidAssessmentCount = await db.Payments.countDocuments(paymentMatch);
 
         const revenueByCase = await db.Payments.aggregate([
-            { $match: { status: 'COMPLETED', createdAt: { $gte: startDate, $lte: endDate } } },
+            { $match: paymentMatch },
             { $group: { _id: "$caseId", revenue: { $sum: "$amount" } } },
             {
                 $lookup: {
@@ -1092,8 +1103,10 @@ exports.getCvAuditLogs = async (req, res) => {
                 cvUrl: l.cvUrl || null,
                 status: l.parserStatus,
                 errorReason: l.errorReason,
+                llm: l.parserMetadata?.llm || 'N/A',
+                model: l.parserMetadata?.model || 'N/A',
+                cost: calculateAICost(l.parserMetadata?.llm + '-' + l.parserMetadata?.model, extractUsage(l.parserMetadata)),
                 metadata: l.parserMetadata,
-                extractedData: l.parsedCvData,
                 uploadedAt: l.uploadedAt || l.createdAt
             };
         });
@@ -1206,12 +1219,302 @@ exports.getCvAuditDetails = async (req, res) => {
                 cvUrl: log.cvUrl,
                 status: log.parserStatus,
                 errorReason: log.errorReason,
+                llm: log.parserMetadata?.llm || 'N/A',
+                model: log.parserMetadata?.model || 'N/A',
+                cost: calculateAICost(log.parserMetadata?.llm + '-' + log.parserMetadata?.model, extractUsage(log.parserMetadata)),
                 metadata: log.parserMetadata,
                 extractedData: log.parsedCvData,
                 uploadedAt: log.uploadedAt || log.createdAt
             }
         });
     } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * Get Total AI Cost for a specific Run (Case)
+ * GET /api/v1/admin/manage/run-audit/cost/:runId
+ */
+exports.getRunAICostAudit = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const { userId, caseId } = req.query;
+
+        let runs = [];
+        if (userId && caseId) {
+            runs = await db.Runs.find({ userId, caseId }).sort({ createdAt: 1 }).lean();
+        } else {
+            const run = await db.Runs.findOne({ runId }).lean();
+            if (run) runs = [run];
+        }
+
+        if (runs.length === 0) return res.status(404).json({ success: false, message: 'No runs found' });
+
+        let totalRunCost = 0;
+        let totalPromptTokens = 0;
+        let totalCompletionTokens = 0;
+        const auditDetails = [];
+
+        for (const run of runs) {
+            const runLabel = runs.length > 1 ? `[Run: ${run.runId}] ` : '';
+
+            // CV Parsing
+            if (run.cvSnapshot?.cvUploadId) {
+                const cvLog = await db.DocumentUploads.findById(run.cvSnapshot.cvUploadId).lean();
+                if (cvLog && cvLog.parserMetadata) {
+                    const usage = extractUsage(cvLog.parserMetadata);
+                    const cost = calculateAICost(cvLog.parserMetadata.llm + '-' + cvLog.parserMetadata.model, usage);
+                    totalRunCost += cost;
+                    totalPromptTokens += usage.promptTokens;
+                    totalCompletionTokens += usage.completionTokens;
+                    auditDetails.push({
+                        step: `${runLabel}CV_PARSING`,
+                        llm: cvLog.parserMetadata.llm,
+                        model: cvLog.parserMetadata.model,
+                        usage: { ...usage, totalTokens: usage.promptTokens + usage.completionTokens },
+                        cost: cost,
+                        timestamp: cvLog.createdAt
+                    });
+                }
+            }
+
+            // Signal Research
+            const signalRas = await db.Ras.findOne({ runId: run.runId, artifactType: 'EXTERNAL_SIGNALS_CAPTURED' }).lean();
+            if (signalRas && signalRas.artifactJson?.signals?.tokenUsage) {
+                const usage = extractUsage(signalRas.artifactJson.signals);
+                const cost = calculateAICost('Gemini', usage);
+                totalRunCost += cost;
+                totalPromptTokens += usage.promptTokens;
+                totalCompletionTokens += usage.completionTokens;
+                auditDetails.push({
+                    step: `${runLabel}SIGNAL_RESEARCH`,
+                    llm: 'Mixed (Primary: Gemini)',
+                    model: 'Flash-2.0',
+                    usage: { ...usage, totalTokens: usage.promptTokens + usage.completionTokens },
+                    cost: cost,
+                    timestamp: signalRas.createdAt
+                });
+            }
+
+            // Report Synthesis
+            const reportRas = await db.Ras.findOne({ runId: run.runId, artifactType: 'FINAL_REPORT' }).lean();
+            if (reportRas && reportRas.artifactJson?.tokenUsage) {
+                const usage = extractUsage(reportRas.artifactJson);
+                const cost = calculateAICost('Anthropic-Haiku', usage);
+                totalRunCost += cost;
+                totalPromptTokens += usage.promptTokens;
+                totalCompletionTokens += usage.completionTokens;
+                auditDetails.push({
+                    step: `${runLabel}REPORT_SYNTHESIS`,
+                    llm: reportRas.artifactJson.modelFamily || 'Claude',
+                    model: 'Haiku',
+                    usage: { ...usage, totalTokens: usage.promptTokens + usage.completionTokens },
+                    cost: cost,
+                    timestamp: reportRas.createdAt
+                });
+            }
+
+            // Clock Recalibration
+            const clockHistory = await db.ClockHistory.find({ 
+                userId: run.userId.toString(),
+                calculatedAt: { 
+                    $gte: new Date(run.createdAt.getTime() - 5000), 
+                    $lte: run.completedAt || new Date() 
+                }
+            }).lean();
+
+            for (const clk of clockHistory) {
+                if (clk.tokenUsage) {
+                    const usage = extractUsage(clk);
+                    const cost = calculateAICost(clk.llm + '-' + clk.model, usage);
+                    totalRunCost += cost;
+                    totalPromptTokens += usage.promptTokens;
+                    totalCompletionTokens += usage.completionTokens;
+                    auditDetails.push({
+                        step: `${runLabel}CLOCK_RECALIBRATION (${clk.triggeredBy})`,
+                        llm: clk.llm,
+                        model: clk.model,
+                        usage: { ...usage, totalTokens: usage.promptTokens + usage.completionTokens },
+                        cost: cost,
+                        timestamp: clk.calculatedAt
+                    });
+                }
+            }
+        }
+
+        const userRegion = detectRegionFromIP(req.ip || '122.161.48.0');
+        const local = convertToLocalCurrency(totalRunCost, userRegion.currency);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                totalRunCost: parseFloat(totalRunCost.toFixed(6)),
+                totalTokens: totalPromptTokens + totalCompletionTokens,
+                totalUsage: {
+                    promptTokens: totalPromptTokens,
+                    completionTokens: totalCompletionTokens,
+                    totalTokens: totalPromptTokens + totalCompletionTokens
+                },
+                currency: 'USD',
+                localCost: local.amount,
+                localCurrency: local.currency,
+                exchangeRate: local.rate,
+                auditDetails: auditDetails.map(d => {
+                    const l = convertToLocalCurrency(d.cost, userRegion.currency);
+                    return { ...d, localCost: l.amount };
+                })
+            }
+        });
+
+    } catch (err) {
+        console.error('[Run AI Cost Audit Error]', err);
+        return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * Get List of all Runs with Aggregated AI Costs (For Admin Table)
+ * GET /api/v1/admin/manage/run-audit/list
+ */
+exports.getRunsAuditList = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search = '' } = req.query;
+        const userRegion = detectRegionFromIP(req.ip || '122.161.48.0');
+
+        const matchQuery = {};
+        if (search) {
+            const users = await db.User.find({ 
+                $or: [
+                    { fullName: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } }
+                ]
+            }).select('_id');
+            matchQuery.userId = { $in: users.map(u => u._id) };
+        }
+
+        // Aggregate to group by user and case
+        const aggregate = [
+            { $match: matchQuery },
+            { $sort: { createdAt: -1 } },
+            {
+                $group: {
+                    _id: { userId: "$userId", caseId: "$caseId" },
+                    latestRunId: { $first: "$runId" },
+                    allRunIds: { $push: "$runId" },
+                    status: { $first: "$status" },
+                    lastRunAt: { $first: "$createdAt" },
+                    runCount: { $sum: 1 }
+                }
+            },
+            { $sort: { lastRunAt: -1 } },
+            { $skip: (parseInt(page) - 1) * parseInt(limit) },
+            { $limit: parseInt(limit) },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id.userId',
+                    foreignField: '_id',
+                    as: 'userInfo'
+                }
+            },
+            { $unwind: "$userInfo" },
+            {
+                $lookup: {
+                    from: 'caseregistries',
+                    localField: '_id.caseId',
+                    foreignField: 'caseId',
+                    as: 'caseInfo'
+                }
+            },
+            { $unwind: { path: "$caseInfo", preserveNullAndEmptyArrays: true } }
+        ];
+
+        const groupedData = await db.Runs.aggregate(aggregate);
+        const totalGroupsResult = await db.Runs.aggregate([
+            { $match: matchQuery },
+            { $group: { _id: { userId: "$userId", caseId: "$caseId" } } },
+            { $count: "count" }
+        ]);
+        const totalGroups = totalGroupsResult[0]?.count || 0;
+
+        const formattedRows = await Promise.all(groupedData.map(async (group) => {
+            let totalGroupCost = 0;
+
+            // Fetch all runs in this group to calculate cumulative cost
+            const runs = await db.Runs.find({ runId: { $in: group.allRunIds } }).lean();
+
+            for (const run of runs) {
+                let runCost = 0;
+                // CV Parsing
+                if (run.cvSnapshot?.cvUploadId) {
+                    const cvLog = await db.DocumentUploads.findById(run.cvSnapshot.cvUploadId).select('parserMetadata').lean();
+                    if (cvLog?.parserMetadata) {
+                        runCost += calculateAICost(cvLog.parserMetadata.llm + '-' + cvLog.parserMetadata.model, extractUsage(cvLog.parserMetadata));
+                    }
+                }
+                // Signal Research
+                const signalRas = await db.Ras.findOne({ runId: run.runId, artifactType: 'EXTERNAL_SIGNALS_CAPTURED' }).select('artifactJson').lean();
+                if (signalRas?.artifactJson?.signals?.tokenUsage) {
+                    runCost += calculateAICost('Gemini', extractUsage(signalRas.artifactJson.signals));
+                }
+                // Report Synthesis
+                const reportRas = await db.Ras.findOne({ runId: run.runId, artifactType: 'FINAL_REPORT' }).select('artifactJson').lean();
+                if (reportRas?.artifactJson?.tokenUsage) {
+                    runCost += calculateAICost(reportRas.artifactJson.modelFamily || 'Claude', extractUsage(reportRas.artifactJson));
+                }
+                // Clock Recalibration
+                const runUserIdStr = group._id.userId ? group._id.userId.toString() : null;
+                const clockHistory = runUserIdStr ? await db.ClockHistory.find({ 
+                    userId: runUserIdStr,
+                    calculatedAt: { 
+                        $gte: new Date(run.createdAt.getTime() - 5000), 
+                        $lte: run.completedAt || new Date() 
+                    }
+                }).select('tokenUsage llm model').lean() : [];
+
+                for (const clk of clockHistory) {
+                    if (clk.tokenUsage) {
+                        runCost += calculateAICost(clk.llm + '-' + clk.model, extractUsage(clk));
+                    }
+                }
+                totalGroupCost += runCost;
+            }
+
+            const local = convertToLocalCurrency(totalGroupCost, userRegion.currency);
+
+            return {
+                userId: group._id.userId,
+                caseId: group._id.caseId,
+                caseName: group.caseInfo?.caseName || group._id.caseId,
+                user: {
+                    fullName: group.userInfo.fullName || 'N/A',
+                    email: group.userInfo.email || 'N/A'
+                },
+                status: group.status,
+                runCount: group.runCount,
+                allRunIds: group.allRunIds, // For the detail view
+                costUsd: parseFloat(totalGroupCost.toFixed(6)),
+                costLocal: local.amount,
+                currency: local.currency,
+                lastRunAt: group.lastRunAt
+            };
+        }));
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                runs: formattedRows,
+                pagination: {
+                    total: totalGroups,
+                    page: parseInt(page),
+                    pages: Math.ceil(totalGroups / parseInt(limit))
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error('[Get Runs Audit List Error]', err);
         return res.status(500).json({ success: false, message: err.message });
     }
 };
@@ -1236,7 +1539,12 @@ exports.getSignalVolumeSummary = async (req, res) => {
             endDate = new Date(fyStartYear + 1, 2, 31, 23, 59, 59, 999);
         }
 
-        const dateFilter = { fetchedAt: { $gte: startDate, $lte: endDate } };
+        let dateFilter = { fetchedAt: { $gte: startDate, $lte: endDate } };
+
+        // Support "All Time" View
+        if (financialYear === 'ALL') {
+            dateFilter = {};
+        }
 
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -1264,8 +1572,8 @@ exports.getSignalVolumeSummary = async (req, res) => {
         const sourceDist = await db.ExternalEvidenceDataPool.aggregate([
             { $match: dateFilter },
             { $group: { _id: "$sourceId", count: { $sum: 1 } } },
-            { $limit: 10 },
-            { $sort: { count: -1 } }
+            { $sort: { count: -1 } },
+            { $limit: 10 }
         ]);
 
         // 4. Overalls (FY Scoped)

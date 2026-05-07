@@ -135,6 +135,61 @@ router.get('/cv-audit/:id', adminController.getCvAuditDetails);
 
 /**
  * @swagger
+ * /admin/manage/run-audit/cost/{runId}:
+ *   get:
+ *     summary: Get Total AI Cost for a specific Run (Case)
+ *     description: Aggregates token usage and costs from CV parsing, signals, reports, and clock recalibrations for a specific run.
+ *     tags: ["9. Admin: Dashboard"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier for the run
+ *     responses:
+ *       200:
+ *         description: AI cost audit retrieved successfully
+ *       404:
+ *         description: Run not found
+ */
+router.get('/run-audit/cost/:runId', adminController.getRunAICostAudit);
+
+/**
+ * @swagger
+ * /admin/manage/run-audit/list:
+ *   get:
+ *     summary: Get List of all Runs with Aggregated AI Costs
+ *     description: Returns a paginated list of all assessment runs with their total calculated AI costs in USD and local currency.
+ *     tags: ["9. Admin: Dashboard"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Number of items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by user name or email
+ *     responses:
+ *       200:
+ *         description: List of runs with costs retrieved successfully
+ */
+router.get('/run-audit/list', adminController.getRunsAuditList);
+
+/**
+ * @swagger
  * /admin/manage/credits/update:
  *   post:
  *     summary: Manually update user credits (Admin Only)
