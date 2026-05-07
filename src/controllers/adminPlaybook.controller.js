@@ -29,7 +29,7 @@ exports.downloadPlaybookTemplate = async (req, res) => {
         for (const sheetName of Object.keys(PLAYBOOK_MAPPING)) {
             const config = PLAYBOOK_MAPPING[sheetName];
             const Model = db[config.model];
-            
+
             if (!Model) {
                 console.warn(`[Template Gen] Model ${config.model} not found for sheet ${sheetName}`);
                 continue;
@@ -48,7 +48,7 @@ exports.downloadPlaybookTemplate = async (req, res) => {
                 }
             } else {
                 // FORCE EMPTY: We only want headers for a new case
-                query = { _id: null }; 
+                query = { _id: null };
             }
             const rawData = await Model.find(query).lean();
 
@@ -57,13 +57,16 @@ exports.downloadPlaybookTemplate = async (req, res) => {
             const processedData = rawData.map(item => {
                 const row = {};
                 const { _id, __v, createdAt, updatedAt, ...cleanItem } = item;
-                
+
                 Object.keys(cleanItem).forEach(key => {
                     let keep = true;
 
-                    // Example split logic
-                    if (sheetName.includes('Questions') && !sheetName.includes('Scoring') && key.toLowerCase().includes('score')) keep = false;
-                    if (sheetName.includes('Scoring') && !['questionId', 'questionText'].includes(key) && !key.toLowerCase().includes('score')) keep = false;
+                    // Special split logic for Questions (Sheet 05) and Scoring (Sheet 06)
+                    const isQuestionsModel = config.model === 'Questions';
+                    if (isQuestionsModel) {
+                        if (sheetName.includes('Questions') && !sheetName.includes('Scoring') && key.toLowerCase().includes('score')) keep = false;
+                        if (sheetName.includes('Scoring') && !['questionId', 'questionText'].includes(key) && !key.toLowerCase().includes('score')) keep = false;
+                    }
 
                     if (keep) {
                         const excelHeader = toSnakeCase(key);
@@ -84,25 +87,28 @@ exports.downloadPlaybookTemplate = async (req, res) => {
                 const schemaPaths = Object.keys(Model.schema.paths).filter(p => !['_id', '__v', 'createdAt', 'updatedAt'].includes(p));
                 const headers = {};
                 schemaPaths.forEach(p => {
-                    // Filter headers based on sheet-specific merging logic
                     let keep = true;
-                    if (sheetName.includes('Questions') && !sheetName.includes('Scoring') && p.toLowerCase().includes('score')) keep = false;
-                    if (sheetName.includes('Scoring') && !['questionId', 'questionText'].includes(p) && !p.toLowerCase().includes('score')) keep = false;
-                    
-                    if (keep) headers[toSnakeCase(p)] = ""; 
+                    // Special split logic for Questions (Sheet 05) and Scoring (Sheet 06)
+                    const isQuestionsModel = config.model === 'Questions';
+                    if (isQuestionsModel) {
+                        if (sheetName.includes('Questions') && !sheetName.includes('Scoring') && p.toLowerCase().includes('score')) keep = false;
+                        if (sheetName.includes('Scoring') && !['questionId', 'questionText'].includes(p) && !p.toLowerCase().includes('score')) keep = false;
+                    }
+
+                    if (keep) headers[toSnakeCase(p)] = "";
                 });
                 worksheet = XLSX.utils.json_to_sheet([headers]);
             }
-            
+
             XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 
         }
 
         const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-        
+
         res.setHeader('Content-Disposition', `attachment; filename=Hawksyn_Template_${caseId || 'Master'}.xlsx`);
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        
+
         return res.send(buffer);
 
     } catch (error) {
@@ -131,7 +137,7 @@ exports.uploadPlaybook = async (req, res) => {
             }
 
             let config = PLAYBOOK_MAPPING[baseNameOrig];
-            
+
             if (!config) {
                 // Fuzzy Match: Does any mapping key "contain" this sheet name or vice versa?
                 // Or does the sheet name contain the short code (e.g. "CR")?
@@ -362,7 +368,7 @@ exports.uploadPlaybook = async (req, res) => {
                         }
                     }
                 });
-                
+
                 // (D2) Strict Type Validation against Model Schema
                 const schemaPaths = db[config.model].schema.paths;
                 Object.keys(normalizedRow).forEach(field => {

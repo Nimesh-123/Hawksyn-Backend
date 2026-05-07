@@ -62,9 +62,18 @@ Rules:
 - trendTrigger = one specific market event
 - Base on real current AI adoption trends`;
 
-    const { data, duration, provider } = await generateJSON(prompt);
+    const { data, duration, provider, usage } = await generateJSON(prompt);
     console.log(`[ClockService] ✅ AI calculation complete in ${duration} via ${provider}`);
-    return { ...data, calculationDuration: duration };
+    
+    const [llm, model] = (provider || 'AI-Model').split('-');
+
+    return { 
+        ...data, 
+        calculationDuration: duration,
+        llm: llm || 'AI',
+        model: model || 'Model',
+        tokenUsage: usage
+    };
 }
 
 /**
@@ -318,6 +327,10 @@ async function recalibrateForUser(userId, profile) {
                     lastCalculatedAt: new Date(),
                     pulseId: pulse?.pulseId || null,
                     ...clockScores,
+                    llm: clockScores.llm || 'N/A',
+                    model: clockScores.model || 'N/A',
+                    tokenUsage: clockScores.tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+                    calculationDuration: clockScores.calculationDuration || null,
                     updatedAt: new Date()
                 }
             },
@@ -338,7 +351,11 @@ async function recalibrateForUser(userId, profile) {
             opportunityWindowYears: clockScores.opportunityWindowYears || 0,
             pulseId: pulse?.pulseId || null,
             triggeredBy: 'AUTO_OPEN',
-            calculatedAt: new Date()
+            calculatedAt: new Date(),
+            llm: clockScores.llm || 'N/A',
+            model: clockScores.model || 'N/A',
+            tokenUsage: clockScores.tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+            calculationDuration: clockScores.calculationDuration || null
         });
 
         console.log(`[ClockService] ✅ Successfully finished recalibration for ${userId}`);
@@ -405,6 +422,10 @@ async function refreshClocksAfterCase(userId, runId) {
                     lastCalculatedBy: 'CASE_RUN',
                     lastCalculatedAt: new Date(),
                     ...clockScores,
+                    llm: clockScores.llm || 'N/A',
+                    model: clockScores.model || 'N/A',
+                    tokenUsage: clockScores.tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+                    calculationDuration: clockScores.calculationDuration || null,
                     previousAiExposureScore: existingClock?.aiExposureScore ?? null,
                     previousCareerMomentumScore: existingClock?.careerMomentumScore ?? null,
                     previousSkillRelevanceScore: existingClock?.skillRelevanceScore ?? null,
@@ -430,7 +451,11 @@ async function refreshClocksAfterCase(userId, runId) {
             opportunityWindowYears: clockScores.opportunityWindowYears || 0,
             pulseId: null, // CASE_RUN is based on Run context, not a specific market pulse
             triggeredBy: 'CASE_RUN',
-            calculatedAt: new Date()
+            calculatedAt: new Date(),
+            llm: clockScores.llm || 'N/A',
+            model: clockScores.model || 'N/A',
+            tokenUsage: clockScores.tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+            calculationDuration: clockScores.calculationDuration || null
         });
 
         return true;

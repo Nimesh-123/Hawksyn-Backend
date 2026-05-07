@@ -62,6 +62,9 @@ const mapConsolidatedToHawksyn = (result, duration, modelUsed) => {
         (s.secondary_skills || []).forEach(ss => technicalSkills.add(ss));
     });
 
+    const [llm, ...modelParts] = (modelUsed || "").split('-');
+    const model = modelParts.join('-');
+
     return {
         aeuList,
         structured: {
@@ -91,6 +94,8 @@ const mapConsolidatedToHawksyn = (result, duration, modelUsed) => {
             }
         },
         parsingDuration: `${duration}s`,
+        llm: llm || 'AI',
+        model: model || 'N/A',
         modelUsed: modelUsed,
         isCv: true,
         flags: { isInputTruncated: false, isOutputTruncated: false }
@@ -100,7 +105,10 @@ const mapConsolidatedToHawksyn = (result, duration, modelUsed) => {
 /**
  * Merge dual-specialist results into a single standardized object
  */
-const mergeParallelResults = (bgResult, skillsResult, duration, modelUsed) => {
+const mergeParallelResults = (bgResponse, skillsResponse, duration, modelUsed) => {
+    const bgResult = bgResponse.data || {};
+    const skillsResult = skillsResponse.data || {};
+
     // Determine overall isCv status
     // Identity & Work AEUs (from Identity/Work prompt)
     const aeuList = (bgResult.base_aeus || []).map(b => ({
@@ -185,6 +193,11 @@ const mergeParallelResults = (bgResult, skillsResult, duration, modelUsed) => {
         );
     }
 
+    const [bgLlm, ...bgModelParts] = (bgResponse.provider || "").split('-');
+    const bgModel = bgModelParts.join('-');
+    const [skLlm, ...skModelParts] = (skillsResponse.provider || "").split('-');
+    const skModel = skModelParts.join('-');
+
     return {
         aeuList,
         structured: {
@@ -214,6 +227,8 @@ const mergeParallelResults = (bgResult, skillsResult, duration, modelUsed) => {
             }
         },
         parsingDuration: `${duration}s`,
+        llm: bgLlm === skLlm ? bgLlm : `${bgLlm} + ${skLlm}`,
+        model: bgModel === skModel ? bgModel : `${bgModel} + ${skModel}`,
         modelUsed: modelUsed,
         isCv: true,
         flags: { isInputTruncated: false, isOutputTruncated: false }
@@ -366,7 +381,7 @@ SECTION 2 — SKILL MAPPING RULES
                 const totalDuration = (Date.now() - totalStartTime) / 1000;
                 const modelLabel = `Unified Parallel (${bgResponse.provider || 'AI'} + ${skillsResponse.provider || 'AI'})`;
                 
-                const standardized = mergeParallelResults(bgResponse.data, skillsResponse.data, totalDuration, modelLabel);
+                const standardized = mergeParallelResults(bgResponse, skillsResponse, totalDuration, modelLabel);
 
                 // Metadata & Usage
                 standardized.tokenUsage = {
@@ -391,7 +406,7 @@ SECTION 2 — SKILL MAPPING RULES
                 console.log(`[AI Parser] Using Consolidated Prompt Strategy (Fallback)...`);
                 const response = await extractPart(trimmedText, consolidatedConfig, forcedProvider);
                 const totalDuration = (Date.now() - totalStartTime) / 1000;
-                const modelLabel = `Consolidated Chain (${response.provider || 'Primary'})`;
+                const modelLabel = `Unified Chain (${response.provider || 'Claude'})`;
                 
                 const standardized = mapConsolidatedToHawksyn(response.data, totalDuration, modelLabel);
                 

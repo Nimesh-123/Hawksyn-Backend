@@ -58,7 +58,7 @@ Rules:
  * 2. LLM HELPER — Call Unified AI Provider (Primary: Claude)
  */
 async function callUnifiedAI(prompt) {
-    const { data, usage, provider, duration } = await generateJSON(prompt);
+    const { data, usage, provider, duration } = await generateJSON(prompt, undefined, { forceProvider: 'Gemini' });
     
     return {
         data,

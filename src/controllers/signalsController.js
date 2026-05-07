@@ -6,6 +6,7 @@ const {
     buildCoverage
 } = require('../../utils/signalHelpers.js');
 const { createAuditLog } = require('../../utils/auditLogger.js');
+const { calculateAICost } = require('../../utils/aiCostHelper');
 
 exports.collectSignals = async (req, res) => {
     try {
@@ -322,6 +323,8 @@ exports.collectSignals = async (req, res) => {
                 signalsSummary: Object.entries(finalSignalsMap).reduce((acc, [k, v]) => ({ ...acc, [k]: v.value }), {}),
                 analystNote: signals?.analystNote || null,
                 collectionDuration: totalDurationLabel,
+                tokenUsage: signals?.tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+                cost: signals?.tokenUsage ? calculateAICost('Gemini', signals.tokenUsage) : 0,
                 message: 'External signals collected successfully.'
             }
         });

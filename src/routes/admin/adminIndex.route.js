@@ -38,6 +38,7 @@ route.use('/config', adminConfigRoute);
 route.get('/dashboard/stats', adminController.getDashboardStats);
 route.get('/signals/summary', adminController.getDashboardStats);
 route.get('/signals/volume', adminController.getSignalVolumeSummary);
+route.post('/verify-password', adminController.verifyAdminPassword);
 
 // Financials
 route.get('/payments/all', paymentController.adminGetAllPayments);

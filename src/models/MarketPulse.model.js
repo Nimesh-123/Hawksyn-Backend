@@ -22,7 +22,17 @@ const MarketPulseSchema = new mongoose.Schema({
     
     isActive: { type: Boolean, default: true },
     expiresAt: { type: Date, required: true },
-    generatedBy: { type: String, default: 'CRON_WEEKLY' }
+    generatedBy: { type: String, default: 'CRON_WEEKLY' },
+
+    // AI Audit Metadata
+    llm: { type: String, default: 'N/A' },
+    model: { type: String, default: 'N/A' },
+    tokenUsage: {
+        promptTokens: { type: Number, default: 0 },
+        completionTokens: { type: Number, default: 0 },
+        totalTokens: { type: Number, default: 0 }
+    },
+    calculationDuration: { type: String, default: null }
 }, {
     timestamps: true,
     collection: 'market_pulses'

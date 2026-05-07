@@ -15,7 +15,17 @@ const ClockHistorySchema = new mongoose.Schema({
 
     triggeredBy: { type: String, enum: ['AUTO_OPEN', 'HAWK', 'CASE_RUN'], default: 'AUTO_OPEN' },
     pulseId: { type: String, default: null },
-    calculatedAt: { type: Date, default: Date.now }
+    calculatedAt: { type: Date, default: Date.now },
+
+    // AI Audit Metadata
+    llm: { type: String, default: 'N/A' },
+    model: { type: String, default: 'N/A' },
+    tokenUsage: {
+        promptTokens: { type: Number, default: 0 },
+        completionTokens: { type: Number, default: 0 },
+        totalTokens: { type: Number, default: 0 }
+    },
+    calculationDuration: { type: String, default: null }
 }, {
     timestamps: true,
     collection: 'clock_history'

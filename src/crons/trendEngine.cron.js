@@ -94,7 +94,7 @@ Rules:
 - insightText must be one sentence only
 - Base your assessment on current AI adoption trends and job market conditions`;
 
-    const { data: parsed, duration, provider } = await generateJSON(prompt);
+    const { data: parsed, duration, provider, usage } = await generateJSON(prompt);
     console.log(`[TrendEngine] AI Pulse generated in ${duration} via ${provider}`);
 
     // Basic validation
@@ -109,7 +109,15 @@ Rules:
         }
     }
 
-    return parsed;
+    const [llm, model] = (provider || 'AI-Model').split('-');
+
+    return { 
+        ...parsed, 
+        calculationDuration: duration,
+        llm: llm || 'AI',
+        model: model || 'Model',
+        tokenUsage: usage
+    };
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -170,6 +178,10 @@ async function runTrendEngine() {
                             isActive: true,
                             expiresAt,
                             generatedBy: 'CRON_WEEKLY',
+                            llm: trends.llm || 'N/A',
+                            model: trends.model || 'N/A',
+                            tokenUsage: trends.tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+                            calculationDuration: trends.calculationDuration || null,
                             updatedAt: new Date()
                         },
                         $setOnInsert: { createdAt: new Date() }

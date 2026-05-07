@@ -14,6 +14,7 @@ const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const { aiSemaphore } = require('../../utils/concurrency.js');
+const modelFamily = 'claude-3-5-haiku-20241022';
 
 /**
  * Universal JSON LLM Caller
@@ -175,11 +176,11 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
         }
     }
 
-    // --- Step 1: ANTHROPIC HAIKU (Primary - Claude-4-5-Haiku) ---
+    // Claude 3.5 Haiku (Primary)
     try {
-        console.log(`[AI-Provider] 🤖 Attempting Anthropic (Claude-4-5-Haiku) [High-Speed]...`);
+        console.log(`[AI-Provider] 🤖 Attempting Anthropic (Claude-3.5-Haiku) [High-Speed]...`);
         const message = await anthropic.messages.create({
-            model: 'claude-haiku-4-5-20251001',
+            model: modelFamily,
             max_tokens: 8192,
             system: systemPrompt,
             messages: [{ role: 'user', content: prompt }]
@@ -201,7 +202,7 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
     } catch (err) {
         console.warn(`[AI-Provider] ⚠️ Anthropic Haiku failed (${err.status || 'ERROR'}): ${err.message}. Falling back to Gemini.`);
 
-        // --- Step 2: GEMINI (Fallback 1) ---
+        // Gemini Flash (Fallback 1)
         try {
             console.log('[AI-Provider] 🤖 Attempting Gemini (Gemini-2.0-Flash)...');
             const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
@@ -225,7 +226,7 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
         } catch (geminiErr) {
             console.warn(`[AI-Provider] ⚠️ Gemini failed: ${geminiErr.message}. Falling back to Anthropic Sonnet.`);
 
-            // --- Step 3: ANTHROPIC CLAUDE 3.5 SONNET (Fallback 2) ---
+            // Claude 3.5 Sonnet (Fallback 2)
             try {
                 console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Sonnet) [High Accuracy]...');
                 const message = await anthropic.messages.create({
@@ -251,7 +252,7 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
             } catch (sonnetErr) {
                 console.warn(`[AI-Provider] ⚠️ Anthropic Sonnet failed: ${sonnetErr.message}`);
 
-                // --- Step 4: OPENAI (Fallback 3) ---
+                // OpenAI GPT-4o (Fallback 3)
                 try {
                     console.log('[AI-Provider] 🤖 Attempting OpenAI (GPT-4o)...');
                     const response = await openai.chat.completions.create({
