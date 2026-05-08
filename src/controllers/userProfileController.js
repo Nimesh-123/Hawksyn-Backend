@@ -86,7 +86,7 @@ exports.getUserProfile = async (req, res) => {
             skills: {
                 technical: p.composition?.skills?.technical || [],
                 soft: p.composition?.skills?.soft || [],
-                languagesSpoken: p.composition?.skills?.languagesSpoken || []
+                languagesSpoken: p.composition?.languagesSpoken || []
             },
             education: p.composition?.education || [],
             certifications: p.composition?.certifications || [],

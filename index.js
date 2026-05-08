@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config(); // Triggering restart to fix encryption key issue
 
 const express = require('express');
 const app = express();
