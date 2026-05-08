@@ -68,6 +68,13 @@ exports.adminLogin = async (req, res) => {
         }
 
 
+        if (admin.isTwoFactorEnabled) {
+            return RESPONSE.success(res, 200, 1009, { 
+                mfaRequired: true, 
+                email: admin.email 
+            }, '2FA required. Please enter your verification code.');
+        }
+
         // Active Solution 1: Refresh Token support
         const accessToken = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
         const refreshToken = jwt.sign({ id: admin._id, email: admin.email, role: admin.role }, process.env.JWT_SECRET_REFRESH || 'refresh_secret', { expiresIn: '365d' });
@@ -244,8 +251,6 @@ exports.blockUser = async (req, res) => {
         return RESPONSE.error(res, 500, 9999, err.message);
     }
 };
-
-
 /**
  * Get All Audit Logs (With Pagination & Optional Filtering)
  */
@@ -897,7 +902,6 @@ exports.getReportForReview = async (req, res) => {
  * ADMIN REVIEW — List All Completed Runs (Pending + Rated)
  * GET /api/v1/admin/reports/runs
  */
-
 exports.getAllCompletedRuns = async (req, res) => {
     try {
         const { rated, caseId, intentId, page = 1, limit = 20 } = req.query;
@@ -1130,7 +1134,7 @@ exports.getCvAuditLogs = async (req, res) => {
 /**
  * API — Securely Download Invoice from S3
  */
-const { GetObjectCommand } = require('@aws-sdk/client-s3');
+
 
 exports.downloadInvoiceS3 = async (req, res) => {
     try {
@@ -1232,10 +1236,6 @@ exports.getCvAuditDetails = async (req, res) => {
     }
 };
 
-/**
- * Get Total AI Cost for a specific Run (Case)
- * GET /api/v1/admin/manage/run-audit/cost/:runId
- */
 exports.getRunAICostAudit = async (req, res) => {
     try {
         const { runId } = req.params;
@@ -1373,10 +1373,6 @@ exports.getRunAICostAudit = async (req, res) => {
     }
 };
 
-/**
- * Get List of all Runs with Aggregated AI Costs (For Admin Table)
- * GET /api/v1/admin/manage/run-audit/list
- */
 exports.getRunsAuditList = async (req, res) => {
     try {
         const { page = 1, limit = 10, search = '' } = req.query;

@@ -1,6 +1,7 @@
 const express = require('express');
 const route = express.Router();
 const adminController = require('../../controllers/admin.controller.js');
+const admin2faController = require('../../controllers/admin2faController');
 
 /**
  * @swagger
@@ -61,5 +62,10 @@ const adminController = require('../../controllers/admin.controller.js');
 route.get('/', adminController.getAdminProfile);
 route.put('/', adminController.updateAdminProfile);
 route.patch('/change-password', adminController.changeAdminPassword);
+
+// 2FA Management
+route.get('/2fa/setup', admin2faController.setup2FA);
+route.post('/2fa/enable', admin2faController.enable2FA);
+route.post('/2fa/disable', admin2faController.disable2FA);
 
 module.exports = route;

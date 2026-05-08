@@ -280,8 +280,9 @@ exports.generateReport = async (req, res) => {
         }
 
             const settings = await getChatSettings();
-            const freeDays = settings.freeDaysAfterExpertAssign || 30;
-            const chatExpiryDate = new Date(Date.now() + freeDays * 24 * 60 * 60 * 1000);
+            const freeDays = settings?.freeDaysAfterHawkRun || 7;
+            const chatExpiryDate = new Date();
+            chatExpiryDate.setDate(chatExpiryDate.getDate() + freeDays);
 
             await db.Runs.updateOne({ runId }, {
                 $set: {
@@ -293,6 +294,9 @@ exports.generateReport = async (req, res) => {
                     completedAt: new Date()
                 }
             });
+
+            // Update User document with the expiry date
+            await db.User.findByIdAndUpdate(run.userId, { $set: { chatExpiryDate } });
 
             await createAuditLog(req, 'REPORT_GENERATED', run.userId, { 
                 runId, 

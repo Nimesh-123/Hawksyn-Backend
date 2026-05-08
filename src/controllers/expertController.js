@@ -65,6 +65,14 @@ exports.assignExpert = async (req, res) => {
                 } 
             });
             await createAuditLog(req, 'EXPERT_ASSIGNMENT_SKIPPED', run.userId, { runId, reason: "No terminal failures, expert review not required." });
+            
+            // Set Chat Expiry for User (7 days for Hawk Run)
+            const chatSettings = await getChatSettings();
+            const freeDays = chatSettings?.freeDaysAfterHawkRun || 7;
+            const chatExpiryDate = new Date();
+            chatExpiryDate.setDate(chatExpiryDate.getDate() + freeDays);
+            await db.User.findByIdAndUpdate(run.userId, { $set: { chatExpiryDate } });
+
             await refreshClocksAfterCase(run.userId, runId);
 
             return res.status(200).json({
@@ -206,6 +214,14 @@ exports.assignExpert = async (req, res) => {
         try {
             const user = await db.User.findById(run.userId);
             if (user) {
+                // Set Chat Expiry for User (30 days for Expert Assignment)
+                const chatSettings = await getChatSettings();
+                const freeDays = chatSettings?.freeDaysAfterExpertAssign || 30;
+                const chatExpiryDate = new Date();
+                chatExpiryDate.setDate(chatExpiryDate.getDate() + freeDays);
+                user.chatExpiryDate = chatExpiryDate;
+                await user.save();
+
                 await notificationService.notifyExpertAssigned(runId, user, best.expert);
             }
         } catch (notifErr) {
@@ -272,13 +288,8 @@ exports.askExpertQuery = async (req, res) => {
             return res.status(400).json({ success: false, message: 'No expert has been assigned yet.' });
         }
 
-        const assignedAt = expertAssignment.artifactJson.assignedExpert.assignedAt;
-        const settings = await getChatSettings();
-        const freeDays = settings.freeDaysAfterExpertAssign || 30;
-
-        const expiryDate = new Date(assignedAt);
-        expiryDate.setDate(expiryDate.getDate() + freeDays);
-        const isFreeWindowActive = new Date() < expiryDate;
+        const user = await db.User.findById(userId);
+        const isFreeWindowActive = user.chatExpiryDate && new Date() < new Date(user.chatExpiryDate);
 
         const expertId = expertAssignment.artifactJson.assignedExpert.auditorId;
 
@@ -290,7 +301,7 @@ exports.askExpertQuery = async (req, res) => {
             if (!userCredits || userCredits.expertChatBalance < 1) {
                 return res.status(402).json({
                     success: false,
-                    message: `Free chat window (${freeDays} days) has expired. Please purchase query credits to continue.`
+                    message: `Free chat window has expired. Please purchase query credits to continue.`
                 });
             }
 
@@ -304,7 +315,7 @@ exports.askExpertQuery = async (req, res) => {
                             type: 'EXPERT_QUERY_CONSUME',
                             amount: -1,
                             balanceAfter: newBalance,
-                            note: `Expert Slot Consumed: ${queryType} — Run ${runId} (After ${freeDays}-day free window)`,
+                            note: `Expert Slot Consumed: ${queryType} — Run ${runId} (After free window)`,
                             createdAt: new Date()
                         }
                     }
@@ -324,7 +335,7 @@ exports.askExpertQuery = async (req, res) => {
                 queryId: expertQuery.queryId,
                 expertChatBalance: newBalance,
                 isFreeWindowActive,
-                message: isFreeWindowActive ? `Query sent for free (${freeDays}-day window active).` : 'Query sent successfully (paid credit used).'
+                message: isFreeWindowActive ? `Query sent for free (active window).` : 'Query sent successfully (paid credit used).'
             }
         });
     } catch (error) {
@@ -606,13 +617,8 @@ exports.getChatAttempts = async (req, res) => {
             });
         }
 
-        const assignedAt = expertAssignment.artifactJson.assignedExpert.assignedAt;
-        const settings = await getChatSettings();
-        const freeDays = settings.freeDaysAfterExpertAssign || 30;
-
-        const expiryDate = new Date(assignedAt);
-        expiryDate.setDate(expiryDate.getDate() + freeDays);
-        const isFreeWindowActive = new Date() < expiryDate;
+        const user = await db.User.findById(userId);
+        const isFreeWindowActive = user.chatExpiryDate && new Date() < new Date(user.chatExpiryDate);
 
         const userCredits = await db.UserCredits.findOne({ userId });
         const creditBalance = userCredits ? userCredits.expertChatBalance : 0;
@@ -629,7 +635,7 @@ exports.getChatAttempts = async (req, res) => {
                 queriesAsked: queriesCount,
                 canChat: isFreeWindowActive || creditBalance > 0,
                 displayMessage: isFreeWindowActive 
-                    ? `${freeDays}-day free support window is active.` 
+                    ? `Free support window is active until ${new Date(user.chatExpiryDate).toLocaleDateString()}.` 
                     : 'Your balance: ' + creditBalance + ' query slots.',
                 remainingAttempts: isFreeWindowActive ? 'Unlimited' : creditBalance
             }
