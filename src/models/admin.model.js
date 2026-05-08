@@ -6,7 +6,10 @@ const adminSchema = new mongoose.Schema(
         email: { type: String, required: true, unique: true },
         password: { type: String, required: true },
         role: { type: String, enum: ['admin', 'sub_admin'], default: 'sub_admin' },
-        refreshToken: { type: String }
+        refreshToken: { type: String },
+        twoFactorSecret: { type: String, default: null },
+        isTwoFactorEnabled: { type: Boolean, default: false },
+        twoFactorBackupCodes: { type: [String], default: [] }
     },
     { timestamps: true }
 );

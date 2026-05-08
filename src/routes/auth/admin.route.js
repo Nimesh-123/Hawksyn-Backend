@@ -1,6 +1,7 @@
 const express = require('express');
 const route = express.Router();
 const adminController = require('../../controllers/admin.controller.js');
+const admin2faController = require('../../controllers/admin2faController');
 
 /**
  * @swagger
@@ -56,6 +57,13 @@ const adminController = require('../../controllers/admin.controller.js');
  */
 route.post('/signup', adminController.adminSignup);
 
+route.patch('/change-password', adminController.changeAdminPassword);
+
+// 2FA Management
+route.get('/2fa/setup', admin2faController.setup2FA);
+route.post('/2fa/enable', admin2faController.enable2FA);
+route.post('/2fa/disable', admin2faController.disable2FA);
+
 /**
  * @swagger
  * /auth/admin/login:
@@ -107,5 +115,12 @@ route.post('/signup', adminController.adminSignup);
  *         description: Bad request
  */
 route.post('/login', adminController.adminLogin);
+
+/**
+ * @route   POST /api/v1/auth/admin/verify-2fa
+ * @desc    Verify 2FA token during login
+ * @access  Public (Post-password)
+ */
+route.post('/verify-2fa', admin2faController.verify2FALogin);
 
 module.exports = route;

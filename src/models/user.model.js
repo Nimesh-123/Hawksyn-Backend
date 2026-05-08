@@ -44,7 +44,8 @@ const userSchema = new mongoose.Schema(
             reportReady:   { type: Boolean, default: true },
             rerunReminder: { type: Boolean, default: true },
             productUpdates: { type: Boolean, default: false }
-        }
+        },
+        chatExpiryDate: { type: Date, default: null }
     },
     { timestamps: true }
 );
