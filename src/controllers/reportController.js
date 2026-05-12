@@ -265,7 +265,8 @@ exports.generateReport = async (req, res) => {
                 report: finalReport,
                 runId, generatedAt: new Date(),
                 accuracyBand: finalReport.accuracyBand,
-                role: profileSnapshot?.identity?.currentRoleTitle || 'Professional'
+                role: profileSnapshot?.identity?.currentRoleTitle || 'Professional',
+                profile: normalizedProfile
             });
             const pdfBuffer = await generatePdfFromHtml(html);
             const s3Result = await s3Service.uploadFile(
@@ -345,7 +346,8 @@ exports.downloadReport = async (req, res) => {
             report: reportRas.artifactJson,
             runId, generatedAt: reportRas.createdAt,
             accuracyBand: reportRas.artifactJson.accuracyBand,
-            role: userProfile?.confirmedProfile?.identity?.currentRoleTitle || 'Professional'
+            role: userProfile?.confirmedProfile?.identity?.currentRoleTitle || 'Professional',
+            profile: userProfile?.confirmedProfile || userProfile?.originalParsedData?.structured
         });
 
         const pdfBuffer = await generatePdfFromHtml(html);

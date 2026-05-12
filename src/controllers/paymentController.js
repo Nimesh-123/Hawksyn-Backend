@@ -625,7 +625,7 @@ exports.downloadUserInvoice = async (req, res) => {
 
 exports.adminGetAllPayments = async (req, res) => {
     try {
-        const { page = 1, limit = 20, status } = req.query;
+        const { page = 1, limit = 10, status } = req.query;
         const filter = {};
         if (status) filter.status = status;
 

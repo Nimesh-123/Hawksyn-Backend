@@ -698,7 +698,7 @@ exports.submitExpertReview = async (req, res) => {
 
 exports.getRatedReports = async (req, res) => {
     try {
-        const { minRating = 1, caseId, intentId, page = 1, limit = 20 } = req.query;
+        const { minRating = 1, caseId, intentId, page = 1, limit = 10 } = req.query;
 
         const filter = {
             artifactType: 'FINAL_REPORT',
@@ -904,7 +904,7 @@ exports.getReportForReview = async (req, res) => {
  */
 exports.getAllCompletedRuns = async (req, res) => {
     try {
-        const { rated, caseId, intentId, page = 1, limit = 20 } = req.query;
+        const { rated, caseId, intentId, page = 1, limit = 10 } = req.query;
 
         // Build Run filter — Default is REPORT_COMPLETE for reports tab, 
         // but 'all' for the Operations Pipeline board.
@@ -1044,7 +1044,7 @@ exports.updateReRunPolicy = async (req, res) => {
  */
 exports.getCvAuditLogs = async (req, res) => {
     try {
-        const { status, email, page = 1, limit = 20 } = req.query;
+        const { status, email, page = 1, limit = 10 } = req.query;
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
         // Build base aggregation pipeline to filter deleted users
