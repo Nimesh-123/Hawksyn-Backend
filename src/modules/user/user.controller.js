@@ -1,16 +1,16 @@
-const { db } = require('../models/index.model.js');
+const { db } = require('../../models/index.model.js');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const RESPONSE = require('../../utils/response.js');
-const { generateOTP } = require('../../utils/function.js');
-const { createAuditLog } = require('../../utils/auditLogger.js');
-const { uploadFile, deleteFile } = require('../../utils/s3');
-const { smartCVParser } = require('../../utils/aiParser');
-const { getUserActiveCv } = require('../../utils/cvHelper.js');
+const RESPONSE = require('../../../utils/response.js');
+const { generateOTP } = require('../../../utils/function.js');
+const { createAuditLog } = require('../../../utils/auditLogger.js');
+const { uploadFile, deleteFile } = require('../../../utils/s3');
+const { smartCVParser } = require('../../../utils/aiParser');
+const { getUserActiveCv } = require('../../../utils/cvHelper.js');
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const { detectRegionFromIP } = require('../../utils/regionHelper.js');
-const { calculateAICost } = require('../../utils/aiCostHelper');
+const { detectRegionFromIP } = require('../../../utils/regionHelper.js');
+const { calculateAICost } = require('../../../utils/aiCostHelper');
 
 
 const prepareUserResponse = async (user) => {
@@ -52,7 +52,7 @@ exports.sendOTP = async (req, res) => {
 
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
             try {
-                const sendEmail = require('../../utils/email.js');
+                const sendEmail = require('../../../utils/email.js');
                 await sendEmail({
                     email,
                     subject: 'Your Hawksyn OTP Verification Code',
@@ -337,7 +337,7 @@ exports.uploadCV = async (req, res) => {
 
             if (extractedData) {
                 try {
-                    const { sanitizeParsedData } = require('../../utils/cvSanitizer.js');
+                    const { sanitizeParsedData } = require('../../../utils/cvSanitizer.js');
                     extractedData = sanitizeParsedData(extractedData);
                     parserStatus = "SUCCESS";
                 } catch (e) { parserStatus = "SUCCESS"; }
@@ -487,7 +487,7 @@ exports.getTrends = async (req, res) => {
         }
 
         // Add dynamically calculated peer benchmarks as trends
-        const { getPeerBenchmarks } = require('../services/clockService');
+        const { getPeerBenchmarks } = require('../../services/clockService');
         const aiBench = getPeerBenchmarks(clocks.aiExposureScore, 'AI_EXPOSURE');
 
         trends.push({
@@ -610,7 +610,7 @@ exports.applyAsExpert = async (req, res) => {
 
             expertRecord = await db.RiskAuditorRegistry.create({
                 auditorId,
-                auditorName: user.fullName || user.name || 'New Expert applicant',
+                auditorName: user.fullName || user.name || 'Expert applicant',
                 email: user.email,
                 password: user.mPin || 'Expert@Hks123!', // Link to their PIN initially
                 status: 'PENDING_SETUP',

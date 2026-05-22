@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const adminPlaybookController = require('../../controllers/adminPlaybook.controller.js');
+const adminPlaybookController = require('./adminPlaybook.controller.js');
 const caseController = require('../../controllers/caseController.js');
 
 

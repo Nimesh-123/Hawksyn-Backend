@@ -2,8 +2,8 @@ const express = require('express');
 const route = express.Router();
 
 const authRoute = require('./auth/authIndex.route.js');
-const userRoute = require('./user/userIndex.route.js');
-const adminRoute = require('./admin/adminIndex.route.js');
+const userRoute = require('../modules/user/userIndex.route.js');
+const adminRoute = require('../modules/admin/adminIndex.route.js');
 const chatRoute = require('./chat.route.js'); 
 const caseRoutes = require('./caseRoutes.js');
 const paymentRoutes = require('./paymentRoutes.js');

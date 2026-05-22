@@ -1,7 +1,7 @@
 const express = require('express');
 const route = express.Router();
 
-const adminController = require('../../controllers/admin.controller.js');
+const adminController = require('./admin.controller.js');
 
 /**
  * @swagger

@@ -1,10 +1,10 @@
 const db = {};
 
-db.Admin = require('./admin.model.js');
-db.User = require('./user.model.js');
-db.OTP = require('./otp.model.js');
-db.AuditLog = require('./auditLog.model.js');
-db.DocumentUploads = require('./DocumentUploads.model');
+db.Admin = require('../modules/admin/admin.model.js');
+db.User = require('../modules/user/user.model.js');
+db.OTP = require('../modules/user/otp.model.js');
+db.AuditLog = require('../modules/user/auditLog.model.js');
+db.DocumentUploads = require('../modules/cv/DocumentUploads.model.js');
 
 // Hawksyn — Decision Assurance Models
 db.CaseRegistry = require('./CaseRegistry.model');
@@ -35,7 +35,7 @@ db.Payments = require('./Payments.model');
 db.Invoice = require('./Invoice.model');
 db.Ledger = require('./Ledger.model');
 
-db.UserProfile = require('./UserProfile.model');
+db.UserProfile = require('../modules/user/UserProfile.model.js');
 db.DependencyRules = require('./DependencyRules.model');
 db.ExternalSignalTaxonomy = require('./ExternalSignalTaxonomy.model');
 db.SourceRegistry = require('./SourceRegistry.model');

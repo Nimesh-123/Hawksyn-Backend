@@ -1,6 +1,6 @@
-const { db } = require('../models/index.model.js');
-const clockService = require('../services/clockService.js');
-const { createAuditLog } = require('../../utils/auditLogger.js');
+const { db } = require('../../models/index.model.js');
+const clockService = require('../../services/clockService.js');
+const { createAuditLog } = require('../../../utils/auditLogger.js');
 const { UserProfile } = db;
 
 
@@ -166,7 +166,7 @@ exports.updateUserProfile = async (req, res) => {
             try {
                 const completedRun = await db.Runs.findOne({ userId: req.user.id, status: 'REPORT_COMPLETE' }).sort({ completedAt: -1 });
                 if (completedRun) {
-                    const notificationService = require('../services/notificationService');
+                    const notificationService = require('../../services/notificationService');
                     const user = await db.User.findById(req.user.id);
                     await notificationService.notifyProfileConflict(completedRun.runId, user);
                 }
@@ -204,7 +204,7 @@ exports.updateUserProfile = async (req, res) => {
 
 
             // Step 2 Notification
-            const notificationService = require('../services/notificationService');
+            const notificationService = require('../../services/notificationService');
             const user = await db.User.findById(req.user.id);
             if (user) await notificationService.notifyIntakeProgress(activeRun.runId, user);
 

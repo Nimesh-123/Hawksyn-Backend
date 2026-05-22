@@ -1,10 +1,10 @@
-const { db } = require('../models/index.model.js');
-const { uploadFile, deleteFile } = require('../../utils/s3');
-const { smartCVParser } = require('../../utils/aiParser');
-const notificationService = require('../services/notificationService');
-const { createAuditLog } = require('../../utils/auditLogger.js');
-const { calculateAICost, convertToLocalCurrency } = require('../../utils/aiCostHelper');
-const { detectRegionFromIP } = require('../../utils/regionHelper');
+const { db } = require('../../models/index.model.js');
+const { uploadFile, deleteFile } = require('../../../utils/s3');
+const { smartCVParser } = require('../../../utils/aiParser');
+const notificationService = require('../../services/notificationService');
+const { createAuditLog } = require('../../../utils/auditLogger.js');
+const { calculateAICost, convertToLocalCurrency } = require('../../../utils/aiCostHelper');
+const { detectRegionFromIP } = require('../../../utils/regionHelper');
 
 /**
  * Handle "Continue with existing CV" choice.
@@ -226,7 +226,7 @@ exports.uploadRunCv = async (req, res) => {
 
             if (extractedData) {
                 try {
-                    const { sanitizeParsedData } = require('../../utils/cvSanitizer.js');
+                    const { sanitizeParsedData } = require('../../../utils/cvSanitizer.js');
                     extractedData = sanitizeParsedData(extractedData);
                     parserStatus = "SUCCESS";
                 } catch (sanitizerError) {
