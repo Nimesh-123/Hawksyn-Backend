@@ -2,15 +2,15 @@ const { db } = require('../../models/index.model.js');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const RESPONSE = require('../../../utils/response.js');
-const { generateOTP } = require('../../../utils/function.js');
+const { generateOTP } = require('./helpers/function.js');
 const { createAuditLog } = require('../../../utils/auditLogger.js');
 const { uploadFile, deleteFile } = require('../../../utils/s3');
-const { smartCVParser } = require('../../../utils/aiParser');
-const { getUserActiveCv } = require('../../../utils/cvHelper.js');
+const { smartCVParser, GuardrailError } = require('../../../utils/aiParser');
+const { getUserActiveCv } = require('../cv/helpers/cvHelper.js');
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const { detectRegionFromIP } = require('../../../utils/regionHelper.js');
-const { calculateAICost } = require('../../../utils/aiCostHelper');
+const { calculateAICost } = require('../admin/helpers/aiCostHelper.js');
 
 
 const prepareUserResponse = async (user) => {
@@ -306,29 +306,32 @@ exports.uploadCV = async (req, res) => {
         let errorReason = null;
 
         try {
-            extractedData = await smartCVParser(file.buffer, file.originalname, file.mimetype);
+            extractedData = await smartCVParser(file.buffer, file.originalname, file.mimetype, req.user.id, fileUrl);
 
             if (extractedData && extractedData.isCv === false) {
                 await deleteFile(fileName);
 
-                // Save the failed attempt to DocumentUploads for audit tracking
+                // Update the already created DocumentUploads record with NOT_A_CV status
                 const userId = req.user.id;
-                await db.DocumentUploads.create({
-                    userId,
-                    fileName: file.originalname,
-                    cvUrl: null,
-                    parsedCvData: null,
-                    parserStatus: 'NOT_A_CV',
-                    errorReason: 'Detected as non-CV document.',
-                    parserMetadata: extractedData ? {
-                        llm: extractedData.llm,
-                        model: extractedData.model,
-                        modelUsed: extractedData.modelUsed,
-                        duration: extractedData.totalPipelineDuration,
-                        tokenUsage: extractedData.tokenUsage
-                    } : null,
-                    isActive: false
-                });
+                await db.DocumentUploads.findOneAndUpdate(
+                    { userId, isActive: true },
+                    {
+                        $set: {
+                            cvUrl: null,
+                            parsedCvData: null,
+                            parserStatus: 'NOT_A_CV',
+                            errorReason: 'Detected as non-CV document.',
+                            parserMetadata: extractedData ? {
+                                llm: extractedData.llm,
+                                model: extractedData.model,
+                                modelUsed: extractedData.modelUsed,
+                                duration: extractedData.totalPipelineDuration || extractedData.parsingDuration,
+                                tokenUsage: extractedData.tokenUsage
+                            } : null,
+                            isActive: false
+                        }
+                    }
+                );
 
                 await createAuditLog(req, 'CV_REJECTED', userId, { reason: 'NOT_A_CV', fileName: file.originalname });
 
@@ -337,12 +340,40 @@ exports.uploadCV = async (req, res) => {
 
             if (extractedData) {
                 try {
-                    const { sanitizeParsedData } = require('../../../utils/cvSanitizer.js');
+                    const { sanitizeParsedData } = require('../cv/helpers/cvSanitizer.js');
                     extractedData = sanitizeParsedData(extractedData);
                     parserStatus = "SUCCESS";
                 } catch (e) { parserStatus = "SUCCESS"; }
             }
-        } catch (aiError) { console.error("[AI Fail]", aiError.message); }
+        } catch (aiError) {
+            if (aiError.name === 'GuardrailError') {
+                await deleteFile(fileName);
+                
+                const userId = req.user.id;
+                // No need to create DocumentUploads record here since smartCVParser already created the rejected log.
+
+                await createAuditLog(req, 'CV_REJECTED', userId, {
+                    reason: aiError.userMessage,
+                    ruleId: aiError.ruleId,
+                    layer: aiError.layer,
+                    fileName: file.originalname
+                });
+
+                return res.status(400).json({
+                    success: false,
+                    message: aiError.userMessage,
+                    code: "CV_GUARDRAIL_REJECTION",
+                    error: {
+                        ruleId: aiError.ruleId,
+                        layer: aiError.layer,
+                        userMessage: aiError.userMessage,
+                        remediationAction: aiError.remediationAction
+                    }
+                });
+            }
+
+            console.error("[AI Fail]", aiError.message);
+        }
 
         const isExtractionBlank = !extractedData ||
             (extractedData.aeuList.length < 3 &&
@@ -362,24 +393,26 @@ exports.uploadCV = async (req, res) => {
         }
 
         const userId = req.user.id;
-        await db.DocumentUploads.updateMany({ userId }, { $set: { isActive: false } });
 
-        const newCv = await db.DocumentUploads.create({
-            userId,
-            fileName: file.originalname,
-            cvUrl: fileUrl,
-            parsedCvData: extractedData ? JSON.parse(JSON.stringify(extractedData)) : null,
-            parserStatus,
-            errorReason,
-            parserMetadata: extractedData ? {
-                llm: extractedData.llm,
-                model: extractedData.model,
-                modelUsed: extractedData.modelUsed,
-                duration: extractedData.totalPipelineDuration,
-                tokenUsage: extractedData.tokenUsage
-            } : null,
-            isActive: true
-        });
+        // Update the active DocumentUploads record created by smartCVParser
+        const newCv = await db.DocumentUploads.findOneAndUpdate(
+            { userId, isActive: true },
+            {
+                $set: {
+                    parsedCvData: extractedData ? JSON.parse(JSON.stringify(extractedData)) : null,
+                    parserStatus,
+                    errorReason,
+                    parserMetadata: extractedData ? {
+                        llm: extractedData.llm,
+                        model: extractedData.model,
+                        modelUsed: extractedData.modelUsed,
+                        duration: extractedData.totalPipelineDuration || extractedData.parsingDuration,
+                        tokenUsage: extractedData.tokenUsage
+                    } : null
+                }
+            },
+            { new: true }
+        );
 
         await db.UserProfile.findOneAndUpdate(
             { userId },

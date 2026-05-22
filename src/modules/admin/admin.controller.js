@@ -6,7 +6,7 @@ const RESPONSE = require('../../../utils/response.js');
 const s3Service = require('../../../utils/s3');
 const notificationService = require('../../services/notificationService');
 const { createAuditLog } = require('../../../utils/auditLogger.js');
-const { calculateAICost, extractUsage, convertToLocalCurrency } = require('../../../utils/aiCostHelper');
+const { calculateAICost, extractUsage, convertToLocalCurrency } = require('./helpers/aiCostHelper.js');
 const { detectRegionFromIP } = require('../../../utils/regionHelper');
 
 
@@ -1023,7 +1023,7 @@ exports.updateReRunPolicy = async (req, res) => {
 
         // PUSH NOTIFICATION: Trigger if it's explicitly unlocked for free
         if (eligibleForFreeReRun === true) {
-            const notificationService = require('../services/notificationService');
+            const notificationService = require('../../services/notificationService');
             await notificationService.notifyReRunAvailable(runId);
         }
 

@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 
 const { createAuditLog } = require('../../../utils/auditLogger.js');
-const { PLAYBOOK_MAPPING, parseSafeJson, toSnakeCase, toCamelCase } = require('../../../utils/playbookHelpers.js');
+const { PLAYBOOK_MAPPING, parseSafeJson, toSnakeCase, toCamelCase } = require('./helpers/playbookHelpers.js');
 
 // --- In-Memory Temporary Storage (For Demo - In production use Redis or filesystem) ---
 const tempStorage = new Map();

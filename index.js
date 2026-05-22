@@ -16,10 +16,10 @@ require('./middleware/database/connectDatabase.js');
 const { Server } = require('socket.io');
 const { initChatSocket } = require('./src/sockets/chatSocket');
 
-require('./src/crons/trendEngine.cron.js');
-require('./src/crons/validityDecline.cron.js');
-require('./src/crons/signalArchive.cron.js');
-require('./src/crons/slaBreach.cron.js');
+require('./src/modules/signals/crons/trendEngine.cron.js');
+require('./src/modules/assurance/crons/validityDecline.cron.js');
+require('./src/modules/signals/crons/signalArchive.cron.js');
+require('./src/modules/assurance/crons/slaBreach.cron.js');
 const cronService = require('./src/services/cronService');
 cronService.init();
 
@@ -44,7 +44,7 @@ app.get('/', (req, res) => {
 // Test routes for logging verification
 
 app.use(`${process.env.API_COMMON_ROUTE}/uploads`, express.static(path.join(__dirname, 'uploads')));
-app.use(`${process.env.API_COMMON_ROUTE}/chat`, require('./src/routes/chat.route.js'));
+app.use(`${process.env.API_COMMON_ROUTE}/chat`, require('./src/modules/expert/chat.route.js'));
 
 app.use(`${process.env.API_COMMON_ROUTE}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -55,13 +55,13 @@ app.use(apiPrefix, authenticate, check_validation, route);
 // --- Centralized Error Handling Middleware (Keep at the end) ---
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 const server = app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📡 API Base Route: ${apiPrefix}`);
 });
-
+  
 // --- Initialize Socket.io ---
 const io = new Server(server, {
     cors: {

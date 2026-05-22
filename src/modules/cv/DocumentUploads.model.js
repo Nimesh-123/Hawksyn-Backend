@@ -18,10 +18,23 @@ const documentUploadsSchema = new mongoose.Schema(
             required: false
         },
 
+        // Guardrail & Audit Info from CVUpload
+        rejection_rule_id: { type: String, default: null },
+        rejection_layer: { type: String, default: null },
+        user_message: { type: String, default: null },
+        file_name_original: { type: String },
+        file_size_bytes: { type: Number },
+        file_format: { type: String },
+        page_count: { type: Number, default: null },
+        char_count: { type: Number, default: null },
+        raw_text_path: { type: String, default: null },
+        full_text: { type: String, default: null },
+        warnings: { type: [String], default: [] },
+
         // Parser & Audit Logic
         parserStatus: {
             type: String,
-            enum: ['PENDING', 'SUCCESS', 'FAILED', 'EMPTY', 'INVALID_FORMAT', 'NOT_A_CV'],
+            enum: ['PENDING', 'SUCCESS', 'FAILED', 'EMPTY', 'INVALID_FORMAT', 'NOT_A_CV', 'REJECTED', 'accepted', 'rejected', 'processing', 'extraction_complete'],
             default: 'PENDING'
         },
         parsedCvData: {
@@ -38,6 +51,15 @@ const documentUploadsSchema = new mongoose.Schema(
             modelUsed: { type: String },
             duration: { type: String },
             tokenUsage: { type: mongoose.Schema.Types.Mixed }
+        },
+
+        // Metrics from CVUpload
+        metrics: {
+            total_tokens_input: { type: Number, default: 0 },
+            total_tokens_output: { type: Number, default: 0 },
+            processing_duration_ms: { type: Number, default: 0 },
+            estimated_cost_usd: { type: Number, default: 0 },
+            estimated_cost_inr: { type: Number, default: 0 }
         },
 
         // Lifecycle Status

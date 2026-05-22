@@ -2,8 +2,8 @@ const express = require('express');
 const route = express.Router();
 
 const userController = require('./user.controller.js');
-const recordsController = require('../../controllers/recordsController');
-const expertController = require('../../controllers/expertController');
+const recordsController = require('../assurance/records.controller.js');
+const expertController = require('../expert/expert.controller.js');
 const upload = require('../../../middleware/multer.js');
 
 /**

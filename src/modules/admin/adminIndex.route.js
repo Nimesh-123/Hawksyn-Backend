@@ -9,7 +9,7 @@ const adminManageRoute = require('./adminManage.route.js');
 const adminReportsRoute = require('./adminReports.route.js');
 const adminPlaybookRoute = require('./adminPlaybook.route.js');
 const adminConfigRoute = require('./adminConfig.route.js');
-const paymentController = require('../../controllers/paymentController');
+const paymentController = require('../billing/payment.controller.js');
 
 
 // Mount Sub-Routes
@@ -44,13 +44,12 @@ route.post('/verify-password', adminController.verifyAdminPassword);
 route.get('/payments/all', paymentController.adminGetAllPayments);
 route.get('/payments/export', paymentController.adminExportPaymentsCSV);
 
-// Operational Pipeline (Kanban Board)
-const caseController = require('../../controllers/caseController');
+const caseController = require('../cases/case.controller.js');
 route.get('/pipeline/summary', caseController.getPipelineSummary);
 route.post('/runs/:runId/revert', caseController.revertRunStatus);
 
 // Content Management (FAQ & Legal)
-const supportController = require('../../controllers/supportContentController');
+const supportController = require('../support/supportContentController');
 route.get('/content/faq', supportController.getFAQs);
 route.post('/content/faq', supportController.createFAQ);
 route.patch('/content/faq/:id', supportController.updateFAQ);

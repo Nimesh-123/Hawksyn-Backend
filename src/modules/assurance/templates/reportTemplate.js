@@ -1,0 +1,370 @@
+/**
+ * Generates the complete HTML for the Hawksyn Report.
+ * Includes layout, styling (CSS), and content mapped from report object.
+ */
+function buildReportHtml(reportData) {
+    const { report, runId, generatedAt, role, profile } = reportData;
+    const sections = report.sections || [];
+    const dateStr = generatedAt ? new Date(generatedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'March 14, 2026';
+
+    const getVerdictColor = (score) => {
+        if (score < 40) return '#EF4444'; // Red
+        if (score < 70) return '#F59E0B'; // Amber/Gold
+        return '#10B981'; // Green
+    };
+
+    const parseJSON = (str) => {
+        try {
+            if (typeof str !== 'string') return str;
+            // More aggressive cleaning of AI JSON markers
+            const cleaned = str.replace(/```json/g, '').replace(/```/g, '').replace(/^json/g, '').trim();
+            return JSON.parse(cleaned);
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const getSectData = (id) => {
+        const s = sections.find(s => s.sectionId === id);
+        if (!s) return null;
+        const data = parseJSON(s.content);
+        return data;
+    };
+
+    const renderBarChart = (data) => {
+        if (!data || !Array.isArray(data)) return '';
+        return `
+            <div class="chart-container">
+                ${data.map(item => {
+                    const score = parseInt(item.score || item.exposure_percent || 0);
+                    const color = item.bar_color || '#4F46E5';
+                    return `
+                        <div class="chart-row">
+                            <div class="chart-label">${item.capability_name || item.task_category}</div>
+                            <div class="bar-bg">
+                                <div class="bar-fill" style="width: ${score}%; background: ${color};"></div>
+                                <div class="bar-label" style="color: ${score > 50 ? 'white' : '#1f2937'}">${score}%</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    };
+
+    const renderDonutChart = (data) => {
+        if (!data || !Array.isArray(data)) return '';
+        let currentOffset = 0;
+        const total = data.reduce((acc, i) => acc + (i.value || 0), 0);
+        return `
+            <div class="donut-wrapper">
+                <svg width="180" height="180" viewBox="0 0 42 42" class="donut">
+                     <circle cx="21" cy="21" r="15.915" fill="#fff"></circle>
+                     ${data.map(item => {
+                         const val = (item.value / total) * 100;
+                         const circle = `<circle cx="21" cy="21" r="15.915" fill="transparent" stroke="${item.color}" stroke-width="4" stroke-dasharray="${val} ${100 - val}" stroke-dashoffset="${100 - currentOffset + 25}"></circle>`;
+                         currentOffset += val;
+                         return circle;
+                     }).join('')}
+                </svg>
+                <div class="donut-legend">
+                    ${data.map(i => `<div class="legend-item"><span class="dot" style="background:${i.color}"></span> ${i.label}: ${i.value}%</div>`).join('')}
+                </div>
+            </div>
+        `;
+    };
+
+    const renderRadarChart = (data) => {
+        if (!data || !data.axes) return '';
+        const axes = data.axes;
+        const current = data.current_profile.map(Number);
+        const target = data.target_profile.map(Number);
+        const centerX = 100, centerY = 100, radius = 70;
+        const getPoint = (val, i, total) => {
+            const angle = (Math.PI * 2 * i) / total - Math.PI / 2;
+            const r = (val / 5) * radius;
+            return `${centerX + r * Math.cos(angle)},${centerY + r * Math.sin(angle)}`;
+        };
+        const currentPoints = current.map((v, i) => getPoint(v, i, axes.length)).join(' ');
+        const targetPoints = target.map((v, i) => getPoint(v, i, axes.length)).join(' ');
+
+        return `
+            <div class="radar-container flex-center">
+                <svg width="380" height="280" viewBox="0 0 200 200">
+                    <circle cx="100" cy="100" r="70" fill="none" stroke="#e5e7eb" stroke-dasharray="2,2" />
+                    <circle cx="100" cy="100" r="50" fill="none" stroke="#e5e7eb" stroke-dasharray="2,2" />
+                    <circle cx="100" cy="100" r="30" fill="none" stroke="#e5e7eb" stroke-dasharray="2,2" />
+                    ${axes.map((a, i) => {
+                        const p = getPoint(5, i, axes.length).split(',');
+                        const textP = getPoint(5.8, i, axes.length).split(',');
+                        return `<line x1="100" y1="100" x2="${p[0]}" y2="${p[1]}" stroke="#e5e7eb" />
+                                <text x="${textP[0]}" y="${textP[1]}" font-size="5" font-weight="700" text-anchor="middle" fill="#6b7280">${a}</text>`;
+                    }).join('')}
+                    <polygon points="${targetPoints}" fill="rgba(16, 185, 129, 0.2)" stroke="#10B981" stroke-width="1.5" />
+                    <polygon points="${currentPoints}" fill="rgba(239, 68, 68, 0.2)" stroke="#EF4444" stroke-width="1.5" />
+                </svg>
+                <div class="radar-legend">
+                   <div style="color:#EF4444"><span class="dot" style="background:#EF4444"></span> Current Profile</div>
+                   <div style="color:#10B981"><span class="dot" style="background:#10B981"></span> Target Profile</div>
+                </div>
+            </div>
+        `;
+    };
+
+    const renderSectionContent = (s) => {
+        const data = parseJSON(s?.content);
+        if (!data) return `<div class="prose">${s?.content || ''}</div>`;
+
+        switch (s.sectionId) {
+            case 'SEC_RO_001': return `<div class="summary-box">${data.summary_prose || ''}</div>`;
+            case 'SEC_RO_002':
+                return `<div class="prose">${data.overview_prose || ''}</div>
+                        <div class="uncomfortable-truth"><strong>${data.uncomfortable_truth?.label || 'Truth'}:</strong> ${data.uncomfortable_truth?.content || ''}</div>`;
+            case 'SEC_RO_003':
+                return `
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <div style="font-weight:700; color:#059669; font-size:9pt; margin-bottom:8px;">WHAT THIS REPORT COVERS</div>
+                            <ul style="font-size:8.5pt; color:#4b5563; padding-left:15px;">${(data.covers || []).map(i => `<li>${i.item}</li>`).join('')}</ul>
+                        </div>
+                        <div>
+                            <div style="font-weight:700; color:#6b7280; font-size:9pt; margin-bottom:8px;">WHAT IT DOES NOT COVER</div>
+                            <ul style="font-size:8.5pt; color:#4b5563; padding-left:15px;">${(data.does_not_cover || []).map(i => `<li>${i.item}</li>`).join('')}</ul>
+                        </div>
+                    </div>
+                    <div class="mt-4" style="font-size:8.5pt; font-style:italic; color:#9ca3af;">Methodology: ${data.methodology_note || ''}</div>
+                `;
+            case 'SEC_RO_004':
+            case 'SEC_RO_009':
+                return `
+                    <div class="prose">${data.context_prose || data.methodology_note || ''}</div>
+                    ${renderBarChart(data.chart_data)}
+                    <div class="callout">${data.interpretation_callout || data.exposure_callout || ''}</div>
+                `;
+            case 'SEC_RO_005':
+                return `<table class="data-table"><thead><tr><th>Role</th><th>Fit</th><th>Durability</th></tr></thead>
+                        <tbody>${(data.fit_rows || []).map(r => `<tr><td><strong>${r.role_type}</strong></td><td>${r.fit_level}</td><td>${r.durability}</td></tr><tr><td colspan="3" style="font-size:8.5pt; color:#6b7280; border-top:none;">${r.notes?.replace(/\n/g, '<br>')}</td></tr>`).join('')}</tbody></table>`;
+            case 'SEC_RO_006':
+                return `<table class="data-table"><thead><tr><th>Sector</th><th>Demand</th><th>Outlook</th><th>Risk</th></tr></thead>
+                        <tbody>${(data.sector_rows || []).map(r => `<tr><td>${r.sector}</td><td>${r.demand_now}</td><td>${r.one_year_outlook}</td><td>${r.risk_to_role}</td></tr>`).join('')}</tbody>
+                        </table><div class="callout">${data.key_signal || ''}</div>`;
+            case 'SEC_RO_007':
+                return `<div class="prose"><strong>What You Bring:</strong><br>${data.what_you_bring?.replace(/\n/g, '<br>') || ''}</div>
+                        <div class="callout"><strong>What is Missing:</strong><br>${data.what_is_missing?.replace(/\n/g, '<br>') || ''}</div>`;
+            case 'SEC_RO_008':
+                return `<div class="red-flags-grid">${(data.red_flags || []).map(f => `<div class="flag-card ${f.severity?.toLowerCase() || ''}"><div class="flag-title">${f.rf_label}</div><div class="flag-content">${f.content}</div></div>`).join('')}</div>`;
+            case 'SEC_RO_010':
+                return `<table class="data-table"><thead><tr><th>Task Category</th><th>AI Capability</th><th>Replaces User?</th><th>Timeline</th></tr></thead>
+                        <tbody>${(data.task_rows || []).map(r => `<tr><td>${r.task_category}</td><td>${r.ai_capability}</td><td>${r.replaces_user}</td><td>${r.timeline}</td></tr>`).join('')}</tbody></table>`;
+            case 'SEC_RO_011':
+                return `
+                    <table class="data-table"><thead><tr><th>Experience Band</th><th>Demand (2023)</th><th>Demand (2026)</th></tr></thead>
+                        <tbody>${(data.chart_data || []).map(r => `<tr><td>${r.experience_band}</td><td>${r.demand_2023}</td><td>${r.demand_2026}</td></tr>`).join('')}</tbody>
+                    </table>
+                    <div class="callout">${data.salary_signal_callout || ''}</div>
+                `;
+            case 'SEC_RO_012':
+                return `<div class="timeline-container">${(data.timeline_rows || []).map(r => `<div class="timeline-item"><div class="timeline-period">${r.period}</div><div class="timeline-desc">${r.description}</div></div>`).join('')}</div>`;
+            case 'SEC_RO_013':
+                return `<div class="risk-section">${renderDonutChart(data.donut_data)}
+                        <table class="data-table mt-4"><thead><tr><th>Scenario</th><th>12 Mo</th><th>24 Mo</th></tr></thead>
+                        <tbody>${(data.probability_rows || []).map(r => `<tr><td>${r.scenario}</td><td>${r.prob_12m}</td><td>${r.prob_24m}</td></tr>`).join('')}</tbody></table></div>`;
+            case 'SEC_RO_014':
+                return `
+                    <div style="font-weight:700; font-size:12pt; color:#D97706; margin-bottom:15px;">Blind Spot Index (BSI): ${data.bsi_score}/100</div>
+                    <div class="red-flags-grid">
+                        ${(data.blind_spots || []).map(b => `<div class="flag-card medium"><div class="flag-title">#${b.blind_spot_number} ${b.name}</div><div class="flag-content">${b.content}</div><div style="margin-top:8px; font-size:7.5pt; font-weight:700;">LIABILITY: ${b.shadow_liability}</div></div>`).join('')}
+                    </div>
+                `;
+            case 'SEC_RO_015':
+                return `<table class="data-table"><thead><tr><th>Variable</th><th>If Favourable</th><th>If Unfavourable</th><th>Control</th></tr></thead>
+                        <tbody>${(data.unknown_rows || []).map(r => `<tr><td><strong>${r.variable}</strong></td><td>${r.if_favourable}</td><td>${r.if_unfavourable}</td><td><span class="badge">${r.user_control}</span></td></tr>`).join('')}</tbody></table>`;
+            case 'SEC_RO_016':
+                return `<div class="prose"><strong>Trigger:</strong> ${data.trigger_event}</div>
+                        <div class="cascade-grid">${(data.cascade || []).map(c => `<div class="cascade-card"><div class="cascade-label">${c.order_label}</div><div>${c.description}</div></div>`).join('')}</div>`;
+            case 'SEC_RO_017':
+                return `
+                    <div class="prose">${data.scenario_prose || ''}</div>
+                    <div style="background:#EFF6FF; border-left:4px solid #3B82F6; padding:15px; border-radius:6px; font-size:10pt;">
+                        <strong>Best Case Condition:</strong> ${data.best_case_condition}
+                    </div>
+                `;
+            case 'SEC_RO_018':
+                return `<div class="flex-center">${renderRadarChart(data.radar_data)}</div>
+                        <div class="prose mt-4" style="font-size:10pt">${(data.transferability_prose || '').replace(/\n/g, '<br>')}</div>`;
+            case 'SEC_RO_019':
+                return `<table class="data-table"><thead><tr><th>Employer Type</th><th>Would Hire?</th><th>Level</th><th>Salary Range</th></tr></thead>
+                        <tbody>${(data.hire_rows || []).map(r => `<tr><td>${r.employer_type}</td><td>${r.would_hire}</td><td>${r.level}</td><td>${r.salary_range}</td></tr>`).join('')}</tbody></table>
+                        <div class="callout"><strong>Marketability Score: ${data.marketability_score}/100</strong><br>${data.marketability_note}</div>`;
+            case 'SEC_RO_020':
+                return `<table class="data-table"><thead><tr><th>Factor</th><th>Assumption</th><th>Assessment</th></tr></thead>
+                        <tbody>${(data.survival_rows || []).map(r => `<tr><td><strong>${r.factor}</strong></td><td>${r.assumption}</td><td>${r.assessment}</td></tr>`).join('')}</tbody></table>
+                        <div class="prose"><strong>Summary:</strong> ${data.survival_summary}</div>`;
+            case 'SEC_RO_021':
+                return `<div class="recovery-map">${(data.recovery_steps || []).map(r => `<div class="job-card"><div class="job-title">${r.month_label}</div><div class="prose">${r.action}</div></div>`).join('')}</div>
+                        <div class="callout"><strong>Reversibility Score: ${data.reversibility_score}/100</strong><br>${data.reversibility_note}</div>`;
+            case 'SEC_RO_022':
+                return `
+                    <div style="background:#FFFBEB; border:2px solid #F59E0B; border-radius:8px; padding:20px;">
+                        <div style="font-weight:800; font-size:14pt; color:#92400E; margin-bottom:10px;">${data.verdict_label} — ${data.verdict_subtitle}</div>
+                        <div class="prose" style="font-size:10pt;">${data.verdict_explanation?.replace(/\n/g, '<br>')}</div>
+                        ${data.do_not_misread_callout ? `<div style="margin-top:15px; font-weight:700; color:#B45309; font-size:9pt; border-top:1px solid #FDE68A; padding-top:10px;">NOTE: ${data.do_not_misread_callout}</div>` : ''}
+                    </div>
+                `;
+            case 'SEC_RO_023':
+                return `<table class="data-table"><thead><tr><th>Factor</th><th>Level</th><th>Impact</th></tr></thead>
+                        <tbody>${(data.certainty_rows || []).map(r => `<tr><td>${r.factor}</td><td>${r.level}</td><td>${r.impact}</td></tr>`).join('')}</tbody></table>`;
+            case 'SEC_RO_024':
+                return `<div class="prose">${data.validity_statement}</div>
+                        <div class="prose"><strong>Expires:</strong> ${data.expiry_date}</div>
+                        <div class="red-flags-grid">${(data.triggers || []).map(t => `<div class="flag-card"><div class="flag-title">${t.trigger_label}</div><div class="flag-content">${t.description}</div></div>`).join('')}</div>`;
+            case 'SEC_RO_025':
+                return `<div class="prose"><strong>Mandatory Re-run:</strong> ${data.mandatory_rerun_date}</div>
+                        <div class="red-flags-grid">${(data.early_triggers || []).map(t => `<div class="flag-card"><div class="flag-title">${t.trigger_label}</div><div class="flag-content">${t.description}</div></div>`).join('')}</div>
+                        <div class="callout"><strong>Action Before Rerun:</strong><br>${data.action_before_rerun}</div>`;
+            case 'SEC_RO_026':
+                return `<table class="data-table action-plan"><thead><tr><th>Priority</th><th>Action</th><th>Impact</th></tr></thead>
+                        <tbody>${(data.actions || []).map(a => `<tr><td><span class="badge ${a.priority_level?.toLowerCase() || ''}">${a.priority_level}</span></td><td><strong>${a.priority_label}</strong><br>${a.action}</td><td>${a.impact}</td></tr>`).join('')}</tbody></table>`;
+            default:
+                if (data.items) return `<ul class="prose">${data.items.map(i => `<li>${i}</li>`).join('')}</ul>`;
+                if (data.rows) return `<table class="data-table"><tbody>${data.rows.map(r => `<tr>${Object.values(r).map(v => `<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+                return `<div class="prose">${data.summary_prose || data.description || data.content || s?.content || ''}</div>`;
+        }
+    };
+
+    // Prepare data for Page 1
+    const sec1 = getSectData('SEC_RO_001');
+    const summaryText = sec1 ? sec1.summary_prose : 'Strategic decision based on current profile and market signals.';
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background: #f3f4f6; color: #1f2937; font-size: 11pt; line-height: 1.5; -webkit-print-color-adjust: exact; }
+        .page { width: 210mm; min-height: 297mm; padding: 15mm; margin: 0 auto; background: white; position: relative; page-break-after: always; overflow: hidden; }
+        .header-bar { background: #111827; color: white; padding: 10px 20px; font-weight: 700; font-size: 8pt; display: flex; justify-content: space-between; margin-bottom: 25px; border-radius: 4px; }
+        h1 { font-size: 28pt; font-weight: 800; margin: 0; color: #111827; letter-spacing: -0.5px; }
+        h2 { font-size: 16pt; font-weight: 700; margin-top: 30px; border-bottom: 2px solid #111827; padding-bottom: 8px; margin-bottom: 15px; }
+        .summary-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .summary-table td { border: 1px solid #e5e7eb; padding: 10px; font-size: 9.5pt; }
+        .summary-table td.label { font-weight: 600; background: #f9fafb; color: #4b5563; width: 20%; }
+        .summary-table td.value { font-weight: 500; width: 30%; }
+        .score-box { border: 2px solid #F59E0B; background: #FFFBEB; display: flex; align-items: center; padding: 25px; margin-top: 30px; border-radius: 8px; }
+        .score-value { font-size: 48pt; font-weight: 800; color: #D97706; margin-right: 35px; }
+        .score-verdict { border-left: 2px solid #F59E0B; padding-left: 25px; flex: 1; }
+        .verdict-title { font-weight: 800; font-size: 14pt; color: #92400E; margin-bottom: 4px; }
+        .verdict-text { font-size: 10pt; color: #78350F; font-style: italic; }
+        .steps-container { display: flex; width: 100%; margin-top: 30px; gap: 5px; }
+        .step { flex: 1; height: 40px; background: #059669; color: white; display: flex; align-items: center; justify-content: center; font-size: 7.5pt; font-weight: 700; text-align: center; border-radius: 3px; }
+        .status-bar { background: #EFF6FF; color: #1E40AF; padding: 10px; font-size: 9pt; text-align: center; margin-top: 15px; font-weight: 600; border-radius: 4px; border: 1px solid #DBEAFE; }
+        .prose { font-size: 10.5pt; color: #374151; margin-bottom: 15px; }
+        .summary-box { font-size: 11pt; color: #111827; line-height: 1.6; font-weight: 400; }
+        .callout { background: #FEF3C7; padding: 12px; border-radius: 6px; border-left: 4px solid #F59E0B; margin: 15px 0; font-size: 9.5pt; }
+        .uncomfortable-truth { background: #FEE2E2; padding: 12px; border-radius: 6px; border-left: 4px solid #EF4444; margin: 15px 0; font-size: 9.5pt; }
+        .data-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        .data-table th { background: #111827; color: white; text-align: left; padding: 8px; font-size: 8.5pt; }
+        .data-table td { border-bottom: 1px solid #e5e7eb; padding: 8px; font-size: 9.5pt; }
+        .chart-row { margin-bottom: 12px; }
+        .chart-label { font-size: 8.5pt; font-weight: 700; margin-bottom: 4px; color: #4b5563; }
+        .bar-bg { background: #e5e7eb; height: 20px; border-radius: 10px; position: relative; width: 100%; overflow: hidden; }
+        .bar-fill { height: 100%; position: absolute; left: 0; top: 0; }
+        .bar-label { position: absolute; right: 10px; top: 0; font-size: 8.5pt; color: white; font-weight: 800; line-height: 20px; }
+        .donut-wrapper { display: flex; align-items: center; justify-content: center; gap: 40px; padding: 15px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 8.5pt; margin-bottom: 4px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .red-flags-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .flag-card { padding: 12px; border-radius: 6px; border-left: 3px solid #ddd; background: #f9fafb; }
+        .flag-card.high { border-color: #EF4444; background: #FEF2F2; }
+        .flag-card.medium { border-color: #F59E0B; background: #FFFBEB; }
+        .flag-title { font-weight: 800; font-size: 9pt; margin-bottom: 3px; color: #111827; }
+        .flag-content { font-size: 8.5pt; color: #4b5563; }
+
+        .timeline-container { border-left: 2px solid #e5e7eb; margin-left: 10px; padding-left: 20px; }
+        .timeline-item { position: relative; margin-bottom: 20px; }
+        .timeline-item::before { content: ''; position: absolute; left: -27px; top: 5px; width: 12px; height: 12px; background: #111827; border-radius: 50%; }
+        .timeline-period { font-weight: 800; font-size: 9pt; color: #111827; text-transform: uppercase; margin-bottom: 4px; }
+        .timeline-desc { font-size: 9pt; color: #4b5563; }
+
+        .cascade-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .cascade-card { display: flex; gap: 15px; background: #f9fafb; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb; }
+        .cascade-label { background: #111827; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 10pt; flex-shrink: 0; }
+
+        .recovery-map { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+        .badge { padding: 3px 6px; border-radius: 3px; font-size: 7.5pt; font-weight: 800; }
+        .badge.urgent { background: #EF4444; color: white; }
+        .badge.important { background: #F59E0B; color: white; }
+        .badge.strategic { background: #3B82F6; color: white; }
+        .cv-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 25px; margin-top: 15px; }
+        .cv-section-title { font-weight: 800; font-size: 10pt; color: #6b7280; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; margin-bottom: 12px; }
+        .job-card { margin-bottom: 15px; }
+        .job-title { font-weight: 700; font-size: 10pt; color: #111827; }
+        .job-meta { font-size: 8.5pt; color: #6b7280; font-weight: 500; }
+        .job-desc { font-size: 8.5pt; color: #374151; white-space: pre-line; margin-top: 2px; }
+        .skill-group { margin-bottom: 12px; }
+        .skill-group-title { font-weight: 700; font-size: 9pt; color: #111827; }
+        .skill-list { font-size: 8.5pt; color: #4b5563; line-height: 1.4; }
+        .flex-center { display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .radar-legend { display: flex; gap: 15px; font-weight: 700; font-size: 8pt; margin-top: 10px; }
+        .footer-meta { position: absolute; bottom: 10mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; font-size: 7.5pt; color: #9ca3af; border-top: 1px solid #f3f4f6; padding-top: 8px; }
+        .mt-4 { margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header-bar"><span>HAWKSYN — DECISION ASSURANCE CYCLE REPORT</span><span>CONFIDENTIAL</span></div>
+        <h1>Job Security Audit</h1>
+        <div style="color: #6b7280; font-size: 13pt;">AI & Automation Role Elimination Risk Assessment</div>
+        <table class="summary-table">
+            <tr><td class="label">Decision Moment</td><td class="value">Job Security Audit</td><td class="label">Intent</td><td class="value">Role Elimination Risk</td></tr>
+            <tr><td class="label">Profile</td><td class="value" style="color: #D97706; font-weight: 800;">${role}</td><td class="label">DAC Score</td><td class="value" style="font-weight: 800;">${report.compositeScore}/100</td></tr>
+            <tr><td class="label">Verdict</td><td class="value" style="font-weight: 800; color: ${getVerdictColor(report.compositeScore)};">${report.verdict}</td><td class="label">Confidence Band</td><td class="value">${report.confidence} | ${report.accuracyBand}</td></tr>
+        </table>
+        <div class="score-box">
+            <div class="score-value">${report.compositeScore}</div>
+            <div class="score-verdict">
+                <div class="verdict-title">${report.verdict} — ACTION STATUS</div>
+                <div class="verdict-text">${summaryText.split('.')[0]}.</div>
+            </div>
+        </div>
+        <div class="steps-container">${['Intake', 'Profile', 'Inputs', 'Red Flags', 'External', 'Assembly', 'Content', 'Assembly', 'Auditor'].map((s, i) => `<div class="step">Step ${i+1}:<br>${s}</div>`).join('')}</div>
+        <div class="status-bar">All 9 steps executed successfully. Human auditor assignment: <strong>Pending — SLA 72 hrs.</strong></div>
+        <h2>Your Situation Summary</h2>
+        <div class="prose">${summaryText}</div>
+        <div class="footer-meta"><span>Case #${runId} | Hawksyn AI 2.0</span><span>Page 1</span></div>
+    </div>
+
+    <div class="page">
+        <div class="header-bar"><span>HAWKSYN — DECISION ASSURANCE REPORT</span><span>CONFIDENTIAL</span></div>
+        <div style="font-size: 9pt; color: #6b7280; font-weight: 600; text-transform: uppercase;">Section CV</div>
+        <h1 style="font-size: 22pt;">Normalised CV Baseline — ${profile?.fullName || profile?.identity?.fullName || 'Candidate'}</h1>
+        <div class="cv-grid">
+            <div>
+                <div class="cv-section-title">Work History</div>
+                ${(profile?.experience || profile?.work?.experience || []).slice(0, 5).map(job => `<div class="job-card"><div class="job-title">${job.title} — ${job.company}</div><div class="job-meta">${job.duration}</div><div class="job-desc">${(job.description || '').split('\n').slice(0, 2).join('\n')}</div></div>`).join('')}
+            </div>
+            <div>
+                <div class="cv-section-title">Skills & Education</div>
+                <div class="skill-group"><div class="skill-group-title">Technical Skills</div><div class="skill-list">${(profile?.skills?.technical || profile?.composition?.skills?.technical || []).slice(0, 15).join(', ')}</div></div>
+                <div class="skill-group"><div class="skill-group-title">Languages</div><div class="skill-list">${(profile?.skills?.languagesSpoken || profile?.languagesSpoken || profile?.composition?.languagesSpoken || []).join(', ')}</div></div>
+                <div class="skill-group"><div class="skill-group-title">Education</div>${(profile?.education || profile?.composition?.education || []).map(edu => `<div class="skill-list"><strong>${edu.degree}</strong><br>${edu.institution}</div>`).join('')}</div>
+                <div class="callout" style="margin-top: 25px; font-style: italic; background: #F3F4F6; border-left-color: #9CA3AF;"><strong>AI Note:</strong> Core skills extracted and normalized from CV source data.</div>
+            </div>
+        </div>
+        <div class="footer-meta"><span>Case #${runId}</span><span>Page 2</span></div>
+    </div>
+
+    ${sections.filter(s => s.sectionId !== 'SEC_RO_001').map((s, index) => `
+    <div class="page">
+        <div class="header-bar"><span>HAWKSYN — DECISION ASSURANCE REPORT</span><span>${runId} | ${dateStr}</span></div>
+        <h2>${s.sectionName || 'Analysis Section'}</h2>
+        ${renderSectionContent(s)}
+        <div class="footer-meta"><span>Case #${runId}</span><span>Page ${index + 3}</span></div>
+    </div>`).join('')}
+</body>
+</html>`;
+}
+module.exports = { buildReportHtml };

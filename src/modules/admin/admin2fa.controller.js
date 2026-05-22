@@ -3,7 +3,7 @@ const qrcode = require('qrcode');
 const { db } = require('../../models/index.model');
 const RESPONSE = require('../../../utils/response');
 const jwt = require('jsonwebtoken');
-const { encrypt, decrypt } = require('../../../utils/encryption');
+const { encrypt, decrypt } = require('./helpers/encryption');
 
 /**
  * Setup 2FA: Generate secret and QR code

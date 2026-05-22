@@ -1,10 +1,12 @@
 const { db } = require('../../models/index.model.js');
 const { uploadFile, deleteFile } = require('../../../utils/s3');
-const { smartCVParser } = require('../../../utils/aiParser');
+const { smartCVParser, GuardrailError } = require('../../../utils/aiParser');
 const notificationService = require('../../services/notificationService');
 const { createAuditLog } = require('../../../utils/auditLogger.js');
-const { calculateAICost, convertToLocalCurrency } = require('../../../utils/aiCostHelper');
+const { calculateAICost, convertToLocalCurrency } = require('../admin/helpers/aiCostHelper.js');
 const { detectRegionFromIP } = require('../../../utils/regionHelper');
+const { generateReport } = require('./report/reportGenerator');
+
 
 /**
  * Handle "Continue with existing CV" choice.
@@ -188,28 +190,31 @@ exports.uploadRunCv = async (req, res) => {
 
         try {
             await createAuditLog(req, 'CV_PARSING_STARTED', userId, { runId, fileName: file.originalname });
-            extractedData = await smartCVParser(file.buffer, file.originalname, file.mimetype);
+            extractedData = await smartCVParser(file.buffer, file.originalname, file.mimetype, userId, fileUrl);
 
             if (extractedData && extractedData.isCv === false) {
                 await deleteFile(fileName);
                 
-                // Save the failed attempt to DocumentUploads for audit tracking
-                await db.DocumentUploads.create({
-                    userId,
-                    fileName: file.originalname,
-                    cvUrl: null,
-                    parsedCvData: null,
-                    parserStatus: 'NOT_A_CV',
-                    errorReason: 'Detected as non-CV document.',
-                    parserMetadata: extractedData ? {
-                        llm: extractedData.llm,
-                        model: extractedData.model,
-                        modelUsed: extractedData.modelUsed,
-                        duration: extractedData.totalPipelineDuration,
-                        tokenUsage: extractedData.tokenUsage
-                    } : null,
-                    isActive: false
-                });
+                // Update the already created DocumentUploads record with NOT_A_CV status
+                await db.DocumentUploads.findOneAndUpdate(
+                    { userId, isActive: true },
+                    {
+                        $set: {
+                            cvUrl: null,
+                            parsedCvData: null,
+                            parserStatus: 'NOT_A_CV',
+                            errorReason: 'Detected as non-CV document.',
+                            parserMetadata: extractedData ? {
+                                llm: extractedData.llm,
+                                model: extractedData.model,
+                                modelUsed: extractedData.modelUsed,
+                                duration: extractedData.totalPipelineDuration || extractedData.parsingDuration,
+                                tokenUsage: extractedData.tokenUsage
+                            } : null,
+                            isActive: false
+                        }
+                    }
+                );
 
                 // --- NEW: Log Failure Reason (User Request) ---
                 await createAuditLog(req, 'CV_PARSING_REJECTED', userId, {
@@ -226,7 +231,7 @@ exports.uploadRunCv = async (req, res) => {
 
             if (extractedData) {
                 try {
-                    const { sanitizeParsedData } = require('../../../utils/cvSanitizer.js');
+                    const { sanitizeParsedData } = require('./helpers/cvSanitizer.js');
                     extractedData = sanitizeParsedData(extractedData);
                     parserStatus = "SUCCESS";
                 } catch (sanitizerError) {
@@ -234,6 +239,32 @@ exports.uploadRunCv = async (req, res) => {
                 }
             }
         } catch (aiError) {
+            if (aiError.name === 'GuardrailError') {
+                await deleteFile(fileName);
+                
+                // No need to create DocumentUploads record here since smartCVParser already created the rejected log.
+
+                await createAuditLog(req, 'CV_PARSING_REJECTED', userId, {
+                    runId,
+                    fileName: file.originalname,
+                    reason: aiError.userMessage,
+                    ruleId: aiError.ruleId,
+                    layer: aiError.layer
+                });
+
+                return res.status(400).json({
+                    success: false,
+                    message: aiError.userMessage,
+                    code: "CV_GUARDRAIL_REJECTION",
+                    error: {
+                        ruleId: aiError.ruleId,
+                        layer: aiError.layer,
+                        userMessage: aiError.userMessage,
+                        remediationAction: aiError.remediationAction
+                    }
+                });
+            }
+
             console.error("[AI Extraction Failed]", aiError.message);
             // --- NEW: Log AI Pipeline Failure ---
             await createAuditLog(req, 'CV_PARSING_FAILED', userId, {
@@ -258,30 +289,26 @@ exports.uploadRunCv = async (req, res) => {
             });
         }
 
-
-        await db.DocumentUploads.updateMany(
-            { userId },
-            { $set: { isActive: false } }
-        );
-
         const dbSafeParsedData = extractedData ? JSON.parse(JSON.stringify(extractedData)) : null;
-        // Keep metadata for auditing and token tracking
 
-        const newCv = await db.DocumentUploads.create({
-            userId,
-            fileName: file.originalname,
-            cvUrl: fileUrl,
-            parsedCvData: dbSafeParsedData,
-            parserStatus: parserStatus,
-            parserMetadata: extractedData ? {
-                llm: extractedData.llm,
-                model: extractedData.model,
-                modelUsed: extractedData.modelUsed,
-                duration: extractedData.totalPipelineDuration,
-                tokenUsage: extractedData.tokenUsage
-            } : null,
-            isActive: true
-        });
+        // Update the active DocumentUploads record created by smartCVParser
+        const newCv = await db.DocumentUploads.findOneAndUpdate(
+            { userId, isActive: true },
+            {
+                $set: {
+                    parsedCvData: dbSafeParsedData,
+                    parserStatus: parserStatus,
+                    parserMetadata: extractedData ? {
+                        llm: extractedData.llm,
+                        model: extractedData.model,
+                        modelUsed: extractedData.modelUsed,
+                        duration: extractedData.totalPipelineDuration || extractedData.parsingDuration,
+                        tokenUsage: extractedData.tokenUsage
+                    } : null
+                }
+            },
+            { new: true }
+        );
 
         await db.Runs.findOneAndUpdate(
             { runId },
@@ -341,3 +368,100 @@ exports.uploadRunCv = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+
+/**
+ * Retrieve the standalone CV parsing / resume intelligence report (Candidate Snapshot).
+ */
+exports.getCvReport = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const userId = req.user.id;
+
+        const run = await db.Runs.findOne({ runId });
+        if (!run) {
+            return res.status(404).json({ success: false, message: "Run not found" });
+        }
+
+        if (run.userId.toString() !== userId && req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: "Unauthorized" });
+        }
+
+        if (!run.cvSnapshot || !run.cvSnapshot.cvUrl) {
+            return res.status(404).json({ success: false, message: "CV data not found for this run" });
+        }
+
+        const runUserId = run.userId.toString();
+
+        // Fetch full parsed CV baseline, PSDE scan results, and upload metadata
+        const [extractedCV, psdeResult, uploadMeta] = await Promise.all([
+            db.ExtractedCV.findOne({ candidate_id: runUserId }),
+            db.PSDEResult.findOne({ candidate_id: runUserId }).sort({ created_at: -1 }),
+            db.DocumentUploads.findById(run.cvSnapshot.cvUploadId)
+        ]);
+
+        if (!extractedCV) {
+            return res.status(404).json({ success: false, message: "Full Extracted CV baseline document not found" });
+        }
+
+        if (!psdeResult) {
+            return res.status(404).json({ success: false, message: "PSDE scan results not found for this user" });
+        }
+
+        // Generate Recruiter Intelligence report
+        const report = generateReport(extractedCV, psdeResult, uploadMeta?.parserMetadata?.metrics);
+
+        return res.status(200).json({
+            success: true,
+            data: report
+        });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: `Failed to retrieve CV report: ${error.message}` });
+    }
+};
+
+/**
+ * Retrieve the standalone CV parsing report (Candidate Snapshot) for the authenticated user BEFORE payment.
+ */
+exports.getLatestCvReport = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const userProfile = await db.UserProfile.findOne({ userId });
+        if (!userProfile) {
+            return res.status(404).json({ success: false, message: "User profile not found" });
+        }
+
+        if (!userProfile.cvUrl) {
+            return res.status(404).json({ success: false, message: "Parsed CV data not found for this user" });
+        }
+
+        // Fetch full parsed CV baseline, PSDE scan results, and upload metadata
+        const [extractedCV, psdeResult, uploadMeta] = await Promise.all([
+            db.ExtractedCV.findOne({ candidate_id: userId }),
+            db.PSDEResult.findOne({ candidate_id: userId }).sort({ created_at: -1 }),
+            db.DocumentUploads.findById(userProfile.lastCvUploadId)
+        ]);
+
+        if (!extractedCV) {
+            return res.status(404).json({ success: false, message: "Full Extracted CV baseline document not found" });
+        }
+
+        if (!psdeResult) {
+            return res.status(404).json({ success: false, message: "PSDE scan results not found for this user" });
+        }
+
+        // Generate Recruiter Intelligence report
+        const report = generateReport(extractedCV, psdeResult, uploadMeta?.parserMetadata?.metrics);
+
+        return res.status(200).json({
+            success: true,
+            data: report
+        });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: `Failed to retrieve CV report: ${error.message}` });
+    }
+};
+
+

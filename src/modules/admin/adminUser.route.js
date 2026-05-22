@@ -1,7 +1,7 @@
 const express = require('express');
 const route = express.Router();
 const adminController = require('./admin.controller.js');
-const expertController = require('../../controllers/expertController');
+const expertController = require('../expert/expert.controller.js');
 
 
 /**
