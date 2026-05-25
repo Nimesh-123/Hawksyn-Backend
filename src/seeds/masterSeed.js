@@ -11,37 +11,36 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 // ── Import all models ──
-const CaseRegistry = require('../models/CaseRegistry.model');
-const IntentTaxonomy = require('../models/IntentTaxonomy.model');
-const DocumentFileRules = require('../models/DocumentFileRules.model');
-const Playbooks = require('../models/Playbooks.model');
-const CaseIntentConfig = require('../models/CaseIntentConfig.model');
-const Questions = require('../models/Questions.model');
-const Constraints = require('../models/Constraints.model');
-const ConstraintQuestionMapping = require('../models/ConstraintQuestionMapping.model');
-const Contradictions = require('../models/Contradictions.model');
-const CoverageRequirements = require('../models/CoverageRequirements.model');
-const RedFlagTaxonomy = require('../models/RedFlagTaxonomy.model');
-const AccuracyScoringPolicy = require('../models/AccuracyScoringPolicy.model');
-const Warnings = require('../models/Warnings.model');
-const EvaluationLibraryRegistry = require('../models/EvaluationLibraryRegistry.model');
-const GuardrailRegistry = require('../models/GuardrailRegistry.model');
-const DecisionAssuranceSections = require('../models/DecisionAssuranceSections.model');
-const PromptConfigRegistry = require('../models/PromptConfigRegistry.model');
-const DependencyRules = require('../models/DependencyRules.model');
-const ExternalSignalTaxonomy = require('../models/ExternalSignalTaxonomy.model');
-const SourceRegistry = require('../models/SourceRegistry.model');
-const DataPatternKeyTaxonomy = require('../models/DataPatternKeyTaxonomy.model');
-const RiskAuditorRegistry = require('../models/RiskAuditorRegistry.model');
-const MandatoryObjectiveInput = require('../models/MandatoryObjectiveInput.model');
-const MoiQuestionMapping = require('../models/MoiQuestionMapping.model');
-const MarketPulse = require('../models/MarketPulse.model');
-const UserCredits = require('../models/UserCredits.model');
-const VerdictLogicTable = require('../models/VerdictLogicTable.model');
-const DroMaster = require('../models/DroMaster.model');
-const RiskConstraintMap = require('../models/RiskConstraintMap.model');
-const IntegrityEligibilityRules = require('../models/IntegrityEligibilityRules.model');
-const ExternalEvidenceDataPool = require('../models/ExternalEvidenceDataPool.model');
+const CaseRegistry = require('../modules/cases/CaseRegistry.model.js');
+const IntentTaxonomy = require('../modules/assurance/IntentTaxonomy.model');
+const Playbooks = require('../modules/assurance/Playbooks.model');
+const CaseIntentConfig = require('../modules/cases/CaseIntentConfig.model.js');
+const Questions = require('../modules/assurance/Questions.model');
+const Constraints = require('../modules/assurance/Constraints.model');
+const ConstraintQuestionMapping = require('../modules/assurance/ConstraintQuestionMapping.model');
+const Contradictions = require('../modules/assurance/Contradictions.model');
+const CoverageRequirements = require('../modules/assurance/CoverageRequirements.model');
+const RedFlagTaxonomy = require('../modules/assurance/RedFlagTaxonomy.model');
+const AccuracyScoringPolicy = require('../modules/assurance/AccuracyScoringPolicy.model');
+const Warnings = require('../modules/assurance/Warnings.model');
+const EvaluationLibraryRegistry = require('../modules/assurance/EvaluationLibraryRegistry.model');
+const GuardrailRegistry = require('../modules/assurance/GuardrailRegistry.model');
+const DecisionAssuranceSections = require('../modules/assurance/DecisionAssuranceSections.model');
+const PromptConfigRegistry = require('../modules/assurance/PromptConfigRegistry.model');
+const DependencyRules = require('../modules/assurance/DependencyRules.model');
+const ExternalSignalTaxonomy = require('../modules/signals/ExternalSignalTaxonomy.model.js');
+const SourceRegistry = require('../modules/signals/SourceRegistry.model.js');
+const DataPatternKeyTaxonomy = require('../modules/signals/DataPatternKeyTaxonomy.model.js');
+const RiskAuditorRegistry = require('../modules/assurance/RiskAuditorRegistry.model');
+const MandatoryObjectiveInput = require('../modules/assurance/MandatoryObjectiveInput.model');
+const MoiQuestionMapping = require('../modules/assurance/MoiQuestionMapping.model');
+const MarketPulse = require('../modules/commandCenter/MarketPulse.model.js');
+const UserCredits = require('../modules/billing/UserCredits.model.js');
+const VerdictLogicTable = require('../modules/assurance/VerdictLogicTable.model');
+const DroMaster = require('../modules/assurance/DroMaster.model');
+const RiskConstraintMap = require('../modules/assurance/RiskConstraintMap.model');
+const IntegrityEligibilityRules = require('../modules/assurance/IntegrityEligibilityRules.model');
+const ExternalEvidenceDataPool = require('../modules/signals/ExternalEvidenceDataPool.model.js');
 
 // ════════════════════════════════════════════════════════════
 // STEP 1 — case_registry
@@ -92,29 +91,6 @@ async function seedIntentTaxonomy() {
     ]);
 }
 
-// ════════════════════════════════════════════════════════════
-// STEP 3 — document_file_rules
-// ════════════════════════════════════════════════════════════
-async function seedDocumentFileRules() {
-    await DocumentFileRules.deleteMany({});
-    await DocumentFileRules.insertMany([
-        {
-            documentPolicyId: 'DOCPOLICY_V1_STD',
-            policyName: 'Standard Document Policy v1',
-            policyVersion: 'v1.0',
-            allowedFormats: 'PDF|DOCX',
-            rejectPasswordProtected: true,
-            rejectScannedOrImage: true,
-            parserEngine: 'TEXT_EXTRACT_V1',
-            normalisationLlm: 'GEMINI',
-            promptTemplateId: 'PCR_CV_EXTRACT_V1',
-            outputSchemaId: 'AEU_SCHEMA_V1',
-            fieldMappingProfileId: 'FMP_STD_V1',
-            isActive: true,
-            notes: 'Standard policy for MVP'
-        }
-    ]);
-}
 
 // ════════════════════════════════════════════════════════════
 // STEP 4 — playbooks
@@ -2813,10 +2789,21 @@ async function runSeed() {
         await mongoose.connect(process.env.DB_URI);
         console.log('✅ MongoDB connected\n');
 
+        // Drop legacy collections if they exist
+        const collections = await mongoose.connection.db.listCollections().toArray();
+        const collectionNames = collections.map(col => col.name);
+        if (collectionNames.includes('cv_uploads')) {
+            console.log('🗑️  Dropping legacy collection: cv_uploads');
+            await mongoose.connection.db.dropCollection('cv_uploads').catch(() => {});
+        }
+        if (collectionNames.includes('document_file_rules')) {
+            console.log('🗑️  Dropping legacy collection: document_file_rules');
+            await mongoose.connection.db.dropCollection('document_file_rules').catch(() => {});
+        }
+
         const steps = [
             { name: 'case_registry', fn: seedCaseRegistry },
             { name: 'intent_taxonomy', fn: seedIntentTaxonomy },
-            { name: 'document_file_rules', fn: seedDocumentFileRules },
             { name: 'playbooks', fn: seedPlaybooks },
             { name: 'case_intent_config', fn: seedCaseIntentConfig },
             { name: 'questions', fn: seedQuestions },

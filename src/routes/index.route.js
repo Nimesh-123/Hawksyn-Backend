@@ -1,19 +1,19 @@
 const express = require('express');
 const route = express.Router();
 
-const authRoute = require('./auth/authIndex.route.js');
-const userRoute = require('./user/userIndex.route.js');
-const adminRoute = require('./admin/adminIndex.route.js');
-const chatRoute = require('./chat.route.js'); 
-const caseRoutes = require('./caseRoutes.js');
-const paymentRoutes = require('./paymentRoutes.js');
-const runRoutes = require('./runRoutes.js');
-const recordsRoutes = require('./records.routes.js');
-const commandCenterRoutes = require('./commandCenterRoutes.js');
-const expertAuthRoute = require('./expert/expertAuth.route.js');
-const expertRoute = require('./expert/expert.route.js');
-const notificationRoutes = require('./notificationRoutes.js');
-const contentRoutes = require('./contentRoutes.js');
+const authRoute = require('../modules/auth/authIndex.route.js');
+const userRoute = require('../modules/user/userIndex.route.js');
+const adminRoute = require('../modules/admin/adminIndex.route.js');
+const chatRoute = require('../modules/expert/chat.route.js'); 
+const caseRoutes = require('../modules/cases/case.route.js');
+const paymentRoutes = require('../modules/billing/payment.route.js');
+const runRoutes = require('../modules/assurance/run.route.js');
+const recordsRoutes = require('../modules/assurance/records.route.js');
+const commandCenterRoutes = require('../modules/commandCenter/commandCenter.route.js');
+const expertAuthRoute = require('../modules/expert/expertAuth.route.js');
+const expertRoute = require('../modules/expert/expert.route.js');
+const notificationRoutes = require('../modules/notification/notification.route.js');
+const contentRoutes = require('../modules/support/content.route.js');
 
 // 1. PUBLIC ROUTES (Login / Signup)
 route.use('/auth', authRoute);

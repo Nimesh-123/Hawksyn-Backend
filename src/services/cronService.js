@@ -1,7 +1,7 @@
 const cron = require('node-cron');
 const { db } = require('../models/index.model');
 const notificationService = require('./notificationService');
-const signalService = require('./signalService');
+const signalService = require('../modules/signals/services/signalService.js');
 const logger = require('../../utils/logger');
 
 /**

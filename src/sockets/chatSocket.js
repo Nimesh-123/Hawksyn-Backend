@@ -1,7 +1,6 @@
-const ChatMessage = require('../models/ChatMessage.model');
-const Runs = require('../models/Runs.model');
+const ChatMessage = require('../modules/expert/ChatMessage.model.js');
+const Runs = require('../modules/assurance/Runs.model');
 const { db } = require('../models/index.model.js');
-
 exports.initChatSocket = (io) => {
 
     io.on('connection', (socket) => {
