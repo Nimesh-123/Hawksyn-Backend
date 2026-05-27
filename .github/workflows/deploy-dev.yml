@@ -3,7 +3,7 @@ name: Deploy to DEV
 on:
   push:
     branches:
-      - dev
+      - working
 
 jobs:
   deploy:
@@ -17,30 +17,22 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20' # Adjust to your Node version
+          node-version: '22'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Database Migrations
-        env:
-          DB_URI: ${{ secrets.DEV_DB_URI }}
-          DB_NAME: ${{ secrets.DEV_DB_NAME }}
-        run: npm run migrate:up
-
-      # Placeholder for actual deployment step
-      # If using AWS Elastic Beanstalk, ECS, Serverless Framework, etc., insert it here.
-      - name: Deploy to DEV Environment
-        run: |
-          echo "Add your specific deployment command here (e.g., serverless deploy --stage dev, or eb deploy)"
-          
-      # If deployment fails, we should ideally rollback the DB migration.
-      # This is a simple fallback strategy.
-      - name: Rollback Migration on Failure
-        if: failure()
-        env:
-          DB_URI: ${{ secrets.DEV_DB_URI }}
-          DB_NAME: ${{ secrets.DEV_DB_NAME }}
-        run: |
-          echo "Deployment failed! Rolling back the last database migration..."
-          npm run migrate:down
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 72.60.218.170
+          username: root
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Update this path to where your backend is hosted on the server
+             cd /root/Hawksyn/Hawksyn-Backend
+            git pull origin working
+            npm install
+            npm run migrate:up
+            # Update 'hawksyn-backend' to whatever name your PM2 process has
+            pm2 restart hawksyn-backend
