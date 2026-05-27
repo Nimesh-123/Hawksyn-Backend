@@ -28,11 +28,10 @@ jobs:
           host: 72.60.218.170
           username: root
           key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            # Update this path to where your backend is hosted on the server
-             cd /root/Hawksyn/Hawksyn-Backend
-            git pull origin working
-            npm install
-            npm run migrate:up
-            # Update 'hawksyn-backend' to whatever name your PM2 process has
-            pm2 restart hawksyn-backend
+         script: |
+          export PATH=$PATH:/root/.nvm/versions/node/v20.20.2/bin
+          cd /root/Hawksyn/Hawksyn-Backend
+          git pull origin working
+          npm install
+          npm run migrate:up
+          pm2 restart hawksyn-backend
