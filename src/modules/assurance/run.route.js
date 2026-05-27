@@ -42,35 +42,6 @@ router.get('/pipeline/summary', caseController.getPipelineSummary);
  */
 router.get('/:runId/snapshot', caseController.getRunSnapshot);
 
-/**
- * @swagger
- * /runs/{runId}/revert:
- *   post:
- *     summary: (Admin Only) Revert a specific run to a previous status (Safety Switch)
- *     tags: ["5. Run Operations (AI Flow)"]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: runId
- *         required: true
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [targetStatus]
- *             properties:
- *               targetStatus:
- *                 type: string
- *                 enum: [PROFILE_CONFIRMED, QUESTIONS_CONFIRMED, SIGNALS_COLLECTED]
- *     responses:
- *       200:
- *         description: Run reverted and associated future data cleaned up
- */
-router.post('/:runId/revert', caseController.revertRunStatus);
-
 
 /**
  * --- CV Related Routes ---

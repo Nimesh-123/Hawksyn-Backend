@@ -46,7 +46,6 @@ route.get('/payments/export', paymentController.adminExportPaymentsCSV);
 
 const caseController = require('../cases/case.controller.js');
 route.get('/pipeline/summary', caseController.getPipelineSummary);
-route.post('/runs/:runId/revert', caseController.revertRunStatus);
 
 // Content Management (FAQ & Legal)
 const supportController = require('../support/supportContentController');

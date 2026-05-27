@@ -670,6 +670,7 @@ exports.submitExpertReview = async (req, res) => {
         const reviewArtifact = await db.Ras.create({
             rasId: `RAS_REV_${runId}_${Date.now()}`,
             runId,
+            stepNo: 6,
             artifactType: 'EXPERT_REVIEW',
             status: 'FINAL',
             artifactJson: {
