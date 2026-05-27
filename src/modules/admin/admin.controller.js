@@ -256,11 +256,35 @@ exports.blockUser = async (req, res) => {
  */
 exports.getAuditLogs = async (req, res) => {
     try {
-        const { page = 1, limit = 10, userId } = req.query;
+        const { page = 1, limit = 10, userId, action, severity, startDate, endDate } = req.query;
 
         // Define Filter
         const filter = {};
         if (userId) filter.userId = userId;
+
+        // 1. Action Type Filter (supports single value or comma-separated list)
+        if (action) {
+            if (action.includes(',')) {
+                filter.action = { $in: action.split(',').map(a => a.trim()) };
+            } else {
+                filter.action = action;
+            }
+        }
+
+        // 2. Severity Level Filter (looks at both top-level and nested metadata properties)
+        if (severity) {
+            filter.$or = [
+                { severity: severity.toUpperCase() },
+                { 'metadata.severity': severity.toUpperCase() }
+            ];
+        }
+
+        // 3. Date Range Filter
+        if (startDate || endDate) {
+            filter.createdAt = {};
+            if (startDate) filter.createdAt.$gte = new Date(startDate);
+            if (endDate) filter.createdAt.$lte = new Date(endDate);
+        }
 
         const logs = await db.AuditLog.find(filter)
             .populate('userId', 'email name')
@@ -270,12 +294,23 @@ exports.getAuditLogs = async (req, res) => {
 
         const total = await db.AuditLog.countDocuments(filter);
 
+        // Aggregated error analytics (for dashboard warning indicators)
+        const totalErrorLogs = await db.AuditLog.countDocuments({
+            ...filter,
+            $or: [
+                { severity: { $in: ['HIGH', 'CRITICAL'] } },
+                { 'metadata.severity': { $in: ['HIGH', 'CRITICAL'] } },
+                { action: { $in: ['PROCESSING_FAILED', 'SLA_BREACH_DETECTED', 'SLA_ESCALATION_FAILED'] } }
+            ]
+        });
+
         return RESPONSE.success(res, 200, 1001, {
             logs,
             total,
             page: Number(page),
             limit: Number(limit),
-            hasNextPage: total > page * limit
+            hasNextPage: total > page * limit,
+            errorCount: totalErrorLogs
         });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
@@ -1639,33 +1674,3 @@ exports.updateUserCredits = async (req, res) => {
     }
 };
 
-/**
- * GET — Global or User-Specific Audit Logs for Admin
- * Supports: Pagination, UserId filter
- */
-exports.getAuditLogs = async (req, res) => {
-    try {
-        const { userId, page = 1, limit = 10 } = req.query;
-        const query = {};
-        if (userId) query.userId = userId;
-
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-        const logs = await db.AuditLog.find(query)
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(parseInt(limit))
-            .lean();
-
-        const total = await db.AuditLog.countDocuments(query);
-
-        return RESPONSE.success(res, 200, 1001, {
-            logs,
-            total,
-            page: parseInt(page),
-            limit: parseInt(limit),
-            hasNextPage: total > skip + logs.length
-        });
-    } catch (err) {
-        return RESPONSE.error(res, 500, 9999, err.message);
-    }
-};

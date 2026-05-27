@@ -282,6 +282,26 @@ router.post('/:runId/integrity/run', integrityController.runIntegrityEngine);
 
 /**
  * @swagger
+ * /runs/{runId}/scoring-debug:
+ *   get:
+ *     summary: (Debug Only) Fetch detailed, step-by-step scoring calculations for client verification
+ *     tags: ["5. Run Operations (AI Flow)"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved the step-by-step scoring debug details
+ */
+router.get('/:runId/scoring-debug', integrityController.getScoringDebug);
+
+/**
+ * @swagger
  * /runs/{runId}/signals/collect:
  *   post:
  *     summary: Collect external market signals for this run
@@ -514,5 +534,23 @@ router.get('/experts/queries/:runId', expertController.getExpertQueries);
  *         description: Attempt details
  */
 router.get('/:runId/chat/attempts', expertController.getChatAttempts);
+
+/**
+ * @swagger
+ * /runs/{runId}/sla-status:
+ *   get:
+ *     summary: Retrieve real-time expert SLA tracking countdown and breach status
+ *     tags: ["5. Run Operations (AI Flow)"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Real-time countdown details returned
+ */
+router.get('/:runId/sla-status', expertController.getSlaStatus);
 
 module.exports = router;

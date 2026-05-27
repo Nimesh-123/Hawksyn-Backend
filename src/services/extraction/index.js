@@ -85,7 +85,7 @@ Replace with hyphen at start of lines.
 ## TASK 2 — Unicode normalisation (CR-05)
 Replace smart quotes, em-dash, etc.
 ## TASK 3 — Date normalisation (CR-02)
-Convert all date patterns to YYYY-MM.
+Convert month/year date patterns to YYYY-MM (e.g. 'Jan 2020' to '2020-01'). Do NOT alter standalone years (e.g. '2018' stays '2018').
 ## TASK 4 — Currency normalisation (CR-03 + CR-04)
 Normalise currency expressions inline.
 ## TASK 5 — Code snippet stripping (CR-11)

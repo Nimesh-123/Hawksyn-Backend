@@ -84,6 +84,10 @@ function sanitizeParsedData(parsedData) {
             if (match) expYears = parseFloat(match[0]);
         }
 
+
+
+
+        
         structured.inferred = {
             seniorityLevel: getVal('AEU_INF_001'),
             totalExperienceYears: expYears,
@@ -133,11 +137,11 @@ function sanitizeParsedData(parsedData) {
     // Ensure Education is detailed
     if (Array.isArray(composition.education)) {
         composition.education = composition.education.map(e => ({
-            degree: e.degree || "",
-            institution: e.institution || "",
+            degree: e.degree || e.degree_canonical || e.degree_original || "",
+            institution: e.institution_canonical || e.institution || "",
             duration: e.duration || e.dates || (e.startYear && e.endYear ? `${e.startYear} - ${e.endYear}` : ""),
-            startYear: e.startYear || "",
-            endYear: e.endYear || ""
+            startYear: e.startYear || e.year_completed || "",
+            endYear: e.endYear || e.year_completed || ""
         }));
     }
 
