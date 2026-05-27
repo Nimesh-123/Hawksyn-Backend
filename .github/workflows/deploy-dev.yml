@@ -28,10 +28,10 @@ jobs:
           host: 72.60.218.170
           username: root
           key: ${{ secrets.SERVER_SSH_KEY }}
-         script: |
-          export PATH=$PATH:/root/.nvm/versions/node/v20.20.2/bin
-          cd /root/Hawksyn/Hawksyn-Backend
-          git pull origin working
-          npm install
-          npm run migrate:up
-          pm2 restart hawksyn-backend
+          script: |
+            export PATH=$PATH:/root/.nvm/versions/node/v20.20.2/bin
+            cd /root/Hawksyn/Hawksyn-Backend
+            git pull origin working
+            npm install
+            npm run migrate:up
+            pm2 restart hawksyn-backend
