@@ -1,0 +1,46 @@
+name: Deploy to DEV
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20' # Adjust to your Node version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Database Migrations
+        env:
+          DB_URI: ${{ secrets.DEV_DB_URI }}
+          DB_NAME: ${{ secrets.DEV_DB_NAME }}
+        run: npm run migrate:up
+
+      # Placeholder for actual deployment step
+      # If using AWS Elastic Beanstalk, ECS, Serverless Framework, etc., insert it here.
+      - name: Deploy to DEV Environment
+        run: |
+          echo "Add your specific deployment command here (e.g., serverless deploy --stage dev, or eb deploy)"
+          
+      # If deployment fails, we should ideally rollback the DB migration.
+      # This is a simple fallback strategy.
+      - name: Rollback Migration on Failure
+        if: failure()
+        env:
+          DB_URI: ${{ secrets.DEV_DB_URI }}
+          DB_NAME: ${{ secrets.DEV_DB_NAME }}
+        run: |
+          echo "Deployment failed! Rolling back the last database migration..."
+          npm run migrate:down

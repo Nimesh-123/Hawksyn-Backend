@@ -5,7 +5,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start:dev": "nodemon --max-old-space-size=32768 index.js",
-    "seed": "node src/seeds/masterSeed.js"
+    "seed": "node src/seeds/masterSeed.js",
+    "migrate:create": "migrate-mongo create",
+    "migrate:up": "migrate-mongo up",
+    "migrate:down": "migrate-mongo down",
+    "migrate:status": "migrate-mongo status"
   },
   "repository": {
     "type": "git",
@@ -38,6 +42,7 @@
     "jsonwebtoken": "^9.0.2",
     "langdetect": "^0.2.1",
     "mammoth": "^1.11.0",
+    "migrate-mongo": "^14.0.7",
     "mongoose": "^8.17.1",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",

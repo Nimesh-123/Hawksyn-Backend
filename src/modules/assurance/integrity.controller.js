@@ -439,6 +439,24 @@ exports.runIntegrityEngine = async (req, res) => {
             } 
         });
 
+        // Create secure Critical Error entry in system audit database (Observability D56)
+        try {
+            await db.AuditLog.create({
+                action: 'PROCESSING_FAILED',
+                userId: currentRun?.userId || null,
+                severity: 'CRITICAL',
+                metadata: {
+                    runId,
+                    engineStep: 'INTEGRITY_ENGINE',
+                    failureStep: failureStep,
+                    errorDetails: error.message,
+                    timestamp: new Date()
+                }
+            });
+        } catch (logErr) {
+            console.error('[SLACron] Failed to log failure to AuditLog:', logErr.message);
+        }
+
         // Trigger Failure Notification to System Admin
         notificationService.notifyProcessingFailure(runId, failureStep, error.message);
 
@@ -448,5 +466,111 @@ exports.runIntegrityEngine = async (req, res) => {
             error: error.message,
             failureStep: failureStep
         });
+    }
+};
+
+/**
+ * DEBUG API: GET /api/runs/:runId/scoring-debug
+ * Temporary endpoint for client verification to show how calculations work.
+ */
+exports.getScoringDebug = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const run = await db.Runs.findOne({ runId });
+        if (!run) return res.status(404).json({ success: false, message: 'Run not found' });
+
+        // Get Step 3 Answers
+        const rasInputs = await db.Ras.find({ runId, status: 'FINAL' });
+        const allAnswersMap = new Map();
+        rasInputs.filter(r => r.artifactType === 'OBJECTIVE_INPUTS_CAPTURED')
+            .forEach(record => {
+                if (record.artifactJson.answers && Array.isArray(record.artifactJson.answers)) {
+                    record.artifactJson.answers.forEach(a => {
+                        const resolvedValue = a.answerLabel || a.answerValue;
+                        allAnswersMap.set(a.questionId, { ...a, resolvedValue });
+                    });
+                }
+            });
+
+        const allAnswers = Array.from(allAnswersMap.values());
+        
+        // 1. Show individual question scores
+        const scoredAnswers = [];
+        for (const answer of allAnswers) {
+            const q = await db.Questions.findOne({ questionId: answer.questionId });
+            if (!q) continue;
+
+            const score = calculateQuestionScore(q, answer.resolvedValue);
+            scoredAnswers.push({
+                questionId: answer.questionId,
+                questionText: q.questionText,
+                questionType: q.questionType,
+                userAnswer: answer.resolvedValue,
+                scoringType: q.scoringType,
+                scoringConfig: q.scoringMapJson,
+                calculatedScore: score
+            });
+        }
+
+        // 2. Show constraint weighting and final score
+        const constraintDebug = [];
+        const constraints = await db.Constraints.find({
+            caseId: run.caseId,
+            intentId: { $in: [run.intentId, 'ALL'] },
+            isActive: true
+        });
+
+        for (const constraint of constraints) {
+            const mappings = await db.ConstraintQuestionMapping.find({
+                constraintId: constraint.constraintId,
+                isActive: true
+            });
+
+            let weightedSum = 0;
+            let totalWeight = 0;
+            const mappedQuestions = [];
+
+            for (const mapping of mappings) {
+                const scored = scoredAnswers.find(s => s.questionId === mapping.questionId);
+                if (!scored) continue;
+                
+                const contribution = scored.calculatedScore * (mapping.contributionWeight || 1);
+                weightedSum += contribution;
+                totalWeight += (mapping.contributionWeight || 1);
+
+                mappedQuestions.push({
+                    questionId: mapping.questionId,
+                    score: scored.calculatedScore,
+                    weight: mapping.contributionWeight || 1,
+                    contribution: contribution
+                });
+            }
+
+            const finalConstraintScore = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
+            const bandResult = getConstraintBand(constraint, finalConstraintScore);
+
+            constraintDebug.push({
+                constraintId: constraint.constraintId,
+                constraintName: constraint.constraintName,
+                calculation: `(${mappedQuestions.map(m => `${m.score}*${m.weight}`).join(' + ')}) / ${totalWeight} = ${finalConstraintScore}`,
+                mappedQuestions,
+                finalScore: finalConstraintScore,
+                assignedBand: bandResult.band
+            });
+        }
+
+        // Output complete debug tree
+        return res.status(200).json({
+            success: true,
+            message: "Temporary Debug API for Scoring Verification",
+            data: {
+                runId,
+                step1_rawAnswersAndScoring: scoredAnswers,
+                step2_constraintWeightedAverage: constraintDebug
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
     }
 };

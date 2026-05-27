@@ -64,8 +64,11 @@ const neuralHealer = (text) => {
 /**
  * Map new multi-stage pipeline ExtractedCV schema outputs back to Hawksyn Standardised format.
  */
-const mapNewPipelineToHawksyn = (doc) => {
-    if (!doc) return null;
+const mapNewPipelineToHawksyn = (inputDoc) => {
+    if (!inputDoc) return null;
+    
+    // Ensure we are working with a plain JS object, not a Mongoose document wrapper
+    const doc = inputDoc.toObject ? inputDoc.toObject() : inputDoc;
 
     const consolidatorOutput = doc.consolidator_output || {};
     const stats = doc.precomputed_stats || {};
@@ -137,26 +140,54 @@ const mapNewPipelineToHawksyn = (doc) => {
     // 4. Skills (Technical vs Soft)
     const technicalSkills = new Set();
     const softSkills = new Set();
-
-    if (doc.skills) {
-        const skillEntries = doc.skills.skills || [];
-        skillEntries.forEach(s => {
-            if (s.category === 'soft') {
-                softSkills.add(s.skill_name);
-            } else {
-                technicalSkills.add(s.skill_name);
-            }
-        });
-        if (Array.isArray(doc.skills.soft_skills)) {
-            doc.skills.soft_skills.forEach(s => softSkills.add(s));
+    const languagesSpoken = new Set();
+    
+    let skillEntries = [];
+    if (Array.isArray(doc.skills)) {
+        skillEntries = doc.skills;
+    } else if (doc.skills && Array.isArray(doc.skills.skills)) {
+        skillEntries = doc.skills.skills;
+    } else if (doc.extracted_cv && Array.isArray(doc.extracted_cv.skills)) {
+        skillEntries = doc.extracted_cv.skills;
+    }
+    
+    console.log("DEBUG SKILLS:", {
+        isArrayDocSkills: Array.isArray(doc.skills),
+        hasDocSkillsSkills: doc.skills && Array.isArray(doc.skills.skills),
+        hasExtractedCvSkills: doc.extracted_cv && Array.isArray(doc.extracted_cv.skills),
+        skillEntriesLength: skillEntries.length,
+        sampleSkill: skillEntries[0]
+    });
+    
+    let softSkillsArr = [];
+    if (doc.skills && Array.isArray(doc.skills.soft_skills)) {
+        softSkillsArr = doc.skills.soft_skills;
+    } else if (doc.extracted_cv && Array.isArray(doc.extracted_cv.soft_skills)) {
+        softSkillsArr = doc.extracted_cv.soft_skills;
+    }
+    
+    skillEntries.forEach(s => {
+        const cat = (s.category || "").toLowerCase();
+        if (cat === 'soft') {
+            softSkills.add(s.skill_name);
+        } else if (cat === 'language' || cat === 'languages') {
+            languagesSpoken.add(s.skill_name);
+        } else {
+            technicalSkills.add(s.skill_name);
         }
+    });
+    
+    if (Array.isArray(softSkillsArr)) {
+        softSkillsArr.forEach(s => softSkills.add(s));
     }
 
     if (Array.isArray(consolidatorOutput.skill_mappings)) {
         consolidatorOutput.skill_mappings.forEach(s => {
-            if (s.primary_skill) technicalSkills.add(s.primary_skill);
+            if (s.primary_skill && !languagesSpoken.has(s.primary_skill)) technicalSkills.add(s.primary_skill);
             if (Array.isArray(s.secondary_skills)) {
-                s.secondary_skills.forEach(ss => technicalSkills.add(ss));
+                s.secondary_skills.forEach(ss => {
+                    if (!languagesSpoken.has(ss)) technicalSkills.add(ss);
+                });
             }
         });
     }
@@ -186,7 +217,7 @@ const mapNewPipelineToHawksyn = (doc) => {
                     technical: Array.from(technicalSkills),
                     soft: Array.from(softSkills)
                 },
-                languagesSpoken: consolidatorOutput.languages || [],
+                languagesSpoken: Array.from(languagesSpoken).length > 0 ? Array.from(languagesSpoken) : (consolidatorOutput.languages || []),
                 certifications: doc.credentials || [],
                 senioritySummary
             },

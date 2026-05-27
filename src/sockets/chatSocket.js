@@ -1,6 +1,27 @@
 const ChatMessage = require('../modules/expert/ChatMessage.model.js');
 const Runs = require('../modules/assurance/Runs.model');
 const { db } = require('../models/index.model.js');
+
+// In-memory rate limiting map (max 5 messages per 10 seconds per user)
+const rateLimitMap = new Map();
+
+// Clean message text of danger script structures (XSS protection)
+const sanitizeMessage = (text) => {
+    if (typeof text !== 'string') return '';
+    return text.replace(/<[^>]*>/g, '').trim();
+};
+
+// Mask blacklisted offensive terms
+const filterProfanity = (text) => {
+    const blacklist = ['spam', 'abuse', 'hack', 'fuck', 'shit', 'bitch', 'asshole'];
+    let filtered = text;
+    blacklist.forEach(word => {
+        const regex = new RegExp(`\\b${word}\\b`, 'gi');
+        filtered = filtered.replace(regex, '***');
+    });
+    return filtered;
+};
+
 exports.initChatSocket = (io) => {
 
     io.on('connection', (socket) => {
@@ -46,7 +67,36 @@ exports.initChatSocket = (io) => {
                     });
                 }
 
+                // --- 1. Rate Limiting Check (max 5 msgs per 10s) ---
+                const now = Date.now();
+                if (!rateLimitMap.has(session.userId)) {
+                    rateLimitMap.set(session.userId, [now]);
+                } else {
+                    const timestamps = rateLimitMap.get(session.userId);
+                    const validTimestamps = timestamps.filter(t => now - t < 10000);
+                    
+                    if (validTimestamps.length >= 5) {
+                        return socket.emit('chat_status', { 
+                            isLocked: false, 
+                            reason: 'RATE_LIMIT_EXCEEDED',
+                            message: 'Message rate limit exceeded. Max 5 messages per 10 seconds.'
+                        });
+                    }
+                    
+                    validTimestamps.push(now);
+                    rateLimitMap.set(session.userId, validTimestamps);
+                }
+
                 const { senderName, type, content, fileUrl } = data;
+
+                // --- 2. Input Sanitization & Empty Message Check ---
+                const sanitizedContent = sanitizeMessage(content);
+                if (!sanitizedContent && type !== 'FILE' && type !== 'IMAGE') {
+                    return socket.emit('error', { message: 'Message content cannot be empty.' });
+                }
+
+                // --- 3. Abuse Control / Profanity Filter ---
+                const filteredContent = filterProfanity(sanitizedContent);
 
                 const msg = await ChatMessage.create({
                     messageId: `MSG_${Date.now()}_${Math.floor(Math.random() * 999)}`,
@@ -55,7 +105,7 @@ exports.initChatSocket = (io) => {
                     senderType: session.userType,
                     senderName: senderName || 'User',
                     type: type || 'TEXT',
-                    content,
+                    content: filteredContent,
                     fileUrl,
                     status: 'SENT'
                 });

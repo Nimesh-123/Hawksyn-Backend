@@ -76,11 +76,12 @@ exports.generateReport = async (req, res) => {
         for (const q of questionDocs) questionsMap[q.questionId] = q;
 
         // 2. Load Configuration (ELR, Sections, Prompts, OST Contracts)
-        const [elr, sections, promptDocs, ostDocs] = await Promise.all([
+        const [elr, sections, promptDocs, ostDocs, playbook] = await Promise.all([
             db.EvaluationLibraryRegistry.findOne({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] }, isActive: true }),
             db.DecisionAssuranceSections.find({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] }, isActive: true }).sort({ sectionOrder: 1 }),
             db.PromptConfigRegistry.find({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] }, isActive: true }),
-            db.ObjectiveScoringTaxonomy.find({ caseId: run.caseId, isActive: true })
+            db.ObjectiveScoringTaxonomy.find({ caseId: run.caseId, isActive: true }),
+            db.Playbooks.findOne({ caseId: run.caseId, intentId: run.intentId, isActive: true })
         ]);
 
         if (!sections.length) return res.status(404).json({ success: false, message: 'No sections configured.' });
@@ -182,10 +183,7 @@ exports.generateReport = async (req, res) => {
 
                     const ostContract = ostMap[section.sectionId]?.llmJsonContract;
                     
-                    const llmResult = await callLLM({
-                        modelFamily: prompt.modelFamily,
-                        forceProvider: 'Gemini',
-                        systemPrompt: (prompt.systemPrompt || '') +
+                    const systemPromptBase = (prompt.systemPrompt || '') +
                             (ostContract ? `\n\nCRITICAL OUTPUT FORMAT (JSON ONLY):\n${ostContract}` : '') +
                             "\n\n--- COMPREHENSIVE EVIDENCE PACKAGE ---\n" +
                             JSON.stringify(placeholders, null, 2) +
@@ -194,11 +192,51 @@ exports.generateReport = async (req, res) => {
                             "2. Do not say data is missing if it is in the package above.\n" +
                             "3. DO NOT mention surveys or inventories unless they appear explicitly in the evidence.\n" +
                             "4. STRUCTURE: Use Bullet Points (•) for multi-sentence descriptions, action items, or key findings to ensure high readability.\n" +
-                            "5. If specific evidence is missing, provide a professional 'Pro-Tip' relevant to the user's role: " + (normalizedProfile.currentRoleTitle || 'Professional'),
+                            "5. If specific evidence is missing, provide a professional 'Pro-Tip' relevant to the user's role: " + (normalizedProfile.currentRoleTitle || 'Professional');
+
+                    let llmResult = await callLLM({
+                        modelFamily: prompt.modelFamily,
+                        forceProvider: 'Gemini',
+                        systemPrompt: systemPromptBase,
                         userPrompt,
                         temperature: prompt.temperature || 0.3,
                         maxTokens: prompt.maxTokens || 1500
                     });
+
+                    // >>> ADVERSARIAL LAYER <<<
+                    if (playbook && playbook.adversarialMirrorEnabled) {
+                        const challengerPrompt = `Challenge the following claims using the provided EVIDENCE PACKAGE. Identify logical gaps, contradictions, or over-optimistic conclusions.\n\nPRIMARY TEXT:\n${llmResult.text}`;
+                        
+                        const challengerResult = await callLLM({
+                            modelFamily: prompt.modelFamily,
+                            forceProvider: 'Gemini',
+                            systemPrompt: systemPromptBase + "\n\nROLE: You are the Adversarial Challenger.",
+                            userPrompt: challengerPrompt,
+                            temperature: 0.5,
+                            maxTokens: prompt.maxTokens || 1500
+                        });
+
+                        const mergerPrompt = `Merge the PRIMARY DRAFT and the ADVERSARIAL CRITIQUE into a professional, highly balanced final section output. Ensure it reads cohesively.\n\nPRIMARY DRAFT:\n${llmResult.text}\n\nADVERSARIAL CRITIQUE:\n${challengerResult.text}`;
+                        
+                        const mergerResult = await callLLM({
+                            modelFamily: prompt.modelFamily,
+                            forceProvider: 'Gemini',
+                            systemPrompt: systemPromptBase + "\n\nROLE: You are the Consolidator.",
+                            userPrompt: mergerPrompt,
+                            temperature: 0.3,
+                            maxTokens: prompt.maxTokens || 1500
+                        });
+
+                        // Combine token usage
+                        llmResult.text = mergerResult.text;
+                        if (llmResult.usageMetadata && challengerResult.usageMetadata && mergerResult.usageMetadata) {
+                            llmResult.usageMetadata.promptTokens += challengerResult.usageMetadata.promptTokens + mergerResult.usageMetadata.promptTokens;
+                            llmResult.usageMetadata.completionTokens += challengerResult.usageMetadata.completionTokens + mergerResult.usageMetadata.completionTokens;
+                            llmResult.usageMetadata.totalTokens += challengerResult.usageMetadata.totalTokens + mergerResult.usageMetadata.totalTokens;
+                        }
+                        llmResult.duration = (llmResult.duration || 0) + (challengerResult.duration || 0) + (mergerResult.duration || 0);
+                    }
+                    // >>> END ADVERSARIAL LAYER <<<
 
                     sectionOut.content = applyCertaintyCap(llmResult.text, prompt.certaintyCapPercent || 85, integrityPack.accuracy?.band);
                     sectionOut.status = anchorCheck.allCovered ? 'COMPLETE' : 'DEGRADED';
@@ -328,6 +366,37 @@ exports.generateReport = async (req, res) => {
 
     } catch (error) {
         console.error('[Report Engine Error]', error.message);
+
+        // Securely log critical report engine error (Observability D56)
+        try {
+            const { runId } = req.params;
+            const currentRun = await db.Runs.findOne({ runId });
+            
+            await db.AuditLog.create({
+                action: 'PROCESSING_FAILED',
+                userId: currentRun?.userId || null,
+                severity: 'CRITICAL',
+                metadata: {
+                    runId,
+                    engineStep: 'REPORT_ENGINE',
+                    errorDetails: error.message,
+                    timestamp: new Date()
+                }
+            });
+
+            await db.Runs.updateOne({ runId }, { 
+                $set: { 
+                    status: 'PROCESSING_FAILED',
+                    failureStep: 'REPORT_GENERATION',
+                    failureReason: error.message
+                } 
+            });
+
+            notificationService.notifyProcessingFailure(runId, 'REPORT_GENERATION', error.message);
+        } catch (logErr) {
+            console.error('[Report Engine Error] Safe logging failed:', logErr.message);
+        }
+
         return res.status(500).json({ success: false, message: `Report generation failed: ${error.message}`, error: error.message });
     }
 };

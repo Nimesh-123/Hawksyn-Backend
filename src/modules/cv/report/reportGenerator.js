@@ -122,18 +122,18 @@ function generateReport(extractedCV, psdeResult, metrics) {
 
     // --- SECTION 6: IMPACT & METRICS ---
     const impactEvidence = baseAEUs
-        .filter(a => a.evidence_strength === 'strong' && a.metric_value)
-        .sort((a, b) => b.complexity_score - a.complexity_score)
+        .filter(a => a.evidence_strength === 'strong' && (a.metrics?.value || a.metrics?.amount_inr))
+        .sort((a, b) => (b.complexity_score || 0) - (a.complexity_score || 0))
         .slice(0, 8)
         .map(a => ({
-            action: a.action_verb,
-            object: a.business_object,
-            metric_value: a.metric_value,
-            metric_unit: a.metric_unit,
-            currency_code: a.currency_code,
+            action: a.action || a.action_verb,
+            object: a.object || a.business_object,
+            metric_value: a.metrics?.value,
+            metric_unit: a.metrics?.metric_name || a.metric_unit,
+            currency_code: a.metrics?.currency_code || a.currency_code,
             business_outcome: a.business_outcome,
             decision_level: a.decision_level,
-            complexity: a.complexity_level,
+            complexity: a.complexity || a.complexity_level,
             evidence_strength: a.evidence_strength
         }));
 
@@ -142,7 +142,7 @@ function generateReport(extractedCV, psdeResult, metrics) {
     const leadershipInsights = {
         leadership_signal_count: leadershipArchetypes.length,
         team_size_detected: extractedCV.precomputed_stats?.max_team_size || 0,
-        ownership_signals: baseAEUs.filter(a => a.decision_level === 'owned').slice(0, 5),
+        ownership_signals: [...baseAEUs].filter(a => a.decision_level === 'owned').reverse().slice(0, 5),
         executive_responsibilities: leadershipArchetypes.filter(a => a.archetype_id.includes('EXE')).map(a => a.archetype_name),
         governance_signals: leadershipArchetypes.filter(a => a.archetype_id.includes('GOV')).map(a => a.archetype_name)
     };

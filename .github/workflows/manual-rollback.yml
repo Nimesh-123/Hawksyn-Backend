@@ -1,0 +1,37 @@
+name: Manual DB Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to rollback'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Database Migration Rollback (DOWN)
+        env:
+          DB_URI: ${{ secrets.DB_URI }} # Configure secret DB_URI in GitHub per environment
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: |
+          echo "Manually rolling back the last database migration in ${{ github.event.inputs.environment }}..."
+          npm run migrate:down

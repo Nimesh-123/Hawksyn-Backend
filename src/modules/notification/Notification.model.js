@@ -35,7 +35,8 @@ const NotificationSchema = new mongoose.Schema({
             'PROFILE_CONFLICT',
             'EXPERT_REPLY',
             'CONTRADICTION_ALERT',
-            'MISSING_DATA_ALERT'
+            'MISSING_DATA_ALERT',
+            'SLA_BREACH'
         ],
         required: true
     },

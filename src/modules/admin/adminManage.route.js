@@ -221,5 +221,33 @@ router.get('/run-audit/list', adminController.getRunsAuditList);
  */
 router.post('/credits/update', adminController.updateUserCredits);
 
+/**
+ * @swagger
+ * /admin/manage/runs/{runId}/reassign-expert:
+ *   post:
+ *     summary: Manually force-assign or reassign a specific expert to a case (Admin Only)
+ *     tags: ["9. Admin: Dashboard"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [targetExpertId]
+ *             properties:
+ *               targetExpertId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Expert manual override successful
+ */
+router.post('/runs/:runId/reassign-expert', expertController.manualReassignExpert);
+
 module.exports = router;
 

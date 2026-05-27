@@ -73,13 +73,13 @@ exports.getUserProfile = async (req, res) => {
             confirmedAt: profile.confirmedAt,
             mPinSet: user ? user.mPinSet : false,
             personalInfo: {
-                fullName: p.identity?.fullName || "",
+                fullName: p.identity?.fullName || p.identity?.name || "",
                 email: p.identity?.email || "",
                 phone: p.identity?.phone || "",
                 location: p.identity?.location || "",
-                currentRoleTitle: p.identity?.currentRoleTitle || "",
-                linkedinUrl: p.identity?.linkedinUrl || "",
-                githubUrl: p.identity?.githubUrl || ""
+                currentRoleTitle: p.identity?.currentRoleTitle || p.identity?.headline_title || "",
+                linkedinUrl: p.identity?.linkedinUrl || p.identity?.social_links?.linkedin || "",
+                githubUrl: p.identity?.githubUrl || p.identity?.social_links?.github || ""
             },
             experience: p.work?.experience || [],
             projects: p.work?.projects || [],

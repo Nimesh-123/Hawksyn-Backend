@@ -139,8 +139,11 @@ exports.assignExpert = async (req, res) => {
         });
         const integrityConstraints = integrityRas?.artifactJson?.constraints?.results || [];
 
+        const clientRole = run.cvSnapshot?.parsedData?.identity?.currentRoleTitle || run.cvSnapshot?.parsedData?.work?.role || '';
+        const caseDomain = run.caseId;
+
         const scoredExperts = experts.map(expert => {
-            const scoring = scoreExpert(expert, redFlags, integrityConstraints);
+            const scoring = scoreExpert(expert, redFlags, integrityConstraints, clientRole, caseDomain);
             const reason = buildAssignmentReason(expert, redFlags, integrityConstraints, scoring);
             return { expert, scoring, reason };
         });
@@ -930,7 +933,7 @@ exports.deleteExpert = async (req, res) => {
 exports.updateExpert = async (req, res) => {
     try {
         const { id } = req.params; // Expert's MongoDB _id
-        const { auditorName, caseId, specializations, maxCaseload, isActive, status } = req.body;
+        const { auditorName, caseId, specializations, maxCaseload, isActive, status, slaCommitmentHours } = req.body;
 
         const expert = await db.RiskAuditorRegistry.findById(id);
         if (!expert) return RESPONSE.error(res, 404, 1005, 'Expert not found');
@@ -949,6 +952,7 @@ exports.updateExpert = async (req, res) => {
         if (maxCaseload !== undefined) updateData.maxCaseload = maxCaseload;
         if (isActive !== undefined) updateData.isActive = isActive;
         if (status) updateData.status = status;
+        if (slaCommitmentHours !== undefined) updateData.slaCommitmentHours = slaCommitmentHours;
 
         const updatedExpert = await db.RiskAuditorRegistry.findByIdAndUpdate(
             id,
@@ -964,3 +968,215 @@ exports.updateExpert = async (req, res) => {
         return RESPONSE.error(res, 500, 9999, err.message);
     }
 };
+
+exports.getSlaStatus = async (req, res) => {
+    try {
+        const { runId } = req.params;
+
+        const run = await db.Runs.findOne({ runId }).populate('expertId');
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Run not found.' });
+        }
+
+        if (run.status !== 'EXPERT_ASSIGNED' || !run.expertId) {
+            return res.status(200).json({
+                success: true,
+                data: {
+                    isSlaTracked: false,
+                    message: 'Case is not currently under expert review.'
+                }
+            });
+        }
+
+        const expert = run.expertId;
+
+        // Fetch custom SLA commitment hours
+        let slaHours = expert.slaCommitmentHours || 72;
+        try {
+            const systemConfig = await db.SystemConfig.findOne({ configKey: 'CHAT_SETTINGS' });
+            if (systemConfig && systemConfig.configValue && systemConfig.configValue.slaCommitmentHours) {
+                slaHours = systemConfig.configValue.slaCommitmentHours;
+            }
+        } catch (cfgErr) {
+            console.warn('[ExpertController] Config fetch failed:', cfgErr.message);
+        }
+
+        const expertAssignedTime = new Date(run.expertAssignedAt || run.updatedAt);
+        const breachTime = new Date(expertAssignedTime.getTime() + (slaHours * 60 * 60 * 1000));
+        
+        const now = new Date();
+        const diffMs = breachTime - now;
+        const isExpired = diffMs <= 0;
+        
+        const remainingSeconds = isExpired ? 0 : Math.floor(diffMs / 1000);
+        
+        // Formatted countdown label: e.g., "52h 14m remaining"
+        let displayLabel = '0h 0m remaining';
+        if (remainingSeconds > 0) {
+            const hours = Math.floor(remainingSeconds / 3600);
+            const minutes = Math.floor((remainingSeconds % 3600) / 60);
+            displayLabel = `${hours}h ${minutes}m remaining`;
+        } else {
+            displayLabel = 'SLA expired';
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                isSlaTracked: true,
+                runId: run.runId,
+                caseId: run.caseId,
+                assignedExpert: {
+                    auditorId: expert.auditorId,
+                    auditorName: expert.auditorName,
+                    designation: expert.designation
+                },
+                isSlaBreached: run.isSlaBreached || isExpired,
+                totalSlaHours: slaHours,
+                expertAssignedAt: run.expertAssignedAt,
+                breachTime,
+                remainingSeconds,
+                displayLabel
+            }
+        });
+
+    } catch (error) {
+        console.error('[ExpertController] SLA status error:', error.message);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.manualReassignExpert = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const { targetExpertId } = req.body;
+
+        if (!targetExpertId) {
+            return RESPONSE.error(res, 400, 1002, 'targetExpertId is required for override reassignment');
+        }
+
+        // 1. Find the Run
+        const run = await db.Runs.findOne({ runId });
+        if (!run) {
+            return RESPONSE.error(res, 404, 3001, 'Run not found');
+        }
+
+        // 2. Find the Target Expert (Support ObjectId and AuditorId search)
+        const mongoose = require('mongoose');
+        let searchFilter = {};
+        if (mongoose.Types.ObjectId.isValid(targetExpertId)) {
+            searchFilter._id = targetExpertId;
+        } else {
+            searchFilter.auditorId = targetExpertId;
+        }
+
+        const targetExpert = await db.RiskAuditorRegistry.findOne(searchFilter);
+        if (!targetExpert) {
+            return RESPONSE.error(res, 404, 1005, 'Target Expert not found');
+        }
+
+        if (!targetExpert.isActive || targetExpert.status !== 'ACTIVE') {
+            return RESPONSE.error(res, 400, 1005, 'Target Expert is currently offline or inactive');
+        }
+
+        const oldExpertId = run.expertId;
+        const reassignedTime = new Date();
+
+        // 3. Caseload balancing
+        if (oldExpertId) {
+            // Decrement old expert caseload
+            await db.RiskAuditorRegistry.updateOne(
+                { _id: oldExpertId },
+                { $inc: { currentCaseload: -1 } }
+            );
+        }
+
+        // Increment new expert caseload
+        await db.RiskAuditorRegistry.updateOne(
+            { _id: targetExpert._id },
+            { $inc: { currentCaseload: 1, dailyCaseloadCount: 1 } }
+        );
+
+        // 4. Update the Run
+        await db.Runs.updateOne(
+            { runId },
+            {
+                $set: {
+                    expertId: targetExpert._id,
+                    expertAssignedAt: reassignedTime,
+                    isSlaBreached: false // Reset breach state
+                }
+            }
+        );
+
+        // 5. Create new EXPERT_ASSIGNED artifact under Step 6 (Audit Trail)
+        const expRasId = `RAS_EXP_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+        const assignmentArtifact = {
+            runId,
+            assignedExpert: {
+                auditorId: targetExpert.auditorId,
+                auditorName: targetExpert.auditorName,
+                specializations: targetExpert.specializations,
+                assignedAt: reassignedTime,
+                assignmentReason: 'Manual Admin Override Reassignment',
+                scoreBreakdown: {
+                    total: 100,
+                    specialization: 60,
+                    load: 40
+                }
+            },
+            verdict: run.verdict || 'PAUSE',
+            escalationRequired: true,
+            assignmentStatus: 'ASSIGNED',
+            assignedAt: reassignedTime
+        };
+
+        await db.Ras.create({
+            rasId: expRasId,
+            runId,
+            stepNo: 6,
+            artifactType: 'EXPERT_ASSIGNED',
+            artifactVersion: 1,
+            artifactJson: assignmentArtifact,
+            status: 'FINAL'
+        });
+
+        // 6. Secure Audit Log
+        await db.AuditLog.create({
+            action: 'MANUAL_EXPERT_REASSIGNED',
+            userId: req.user?.id || req.user?._id, // Performed by Admin
+            metadata: {
+                runId,
+                caseId: run.caseId,
+                previousExpertId: oldExpertId || null,
+                newExpertId: targetExpert._id,
+                newExpertName: targetExpert.auditorName,
+                timestamp: reassignedTime
+            }
+        });
+
+        // 7. Alert notifications
+        try {
+            const user = await db.User.findById(run.userId);
+            if (user) {
+                await notificationService.notifyExpertAssigned(runId, user, targetExpert);
+            }
+        } catch (alertErr) {
+            console.error('[Admin Reassign] Notifications failed:', alertErr.message);
+        }
+
+        return RESPONSE.success(res, 200, 1001, {
+            message: 'Manual expert reassignment override successful',
+            runId,
+            newExpertId: targetExpert._id,
+            newExpertName: targetExpert.auditorName,
+            assignedAt: reassignedTime
+        });
+
+    } catch (error) {
+        console.error('[Admin Override Reassign Error]', error.message);
+        return RESPONSE.error(res, 500, 9999, error.message);
+    }
+};
+
+
