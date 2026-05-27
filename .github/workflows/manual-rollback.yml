@@ -28,10 +28,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Database Migration Rollback (DOWN)
-        env:
-          DB_URI: ${{ secrets.DB_URI }} # Configure secret DB_URI in GitHub per environment
-          DB_NAME: ${{ secrets.DB_NAME }}
-        run: |
-          echo "Manually rolling back the last database migration in ${{ github.event.inputs.environment }}..."
-          npm run migrate:down
+      - name: Rollback Database via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 72.60.218.170
+          username: root
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Update this path to where your backend is hosted on the server
+            cd /path/to/your/backend/folder
+            echo "Manually rolling back the last database migration..."
+            npm run migrate:down
