@@ -253,7 +253,11 @@ exports.getRunSnapshot = async (req, res) => {
  */
 exports.getPipelineSummary = async (req, res) => {
     try {
-        const { period } = req.query;
+        let { period, page = 1, limit = 10 } = req.query;
+        page = parseInt(page);
+        limit = parseInt(limit);
+        const skip = (page - 1) * limit;
+
         let matchQuery = {};
 
         if (period && period !== 'all') {
@@ -332,59 +336,21 @@ exports.getPipelineSummary = async (req, res) => {
             }
         });
 
+        // Apply pagination and format response
+        Object.keys(stages).forEach(key => {
+            const totalCount = stages[key].count;
+            stages[key].pagination = {
+                currentPage: page,
+                totalPages: Math.ceil(totalCount / limit),
+                totalCount: totalCount,
+                limit: limit
+            };
+            stages[key].items = stages[key].items.slice(skip, skip + limit);
+        });
+
         return res.status(200).json({ success: true, data: stages });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
 
-/**
- * API 5 — POST /api/v1/runs/:runId/revert
- * Purpose: Manual Safety Switch. Allows Admin to move a run back to a previous stage.
- */
-exports.revertRunStatus = async (req, res) => {
-    try {
-        const { runId } = req.params;
-        const { targetStatus } = req.body;
-
-        const validRevertStatuses = ['PROFILE_CONFIRMED', 'QUESTIONS_CONFIRMED', 'SIGNALS_COLLECTED'];
-        if (!validRevertStatuses.includes(targetStatus)) {
-            return res.status(400).json({ success: false, message: "Invalid revert target. You can only revert to Intake or Question stages." });
-        }
-
-        const run = await Runs.findOne({ runId });
-        if (!run) return res.status(404).json({ success: false, message: "Run not found" });
-
-        // Cleanup: If reverting from Integrity, remove the RAS Integrity Pack
-        if (targetStatus === 'QUESTIONS_CONFIRMED' || targetStatus === 'SIGNALS_COLLECTED') {
-            await db.Ras.deleteMany({ runId, artifactType: 'INTEGRITY_PACK' });
-        }
-
-        // If reverting all the way back to Profile, remove questions too
-        if (targetStatus === 'PROFILE_CONFIRMED') {
-            await db.Ras.deleteMany({ runId, stepNo: { $gte: 3 } });
-        }
-
-        await Runs.updateOne({ runId }, {
-            $set: {
-                status: targetStatus,
-                failureStep: null,
-                failureReason: null
-            }
-        });
-
-        await createAuditLog(req, 'RUN_STATUS_REVERTED', req.user.id, {
-            runId,
-            targetStatus,
-            performedBy: req.user.email
-        });
-
-        return res.status(200).json({
-            success: true,
-            message: `Status successfully reverted to ${targetStatus}. Previous results have been cleared.`
-        });
-
-    } catch (error) {
-        return res.status(500).json({ success: false, message: error.message });
-    }
-};
