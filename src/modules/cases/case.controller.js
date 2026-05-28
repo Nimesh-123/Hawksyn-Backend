@@ -104,6 +104,23 @@ exports.getCaseIntents = async (req, res) => {
 
             if (intent) {
                 seenIntents.add(config.intentId);
+                
+                // Check if an active playbook exists
+                let playbook = null;
+                if (config.playbookVersionId) {
+                    playbook = await Playbooks.findOne({
+                        playbookVersionId: config.playbookVersionId,
+                        isActive: true
+                    });
+                }
+                if (!playbook) {
+                    playbook = await Playbooks.findOne({
+                        caseId,
+                        intentId: config.intentId,
+                        isActive: true
+                    });
+                }
+
                 intentsList.push({
                     intentId: intent.intentId,
                     intentName: intent.intentName,
@@ -111,10 +128,17 @@ exports.getCaseIntents = async (req, res) => {
                     intentType: intent.intentType,
                     isDefault: config.isDefault,
                     isAvailable: config.isActive,
+                    hasPlaybook: !!playbook,
                     availabilityLabel: config.isActive ? "Available" : "Coming Soon"
                 });
             }
         }
+
+        // Sort intents so those with an active playbook appear first
+        intentsList.sort((a, b) => {
+            if (a.hasPlaybook === b.hasPlaybook) return 0;
+            return a.hasPlaybook ? -1 : 1;
+        });
 
         // Apply manual pagination on the unique list
         const totalCount = intentsList.length;
