@@ -235,7 +235,13 @@ exports.verifyPayment = async (req, res) => {
             return res.status(400).json({ success: false, message: 'No active playbook for this case and intent' });
         }
 
-        const playbook = await Playbooks.findOne({ playbookVersionId: config.playbookVersionId });
+        let playbook = await Playbooks.findOne({ playbookVersionId: config.playbookVersionId });
+        
+        // Fallback: Find by caseId and intentId directly if playbookVersionId mapping is missing
+        if (!playbook) {
+            playbook = await Playbooks.findOne({ caseId, intentId, isActive: true });
+        }
+        
         if (!playbook) {
             return res.status(400).json({ success: false, message: 'Playbook not found' });
         }

@@ -139,11 +139,47 @@ exports.uploadPlaybook = async (req, res) => {
             let config = PLAYBOOK_MAPPING[baseNameOrig];
 
             if (!config) {
-                // Fuzzy Match: Does any mapping key "contain" this sheet name or vice versa?
-                // Or does the sheet name contain the short code (e.g. "CR")?
+                // Strict Fuzzy Match: Only match exact short codes or well-formed prefixes
                 const foundKey = Object.keys(PLAYBOOK_MAPPING).find(key => {
                     const shortCode = key.split('_')[1]; // Extracts 'CR' from '01_CR_(Case_Registry)'
-                    return baseNameOrig.includes(shortCode) || baseNameOrig.includes(key);
+                    const cleanBase = baseNameOrig.trim().toUpperCase();
+                    
+                    // 1. Exact match with original key
+                    if (cleanBase === key.toUpperCase()) return true;
+                    
+                    // 2. Exact match with short code (e.g. "CR")
+                    if (cleanBase === shortCode) return true;
+                    
+                    // 3. Exact match with the descriptive keyword inside parentheses (e.g. "Questions" from "05_MCQM_(Questions)")
+                    const matchParens = key.match(/\(([^)]+)\)/);
+                    const keyword = matchParens ? matchParens[1].toUpperCase().replace(/\s+/g, '_') : null;
+                    
+                    if (keyword && cleanBase === keyword) return true;
+                    if (keyword && cleanBase.replace(/\s+/g, '_') === keyword) return true;
+
+                    // 4. Prefix match & Split match
+                    // Allow splitting (e.g. VLT_1, VLT_2, Questions_1) only for array-heavy models
+                    const allowSplit = ['VLT', 'QST', 'DAST', 'EST', 'DRO', 'RCM', 'CDT', 'CCT', 'CST', 'RFT', 'MCQM', 'CT'].includes(shortCode);
+                    
+                    if (allowSplit) {
+                        // Matches "VLT_1", "11 VLT", "VLT - Part 2"
+                        const strictRegex = new RegExp(`^\\d*[\\s_]*${shortCode}([\\s_\\-]+\\w+.*|\\s*\\(.*)?$`);
+                        if (strictRegex.test(cleanBase)) return true;
+                        
+                        // Matches "Questions_1", "Constraints_2"
+                        if (keyword) {
+                            // cleanBase might be "QUESTIONS_1" or "QUESTIONS 1"
+                            const cleanBaseUnderscored = cleanBase.replace(/\s+/g, '_');
+                            const keywordRegex = new RegExp(`^${keyword}([\\s_\\-]+\\w+.*)?$`);
+                            if (keywordRegex.test(cleanBaseUnderscored)) return true;
+                        }
+                    } else {
+                        // For singleton configs like CaseRegistry (CR), do not allow split suffixes like "CR_3"
+                        const strictConfigRegex = new RegExp(`^\\d*[\\s_]*${shortCode}$`);
+                        return strictConfigRegex.test(cleanBase);
+                    }
+                    
+                    return false;
                 });
                 if (foundKey) config = PLAYBOOK_MAPPING[foundKey];
             }
@@ -170,6 +206,11 @@ exports.uploadPlaybook = async (req, res) => {
 
             rows = rows.map((row, index) => {
                 const rowNum = index + 2;
+                
+                // (0) Strip completely empty rows early
+                const hasData = Object.values(row).some(v => v !== null && v !== undefined && String(v).trim() !== '');
+                if (!hasData) return null;
+
                 const normalizedRow = {};
 
                 // (A) Normalize all keys to camelCase (e.g., question_id -> questionId, "CAT ID" -> catId)
@@ -186,9 +227,9 @@ exports.uploadPlaybook = async (req, res) => {
                 normalizedRow.caseId = normalizedRow.caseId || normalizedRow.targetCaseId;
 
                 // Model specific aliasing
-                if (config.model === 'Playbooks' || ['PR', 'PV', 'CP'].includes(baseName)) {
+                if (['Playbooks', 'CaseIntentConfig'].includes(config.model) || ['PR', 'PV', 'CP', 'CIMT'].includes(baseName)) {
                     normalizedRow.playbookId = normalizedRow.playbookId || normalizedRow.id;
-                    normalizedRow.playbookVersionId = normalizedRow.playbookVersionId || normalizedRow.playbookVersion || normalizedRow.versionId;
+                    normalizedRow.playbookVersionId = normalizedRow.playbookVersionId || normalizedRow.playbookVersion || normalizedRow.versionId || 'V1';
                 }
 
                 if (config.model === 'MandatoryObjectiveInput' || baseName === 'Questions') {
@@ -301,16 +342,33 @@ exports.uploadPlaybook = async (req, res) => {
                 // (C) Check Required ID (after normalization and aliasing)
                 let finalId = normalizedRow[config.idField];
 
-                // Global Fallback: If mandatory ID is missing, try ANY available identifier key
+                // Check if row only contains empty or null values across all schema paths
+                const schemaPathsForCheck = Object.keys(db[config.model].schema.paths);
+                const hasSchemaData = schemaPathsForCheck.some(key => {
+                    const val = normalizedRow[key];
+                    return val !== null && val !== undefined && String(val).trim() !== '';
+                });
+
+                if (!hasSchemaData) {
+                    return null; // Skip rows that have no data matching the schema
+                }
+
+                // Global Fallback: Try ANY available identifier key
                 if (!finalId || (typeof finalId === 'string' && finalId.trim().toUpperCase() === 'NULL')) {
                     finalId = normalizedRow.id || normalizedRow.uuid ||
                         normalizedRow.catId || normalizedRow.catid ||
                         normalizedRow.crtId || normalizedRow.crtid ||
-                        normalizedRow.ruleId || normalizedRow.intentId ||
-                        `GENERIC_ID_R${rowNum}`;
+                        normalizedRow.ruleId || normalizedRow.intentId;
+
+                    // Only generate a GENERIC ID for logic/rule rows, NOT for CaseRegistry or Intents
+                    if (!finalId && !['CaseRegistry', 'IntentTaxonomy', 'Playbooks'].includes(config.model)) {
+                        finalId = `GENERIC_ID_R${rowNum}`;
+                    }
 
                     // Set it back to the required field if we found something
-                    normalizedRow[config.idField] = finalId;
+                    if (finalId) {
+                        normalizedRow[config.idField] = finalId;
+                    }
                 }
 
                 if (!finalId || (typeof finalId === 'string' && finalId.trim().toUpperCase() === 'NULL')) {
@@ -545,6 +603,7 @@ exports.confirmImport = async (req, res) => {
                 // MERGE: Row-wise attribute union for shared models (e.g. CIMT+CIPR, MCQM+QST)
                 if (!modelToDataMap[config.model][mergeKey]) {
                     modelToDataMap[config.model][mergeKey] = row;
+                } else {
                     modelToDataMap[config.model][mergeKey] = { ...modelToDataMap[config.model][mergeKey], ...row };
                 }
 
@@ -625,8 +684,8 @@ exports.confirmImport = async (req, res) => {
 
         // 2. Clear Existing Records (Scoped by identifiers)
         const keyToCheck = [
-            'rcmId', 'crtId', 'cqmtId', 'elrId', 'moiId', 'moiqmId', 'playbookVersionId', 'playbookId',
-            'ruleId', 'dependencyRuleId', 'redFlagId', 'intentId', 'grRuleId', 'promptId', 'scoringRuleId',
+            'rcmId', 'crtId', 'cqmtId', 'elrId', 'moiId', 'moiqmId',
+            'ruleId', 'dependencyRuleId', 'redFlagId', 'intentId', 'playbookVersionId', 'playbookId', 'grRuleId', 'promptId', 'scoringRuleId',
             'droId', 'sectionId', 'caseId', 'questionId', 'warningId', 'warningMappingId', 'contradictionId',
             'constraintId', 'cttId', 'accuracyPolicyId', 'signalId', 'sourceId', 'patternKeyId', 'ierId', 'schemaId', 'pcrPromptId'
         ];

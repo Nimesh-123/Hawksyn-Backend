@@ -173,10 +173,19 @@ exports.getPlaybook = async (req, res) => {
             });
         }
 
-        const playbook = await Playbooks.findOne({
+        let playbook = await Playbooks.findOne({
             playbookVersionId: config.playbookVersionId,
             isActive: true
         });
+
+        // Fallback: Find by caseId and intentId directly if playbookVersionId mapping is missing
+        if (!playbook) {
+            playbook = await Playbooks.findOne({
+                caseId,
+                intentId,
+                isActive: true
+            });
+        }
 
         if (!playbook) {
             return res.status(404).json({

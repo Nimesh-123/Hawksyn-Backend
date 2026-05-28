@@ -17,12 +17,12 @@ function scoreExpert(expert, redFlags, constraints, clientRole = '', caseDomain 
 
     // 2. Area Match Score (30 points maximum)
     let areaScore = 0;
-    const indExp = (expert.industryExpertise || '').toLowerCase();
+    const indExp = (expert.industryExpertise || []).map(s => s.toLowerCase());
     const specializations = (expert.specializations || []).map(s => s.toLowerCase());
     const cDomain = (caseDomain || '').toLowerCase();
     
     if (cDomain) {
-        if (indExp.includes(cDomain)) areaScore += 15;
+        if (indExp.some(s => s.includes(cDomain))) areaScore += 15;
         if (specializations.some(s => s.includes(cDomain))) areaScore += 15;
     }
     

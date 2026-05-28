@@ -152,14 +152,7 @@ exports.runIntegrityEngine = async (req, res) => {
         // --- STAGE 2: CONTRA_CHECK (Logic Engine) ---
         await db.Runs.updateOne({ runId }, { $set: { status: 'CONTRA_CHECK' } });
 
-        const evaluationLib = await db.EvaluationLibraryRegistry.findOne({
-            caseId: run.caseId,
-            intentId: run.intentId,
-            playbookVersionId: run.playbookVersionId,
-            isActive: true
-        });
-
-        if (!evaluationLib) throw new Error('Evaluation config (ELR) not found for this playbook.');
+        // EvaluationLibraryRegistry (ELR) is deprecated; we query policies directly using caseId and intentId.
 
         const scoredAnswers = [];
         for (const answer of allAnswers) {
@@ -225,8 +218,8 @@ exports.runIntegrityEngine = async (req, res) => {
         let coveragePenalty = 0;
         let requiresEscalation = false;
 
-        const crtMap = await db.CoverageRequirements.find({ coverageSetId: evaluationLib.coverageSetId, isActive: true });
-        const patterns = await db.DataPatternKeyTaxonomy.find({ caseId: run.caseId, intentId: run.intentId, isActive: true });
+        const crtMap = await db.CoverageRequirements.find({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] }, isActive: true });
+        const patterns = await db.DataPatternKeyTaxonomy.find({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] }, isActive: true });
         
         for (const crt of crtMap) {
             let evidenceCount = 0;
@@ -271,7 +264,7 @@ exports.runIntegrityEngine = async (req, res) => {
         }
 
         const contradictionResults = [];
-        const contradictions = await db.Contradictions.find({ caseId: run.caseId, intentId: run.intentId, isActive: true });
+        const contradictions = await db.Contradictions.find({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] }, isActive: true });
 
         for (const contradiction of contradictions) {
             if (evaluateRuleJson(contradiction.ruleJson, answersMap)) {
@@ -322,7 +315,7 @@ exports.runIntegrityEngine = async (req, res) => {
             }
         }
 
-        let policy = await db.AccuracyScoringPolicy.findOne({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] } });
+        const policy = await db.AccuracyScoringPolicy.findOne({ caseId: run.caseId, intentId: { $in: [run.intentId, 'ALL'] }, isActive: true });
         if (!policy) throw new Error('Accuracy scoring policy not found.');
 
         let accuracyScore = policy.baseScore || 100;
