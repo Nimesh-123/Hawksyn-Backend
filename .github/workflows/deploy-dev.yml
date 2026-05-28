@@ -3,7 +3,7 @@ name: Deploy to DEV
 on:
   push:
     branches:
-      - working
+      - main
 
 jobs:
   deploy:
@@ -31,7 +31,7 @@ jobs:
           script: |
             export PATH=$PATH:/root/.nvm/versions/node/v20.20.2/bin
             cd /root/Hawksyn/Hawksyn-Backend
-            git pull origin working
+            git pull origin main
             npm install
             npm run migrate:up
             pm2 restart hawksyn-backend
