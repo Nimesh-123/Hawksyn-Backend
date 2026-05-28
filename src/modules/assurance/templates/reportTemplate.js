@@ -17,8 +17,14 @@ function buildReportHtml(reportData) {
         try {
             if (typeof str !== 'string') return str;
             // More aggressive cleaning of AI JSON markers
-            const cleaned = str.replace(/```json/g, '').replace(/```/g, '').replace(/^json/g, '').trim();
-            return JSON.parse(cleaned);
+            let cleaned = str.replace(/```\s*json/ig, '').replace(/```/g, '').replace(/^json/ig, '').trim();
+            try {
+                return JSON.parse(cleaned);
+            } catch (e) {
+                // Fix unescaped newlines which are common in AI JSON responses
+                cleaned = cleaned.replace(/\r?\n/g, ' ');
+                return JSON.parse(cleaned);
+            }
         } catch (e) {
             return null;
         }
@@ -327,7 +333,7 @@ function buildReportHtml(reportData) {
             <div class="score-value">${report.compositeScore}</div>
             <div class="score-verdict">
                 <div class="verdict-title">${report.verdict} — ACTION STATUS</div>
-                <div class="verdict-text">${summaryText.split('.')[0]}.</div>
+                <div class="verdict-text">${summaryText.split(/\.\s/)[0]}.</div>
             </div>
         </div>
         <div class="steps-container">${['Intake', 'Profile', 'Inputs', 'Red Flags', 'External', 'Assembly', 'Content', 'Assembly', 'Auditor'].map((s, i) => `<div class="step">Step ${i+1}:<br>${s}</div>`).join('')}</div>

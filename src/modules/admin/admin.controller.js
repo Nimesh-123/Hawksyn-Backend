@@ -1453,6 +1453,15 @@ exports.getRunsAuditList = async (req, res) => {
             { $unwind: "$userInfo" },
             {
                 $lookup: {
+                    from: 'user_profiles',
+                    localField: '_id.userId',
+                    foreignField: 'userId',
+                    as: 'userProfile'
+                }
+            },
+            { $unwind: { path: "$userProfile", preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
                     from: 'caseregistries',
                     localField: '_id.caseId',
                     foreignField: 'caseId',
@@ -1520,7 +1529,7 @@ exports.getRunsAuditList = async (req, res) => {
                 caseId: group._id.caseId,
                 caseName: group.caseInfo?.caseName || group._id.caseId,
                 user: {
-                    fullName: group.userInfo.fullName || 'N/A',
+                    fullName: group.userInfo.fullName || group.userInfo.name || group.userProfile?.confirmedProfile?.identity?.fullName || 'N/A',
                     email: group.userInfo.email || 'N/A'
                 },
                 status: group.status,

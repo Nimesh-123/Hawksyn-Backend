@@ -29,14 +29,21 @@ const PLAYBOOK_MAPPING = {
     '18_RCM_(Risk_Map)': { model: 'RiskConstraintMap', idField: 'rcmId' },
 
     // 4. Reporting & UI
-    '19_CONF_(Badges)': { model: 'VerdictLogicTable', idField: 'ruleId' },
-    '20_IM_(Threshold_Mods)': { model: 'AccuracyScoringPolicy', idField: 'intentId' },
+    // '19_CONF_(Badges)': { model: 'VerdictLogicTable', idField: 'ruleId' }, // TODO: Lacks pivot logic, causes VLT validation failure
+    // '20_IM_(Threshold_Mods)': { model: 'AccuracyScoringPolicy', idField: 'intentId' }, // TODO: Lacks pivot logic
     '21_DAST_(Report_Sections)': { model: 'DecisionAssuranceSections', idField: 'sectionId' },
     '22_PCR_(Prompt_Registry)': { model: 'PromptConfigRegistry', idField: 'promptId' },
     '23_OST_(Objective_Scoring)': { model: 'ObjectiveScoringTaxonomy', idField: 'schemaId' },
     '24_DPKT_(Placeholders)': { model: 'DataPatternKeyTaxonomy', idField: 'patternKeyId' },
     '25_EST_(External_Signals)': { model: 'ExternalSignalTaxonomy', idField: 'signalId' },
-    '26_REMED_(Remediation)': { model: 'RedFlagTaxonomy', idField: 'remediationCode' }
+    // '26_REMED_(Remediation)': { model: 'RedFlagTaxonomy', idField: 'remediationCode' },
+    
+    'Questions_1': { model: 'MandatoryObjectiveInput', idField: 'moiId' },
+    'Questions_2': { model: 'MoiQuestionMapping', idField: 'moiqmId' },
+    'Questions_3': { model: 'DependencyRules', idField: 'dependencyRuleId' },
+    'Constraints_1': { model: 'ConstraintQuestionMapping', idField: 'cqmtId' },
+    'Constraints_2': { model: 'Constraints', idField: 'constraintId' },
+    'Constraints_3': { model: 'DependencyRules', idField: 'dependencyRuleId' }
 };
 
 /**
