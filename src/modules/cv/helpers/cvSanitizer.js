@@ -99,13 +99,17 @@ function sanitizeParsedData(parsedData) {
     }
 
     // PROBLEM 6 — languagesSpoken array (Sync with AEU list)
+    // Preserve languages if they were originally inside skills.languagesSpoken
+    let extractedLanguages = [];
+    if (Array.isArray(skills.languagesSpoken) && skills.languagesSpoken.length > 0) {
+        extractedLanguages = [...skills.languagesSpoken];
+    }
     // Always ensure it's removed from skills to satisfy frontend requirement
     if (skills.languagesSpoken) delete skills.languagesSpoken;
 
     if (!Array.isArray(composition.languagesSpoken) || composition.languagesSpoken.length === 0) {
-        // Try to recover from result.languages if available (from consolidated result)
-        if (Array.isArray(parsedData.structured?.composition?.languagesSpoken)) {
-             composition.languagesSpoken = parsedData.structured.composition.languagesSpoken;
+        if (extractedLanguages.length > 0) {
+             composition.languagesSpoken = extractedLanguages;
         } else {
             composition.languagesSpoken = aeuList
                 .filter(aeu => {

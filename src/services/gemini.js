@@ -38,10 +38,16 @@ async function callGemini(modelName, promptText, userInput, maxTokens, returnRaw
   let raw = "";
   let usage = { promptTokenCount: 0, candidatesTokenCount: 0, totalTokenCount: 0 };
   try {
-    const result = await model.generateContent({
+    const generatePromise = model.generateContent({
         contents: [{ role: 'user', parts: [{ text: finalPrompt }] }],
         generationConfig
     });
+    
+    const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT')), 60000)
+    );
+    
+    const result = await Promise.race([generatePromise, timeoutPromise]);
     
     const response = await result.response;
     const candidate = response.candidates?.[0];
