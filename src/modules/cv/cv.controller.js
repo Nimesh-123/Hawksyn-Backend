@@ -368,58 +368,6 @@ exports.uploadRunCv = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
-
-/**
- * Retrieve the standalone CV parsing / resume intelligence report (Candidate Snapshot).
- */
-exports.getCvReport = async (req, res) => {
-    try {
-        const { runId } = req.params;
-        const userId = req.user.id;
-
-        const run = await db.Runs.findOne({ runId });
-        if (!run) {
-            return res.status(404).json({ success: false, message: "Run not found" });
-        }
-
-        if (run.userId.toString() !== userId && req.user.role !== 'admin') {
-            return res.status(403).json({ success: false, message: "Unauthorized" });
-        }
-
-        if (!run.cvSnapshot || !run.cvSnapshot.cvUrl) {
-            return res.status(404).json({ success: false, message: "CV data not found for this run" });
-        }
-
-        const runUserId = run.userId.toString();
-
-        // Fetch full parsed CV baseline, PSDE scan results, and upload metadata
-        const [extractedCV, psdeResult, uploadMeta] = await Promise.all([
-            db.ExtractedCV.findOne({ candidate_id: runUserId }),
-            db.PSDEResult.findOne({ candidate_id: runUserId }).sort({ created_at: -1 }),
-            db.DocumentUploads.findById(run.cvSnapshot.cvUploadId)
-        ]);
-
-        if (!extractedCV) {
-            return res.status(404).json({ success: false, message: "Full Extracted CV baseline document not found" });
-        }
-
-        if (!psdeResult) {
-            return res.status(404).json({ success: false, message: "PSDE scan results not found for this user" });
-        }
-
-        // Generate Recruiter Intelligence report
-        const report = generateReport(extractedCV, psdeResult, uploadMeta?.parserMetadata?.metrics);
-
-        return res.status(200).json({
-            success: true,
-            data: report
-        });
-
-    } catch (error) {
-        return res.status(500).json({ success: false, message: `Failed to retrieve CV report: ${error.message}` });
-    }
-};
-
 /**
  * Retrieve the standalone CV parsing report (Candidate Snapshot) for the authenticated user BEFORE payment.
  */
@@ -463,5 +411,3 @@ exports.getLatestCvReport = async (req, res) => {
         return res.status(500).json({ success: false, message: `Failed to retrieve CV report: ${error.message}` });
     }
 };
-
-

@@ -117,28 +117,6 @@ router.post('/:runId/cv/keep-existing', cvController.keepExistingCv);
  */
 router.post('/:runId/cv/upload', upload.single('cv'), cvController.uploadRunCv);
 
-/**
- * @swagger
- * /runs/{runId}/cv/report:
- *   get:
- *     summary: Retrieve the standalone CV parsing / resume intelligence report (Candidate Snapshot)
- *     tags: ["5. Run Operations (AI Flow)"]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: runId
- *         required: true
- *         schema:
- *           type: string
- *         example: RUN_20260310_0001
- *     responses:
- *       200:
- *         description: Resume Intelligence / Candidate Snapshot report returned successfully
- *       404:
- *         description: Run, CV parsed data, or PSDE scan results not found
- */
-router.get('/:runId/cv/report', cvController.getCvReport);
 
 /**
  * --- Questions AI Flow (Under /runs/:runId/questions) ---

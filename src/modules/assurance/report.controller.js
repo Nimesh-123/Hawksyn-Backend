@@ -113,7 +113,7 @@ exports.generateReport = async (req, res) => {
         for (let i = 0; i < sections.length; i += batchSize) {
             const batch = sections.slice(i, i + batchSize);
             console.log(`[Report-Gen] Processing batch ${Math.ceil((i + 1) / batchSize)}/${Math.ceil(sections.length / batchSize)}...`);
-            
+
             const batchPromises = batch.map(async (section) => {
                 const prompt = promptsMap[section.sectionId];
                 const ostConfig = ostMap[section.sectionId];
@@ -182,17 +182,17 @@ exports.generateReport = async (req, res) => {
                     if (!anchorCheck.allCovered) userPrompt += `\n[NOTE: Missing evidence: ${[...anchorCheck.missingInternal, ...anchorCheck.missingExternal].join(', ')}]`;
 
                     const ostContract = ostMap[section.sectionId]?.llmJsonContract;
-                    
+
                     const systemPromptBase = (prompt.systemPrompt || '') +
-                            (ostContract ? `\n\nCRITICAL OUTPUT FORMAT (JSON ONLY):\n${ostContract}` : '') +
-                            "\n\n--- COMPREHENSIVE EVIDENCE PACKAGE ---\n" +
-                            JSON.stringify(placeholders, null, 2) +
-                            "\n\nSTRICT GROUNDING RULES:\n" +
-                            "1. Use the provided EVIDENCE PACKAGE as the primary source of truth.\n" +
-                            "2. Do not say data is missing if it is in the package above.\n" +
-                            "3. DO NOT mention surveys or inventories unless they appear explicitly in the evidence.\n" +
-                            "4. STRUCTURE: Use Bullet Points (•) for multi-sentence descriptions, action items, or key findings to ensure high readability.\n" +
-                            "5. If specific evidence is missing, provide a professional 'Pro-Tip' relevant to the user's role: " + (normalizedProfile.currentRoleTitle || 'Professional');
+                        (ostContract ? `\n\nCRITICAL OUTPUT FORMAT (JSON ONLY):\n${ostContract}` : '') +
+                        "\n\n--- COMPREHENSIVE EVIDENCE PACKAGE ---\n" +
+                        JSON.stringify(placeholders, null, 2) +
+                        "\n\nSTRICT GROUNDING RULES:\n" +
+                        "1. Use the provided EVIDENCE PACKAGE as the primary source of truth.\n" +
+                        "2. Do not say data is missing if it is in the package above.\n" +
+                        "3. DO NOT mention surveys or inventories unless they appear explicitly in the evidence.\n" +
+                        "4. STRUCTURE: Use Bullet Points (•) for multi-sentence descriptions, action items, or key findings to ensure high readability.\n" +
+                        "5. If specific evidence is missing, provide a professional 'Pro-Tip' relevant to the user's role: " + (normalizedProfile.currentRoleTitle || 'Professional');
 
                     let llmResult = await callLLM({
                         modelFamily: prompt.modelFamily,
@@ -206,7 +206,7 @@ exports.generateReport = async (req, res) => {
                     // >>> ADVERSARIAL LAYER <<<
                     if (playbook && playbook.adversarialMirrorEnabled) {
                         const challengerPrompt = `Challenge the following claims using the provided EVIDENCE PACKAGE. Identify logical gaps, contradictions, or over-optimistic conclusions.\n\nPRIMARY TEXT:\n${llmResult.text}`;
-                        
+
                         const challengerResult = await callLLM({
                             modelFamily: prompt.modelFamily,
                             forceProvider: 'Gemini',
@@ -217,7 +217,7 @@ exports.generateReport = async (req, res) => {
                         });
 
                         const mergerPrompt = `Merge the PRIMARY DRAFT and the ADVERSARIAL CRITIQUE into a professional, highly balanced final section output. Ensure it reads cohesively.\n\nPRIMARY DRAFT:\n${llmResult.text}\n\nADVERSARIAL CRITIQUE:\n${challengerResult.text}`;
-                        
+
                         const mergerResult = await callLLM({
                             modelFamily: prompt.modelFamily,
                             forceProvider: 'Gemini',
@@ -318,41 +318,41 @@ exports.generateReport = async (req, res) => {
             console.error('[Report-S3] Automation Failed:', s3Err.message);
         }
 
-            const settings = await getChatSettings();
-            const freeDays = settings?.freeDaysAfterHawkRun || 7;
-            const chatExpiryDate = new Date();
-            chatExpiryDate.setDate(chatExpiryDate.getDate() + freeDays);
+        const settings = await getChatSettings();
+        const freeDays = settings?.freeDaysAfterHawkRun || 7;
+        const chatExpiryDate = new Date();
+        chatExpiryDate.setDate(chatExpiryDate.getDate() + freeDays);
 
-            await db.Runs.updateOne({ runId }, {
-                $set: {
-                    verdict,
-                    finalReport,
-                    reportPdfUrl,
-                    status: 'REPORT_COMPLETE',
-                    chatExpiryDate,
-                    completedAt: new Date()
-                }
-            });
+        await db.Runs.updateOne({ runId }, {
+            $set: {
+                verdict,
+                finalReport,
+                reportPdfUrl,
+                status: 'REPORT_COMPLETE',
+                chatExpiryDate,
+                completedAt: new Date()
+            }
+        });
 
-            // Update User document with the expiry date
-            await db.User.findByIdAndUpdate(run.userId, { $set: { chatExpiryDate } });
+        // Update User document with the expiry date
+        await db.User.findByIdAndUpdate(run.userId, { $set: { chatExpiryDate } });
 
-            await createAuditLog(req, 'REPORT_GENERATED', run.userId, { 
-                runId, 
-                verdict: finalReport.verdict,
-                compositeScore: finalReport.compositeScore,
-                duration: finalReport.totalDuration
-            });
+        await createAuditLog(req, 'REPORT_GENERATED', run.userId, {
+            runId,
+            verdict: finalReport.verdict,
+            compositeScore: finalReport.compositeScore,
+            duration: finalReport.totalDuration
+        });
         clockService.refreshClocksAfterCase(run.userId, runId);
 
         // Trigger Final Notification
         notificationService.notifyProcessingSuccess(runId);
 
         console.timeEnd("Report_Gen");
-        return res.status(200).json({ 
-            success: true, 
-            data: { 
-                verdict, 
+        return res.status(200).json({
+            success: true,
+            data: {
+                verdict,
                 report: finalReport,
                 cost: calculateAICost(finalReport.modelFamily || 'Anthropic-Haiku', finalReport.tokenUsage),
                 chatSupport: {
@@ -361,7 +361,7 @@ exports.generateReport = async (req, res) => {
                     expiryDate: chatExpiryDate,
                     displayMessage: `Expert support is FREE until ${new Date(chatExpiryDate).toLocaleDateString()}.`
                 }
-            } 
+            }
         });
 
     } catch (error) {
@@ -371,7 +371,7 @@ exports.generateReport = async (req, res) => {
         try {
             const { runId } = req.params;
             const currentRun = await db.Runs.findOne({ runId });
-            
+
             await db.AuditLog.create({
                 action: 'PROCESSING_FAILED',
                 userId: currentRun?.userId || null,
@@ -384,12 +384,12 @@ exports.generateReport = async (req, res) => {
                 }
             });
 
-            await db.Runs.updateOne({ runId }, { 
-                $set: { 
+            await db.Runs.updateOne({ runId }, {
+                $set: {
                     status: 'PROCESSING_FAILED',
                     failureStep: 'REPORT_GENERATION',
                     failureReason: error.message
-                } 
+                }
             });
 
             notificationService.notifyProcessingFailure(runId, 'REPORT_GENERATION', error.message);
