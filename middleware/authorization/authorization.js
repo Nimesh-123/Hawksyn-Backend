@@ -57,9 +57,14 @@ exports.authenticate = async (req, res, next) => {
 
             let entity;
             let role = decoded.role;
+            console.log('[DEBUG Auth] Decoded role:', role, 'ID:', decoded.id, 'Path:', cleanPath);
 
             if (role?.includes('admin')) {
                 entity = await db.Admin.findById(decoded.id);
+            } else if (role === 'expert') {
+                const expert = await db.RiskAuditorRegistry.findById(decoded.id);
+                if (!expert) return RESPONSE.error(res, 404, 3001, 'Expert not found');
+                entity = expert;
             } else {
                 const user = await db.User.findById(decoded.id);
                 if (!user) return RESPONSE.error(res, 404, 3001, 'User not found');

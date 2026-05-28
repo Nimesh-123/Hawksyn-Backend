@@ -198,9 +198,9 @@ const mapNewPipelineToHawksyn = (inputDoc) => {
     );
     const senioritySummary = seniorityInference?.inferred_claim || stats.seniority_summary || "";
 
-    const durationSec = doc.extraction_meta?.validation_meta?.processing_duration_ms 
-        ? `${(doc.extraction_meta.validation_meta.processing_duration_ms / 1000).toFixed(1)}s` 
-        : "0.0s";
+    const durationSec = doc.extraction_meta?.processing_duration_ms 
+        ? `${(doc.extraction_meta.processing_duration_ms / 1000).toFixed(1)}s` 
+        : (doc.extraction_meta?.validation_meta?.processing_duration_ms ? `${(doc.extraction_meta.validation_meta.processing_duration_ms / 1000).toFixed(1)}s` : "0.0s");
 
     return {
         candidate_id: doc.candidate_id,

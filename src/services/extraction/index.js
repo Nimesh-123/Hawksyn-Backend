@@ -445,9 +445,10 @@ You are the Hawksyn skills extraction engine.
 ## DETECTION SOURCES
 A) Dedicated skills section (Skills / Technical Skills / Core Competencies /
    Key Skills / Tech Stack / Tools and Tech)
-B) Skills embedded in role bullets (technologies, tools mentioned in context)
-C) Sidebar skill lists in two-column CVs
-Extract from all three. Pattern-based, no header required.
+B) Languages section (Languages / Spoken Languages)
+C) Skills embedded in role bullets (technologies, tools mentioned in context)
+D) Sidebar skill and language lists in two-column CVs
+Extract from all. Explicitly include spoken/written languages.
 
 ## FRAGMENTATION DETECTION (CR-15)
 Fragmentation is high if ANY of:
@@ -1027,6 +1028,9 @@ async function runExtractionPipeline(candidateId, rawText, db) {
       ...chronoRisks
     };
 
+    const finalDuration = Date.now() - startTime;
+    const metrics = calculateFinalMetrics(totalUsage, finalDuration);
+
     const extractedCVDoc = {
       candidate_id: candidateId,
       header: header,
@@ -1042,15 +1046,12 @@ async function runExtractionPipeline(candidateId, rawText, db) {
         internal_promotion: repairedRoles.some(r => r.flags?.includes('internal_promotion')),
         chronology: rolesStageA.chronology
       },
-      extraction_meta: { ...extraction_meta, validation_meta: validated.validation_meta },
+      extraction_meta: { ...extraction_meta, validation_meta: validated.validation_meta, processing_duration_ms: finalDuration },
       extraction_version: 'v1_hardened',
       extracted_at: new Date()
     };
 
     await db.collection('extracted_cvs').replaceOne({ candidate_id: candidateId }, extractedCVDoc, { upsert: true });
-    
-    const finalDuration = Date.now() - startTime;
-    const metrics = calculateFinalMetrics(totalUsage, finalDuration);
 
     await db.collection('document_uploads').updateOne(
       { userId: new (require('mongoose').Types.ObjectId)(candidateId) }, 
