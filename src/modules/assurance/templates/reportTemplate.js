@@ -634,16 +634,7 @@ function buildReportHtml(reportData) {
         /* ── MISC ── */
         .flex-center { display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .radar-legend { display: flex; gap: 15px; font-weight: 700; font-size: 8pt; margin-top: 10px; }
-        .footer-meta {
-            position: absolute;
-            bottom: 10mm;
-            left: 15mm;
-            right: 15mm;
-            padding-top: 8px;
-            display: flex; justify-content: space-between;
-            font-size: 7.5pt; color: #9ca3af;
-            border-top: 1px solid #f3f4f6;
-        }
+        .footer-meta { display: none; /* Handled natively by Puppeteer now */ }
         .mt-4 { margin-top: 15px; }
 
         /* ── PRINT MEDIA ── */
@@ -697,10 +688,7 @@ function buildReportHtml(reportData) {
         <div class="status-bar">All 9 steps executed successfully. Human auditor assignment: <strong>Pending — SLA 72 hrs.</strong></div>
         <h2 style="margin-top:28px;">Your Situation Summary</h2>
         ${proseToHtml(summaryText)}
-        <div class="footer-meta">
-            <span>Case #${runId} | Hawksyn AI 2.0</span>
-            <span>Page 1</span>
-        </div>
+        <!-- Footer handled natively by Puppeteer -->
     </div>
 
     <!-- ═══════════════════════════════════════ PAGE 2 — CV BASELINE ════════════════════════ -->
@@ -741,10 +729,7 @@ function buildReportHtml(reportData) {
                 </div>
             </div>
         </div>
-        <div class="footer-meta">
-            <span>Case #${runId}</span>
-            <span>Page 2</span>
-        </div>
+        <!-- Footer handled natively by Puppeteer -->
     </div>
 
     <!-- ═══════════════════════════════════════ ANALYSIS SECTIONS — CONTINUOUS FLOW ════════ -->
@@ -766,10 +751,7 @@ function buildReportHtml(reportData) {
         }).join('')}
         </div>
 
-        <div class="footer-meta">
-            <span>Case #${runId} | Hawksyn AI 2.0</span>
-            <span>${dateStr}</span>
-        </div>
+        <!-- Footer handled natively by Puppeteer -->
     </div>
 
 </body>
