@@ -12,6 +12,12 @@ exports.collectSignals = async (req, res) => {
     try {
         const { runId } = req.params;
 
+        let isDisconnected = false;
+        const handleDisconnect = () => { isDisconnected = true; };
+        req.on('close', handleDisconnect);
+        req.on('aborted', handleDisconnect);
+        req.socket.on('close', handleDisconnect);
+
         const run = await db.Runs.findOne({ runId });
         if (!run) return res.status(404).json({ success: false, message: `Run not found: ${runId}` });
 
@@ -311,6 +317,34 @@ exports.collectSignals = async (req, res) => {
             signalsCount: Object.keys(finalSignalsMap).length,
             duration: totalDurationLabel 
         });
+
+        if (isDisconnected) {
+            console.log(`[Signals] Client disconnected during signal collection. Automatically continuing pipeline in background for ${runId}...`);
+            const caseFileController = require('../cases/caseFile.controller.js');
+            const reportController = require('../assurance/report.controller.js');
+            
+            const mockReq = { 
+                params: { runId }, 
+                user: req.user, 
+                on: () => {}, 
+                socket: { on: () => {} } 
+            };
+            const mockRes = { 
+                status: () => mockRes, 
+                json: () => {}, 
+                send: () => {} 
+            };
+
+            setImmediate(async () => {
+                try {
+                    await caseFileController.buildCaseFile(mockReq, mockRes);
+                    await reportController.generateReport(mockReq, mockRes);
+                } catch (bgErr) {
+                    console.error(`[Signals-Background] Pipeline failed for ${runId}:`, bgErr.message);
+                }
+            });
+            return;
+        }
 
         return res.status(200).json({
             success: true,
