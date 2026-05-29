@@ -318,40 +318,45 @@ exports.collectSignals = async (req, res) => {
             duration: totalDurationLabel 
         });
 
-        console.log(`[Signals] Automatically continuing pipeline (Integrity, CaseFile, Report) in background for ${runId}...`);
-        const caseFileController = require('../cases/caseFile.controller.js');
-        const reportController = require('../assurance/report.controller.js');
-        
-        const mockReq = { 
-            params: { runId }, 
-            user: req.user, 
-            isBackgroundProcess: true,
-            on: () => {}, 
-            socket: { on: () => {} } 
-        };
-        const mockRes = { 
-            status: () => mockRes, 
-            json: (data) => {
-                // Silently handle component finishes in background
-            }, 
-            send: () => {} 
-        };
+        if (isDisconnected) {
+            console.log(`[Signals] Client disconnected during signal collection. Automatically continuing pipeline (Integrity, CaseFile, Report) in background for ${runId}...`);
+            const caseFileController = require('../cases/caseFile.controller.js');
+            const reportController = require('../assurance/report.controller.js');
+            
+            const mockReq = { 
+                params: { runId }, 
+                user: req.user, 
+                isBackgroundProcess: true,
+                headers: req.headers || {},
+                ip: req.ip || '127.0.0.1',
+                on: () => {}, 
+                socket: { on: () => {} } 
+            };
+            const mockRes = { 
+                status: () => mockRes, 
+                json: (data) => {
+                    // Silently handle component finishes in background
+                }, 
+                send: () => {} 
+            };
 
-        setImmediate(async () => {
-            try {
-                const integrityPack = await db.Ras.findOne({ runId, artifactType: 'INTEGRITY_PACK', status: 'FINAL' });
-                if (!integrityPack) {
-                    console.log(`[Signals-Background] Integrity Audit missing. Running Integrity Engine automatically for ${runId}...`);
-                    const integrityController = require('../assurance/integrity.controller.js');
-                    await integrityController.runIntegrityEngine(mockReq, mockRes);
+            setImmediate(async () => {
+                try {
+                    const integrityPack = await db.Ras.findOne({ runId, artifactType: 'INTEGRITY_PACK', status: 'FINAL' });
+                    if (!integrityPack) {
+                        console.log(`[Signals-Background] Integrity Audit missing. Running Integrity Engine automatically for ${runId}...`);
+                        const integrityController = require('../assurance/integrity.controller.js');
+                        await integrityController.runIntegrityEngine(mockReq, mockRes);
+                    }
+
+                    await caseFileController.buildCaseFile(mockReq, mockRes);
+                    await reportController.generateReport(mockReq, mockRes);
+                } catch (bgErr) {
+                    console.error(`[Signals-Background] Pipeline failed for ${runId}:`, bgErr.message);
                 }
-
-                await caseFileController.buildCaseFile(mockReq, mockRes);
-                await reportController.generateReport(mockReq, mockRes);
-            } catch (bgErr) {
-                console.error(`[Signals-Background] Pipeline failed for ${runId}:`, bgErr.message);
-            }
-        });
+            });
+            return;
+        }
 
         return res.status(200).json({
             success: true,

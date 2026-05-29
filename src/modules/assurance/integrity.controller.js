@@ -76,6 +76,7 @@ function shouldTriggerWarning(warning, currentAccuracyBand) {
 exports.runIntegrityEngine = async (req, res) => {
     const startTime = Date.now();
     const { runId } = req.params;
+    console.log(`[Integrity Engine] ⚙️ Starting Integrity Analysis for ${runId}...`);
 
     try {
         const run = await db.Runs.findOne({ runId });
@@ -401,8 +402,7 @@ exports.runIntegrityEngine = async (req, res) => {
             console.error('[Integrity-Notify] Failed to send in-session alerts:', notifErr.message);
         }
 
-        // Trigger Success Notification (Existing)
-        notificationService.notifyProcessingSuccess(runId);
+        // Removed premature notifyProcessingSuccess. Report Generator handles this.
 
         const totalDuration = (Date.now() - startTime) / 1000;
 
