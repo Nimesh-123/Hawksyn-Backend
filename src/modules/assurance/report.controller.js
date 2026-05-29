@@ -28,6 +28,13 @@ const {
 exports.generateReport = async (req, res) => {
     console.time("Report_Gen");
     const startTime = Date.now();
+    
+    let isDisconnected = false;
+    req.on('close', () => {
+        console.log(`[Report-Gen] Client disconnected for runId: ${req.params.runId}. Process will complete in background.`);
+        isDisconnected = true;
+    });
+
     try {
         const { runId } = req.params;
 
@@ -357,9 +364,15 @@ exports.generateReport = async (req, res) => {
         clockService.refreshClocksAfterCase(run.userId, runId);
 
         // Trigger Final Notification
-        notificationService.notifyProcessingSuccess(runId);
+        notificationService.notifyProcessingSuccess(runId, isDisconnected);
 
         console.timeEnd("Report_Gen");
+        
+        if (isDisconnected) {
+            console.log(`[Report-Gen] Client was disconnected. Skipping HTTP response for runId: ${runId}`);
+            return;
+        }
+
         return res.status(200).json({
             success: true,
             data: {
@@ -408,6 +421,10 @@ exports.generateReport = async (req, res) => {
             console.error('[Report Engine Error] Safe logging failed:', logErr.message);
         }
 
+        if (isDisconnected) {
+            console.log(`[Report-Gen] Client was disconnected during error. Skipping HTTP error response for runId: ${req.params.runId}`);
+            return;
+        }
         return res.status(500).json({ success: false, message: `Report generation failed: ${error.message}`, error: error.message });
     }
 };

@@ -85,7 +85,7 @@ class NotificationService {
     /**
      * Triggered when Integrity Engine or Report Generator finishes successfully
      */
-    async notifyProcessingSuccess(runId) {
+    async notifyProcessingSuccess(runId, isDisconnected = false) {
         try {
             const run = await db.Runs.findOne({ runId }).populate('userId');
             if (!run || !run.userId?.email) return;
@@ -102,34 +102,37 @@ class NotificationService {
 
             const prefs = run.userId.notificationPreferences || {};
 
-            // 2. Send Email
-            if (prefs.email !== false && prefs.reportReady !== false) {
-                await sendEmail({
-                    email: run.userId.email,
-                    subject: `✅ Your Hawksyn Risk Audit is Ready: ${run.caseId}`,
-                    message: `Hello ${run.userId.name || 'User'}, your risk audit processing is complete. You can now view and download your report.`,
-                    html: `
-                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
-                            <h2 style="color: #27ae60;">Audit Report Ready</h2>
-                            <p>The processing for your request <b>${run.caseId}</b> has been completed successfully.</p>
-                            <p>Our intelligence engine has mapped your risk profile and the final report is securely generated.</p>
-                            <p style="margin-top: 20px;">
-                                <a href="${process.env.CLIENT_PORTAL_URL}/reports/${runId}" style="background: #27ae60; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View My Report</a>
-                            </p>
-                            <p style="color: #7f8c8d; font-size: 12px; margin-top: 30px;">Ref ID: ${runId}</p>
-                        </div>
-                    `
-                });
-            }
+            // ONLY send Push/Email if they are not currently looking at the app
+            if (isDisconnected) {
+                // 2. Send Email
+                if (prefs.email !== false && prefs.reportReady !== false) {
+                    await sendEmail({
+                        email: run.userId.email,
+                        subject: `✅ Your Hawksyn Risk Audit is Ready: ${run.caseId}`,
+                        message: `Hello ${run.userId.name || 'User'}, your risk audit processing is complete. You can now view and download your report.`,
+                        html: `
+                            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
+                                <h2 style="color: #27ae60;">Audit Report Ready</h2>
+                                <p>The processing for your request <b>${run.caseId}</b> has been completed successfully.</p>
+                                <p>Our intelligence engine has mapped your risk profile and the final report is securely generated.</p>
+                                <p style="margin-top: 20px;">
+                                    <a href="${process.env.CLIENT_PORTAL_URL}/reports/${runId}" style="background: #27ae60; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View My Report</a>
+                                </p>
+                                <p style="color: #7f8c8d; font-size: 12px; margin-top: 30px;">Ref ID: ${runId}</p>
+                            </div>
+                        `
+                    });
+                }
 
-            // 3. Send Push Notification
-            if (run.userId.fcmToken && prefs.push !== false && prefs.reportReady !== false) {
-                await this.sendPushNotification(
-                    run.userId.fcmToken, 
-                    'Report Ready', 
-                    `Your Decision Assurance Report is ready. Open to see your verdict.`,
-                    { runId, type: 'REPORT_READY' }
-                );
+                // 3. Send Push Notification
+                if (run.userId.fcmToken && prefs.push !== false && prefs.reportReady !== false) {
+                    await this.sendPushNotification(
+                        run.userId.fcmToken, 
+                        'Report Ready', 
+                        `Your Decision Assurance Report is ready. Open to see your verdict.`,
+                        { runId, type: 'REPORT_READY' }
+                    );
+                }
             }
 
             logger.info(`[Notification] Processing Success alert sent to user for ${runId}`);
