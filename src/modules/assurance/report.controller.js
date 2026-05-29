@@ -30,10 +30,17 @@ exports.generateReport = async (req, res) => {
     const startTime = Date.now();
     
     let isDisconnected = false;
-    req.on('close', () => {
-        console.log(`[Report-Gen] Client disconnected for runId: ${req.params.runId}. Process will complete in background.`);
-        isDisconnected = true;
-    });
+    
+    const handleDisconnect = (reason) => {
+        if (!isDisconnected) {
+            console.log(`[Report-Gen] Client disconnected (${reason}) for runId: ${req.params.runId}. Process will complete in background.`);
+            isDisconnected = true;
+        }
+    };
+
+    req.on('close', () => handleDisconnect('req.close'));
+    req.on('aborted', () => handleDisconnect('req.aborted'));
+    req.socket.on('close', () => handleDisconnect('socket.close'));
 
     try {
         const { runId } = req.params;
