@@ -19,11 +19,32 @@ function buildReportHtml(reportData) {
     const parseJSON = (str) => {
         try {
             if (typeof str !== 'string') return str;
-            let cleaned = str.replace(/```\s*json/ig, '').replace(/```/g, '').replace(/^json/ig, '').trim();
-            try { return JSON.parse(cleaned); }
+            let jsonStr = str;
+            
+            const match = str.match(/```(?:json)?\s*([\s\S]*?)```/i);
+            if (match && match[1]) {
+                jsonStr = match[1];
+            } else {
+                const firstBrace = str.indexOf('{');
+                const firstBracket = str.indexOf('[');
+                let start = -1;
+                let end = -1;
+                if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+                    start = firstBrace;
+                    end = str.lastIndexOf('}');
+                } else if (firstBracket !== -1) {
+                    start = firstBracket;
+                    end = str.lastIndexOf(']');
+                }
+                if (start !== -1 && end !== -1 && end > start) {
+                    jsonStr = str.substring(start, end + 1);
+                }
+            }
+
+            try { return JSON.parse(jsonStr.trim()); }
             catch (e) {
-                cleaned = cleaned.replace(/\r?\n/g, ' ');
-                return JSON.parse(cleaned);
+                try { return JSON.parse(jsonStr.replace(/\r?\n/g, ' ').trim()); }
+                catch (err) { return null; }
             }
         } catch (e) { return null; }
     };
@@ -151,7 +172,7 @@ function buildReportHtml(reportData) {
         const targetPoints  = target.map((v, i) => getPoint(v, i, axes.length)).join(' ');
         return `
             <div class="radar-container flex-center">
-                <svg width="380" height="280" viewBox="0 0 200 200">
+                <svg width="340" height="250" viewBox="0 0 200 200">
                     <circle cx="100" cy="100" r="70" fill="none" stroke="#e5e7eb" stroke-dasharray="2,2"/>
                     <circle cx="100" cy="100" r="50" fill="none" stroke="#e5e7eb" stroke-dasharray="2,2"/>
                     <circle cx="100" cy="100" r="30" fill="none" stroke="#e5e7eb" stroke-dasharray="2,2"/>
@@ -376,27 +397,27 @@ function buildReportHtml(reportData) {
 
             case 'SEC_RO_024':
                 return `
-                    ${proseToHtml(data.validity_statement || '')}
-                    <p class="prose"><strong>Expires:</strong> ${data.expiry_date}</p>
+                    ${proseToHtml(data.validity_statement || data.validitystatement || '')}
+                    <p class="prose"><strong>Expires:</strong> ${data.expiry_date || data.expirydate || ''}</p>
                     <div class="red-flags-grid">
                         ${(data.triggers || []).map(t => `
                             <div class="flag-card">
-                                <div class="flag-title">${t.trigger_label}</div>
-                                <div class="flag-content">${innerProseToHtml(t.description)}</div>
+                                <div class="flag-title">${t.trigger_label || t.triggerlabel || ''}</div>
+                                <div class="flag-content">${innerProseToHtml(t.description || t.content || '')}</div>
                             </div>`).join('')}
                     </div>`;
 
             case 'SEC_RO_025':
                 return `
-                    <p class="prose"><strong>Mandatory Re-run:</strong> ${data.mandatory_rerun_date}</p>
+                    <p class="prose"><strong>Mandatory Re-run:</strong> ${data.mandatory_rerun_date || data.mandatoryrerundate || ''}</p>
                     <div class="red-flags-grid">
-                        ${(data.early_triggers || []).map(t => `
+                        ${(data.early_triggers || data.earlytriggers || []).map(t => `
                             <div class="flag-card">
-                                <div class="flag-title">${t.trigger_label}</div>
-                                <div class="flag-content">${innerProseToHtml(t.description)}</div>
+                                <div class="flag-title">${t.trigger_label || t.triggerlabel || ''}</div>
+                                <div class="flag-content">${innerProseToHtml(t.description || t.content || '')}</div>
                             </div>`).join('')}
                     </div>
-                    <div class="callout"><strong>Action Before Rerun:</strong><br>${innerProseToHtml(data.action_before_rerun || '')}</div>`;
+                    <div class="callout"><strong>Action Before Rerun:</strong><br>${innerProseToHtml(data.action_before_rerun || data.actionbeforererun || '')}</div>`;
 
             case 'SEC_RO_026':
                 return `
@@ -443,25 +464,17 @@ function buildReportHtml(reportData) {
         }
 
         /* ── PAGE WRAPPER ── */
-        /*
-         * FIX 2: Only the cover and CV pages use page-break-after:always.
-         * All analysis sections flow continuously in ONE long page-flow document.
-         * The .section-block class is used for visual grouping only.
-         */
         .page-cover,
         .page-cv {
-            width: 210mm;
-            min-height: 297mm;
+            width: 100%;
             padding: 15mm;
             margin: 0 auto;
             background: white;
             position: relative;
-            page-break-after: always;
             overflow: hidden;
         }
         .page-content {
-            width: 210mm;
-            min-height: 297mm;
+            width: 100%;
             padding: 15mm;
             padding-bottom: 20mm;
             margin: 0 auto;
@@ -632,17 +645,41 @@ function buildReportHtml(reportData) {
         .skill-list { font-size: 8.5pt; color: #4b5563; line-height: 1.4; }
 
         /* ── MISC ── */
-        .flex-center { display: flex; justify-content: center; align-items: center; flex-direction: column; }
-        .radar-legend { display: flex; gap: 15px; font-weight: 700; font-size: 8pt; margin-top: 10px; }
+        .flex-center { text-align: center; }
+        .radar-legend { display: flex; justify-content: center; gap: 15px; font-weight: 700; font-size: 8pt; margin-top: 10px; }
         .footer-meta { display: none; /* Handled natively by Puppeteer now */ }
         .mt-4 { margin-top: 15px; }
 
         /* ── PRINT MEDIA ── */
         @media print {
-            body { background: white; }
-            .page-cover, .page-cv { page-break-after: always; }
-            .section-block { page-break-inside: avoid; }
-            h2 { page-break-after: avoid; }
+            body { background: white; margin: 0; padding: 0; }
+            .page-cover, .page-cv, .page-content {
+                width: 100% !important;
+                min-height: auto !important;
+                margin: 0 !important;
+            }
+            .section-block {
+                margin-bottom: 15px !important;
+                padding-bottom: 10px !important;
+            }
+            h2 { page-break-after: auto; }
+            .flag-card, .callout, .uncomfortable-truth, .data-table tr, .chart-row, .timeline-item {
+                page-break-inside: avoid;
+            }
+            
+            /* Chrome/Puppeteer Grid Bug Fix */
+            .two-col-box, .red-flags-grid, .recovery-map, .cv-grid { 
+                display: flex !important; 
+                flex-wrap: wrap !important;
+            }
+            .red-flags-grid > *, .recovery-map > * { 
+                flex: 1 1 calc(50% - 15px) !important; 
+            }
+            .two-col-box > * { 
+                flex: 1 1 calc(50% - 20px) !important; 
+            }
+            .cv-grid > div:first-child { flex: 1.2 !important; }
+            .cv-grid > div:last-child { flex: 1 !important; }
         }
     </style>
 </head>
