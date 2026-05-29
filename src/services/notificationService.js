@@ -8,7 +8,7 @@ const admin = require('../../utils/firebase'); // Firebase Admin SDK
  * Handles all operational triggers (Email/System Alerts)
  */
 class NotificationService {
-    
+
     /**
      * Internal: Send Push Notification via FCM
      */
@@ -39,9 +39,9 @@ class NotificationService {
             const userName = run.userId?.name || 'A Client';
 
             // 0. Check if notification already exists to prevent duplicates
-            const existing = await db.Notifications.findOne({ 
-                'metadata.runId': runId, 
-                type: 'INTAKE_COMPLETE' 
+            const existing = await db.Notifications.findOne({
+                'metadata.runId': runId,
+                type: 'INTAKE_COMPLETE'
             });
             if (existing) return;
 
@@ -127,8 +127,8 @@ class NotificationService {
                 // 3. Send Push Notification
                 if (run.userId.fcmToken && prefs.push !== false && prefs.reportReady !== false) {
                     await this.sendPushNotification(
-                        run.userId.fcmToken, 
-                        'Report Ready', 
+                        run.userId.fcmToken,
+                        'Report Ready',
                         `Your Decision Assurance Report is ready. Open to see your verdict.`,
                         { runId, type: 'REPORT_READY' }
                     );
@@ -353,7 +353,7 @@ class NotificationService {
     async notifyVerdictExpiry(runId, user, daysRemaining) {
         try {
             const title = daysRemaining === 7 ? 'Verdict Expiry Warning, 7 Days' : 'Verdict Expiry Warning, 2 Days';
-            const msg = daysRemaining === 7 
+            const msg = daysRemaining === 7
                 ? `Your verdict on ${runId.slice(-6)} expires in 7 days. Market conditions may have shifted. A re-run gives you a fresh picture.`
                 : `Your verdict expires in 2 days. After this, your audit result is no longer valid. Re-run to stay current.`;
 
