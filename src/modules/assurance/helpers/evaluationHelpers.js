@@ -209,8 +209,19 @@ async function callLLM({ systemPrompt, userPrompt, forceProvider = null }) {
     await aiSemaphore.acquire();
     try {
         const { content, usage, provider, duration } = await generateText(userPrompt, systemPrompt, forceProvider);
+        
+        // Clean markdown backticks if LLM returned a code block
+        let cleanedText = content;
+        if (cleanedText && typeof cleanedText === 'string') {
+            cleanedText = cleanedText.trim();
+            if (cleanedText.startsWith('```json')) cleanedText = cleanedText.replace(/^```json\s*/i, '');
+            else if (cleanedText.startsWith('```')) cleanedText = cleanedText.replace(/^```\s*/, '');
+            if (cleanedText.endsWith('```')) cleanedText = cleanedText.replace(/\s*```$/, '');
+            cleanedText = cleanedText.trim();
+        }
+
         return {
-            text: content,
+            text: cleanedText,
             usageMetadata: usage,
             modelUsed: provider,
             duration
