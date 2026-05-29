@@ -331,7 +331,9 @@ exports.collectSignals = async (req, res) => {
             };
             const mockRes = { 
                 status: () => mockRes, 
-                json: () => {}, 
+                json: (data) => {
+                    console.log(`[Signals-Background] Pipeline component exited early with:`, data);
+                }, 
                 send: () => {} 
             };
 
