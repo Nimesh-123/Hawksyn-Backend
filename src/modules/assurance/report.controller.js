@@ -29,7 +29,7 @@ exports.generateReport = async (req, res) => {
     console.time("Report_Gen");
     const startTime = Date.now();
     
-    let isDisconnected = false;
+    let isDisconnected = req.isBackgroundProcess === true;
     
     const handleDisconnect = (reason) => {
         if (!isDisconnected) {
