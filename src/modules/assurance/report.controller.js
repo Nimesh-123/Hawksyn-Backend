@@ -265,20 +265,8 @@ exports.generateReport = async (req, res) => {
                         .replace(/^.*Pro Tip:.*$/gmi, '');
                     
                     if (section.sectionId === 'SEC_RO_024' || section.sectionId === 'SEC_RO_025') {
-                        sanitizedText = sanitizedText.replace(/2025-03-08/g, placeholders.RECHECK_DATE || 'UNKNOWN')
-                                                     .replace(/UNKNOWN/g, placeholders.RECHECK_DATE || 'UNKNOWN');
-                    }
-
-                    if (section.sectionId === 'SEC_RO_022') {
-                        const breakdown = `\n\n**DAC Score Constraint Breakdown:**\n` + 
-                            `• Role Automation Exposure (C1): ${placeholders.C1_SCORE || '0'}/100 (${placeholders.C1_STATUS || 'UNKNOWN'})\n` +
-                            `• Economic Obsolescence (C2): ${placeholders.C2_SCORE || '0'}/100 (${placeholders.C2_STATUS || 'UNKNOWN'})\n` +
-                            `• Company Instability (C3): ${placeholders.C3_SCORE || '0'}/100 (${placeholders.C3_STATUS || 'UNKNOWN'})\n` +
-                            `• Financial Runway (C4): ${placeholders.C4_SCORE || '0'}/100 (${placeholders.C4_STATUS || 'UNKNOWN'})\n` +
-                            `• Market Isolation (C5): ${placeholders.C5_SCORE || '0'}/100 (${placeholders.C5_STATUS || 'UNKNOWN'})\n` +
-                            `• Passive Learning (C6): ${placeholders.C6_SCORE || '0'}/100 (${placeholders.C6_STATUS || 'UNKNOWN'})\n` +
-                            `• Internal Replaceability (C7): ${placeholders.C7_SCORE || '0'}/100 (${placeholders.C7_STATUS || 'UNKNOWN'})`;
-                        sanitizedText += breakdown;
+                        sanitizedText = sanitizedText.replace(/Expires:\s*UNKNOWN/g, 'Expires: ' + (placeholders.RECHECK_DATE || 'UNKNOWN'))
+                                                     .replace(/Mandatory Re-run:\s*2025-03-08/g, 'Mandatory Re-run: ' + (placeholders.RECHECK_DATE || 'UNKNOWN'));
                     }
 
                     sectionOut.content = applyCertaintyCap(sanitizedText, prompt.certaintyCapPercent || 85, integrityPack.accuracy?.band);
@@ -318,6 +306,7 @@ exports.generateReport = async (req, res) => {
             sections: reportSections,
             verdict,
             compositeScore: integrityPack.compositeScore || 0,
+            constraintScores: integrityPack.constraints?.results || [],
             confidence: integrityPack.confidence || 'MEDIUM',
             accuracyScore: integrityPack.accuracy?.score || 0,
             accuracyBand: integrityPack.accuracy?.band || 'UNKNOWN',
