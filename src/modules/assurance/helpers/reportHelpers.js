@@ -242,6 +242,31 @@ const extractVerdict = (text) => {
     return 'PAUSE';
 };
 
+function getAnswerText(rasAnswers, questionId, questionsMap) {
+    const answer = rasAnswers.find(a => a.questionId === questionId);
+    if (!answer) return 'Not answered';
+    const q = questionsMap[questionId];
+    const optionMap = { a: q?.option_a, b: q?.option_b, c: q?.option_c, d: q?.option_d };
+    return optionMap[answer.selectedOption?.toLowerCase()] || answer.answerText || 'Not answered';
+}
+
+function getConstraintBand(score) {
+    if (score >= 80) return 'STRONG';
+    if (score >= 60) return 'MODERATE';
+    if (score >= 40) return 'FRAGILE';
+    return 'CRITICAL';
+}
+
+function formatSignal(signalsRas, signalId) {
+    const signal = signalsRas?.artifactJson?.signals?.[signalId];
+    if (!signal) return 'Signal not collected';
+    return {
+        value: signal.index_value || signal.value || 'Unknown',
+        confidence: signal.confidence || 'Unknown',
+        summary: signal.rationale || signal.summary || 'No summary available'
+    };
+}
+
 module.exports = {
     anonymizeReport,
     getDeepValue,
@@ -250,6 +275,9 @@ module.exports = {
     checkAnchors,
     applyCertaintyCap,
     extractVerdict,
+    getAnswerText,
+    getConstraintBand,
+    formatSignal,
 
     /**
      * RAG HELPER — Fetch Gold Standard Reports
