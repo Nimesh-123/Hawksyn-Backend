@@ -227,29 +227,42 @@ function buildReportHtml(reportData) {
                     </div>
                     <div class="mt-4" style="font-size:8.5pt; font-style:italic; color:#9ca3af;">Methodology: ${data.methodology_note || ''}</div>`;
 
-            case 'SEC_RO_004':
-            case 'SEC_RO_009':
-                let chartData = data.chart_data;
-                const userSkills = profile?.skills || profile?.composition?.skills;
-                if (!chartData && s.sectionId === 'SEC_RO_004' && userSkills) {
-                    let skillsList = [];
-                    if (Array.isArray(userSkills)) skillsList = userSkills;
-                    else if (userSkills.technical) skillsList = userSkills.technical;
-                    else if (Array.isArray(userSkills.skills)) skillsList = userSkills.skills;
-                    
-                    if (Array.isArray(skillsList) && skillsList.length > 0) {
-                        const topSkills = skillsList.slice(0, 5);
-                        chartData = {
-                            labels: topSkills,
-                            values: topSkills.map(() => 75)
-                        };
+            case 'SEC_RO_004': {
+                let chartData = Array.isArray(data.chart_data) && data.chart_data.length > 0
+                    ? data.chart_data : null;
+
+                // Fallback 1: CHART_DATA: {labels, values} format from LLM
+                if (!chartData) {
+                    const m = (s?.content || '').match(/CHART_DATA:\\s*(\\{[\\s\\S]*?\\})/);
+                    if (m) {
+                        try {
+                            const p = JSON.parse(m[1]);
+                            if (p.labels && p.values) {
+                                chartData = p.labels.map((label, i) => ({
+                                    capability_name: label,
+                                    score: p.values[i] || 0,
+                                    bar_color: p.values[i] >= 70 ? '#22C55E' : p.values[i] >= 50 ? '#F59E0B' : '#EF4444'
+                                }));
+                            }
+                        } catch(e) {}
                     }
                 }
-                
+
+                // Fallback 2: report.constraintScores array (THIS IS THE MAIN FIX)
+                if (!chartData && report?.constraintScores?.length > 0) {
+                    chartData = report.constraintScores.map(c => ({
+                        capability_name: c.constraintName.replace(/\\s*\\(C\\d\\)$/, ''),
+                        score: c.score || 0,
+                        bar_color: c.score >= 70 ? '#22C55E' : c.score >= 50 ? '#F59E0B' : '#EF4444'
+                    }));
+                }
+
                 return `
-                    ${proseToHtml(data.context_prose || data.methodology_note || s.content || '')}
-                    ${chartData ? renderBarChart(chartData) : ''}
-                    ${(data.interpretation_callout || data.exposure_callout) ? `<div class="callout">${innerProseToHtml(data.interpretation_callout || data.exposure_callout || '')}</div>` : ''}`;
+                    ${proseToHtml(data.context_prose || '')}
+                    ${chartData?.length > 0 ? renderBarChart(chartData) :
+                      '<p style="color:#9CA3AF;font-style:italic;font-size:10pt;margin:15px 0;">Complete the MCQ assessment to generate your personalised strength chart.</p>'}
+                    ${data.interpretation_callout ? `<div class="callout">${innerProseToHtml(data.interpretation_callout)}</div>` : ''}`;
+            }
 
             case 'SEC_RO_005':
                 return `
@@ -263,13 +276,28 @@ function buildReportHtml(reportData) {
                         </tbody>
                     </table>`;
 
-            case 'SEC_RO_006':
+            case 'SEC_RO_006': {
+                // Constraint % numbers jo galti se content mein aa gaye unhe strip karo
+                const cleanContent = (s?.content || '').replace(/\d+%\s*/g, '');
+                const parsedClean = parseJSON(cleanContent) || data;
+
+                const rows = parsedClean.sector_rows || data.sector_rows || [];
+                const signal = parsedClean.key_signal || data.key_signal || '';
+
+                if (rows.length === 0) {
+                    return proseToHtml(parsedClean.description || cleanContent);
+                }
+
                 return `
                     <table class="data-table">
                         <thead><tr><th>Sector</th><th>Demand</th><th>Outlook</th><th>Risk</th></tr></thead>
-                        <tbody>${(data.sector_rows || []).map(r => `<tr><td>${r.sector}</td><td>${r.demand_now}</td><td>${r.one_year_outlook}</td><td>${r.risk_to_role}</td></tr>`).join('')}</tbody>
+                        <tbody>${rows.map(r => `<tr>
+                            <td>${r.sector}</td><td>${r.demand_now}</td>
+                            <td>${r.one_year_outlook}</td><td>${r.risk_to_role}</td>
+                        </tr>`).join('')}</tbody>
                     </table>
-                    <div class="callout">${innerProseToHtml(data.key_signal || '')}</div>`;
+                    ${signal ? `<div class="callout">${innerProseToHtml(signal)}</div>` : ''}`;
+            }
 
             case 'SEC_RO_007':
                 return `
@@ -284,15 +312,57 @@ function buildReportHtml(reportData) {
                         </div>
                     </div>`;
 
-            case 'SEC_RO_008':
-                return `
-                    <div class="red-flags-grid">
-                        ${(data.red_flags || []).map(f => `
-                            <div class="flag-card ${f.severity?.toLowerCase() || ''}">
-                                <div class="flag-title">${f.rf_label}</div>
-                                <div class="flag-content">${innerProseToHtml(f.content)}</div>
-                            </div>`).join('')}
+            case 'SEC_RO_008': {
+                // Support both red_flags and contradictions arrays from LLM
+                const items = [
+                    ...(data.red_flags || []),
+                    ...(data.contradictions || [])
+                ];
+
+                if (!items || items.length === 0) {
+                    return `<div class="callout" style="background:#F3F4F6; border-left-color:#9CA3AF;">
+                        <strong>Auditor Note:</strong> No internal contradictions were detected in your answers 
+                        based on the available MCQ data.
                     </div>`;
+                }
+
+                return `<div class="red-flags-grid">
+                    ${items.map(f => `
+                        <div class="flag-card ${(f.severity || '').toLowerCase()}">
+                            <div class="flag-title">${f.rf_label || f.contradiction_id || 'Finding'}</div>
+                            <div class="flag-content">${innerProseToHtml(f.content || '')}</div>
+                        </div>`).join('')}
+                </div>`;
+            }
+
+            case 'SEC_RO_009': {
+                // Key normalization — LLM kabhi kabhi underscores drop karta hai
+                const methodNote = data.methodology_note || data.methodologynote || data.context_prose || '';
+                const chartD     = data.chart_data      || data.chartdata      || [];
+                const callout    = data.exposure_callout || data.exposurecallout || 
+                                   data.interpretation_callout || '';
+                const overallPct = data.overall_exposure_percent || data.overallexposurepercent || null;
+
+                let chartData = Array.isArray(chartD) && chartD.length > 0 ? chartD : null;
+
+                // Fallback: report.constraintScores se C1 use karo
+                if (!chartData && report?.constraintScores?.length > 0) {
+                    const c1 = report.constraintScores.find(c => c.constraintId === 'CONS_RO_001');
+                    if (c1) {
+                        chartData = [{
+                            task_category: 'Your Role Automation Exposure',
+                            exposure_percent: c1.score,
+                            bar_color: c1.score >= 70 ? '#22C55E' : c1.score >= 50 ? '#F59E0B' : '#EF4444'
+                        }];
+                    }
+                }
+
+                return `
+                    ${proseToHtml(methodNote)}
+                    ${overallPct ? `<div class="callout" style="margin-bottom:12px;"><strong>Overall Exposure: ${overallPct}%</strong></div>` : ''}
+                    ${chartData ? renderBarChart(chartData) : ''}
+                    ${callout ? `<div class="callout">${innerProseToHtml(callout)}</div>` : ''}`;
+            }
 
             case 'SEC_RO_010':
                 return `
@@ -301,13 +371,22 @@ function buildReportHtml(reportData) {
                         <tbody>${(data.task_rows || []).map(r => `<tr><td>${r.task_category}</td><td>${r.ai_capability}</td><td>${r.replaces_user}</td><td>${r.timeline}</td></tr>`).join('')}</tbody>
                     </table>`;
 
-            case 'SEC_RO_011':
-                return `
-                    <table class="data-table">
-                        <thead><tr><th>Experience Band</th><th>Demand (2023)</th><th>Demand (2026)</th></tr></thead>
-                        <tbody>${(data.chart_data || []).map(r => `<tr><td>${r.experience_band}</td><td>${r.demand_2023}</td><td>${r.demand_2026}</td></tr>`).join('')}</tbody>
-                    </table>
-                    <div class="callout">${innerProseToHtml(data.salary_signal_callout || '')}</div>`;
+            case 'SEC_RO_011': {
+                // If LLM gave chart_data
+                if (data.chart_data?.length > 0) {
+                    return `
+                        ${proseToHtml(data.context_prose || '')}
+                        <table class="data-table">
+                            <thead><tr><th>Experience Band</th><th>Demand (2023)</th><th>Demand (2026)</th></tr></thead>
+                            <tbody>${data.chart_data.map(r =>
+                                `<tr><td>${r.experience_band}</td><td>${r.demand_2023}</td><td>${r.demand_2026}</td></tr>`
+                            ).join('')}</tbody>
+                        </table>
+                        ${data.salary_signal_callout ? `<div class="callout">${innerProseToHtml(data.salary_signal_callout)}</div>` : ''}`;
+                }
+                // Fallback: render prose
+                return proseToHtml(data.context_prose || s?.content || '[Market data insufficient for this profile]');
+            }
 
             case 'SEC_RO_012':
                 return `
@@ -406,7 +485,7 @@ function buildReportHtml(reportData) {
                     <div style="margin-top:15px; padding-top:15px; border-top:1px solid #FDE68A;">
                         <div style="font-weight:700; font-size:10pt; color:#92400E; margin-bottom:8px;">DAC Score Constraint Breakdown:</div>
                         <ul class="bullet-list" style="color:#92400E;">
-                            ${report.constraintScores.map(c => `<li><strong>${c.constraintName} (${c.constraintId.replace('CONS_RO_00','C')}):</strong> ${c.score}/100 (${c.band})</li>`).join('')}
+                            ${report.constraintScores.map(c => `<li><strong>${c.constraintName.replace(/\\s*\\(C\\d\\)$/, '')} (${c.constraintId.replace('CONS_RO_00','C')}):</strong> ${c.score}/100 (${c.band})</li>`).join('')}
                         </ul>
                     </div>` : '';
                     
@@ -418,12 +497,20 @@ function buildReportHtml(reportData) {
                         ${data.do_not_misread_callout ? `<div style="margin-top:15px; font-weight:700; color:#B45309; font-size:9pt; border-top:1px solid #FDE68A; padding-top:10px;">NOTE: ${innerProseToHtml(data.do_not_misread_callout)}</div>` : ''}
                     </div>`;
 
-            case 'SEC_RO_023':
-                return `
-                    <table class="data-table">
-                        <thead><tr><th>Factor</th><th>Level</th><th>Impact</th></tr></thead>
-                        <tbody>${(data.certainty_rows || []).map(r => `<tr><td>${r.factor}</td><td>${r.level}</td><td>${r.impact}</td></tr>`).join('')}</tbody>
-                    </table>`;
+            case 'SEC_RO_023': {
+                // If LLM gave certainty_rows table
+                if (data.certainty_rows?.length > 0) {
+                    return `
+                        <table class="data-table">
+                            <thead><tr><th>Factor</th><th>Level</th><th>Impact</th></tr></thead>
+                            <tbody>${data.certainty_rows.map(r =>
+                                `<tr><td>${r.factor}</td><td>${r.level}</td><td>${r.impact}</td></tr>`
+                            ).join('')}</tbody>
+                        </table>`;
+                }
+                // Fallback: render as prose
+                return proseToHtml(data.validity_statement || data.description || s?.content || '');
+            }
 
             case 'SEC_RO_024':
                 return `
@@ -664,7 +751,9 @@ function buildReportHtml(reportData) {
         .box-heading { font-weight: 700; font-size: 9pt; text-transform: uppercase; margin-bottom: 8px; }
 
         /* ── CV PAGE ── */
-        .cv-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 25px; margin-top: 15px; }
+        .cv-grid { display: flex; flex-direction: row; gap: 25px; margin-top: 15px; }
+        .cv-grid > div:first-child { flex: 1.2; }
+        .cv-grid > div:last-child { flex: 1; }
         .cv-section-title { font-weight: 800; font-size: 10pt; color: #6b7280; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; margin-bottom: 12px; }
         .job-card { margin-bottom: 15px; }
         .job-title { font-weight: 700; font-size: 10pt; color: #111827; }

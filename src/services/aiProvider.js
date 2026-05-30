@@ -150,9 +150,9 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
     }
 
     // --- Fallback Chain (Default) ---
-    if (forceProvider === 'Gemini') {
+    if (!forceProvider || forceProvider === 'Gemini') {
         try {
-            console.log('[AI-Provider] ⚡ FORCED: Attempting Gemini (Gemini-2.0-Flash)...');
+            console.log(`[AI-Provider] ⚡ ${forceProvider ? 'FORCED' : 'DEFAULT'}: Attempting Gemini (Gemini-2.0-Flash)...`);
             const modelObj = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
             const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
             const result = await modelObj.generateContent(fullPrompt);
@@ -331,10 +331,10 @@ async function generateText(prompt, systemPrompt = 'You are a helpful assistant.
 async function _executeGenerateText(prompt, systemPrompt, forceProvider) {
     const startTime = Date.now();
 
-    // --- Step 0: FORCED PROVIDER (Optional) ---
-    if (forceProvider === 'Gemini') {
+    // --- Step 0: PRIMARY PROVIDER ---
+    if (!forceProvider || forceProvider === 'Gemini') {
         try {
-            console.log('[AI-Provider] ⚡ FORCED: Attempting Gemini (Gemini-2.0-Flash) [Text]...');
+            console.log(`[AI-Provider] ⚡ ${forceProvider ? 'FORCED' : 'DEFAULT'}: Attempting Gemini (Gemini-2.0-Flash) [Text]...`);
             const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
             const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
             const result = await model.generateContent(fullPrompt);

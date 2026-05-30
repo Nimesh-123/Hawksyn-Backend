@@ -99,6 +99,9 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
     let signalsNarrative = '';
 
     const baseMap = {
+        CANDIDATE_NAME: findDeepValue(profileSnapshot, 'fullName') || findDeepValue(profileSnapshot, 'name') || 'Candidate',
+        CONFIRMED_PROFILE: JSON.stringify(profileSnapshot),
+        CV_AEUS: JSON.stringify(profileSnapshot),
         CURRENT_ROLE: currentRole,
         CV_ROLE_TITLE: currentRole,
         EXPERIENCE_YEARS: String(experienceYears),
@@ -189,6 +192,12 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         }
     }
 
+    // Populate Q1_ANSWER to Q10_ANSWER
+    for (let i = 1; i <= 10; i++) {
+        const qId = `Q_RO_${String(i).padStart(3, '0')}`;
+        baseMap[`Q${i}_ANSWER`] = getAnswerText(rasAnswers, qId, questionsMap);
+    }
+
     // Debug Log
     console.log(`[Report-Mapper] Finalizing placeholders for ${currentRole}:`, {
         exp: baseMap.EXPERIENCE_YEARS,
@@ -269,9 +278,17 @@ const extractVerdict = (text) => {
 function getAnswerText(rasAnswers, questionId, questionsMap) {
     const answer = rasAnswers.find(a => a.questionId === questionId);
     if (!answer) return 'Not answered';
+
+    // New JSON structure support
+    if (answer.answerLabel) return answer.answerLabel;
+    if (answer.answerValue) return answer.answerValue;
+    if (answer.answerText) return answer.answerText;
+
+    // Legacy format fallback
     const q = questionsMap[questionId];
+    if (!q) return 'Not answered';
     const optionMap = { a: q?.option_a, b: q?.option_b, c: q?.option_c, d: q?.option_d };
-    return optionMap[answer.selectedOption?.toLowerCase()] || answer.answerText || 'Not answered';
+    return optionMap[answer.selectedOption?.toLowerCase()] || 'Not answered';
 }
 
 function getConstraintBand(score) {
@@ -282,7 +299,8 @@ function getConstraintBand(score) {
 }
 
 function formatSignal(signalsRas, signalId) {
-    const signal = signalsRas?.artifactJson?.signals?.[signalId];
+    const signal = signalsRas?.artifactJson?.signals?.signals?.[signalId] 
+                || signalsRas?.artifactJson?.signals?.[signalId];
     if (!signal) return 'Signal not collected';
     return {
         value: signal.index_value || signal.value || 'Unknown',
