@@ -127,6 +127,30 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         SIGNAL_COUNT: String(signalsArray.length)
     };
 
+    // Add Constraint Scores
+    const constraintResults = integrityPack.constraints?.results || [];
+    const constraintScores = {};
+    for (const c of constraintResults) {
+        const match = c.constraintId.match(/_00(\d)$/);
+        if (match) {
+            const cNum = match[1];
+            constraintScores[`C${cNum}`] = c.score;
+            baseMap[`C${cNum}_SCORE`] = String(c.score);
+            baseMap[`C${cNum}_STATUS`] = c.band;
+        }
+    }
+    
+    const hasMCQ = Object.keys(answerLabelMap).length > 0;
+    if (!hasMCQ || constraintResults.length === 0) {
+        baseMap.CONSTRAINT_SCORES_ALL = 'UNKNOWN (MCQ Data Missing)';
+    } else {
+        baseMap.CONSTRAINT_SCORES_ALL = JSON.stringify(constraintScores);
+    }
+    
+    const recheckDate = new Date();
+    recheckDate.setDate(recheckDate.getDate() + 90);
+    baseMap.RECHECK_DATE = recheckDate.toISOString().split('T')[0];
+
     for (const sig of signalsArray) {
         if (!sig || typeof sig !== 'object') continue;
         const sId = sig.signalId || sig.id;
