@@ -811,7 +811,7 @@ function buildReportHtml(reportData) {
             <div class="section-block">
                 <div class="section-num">Section ${secCounter}</div>
                 <h2>${s.sectionName || 'Analysis Section'}</h2>
-                ${renderSectionContent(s)}
+                ${renderSection(s)}
             </div>`;
         }).join('')}
         </div>
