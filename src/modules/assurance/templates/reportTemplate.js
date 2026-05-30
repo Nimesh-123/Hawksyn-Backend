@@ -230,10 +230,12 @@ function buildReportHtml(reportData) {
             case 'SEC_RO_004':
             case 'SEC_RO_009':
                 let chartData = data.chart_data;
-                if (!chartData && s.sectionId === 'SEC_RO_004' && profile?.skills) {
+                const userSkills = profile?.skills || profile?.composition?.skills;
+                if (!chartData && s.sectionId === 'SEC_RO_004' && userSkills) {
                     let skillsList = [];
-                    if (Array.isArray(profile.skills)) skillsList = profile.skills;
-                    else if (profile.skills.technical) skillsList = profile.skills.technical;
+                    if (Array.isArray(userSkills)) skillsList = userSkills;
+                    else if (userSkills.technical) skillsList = userSkills.technical;
+                    else if (Array.isArray(userSkills.skills)) skillsList = userSkills.skills;
                     
                     if (Array.isArray(skillsList) && skillsList.length > 0) {
                         const topSkills = skillsList.slice(0, 5);
