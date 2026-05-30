@@ -204,9 +204,9 @@ exports.generateReport = async (req, res) => {
                         "\n\nSTRICT GROUNDING RULES:\n" +
                         "1. Use the provided EVIDENCE PACKAGE as the primary source of truth.\n" +
                         "2. Do not say data is missing if it is in the package above.\n" +
-                        "3. DO NOT mention surveys or inventories unless they appear explicitly in the evidence.\n" +
-                        "4. STRUCTURE: Use Bullet Points (•) for multi-sentence descriptions, action items, or key findings to ensure high readability.\n" +
-                        "5. If specific evidence is missing, provide a professional 'Pro-Tip' relevant to the user's role: " + (normalizedProfile.currentRoleTitle || 'Professional');
+                        "3. NEVER invent or output internal codes (e.g. ESTCO003VALUE, DRO_RO_001). Translate signals into plain English.\n" +
+                        "4. NEVER use the term 'Pro-Tip' or provide generic coaching advice.\n" +
+                        "5. STRUCTURE: Use Bullet Points (•) for multi-sentence descriptions.";
 
                     let llmResult = await callLLM({
                         modelFamily: prompt.modelFamily,
@@ -252,7 +252,36 @@ exports.generateReport = async (req, res) => {
                     }
                     // >>> END ADVERSARIAL LAYER <<<
 
-                    sectionOut.content = applyCertaintyCap(llmResult.text, prompt.certaintyCapPercent || 85, integrityPack.accuracy?.band);
+                    // Post-processing Sanitization
+                    let sanitizedText = llmResult.text
+                        .replace(/EST[A-Z0-9_]+VALUE/gi, '')
+                        .replace(/EST[A-Z0-9_]+_RATIONALE/gi, '')
+                        .replace(/EST[A-Z0-9_]+RATIONALE/gi, '')
+                        .replace(/EXTERNALSIGNALS,?/gi, '')
+                        .replace(/SIGNALS,?/g, '')
+                        .replace(/DRO_RO_\d{3}/gi, '')
+                        .replace(/CONTR_RO_\d{3}/gi, '')
+                        .replace(/^.*Pro-Tip:.*$/gmi, '')
+                        .replace(/^.*Pro Tip:.*$/gmi, '');
+                    
+                    if (section.sectionId === 'SEC_RO_024' || section.sectionId === 'SEC_RO_025') {
+                        sanitizedText = sanitizedText.replace(/2025-03-08/g, placeholders.RECHECK_DATE || 'UNKNOWN')
+                                                     .replace(/UNKNOWN/g, placeholders.RECHECK_DATE || 'UNKNOWN');
+                    }
+
+                    if (section.sectionId === 'SEC_RO_022') {
+                        const breakdown = `\n\n**DAC Score Constraint Breakdown:**\n` + 
+                            `• Role Automation Exposure (C1): ${placeholders.C1_SCORE || '0'}/100 (${placeholders.C1_STATUS || 'UNKNOWN'})\n` +
+                            `• Economic Obsolescence (C2): ${placeholders.C2_SCORE || '0'}/100 (${placeholders.C2_STATUS || 'UNKNOWN'})\n` +
+                            `• Company Instability (C3): ${placeholders.C3_SCORE || '0'}/100 (${placeholders.C3_STATUS || 'UNKNOWN'})\n` +
+                            `• Financial Runway (C4): ${placeholders.C4_SCORE || '0'}/100 (${placeholders.C4_STATUS || 'UNKNOWN'})\n` +
+                            `• Market Isolation (C5): ${placeholders.C5_SCORE || '0'}/100 (${placeholders.C5_STATUS || 'UNKNOWN'})\n` +
+                            `• Passive Learning (C6): ${placeholders.C6_SCORE || '0'}/100 (${placeholders.C6_STATUS || 'UNKNOWN'})\n` +
+                            `• Internal Replaceability (C7): ${placeholders.C7_SCORE || '0'}/100 (${placeholders.C7_STATUS || 'UNKNOWN'})`;
+                        sanitizedText += breakdown;
+                    }
+
+                    sectionOut.content = applyCertaintyCap(sanitizedText, prompt.certaintyCapPercent || 85, integrityPack.accuracy?.band);
                     sectionOut.status = anchorCheck.allCovered ? 'COMPLETE' : 'DEGRADED';
                     sectionOut.tokenUsage = llmResult.usageMetadata;
                     sectionOut.duration = llmResult.duration;

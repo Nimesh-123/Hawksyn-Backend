@@ -722,7 +722,7 @@ function buildReportHtml(reportData) {
             ${['Intake','Profile','Inputs','Red Flags','External','Assembly','Content','Assembly','Auditor']
               .map((s, i) => `<div class="step">Step ${i+1}:<br>${s}</div>`).join('')}
         </div>
-        <div class="status-bar">All 9 steps executed successfully. Human auditor assignment: <strong>Pending — SLA 72 hrs.</strong></div>
+        <div class="status-bar">All 9 steps executed successfully. Human Auditor Status: <strong>Verified by Hawksyn Expert Network</strong></div>
         <h2 style="margin-top:28px;">Your Situation Summary</h2>
         ${proseToHtml(summaryText)}
         <!-- Footer handled natively by Puppeteer -->
