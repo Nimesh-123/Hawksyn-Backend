@@ -152,7 +152,7 @@ function buildReportHtml(reportData) {
                     }).join('')}
                 </svg>
                 <div class="donut-legend">
-                    ${data.map(i => `<div class="legend-item"><span class="dot" style="background:${i.color}"></span> ${i.label}: ${i.value}%</div>`).join('')}
+                    ${data.map(i => `<div class="legend-item"><span class="dot" style="background:${i.color}"></span> ${i.label}: ${Math.round(((i.value || 0) / (total || 1)) * 100)}%</div>`).join('')}
                 </div>
             </div>`;
     };
@@ -225,36 +225,35 @@ function buildReportHtml(reportData) {
                             <ul class="bullet-list">${(data.does_not_cover || []).map(i => `<li>${i.item}</li>`).join('')}</ul>
                         </div>
                     </div>
-                    <div class="mt-4" style="font-size:8.5pt; font-style:italic; color:#9ca3af;">Methodology: ${data.methodology_note || ''}</div>`;
+                    <div class="mt-4" style="font-size:8.5pt; font-style:italic; color:#9ca3af;">Methodology: ${data.methodology_note || ''} | Auditor: AI-Audit-v2.1</div>`;
 
             case 'SEC_RO_004': {
-                let chartData = Array.isArray(data.chart_data) && data.chart_data.length > 0
-                    ? data.chart_data : null;
-
-                // Fallback 1: CHART_DATA: {labels, values} format from LLM
-                if (!chartData) {
-                    const m = (s?.content || '').match(/CHART_DATA:\\s*(\\{[\\s\\S]*?\\})/);
-                    if (m) {
-                        try {
-                            const p = JSON.parse(m[1]);
-                            if (p.labels && p.values) {
-                                chartData = p.labels.map((label, i) => ({
-                                    capability_name: label,
-                                    score: p.values[i] || 0,
-                                    bar_color: p.values[i] >= 70 ? '#22C55E' : p.values[i] >= 50 ? '#F59E0B' : '#EF4444'
-                                }));
-                            }
-                        } catch(e) {}
-                    }
-                }
-
-                // Fallback 2: report.constraintScores array (THIS IS THE MAIN FIX)
-                if (!chartData && report?.constraintScores?.length > 0) {
+                let chartData = null;
+                // Primary: report.constraintScores array (THIS IS THE MAIN FIX)
+                if (report?.constraintScores?.length > 0) {
                     chartData = report.constraintScores.map(c => ({
-                        capability_name: c.constraintName.replace(/\\s*\\(C\\d\\)$/, ''),
+                        capability_name: c.constraintName.replace(/\s*\(C\d\)$/, ''),
                         score: c.score || 0,
                         bar_color: c.score >= 70 ? '#22C55E' : c.score >= 50 ? '#F59E0B' : '#EF4444'
                     }));
+                } else {
+                    // Fallback to LLM chart_data if constraintScores are missing
+                    chartData = Array.isArray(data.chart_data) && data.chart_data.length > 0 ? data.chart_data : null;
+                    if (!chartData) {
+                        const m = (s?.content || '').match(/CHART_DATA:\s*(\{[\s\S]*?\})/);
+                        if (m) {
+                            try {
+                                const p = JSON.parse(m[1]);
+                                if (p.labels && p.values) {
+                                    chartData = p.labels.map((label, i) => ({
+                                        capability_name: label,
+                                        score: p.values[i] || 0,
+                                        bar_color: p.values[i] >= 70 ? '#22C55E' : p.values[i] >= 50 ? '#F59E0B' : '#EF4444'
+                                    }));
+                                }
+                            } catch(e) {}
+                        }
+                    }
                 }
 
                 return `
@@ -841,7 +840,11 @@ function buildReportHtml(reportData) {
             ${['Intake','Profile','Inputs','Red Flags','External','Assembly','Content','Assembly','Auditor']
               .map((s, i) => `<div class="step">Step ${i+1}:<br>${s}</div>`).join('')}
         </div>
-        <div class="status-bar">All 9 steps executed successfully. Human Auditor Status: <strong>Verified by Hawksyn Expert Network</strong></div>
+        <div class="status-bar">
+            All 9 steps executed successfully. 
+            Human Auditor Status: <strong>Verified by ${report.auditorName || 'Hawksyn Expert Network'}</strong>
+            <br/><span style="font-size: 8pt; color: #1E40AF; font-weight: normal; margin-top: 4px; display: inline-block;">Auditor Brief: Reviewing algorithmic findings against real-world contextual data.</span>
+        </div>
         <h2 style="margin-top:28px;">Your Situation Summary</h2>
         ${proseToHtml(summaryText)}
         <!-- Footer handled natively by Puppeteer -->

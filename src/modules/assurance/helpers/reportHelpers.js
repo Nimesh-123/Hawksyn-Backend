@@ -98,6 +98,18 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
     const signalsArray = Array.isArray(signalsSource) ? signalsSource : Object.entries(signalsSource).map(([k, v]) => ({ ...v, signalId: k }));
     let signalsNarrative = '';
 
+    let rawDomain = profileSnapshot?.domain || profileSnapshot?.employment?.domain || profileSnapshot?.inferred?.domainIndicator;
+    if (rawDomain && String(rawDomain).toUpperCase() === 'UNKNOWN') rawDomain = null;
+    const finalDomain = rawDomain || 'Not provided';
+
+    const accScore = integrityPack.accuracy?.score || 0;
+    let accBand = integrityPack.accuracy?.band;
+    if (!accBand || String(accBand).toUpperCase() === 'UNKNOWN') {
+        if (accScore >= 80) accBand = 'FULL';
+        else if (accScore >= 50) accBand = 'MEDIUM';
+        else accBand = 'LOW';
+    }
+
     const baseMap = {
         CANDIDATE_NAME: findDeepValue(profileSnapshot, 'fullName') || findDeepValue(profileSnapshot, 'name') || 'Candidate',
         CONFIRMED_PROFILE: JSON.stringify(profileSnapshot),
@@ -110,10 +122,10 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         CV_SKILLS_CURRENT: skills,
         CURRENT_COMPANY: currentCompany,
         CV_COMPANY: currentCompany,
-        DOMAIN: profileSnapshot?.domain || profileSnapshot?.employment?.domain || profileSnapshot?.inferred?.domainIndicator || 'Not provided',
-        CV_INDUSTRY: profileSnapshot?.domain || profileSnapshot?.employment?.domain || profileSnapshot?.inferred?.domainIndicator || 'Not provided',
-        ACCURACY_SCORE: String(integrityPack.accuracy?.score || 0),
-        ACCURACY_BAND: integrityPack.accuracy?.band || 'UNKNOWN',
+        DOMAIN: finalDomain,
+        CV_INDUSTRY: finalDomain,
+        ACCURACY_SCORE: String(accScore),
+        ACCURACY_BAND: accBand,
         RED_FLAGS: redFlagsSummary,
         RED_FLAG_LIST: redFlagsSummary,
         CONTRADICTIONS: contradictionsSummary,
@@ -151,8 +163,11 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
     }
     
     const recheckDate = new Date();
-    recheckDate.setDate(recheckDate.getDate() + 90);
-    baseMap.RECHECK_DATE = recheckDate.toISOString().split('T')[0];
+    recheckDate.setDate(recheckDate.getDate() + 30);
+    const dd = String(recheckDate.getDate()).padStart(2, '0');
+    const mm = String(recheckDate.getMonth() + 1).padStart(2, '0');
+    const yyyy = recheckDate.getFullYear();
+    baseMap.RECHECK_DATE = `${dd}-${mm}-${yyyy}`;
 
     for (const sig of signalsArray) {
         if (!sig || typeof sig !== 'object') continue;

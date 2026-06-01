@@ -142,9 +142,11 @@ exports.generateReport = async (req, res) => {
             const label = (ans.answerLabel || ans.answerValue || '').toLowerCase().trim();
 
             if (Array.isArray(q.optionsJson)) {
-                const matched = q.optionsJson.find(o =>
-                    (o.opt || '').toLowerCase().trim() === label
-                );
+                const matched = q.optionsJson.find(o => {
+                    const optText = (o.opt || '').toLowerCase().trim();
+                    if (!optText || !label) return false;
+                    return optText === label || optText.includes(label) || label.includes(optText);
+                });
                 if (matched) {
                     const letter = matched.id?.toLowerCase();
                     if (letter && scoreMap[letter] !== undefined) return scoreMap[letter];
@@ -160,7 +162,7 @@ exports.generateReport = async (req, res) => {
                 d: (q.optionD || '').toLowerCase().trim()
             };
             for (const [letter, text] of Object.entries(opts)) {
-                if (text && label === text) return scoreMap[letter] ?? null;
+                if (text && label && (label === text || text.includes(label) || label.includes(text))) return scoreMap[letter] ?? null;
             }
 
             console.warn(`[VLT] No match: Q=${questionId} label="${label}"`);
@@ -303,8 +305,8 @@ exports.generateReport = async (req, res) => {
         const constraintScores = computeConstraintScores(rasAnswers, questionsMap);
         const triggeredContradictions = detectContradictions(rasAnswers, questionsMap);
 
-        const recheckDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
-            .toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+        const d = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        const recheckDate = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
 
         const placeholders = buildPlaceholderMap(
             normalizedProfile,
@@ -542,7 +544,7 @@ exports.generateReport = async (req, res) => {
                         .replace(/Tier\s*[12]\s*(?:Data\s*Refresh|Signal[s]?)/gi, 'External Signal Update Required')
                         .replace(/TIER_[12]/gi, '')
                         .replace(/^.*Pro[\s-]?Tip\s*:.*$/gim, '')
-                        .replace(/(?:Mandatory Re-run|Expires):\s*202[0-5]-\d{2}-\d{2}/gi,
+                        .replace(/(?:Mandatory Re-run|Expires)(?:\*\*|__)?:\s*(?:\*\*)?\s*(?:\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4}|\d{2} [A-Za-z]+ \d{4})/gi,
                             (match) => match.split(':')[0] + ': ' + recheckDate)
                         .replace(/Generation failed\./gi, '[Section pending human auditor review]')
                         .trim();
@@ -601,6 +603,9 @@ exports.generateReport = async (req, res) => {
             generatedAt:   new Date()
         };
 
+        // Fetch ExtractedCV for roles
+        const extractedCV = await db.ExtractedCV.findOne({ candidate_id: run.userId.toString() });
+
         // NAYA - DB ke exact paths pe direct jaao
         const rawParsed = run.cvSnapshot?.parsedData || {};
 
@@ -610,9 +615,13 @@ exports.generateReport = async (req, res) => {
                    || normalizedProfile.fullName
                    || 'Candidate',
 
-            experience: rawParsed.work?.experience
-                     || normalizedProfile.work?.experience
-                     || [],
+            experience: (extractedCV?.roles && extractedCV.roles.length > 0) ? extractedCV.roles.map(r => ({
+                            title: r.role_metadata?.title || 'Unknown Role',
+                            company: r.role_metadata?.company || 'Unknown Company',
+                            duration: `${r.role_metadata?.start_date || ''} to ${r.role_metadata?.end_date || 'Present'}`,
+                            description: (r.base_aeus || []).map(ae => ae.raw_text || '').join('\n')
+                        }))
+                     : (rawParsed.work?.experience || normalizedProfile.work?.experience || rawParsed.employment?.history || normalizedProfile.employment?.history || []),
 
             skills: {
                 technical: rawParsed.composition?.skills?.technical
@@ -773,9 +782,12 @@ exports.generateReport = async (req, res) => {
 exports.downloadReport = async (req, res) => {
     try {
         const { runId } = req.params;
+        const run = await db.Runs.findOne({ runId });
+        if (!run) return res.status(404).json({ success: false, message: 'Run not found' });
+
         const [reportRas, userProfile] = await Promise.all([
             db.Ras.findOne({ runId, artifactType: 'FINAL_REPORT' }),
-            db.UserProfile.findOne({ userId: req.user.id })
+            db.UserProfile.findOne({ userId: run.userId })
         ]);
 
         if (!reportRas) return res.status(404).json({ success: false, message: 'Report not found' });
@@ -810,10 +822,13 @@ exports.downloadReport = async (req, res) => {
 exports.sendReportEmail = async (req, res) => {
     try {
         const { runId } = req.params;
-        const [user, reportRas, userProfile] = await Promise.all([
-            db.User.findById(req.user.id),
+        const run = await db.Runs.findOne({ runId }).populate('userId');
+        if (!run) return res.status(404).json({ success: false, message: 'Run not found' });
+        
+        const user = run.userId;
+        const [reportRas, userProfile] = await Promise.all([
             db.Ras.findOne({ runId, artifactType: 'FINAL_REPORT' }),
-            db.UserProfile.findOne({ userId: req.user.id })
+            db.UserProfile.findOne({ userId: user._id })
         ]);
 
         if (!reportRas) return res.status(404).json({ success: false, message: 'Report not found' });
@@ -821,7 +836,9 @@ exports.sendReportEmail = async (req, res) => {
         const html = buildReportHtml({
             report: reportRas.artifactJson,
             runId, generatedAt: reportRas.createdAt,
-            role: userProfile?.confirmedProfile?.identity?.currentRoleTitle || 'Professional'
+            accuracyBand: reportRas.artifactJson.accuracyBand,
+            role: userProfile?.confirmedProfile?.identity?.currentRoleTitle || 'Professional',
+            profile: userProfile?.confirmedProfile || userProfile?.originalParsedData?.structured
         });
         const pdfBuffer = await generatePdfFromHtml(html, {
             displayHeaderFooter: true,
