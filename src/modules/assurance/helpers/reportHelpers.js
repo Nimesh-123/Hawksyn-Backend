@@ -139,7 +139,12 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         ANALYST_NOTE: externalSignals?.analystNote || 'Insufficient market data for this profile.',
         EXTERNAL_SIGNALS: '',
         SIGNALS: '',
-        SIGNAL_COUNT: String(signalsArray.length)
+        SIGNAL_COUNT: String(signalsArray.length),
+        
+        // --- FIX FOR UNKNOWN FIELDS ---
+        INDUSTRY: finalDomain,
+        COVERAGE_ANCHOR_STATUS: (integrityPack?.coverage?.allCovered !== false) ? 'Complete' : 'Partial',
+        INTENT_HORIZON: '180 Days' // Default fallback, typically 180 or 365 days
     };
 
     // Add Constraint Scores

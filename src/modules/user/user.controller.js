@@ -53,13 +53,21 @@ exports.sendOTP = async (req, res) => {
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
             try {
                 const sendEmail = require('../../../utils/email.js');
-                await sendEmail({
+                sendEmail({
                     email,
                     subject: 'Your Hawksyn OTP Verification Code',
                     message: `Your OTP is ${otp}. It will expire in 5 minutes.`,
-                    html: `<b>Your OTP is ${otp}</b><p>It will expire in 5 minutes.</p>`
-                });
-            } catch (e) { console.error("[Mail] Failed:", e.message); }
+                    html: `
+                        <div style="font-family: Arial, sans-serif; padding: 20px;">
+                            <h2>Welcome to Hawksyn</h2>
+                            <p>Your verification code is: <strong>${otp}</strong></p>
+                            <p>This code will expire in 5 minutes.</p>
+                        </div>
+                    `
+                }).catch(e => console.error('[Email Worker Error]', e));
+            } catch (emailError) {
+                console.error("Failed to enqueue email:", emailError.message);
+            }
         }
 
         return RESPONSE.success(res, 200, 2003, { email });

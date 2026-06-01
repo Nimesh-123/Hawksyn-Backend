@@ -23,6 +23,9 @@ require('./src/modules/assurance/crons/slaBreach.cron.js');
 const cronService = require('./src/services/cronService');
 cronService.init();
 
+// --- Initialize Background Workers ---
+require('./src/queues/cvWorker');
+
 // --- Global Logging & Request ID ---
 const requestLogger = require('./middleware/requestLogger.js');
 const errorHandler = require('./middleware/errorHandler.js');

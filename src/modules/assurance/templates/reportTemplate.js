@@ -88,13 +88,21 @@ function buildReportHtml(reportData) {
                 return `<ul class="bullet-list">${parts.map(p => `<li>${md(p.trim())}</li>`).join('')}</ul>`;
             }
         }
-        // Lines split by newline — each becomes a bullet if 3+ lines
+        // Lines split by newline - each becomes a bullet
         const lines = text.split(/\n+/).filter(l => l.trim());
-        if (lines.length >= 3) {
+        if (lines.length > 1) {
             return `<ul class="bullet-list">${lines.map(l => `<li>${md(l.trim())}</li>`).join('')}</ul>`;
         }
-        // Otherwise render as a single prose paragraph
-        return `<p class="prose">${md(text).replace(/\n/g, '<br>')}</p>`;
+        
+        // --- NEW: Convert sentences to bullet points ---
+        // Split by period followed by space, or period at the end of the string
+        const sentences = text.split(/\.\s+|\.$/).filter(Boolean);
+        if (sentences.length > 1) {
+            return `<ul class="bullet-list">${sentences.map(s => `<li>${md(s.trim() + '.')}</li>`).join('')}</ul>`;
+        }
+
+        // If it's just a single short sentence, render it as a single bullet point anyway as requested
+        return `<ul class="bullet-list"><li>${md(text.trim())}</li></ul>`;
     };
 
     /**
@@ -111,10 +119,17 @@ function buildReportHtml(reportData) {
         }
         // Newline-separated lines → bullets
         const lines = text.split(/\n+/).filter(l => l.trim());
-        if (lines.length >= 3) {
+        if (lines.length > 1) {
             return `<ul class="bullet-list">${lines.map(l => `<li>${md(l.trim())}</li>`).join('')}</ul>`;
         }
-        return md(text).replace(/\n/g, '<br>');
+
+        // --- NEW: Convert sentences to bullet points ---
+        const sentences = text.split(/\.\s+|\.$/).filter(Boolean);
+        if (sentences.length > 1) {
+            return `<ul class="bullet-list" style="margin-top:0;">${sentences.map(s => `<li>${md(s.trim() + '.')}</li>`).join('')}</ul>`;
+        }
+
+        return md(text.trim());
     };
 
     const renderBarChart = (data) => {
@@ -430,13 +445,15 @@ function buildReportHtml(reportData) {
                     </table>`;
 
             case 'SEC_RO_016':
+            case 'SECRO016':
+                const triggerEvent = data.trigger_event || data.triggerEvent || '';
                 return `
-                    <div class="callout" style="margin-bottom:15px;"><strong>Trigger:</strong> ${innerProseToHtml(data.trigger_event)}</div>
+                    <div class="callout" style="margin-bottom:15px;"><strong>Trigger:</strong> ${innerProseToHtml(triggerEvent)}</div>
                     <div class="cascade-grid">
                         ${(data.cascade || []).map(c => `
                             <div class="cascade-card">
-                                <div class="cascade-label">${c.order_label}</div>
-                                <div>${innerProseToHtml(c.description)}</div>
+                                <div class="cascade-label">${c.order_label || c.orderLabel || ''}</div>
+                                <div>${innerProseToHtml(c.description || '')}</div>
                             </div>`).join('')}
                     </div>`;
 
@@ -804,17 +821,17 @@ function buildReportHtml(reportData) {
 <body>
 
     <!-- ═══════════════════════════════════════ PAGE 1 — COVER ═══════════════════════════════ -->
-    <div class="page-cover">
+    <div class="page-cover" style="min-height:297mm; display:flex; flex-direction:column; justify-content:center;">
         <div class="header-bar">
             <span>HAWKSYN — DECISION ASSURANCE CYCLE REPORT</span>
             <span>CONFIDENTIAL</span>
         </div>
-        <h1>Job Security Audit</h1>
-        <div style="color:#6b7280; font-size:13pt;">AI &amp; Automation Role Elimination Risk Assessment</div>
+        <h1>${reportData.caseName || 'Job Security Audit'}</h1>
+        <div style="color:#6b7280; font-size:13pt;">${reportData.intentName || 'AI & Automation Role Elimination Risk Assessment'}</div>
         <table class="summary-table">
             <tr>
-                <td class="label">Decision Moment</td><td class="value">Job Security Audit</td>
-                <td class="label">Intent</td><td class="value">Role Elimination Risk</td>
+                <td class="label">Decision Moment</td><td class="value">${reportData.caseName || 'Job Security Audit'}</td>
+                <td class="label">Intent</td><td class="value">${reportData.intentName || 'Role Elimination Risk'}</td>
             </tr>
             <tr>
                 <td class="label">Profile</td>

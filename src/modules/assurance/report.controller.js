@@ -462,10 +462,26 @@ exports.generateReport = async (req, res) => {
 
                     const ostContract = ostMap[section.sectionId]?.llmJsonContract;
 
+                    // Clean the evidence package so the LLM doesn't see internal identifiers
+                    const cleanEvidence = { ...placeholders };
+                    for (const key of Object.keys(cleanEvidence)) {
+                        if (
+                            /^(EST|CONTR|RF|DRO|CONS|Q|C\d)_/i.test(key) ||
+                            key.endsWith('_VALUE') ||
+                            key.endsWith('_RATIONALE') ||
+                            key.endsWith('_CONFIDENCE') ||
+                            key === 'CONFIRMED_PROFILE' ||
+                            key === 'CV_AEUS' ||
+                            key === 'CONSTRAINT_SCORES_ALL'
+                        ) {
+                            delete cleanEvidence[key];
+                        }
+                    }
+
                     const systemPromptBase = (prompt.systemPrompt || '') +
                         (ostContract ? `\n\nCRITICAL OUTPUT FORMAT — RETURN ONLY VALID JSON MATCHING THIS SCHEMA EXACTLY:\n${ostContract}\nDo not wrap in markdown. Do not add extra keys. Return only the JSON object.\n` : '') +
                         "\n\n--- COMPREHENSIVE EVIDENCE PACKAGE (all data for this person) ---\n" +
-                        JSON.stringify(placeholders, null, 2) +
+                        JSON.stringify(cleanEvidence, null, 2) +
                         "\n\nSTRICT GROUNDING RULES — violating any rule = section failure:\n" +
                         "1. Use ONLY the evidence package as source of truth. No general knowledge.\n" +
                         "2. Do not say data is missing if it is present in the package above.\n" +
@@ -478,7 +494,11 @@ exports.generateReport = async (req, res) => {
                         "9. DATES: For any rerun or expiry date, use exactly this value: " + recheckDate + ". Never use 2025 dates.\\n" +
                         "10. SIGNAL NAMES: Never write 'Tier 1', 'EST_LM_001', 'ESTCO003VALUE' etc. Write 'Labour Market Index', 'Company Restructuring Signal' etc.\\n" +
                         "11. SECTION SEC_RO_010 ONLY: task_rows mein actual work activities likhni hain (e.g. 'Writing API endpoints', 'Code review', 'Database query optimization') — DRO risk names task categories NAHI hain. DRO names sirf Section 7, 13, 21, 25 mein use hote hain.\\n" +
-                        "12. GR LANGUAGE: Strictly follow GR Language guidelines. Use professional, objective, and neutral tone throughout. Avoid local slang or overly conversational idioms.";
+                        "12. GR LANGUAGE: Strictly follow GR Language guidelines. Use professional, objective, and neutral tone throughout. Avoid local slang or overly conversational idioms.\\n" +
+                        "13. VERDICT ALIGNMENT: Your data projections must strictly align with the VERDICT (e.g. if PAUSE, do NOT show increasing demand/salary bands in Section 10).\\n" +
+                        "14. NO 'MAYBE' FOR EMPLOYERS: In Section 18, strictly output 'YES' or 'NO' for each employer type. NEVER use 'MAYBE'.\\n" +
+                        "15. HYPER-PERSONALIZATION: The Uncomfortable Truth (Section 2) MUST specifically attack a weakness found in the candidate's actual CV, Skills, or Domain. No generic statements.\\n" +
+                        "16. PLAYBOOK ALIGNMENT: Focus the analysis on the generic professional dimensions, constraints, and MCQ answers evaluated by the system. Do NOT make specific technical skills (e.g. Java, Python, coding) the center of the report. The report must evaluate general career resilience and role risks, not technical proficiency.";
 
                     let llmResult = await callLLM({
                         modelFamily: prompt.modelFamily,
@@ -653,6 +673,15 @@ exports.generateReport = async (req, res) => {
             await s3Service.uploadJsonSnapshot(finalReport, 'snapshots', `RPT_${runId}`);
 
             // 2. PDF Report
+            // Helper to get readable names
+            const caseNameMap = { 'CASE_ROLE_OBSOLESCENCE': 'Role Obsolescence Risk' };
+            const intentNameMap = {
+                'INT_ROLE_RISK_REALITY_CHECK': 'Role Reality Check',
+                'INT_ROLE_RISK_EXIT_READINESS': 'Role Risk and Exit Readiness',
+                'INT_ROLE_RISK_SURVIVAL_PLAN': 'Role Survival Plan',
+                'RO': 'Role Elimination Risk'
+            };
+
             const html = buildReportHtml({
                 report: finalReport,
                 runId, generatedAt: new Date(),
@@ -661,14 +690,16 @@ exports.generateReport = async (req, res) => {
                    || normalizedProfile.roleTitle
                    || normalizedProfile.identity?.currentRoleTitle
                    || 'Professional',
-                profile: templateProfile
+                profile: templateProfile,
+                caseName: caseNameMap[run.caseId] || run.caseId,
+                intentName: intentNameMap[run.intentId] || run.intentId
             });
             const pdfBuffer = await generatePdfFromHtml(html, {
                 displayHeaderFooter: true,
                 headerTemplate: '<span></span>',
                 footerTemplate: `
                   <div style="font-family: 'Inter', sans-serif; width: 100%; display: flex; justify-content: space-between; font-size: 7.5pt; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 8px; margin: 0 15mm; box-sizing: border-box; -webkit-print-color-adjust: exact;">
-                    <span>Case #${runId} | Hawksyn AI 2.0</span>
+                    <span>Case #${runId} | Hawksyn AI V1</span>
                     <span>Page <span class="pageNumber"></span></span>
                   </div>
                 `,
@@ -792,12 +823,23 @@ exports.downloadReport = async (req, res) => {
 
         if (!reportRas) return res.status(404).json({ success: false, message: 'Report not found' });
 
+        // Helper to get readable names
+        const caseNameMap = { 'CASE_ROLE_OBSOLESCENCE': 'Role Obsolescence Risk' };
+        const intentNameMap = {
+            'INT_ROLE_RISK_REALITY_CHECK': 'Role Reality Check',
+            'INT_ROLE_RISK_EXIT_READINESS': 'Role Risk and Exit Readiness',
+            'INT_ROLE_RISK_SURVIVAL_PLAN': 'Role Survival Plan',
+            'RO': 'Role Elimination Risk'
+        };
+
         const html = buildReportHtml({
             report: reportRas.artifactJson,
             runId, generatedAt: reportRas.createdAt,
             accuracyBand: reportRas.artifactJson.accuracyBand,
             role: userProfile?.confirmedProfile?.identity?.currentRoleTitle || 'Professional',
-            profile: userProfile?.confirmedProfile || userProfile?.originalParsedData?.structured
+            profile: userProfile?.confirmedProfile || userProfile?.originalParsedData?.structured,
+            caseName: caseNameMap[run.caseId] || run.caseId,
+            intentName: intentNameMap[run.intentId] || run.intentId
         });
 
         const pdfBuffer = await generatePdfFromHtml(html, {
@@ -805,7 +847,7 @@ exports.downloadReport = async (req, res) => {
             headerTemplate: '<span></span>',
             footerTemplate: `
               <div style="font-family: 'Inter', sans-serif; width: 100%; display: flex; justify-content: space-between; font-size: 7.5pt; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 8px; margin: 0 15mm; box-sizing: border-box; -webkit-print-color-adjust: exact;">
-                <span>Case #${runId} | Hawksyn AI 2.0</span>
+                <span>Case #${runId} | Hawksyn AI V1</span>
                 <span>Page <span class="pageNumber"></span></span>
               </div>
             `,
@@ -845,7 +887,7 @@ exports.sendReportEmail = async (req, res) => {
             headerTemplate: '<span></span>',
             footerTemplate: `
               <div style="font-family: 'Inter', sans-serif; width: 100%; display: flex; justify-content: space-between; font-size: 7.5pt; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 8px; margin: 0 15mm; box-sizing: border-box; -webkit-print-color-adjust: exact;">
-                <span>Case #${runId} | Hawksyn AI 2.0</span>
+                <span>Case #${runId} | Hawksyn AI V1</span>
                 <span>Page <span class="pageNumber"></span></span>
               </div>
             `,
