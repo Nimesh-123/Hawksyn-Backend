@@ -638,7 +638,7 @@ const ACTION_VERBS = ['architected', 'drove', 'built', 'led', 'managed', 'optimi
 
 async function runNormalisation(rawText) {
   try {
-    const { data: meta, usage: u1 } = await callGeminiFlash(PCR_NORMALISE_META_v1, rawText, 4000);
+    const { data: meta, usage: u1 } = await callGeminiFlash(PCR_NORMALISE_META_v1, rawText, 8000);
 
     if (!meta.proceed) {
       return { proceed: false, reason: meta.reason, detail: meta.detail, usage: u1 };
@@ -916,7 +916,7 @@ async function runExtractionPipeline(candidateId, rawText, db) {
     // Step 2: Parallel Extraction with slight staggers using database prompts
     console.log(`[${candidateId}] Running parallel extractors...`);
     const [headerRes, rolesStageARes, educationRes, skillsRes, credentialsRes] = await Promise.all([
-      callGeminiFlash(headerConfig.promptText, cleanText.slice(0, 1000), 1000),
+      callGeminiFlash(headerConfig.promptText, cleanText.slice(0, 1000), 8000),
       (async () => { await new Promise(r => setTimeout(r, 200)); return callGeminiPro(rolesStageAConfig.promptText, conditioned_text, 32000); })(),
       (async () => { await new Promise(r => setTimeout(r, 400)); return callGeminiFlash(educationConfig.promptText, conditioned_text, 8000); })(),
       (async () => { await new Promise(r => setTimeout(r, 600)); return callGeminiFlash(skillsConfig.promptText, conditioned_text, 32000); })(),

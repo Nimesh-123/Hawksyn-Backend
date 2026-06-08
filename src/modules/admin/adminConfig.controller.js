@@ -48,7 +48,7 @@ exports.upsertPromptConfig = async (req, res) => {
             title: title || promptId,
             maxTokens: maxTokens || 4000,
             temperature: temperature ?? 0.7,
-            modelFamily: modelFamily || 'claude-3-sonnet',
+            modelFamily: modelFamily || 'gemini-2.0-flash',
             isActive: true
         };
 

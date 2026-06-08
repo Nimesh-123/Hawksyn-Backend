@@ -185,182 +185,33 @@ exports.uploadRunCv = async (req, res) => {
         const uploadRes = await uploadFile(file.buffer, fileName, file.mimetype);
         const fileUrl = uploadRes.url;
 
-        let extractedData = null;
-        let parserStatus = "FAILED";
+        // --- NEW ASYNC FLOW (BullMQ) ---
+        const { cvQueue } = require('../../queues/cvQueue');
+        
+        const job = await cvQueue.add('parseCV', {
+            runId,
+            userId,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            fileUrl,
+            fileName,
+            ip: req.ip
+        });
 
-        try {
-            await createAuditLog(req, 'CV_PARSING_STARTED', userId, { runId, fileName: file.originalname });
-            extractedData = await smartCVParser(file.buffer, file.originalname, file.mimetype, userId, fileUrl);
-
-            if (extractedData && extractedData.isCv === false) {
-                await deleteFile(fileName);
-                
-                // Update the already created DocumentUploads record with NOT_A_CV status
-                await db.DocumentUploads.findOneAndUpdate(
-                    { userId, isActive: true },
-                    {
-                        $set: {
-                            cvUrl: null,
-                            parsedCvData: null,
-                            parserStatus: 'NOT_A_CV',
-                            errorReason: 'Detected as non-CV document.',
-                            parserMetadata: extractedData ? {
-                                llm: extractedData.llm,
-                                model: extractedData.model,
-                                modelUsed: extractedData.modelUsed,
-                                duration: extractedData.totalPipelineDuration || extractedData.parsingDuration,
-                                tokenUsage: extractedData.tokenUsage
-                            } : null,
-                            isActive: false
-                        }
-                    }
-                );
-
-                // --- NEW: Log Failure Reason (User Request) ---
-                await createAuditLog(req, 'CV_PARSING_REJECTED', userId, {
-                    runId,
-                    fileName: file.originalname,
-                    reason: 'Not a valid Resume/CV'
-                });
-
-                return res.status(400).json({
-                    success: false,
-                    message: "The uploaded document does not appear to be a valid Resume/CV."
-                });
-            }
-
-            if (extractedData) {
-                try {
-                    const { sanitizeParsedData } = require('./helpers/cvSanitizer.js');
-                    extractedData = sanitizeParsedData(extractedData);
-                    parserStatus = "SUCCESS";
-                } catch (sanitizerError) {
-                    parserStatus = "SUCCESS";
-                }
-            }
-        } catch (aiError) {
-            if (aiError.name === 'GuardrailError') {
-                await deleteFile(fileName);
-                
-                // No need to create DocumentUploads record here since smartCVParser already created the rejected log.
-
-                await createAuditLog(req, 'CV_PARSING_REJECTED', userId, {
-                    runId,
-                    fileName: file.originalname,
-                    reason: aiError.userMessage,
-                    ruleId: aiError.ruleId,
-                    layer: aiError.layer
-                });
-
-                return res.status(400).json({
-                    success: false,
-                    message: aiError.userMessage,
-                    code: "CV_GUARDRAIL_REJECTION",
-                    error: {
-                        ruleId: aiError.ruleId,
-                        layer: aiError.layer,
-                        userMessage: aiError.userMessage,
-                        remediationAction: aiError.remediationAction
-                    }
-                });
-            }
-
-            console.error("[AI Extraction Failed]", aiError.message);
-            // --- NEW: Log AI Pipeline Failure ---
-            await createAuditLog(req, 'CV_PARSING_FAILED', userId, {
-                runId,
-                fileName: file.originalname,
-                error: aiError.message
-            });
-        }
-
-        const isExtractionBlank = !extractedData || 
-                                (extractedData.aeuList.length < 3 && 
-                                 (!extractedData.structured.work?.experience?.length) && 
-                                 (!extractedData.structured.composition?.skills?.technical?.length));
-
-        if (isExtractionBlank && parserStatus !== "FAILED") {
-            parserStatus = "EMPTY";
-            // --- NEW: Log Empty Extraction ---
-            await createAuditLog(req, 'CV_PARSING_EMPTY', userId, {
-                runId,
-                fileName: file.originalname,
-                reason: 'No meaningful data extracted'
-            });
-        }
-
-        const dbSafeParsedData = extractedData ? JSON.parse(JSON.stringify(extractedData)) : null;
-
-        // Update the active DocumentUploads record created by smartCVParser
-        const newCv = await db.DocumentUploads.findOneAndUpdate(
-            { userId, isActive: true },
-            {
-                $set: {
-                    parsedCvData: dbSafeParsedData,
-                    parserStatus: parserStatus,
-                    parserMetadata: extractedData ? {
-                        llm: extractedData.llm,
-                        model: extractedData.model,
-                        modelUsed: extractedData.modelUsed,
-                        duration: extractedData.totalPipelineDuration || extractedData.parsingDuration,
-                        tokenUsage: extractedData.tokenUsage
-                    } : null
-                }
-            },
-            { new: true }
-        );
-
+        // Set status to indicate CV is in queue
         await db.Runs.findOneAndUpdate(
             { runId },
-            {
-                $set: {
-                    status: 'CV_UPLOADED',
-                    'cvSnapshot.cvUploadId': newCv._id,
-                    'cvSnapshot.cvUrl': newCv.cvUrl,
-                    'cvSnapshot.parsedData': newCv.parsedCvData,
-                    'cvSnapshot.attachedAt': new Date(),
-                    'cvSnapshot.source': 'REUPLOADED'
-                }
-            }
+            { $set: { status: 'CV_PROCESSING' } }
         );
 
-        await db.UserProfile.findOneAndUpdate(
-            { userId },
-            {
-                $set: {
-                    lastCvUploadId: newCv._id,
-                    cvUrl: newCv.cvUrl,
-                    originalParsedData: newCv.parsedCvData,
-                    confirmedProfile: null,
-                    isConfirmed: false,
-                    'overrideMap.fieldsChanged': [],
-                    'overrideMap.changeDetails': []
-                }
-            },
-            { upsert: true }
-        );
-
-        let finalMessage = "CV uploaded and parsed successfully";
-        if (parserStatus === "FAILED") finalMessage = "CV uploaded but AI parsing failed";
-        else if (parserStatus === "EMPTY") finalMessage = "CV uploaded but we couldn't extract any meaningful data. Please ensure it's a readable PDF.";
-
-        // Step 1 Notification
-        if (parserStatus === "SUCCESS") {
-            const user = await db.User.findById(userId);
-            if (user) await notificationService.notifyParsingComplete(runId, user);
-        }
-
-        return res.status(200).json({
+        return res.status(202).json({
             success: true,
             data: {
-                message: finalMessage,
+                message: "CV uploaded successfully and added to processing queue.",
+                jobId: job.id,
+                runId,
                 cvUrl: fileUrl,
-                parsedData: extractedData,
-                tokenUsage: extractedData?.tokenUsage || null,
-                cost: extractedData?.tokenUsage ? calculateAICost(extractedData.llm + '-' + extractedData.model, extractedData.tokenUsage) : 0,
-                localCost: extractedData?.tokenUsage ? convertToLocalCurrency(calculateAICost(extractedData.llm + '-' + extractedData.model, extractedData.tokenUsage), detectRegionFromIP(req.ip || '122.161.48.0').currency).amount : 0,
-                localCurrency: detectRegionFromIP(req.ip || '122.161.48.0').currency,
-                source: "REUPLOADED"
+                status: "PROCESSING"
             }
         });
 
@@ -409,5 +260,41 @@ exports.getLatestCvReport = async (req, res) => {
 
     } catch (error) {
         return res.status(500).json({ success: false, message: `Failed to retrieve CV report: ${error.message}` });
+    }
+};
+
+/**
+ * Poll CV processing status
+ */
+exports.getCvProcessingStatus = async (req, res) => {
+    try {
+        const { runId } = req.params;
+        const userId = req.user.id;
+
+        const run = await db.Runs.findOne({ runId });
+        if (!run || run.userId.toString() !== userId) {
+            return res.status(404).json({ success: false, message: "Run not found or unauthorized" });
+        }
+
+        if (run.status === 'CV_PROCESSING') {
+            return res.status(200).json({ success: true, data: { status: 'PROCESSING', message: 'CV is currently being processed by AI' } });
+        }
+
+        if (run.status === 'CV_UPLOADED') {
+            // Already parsed
+            const doc = await db.DocumentUploads.findById(run.cvSnapshot.cvUploadId);
+            return res.status(200).json({ 
+                success: true, 
+                data: { 
+                    status: 'COMPLETED', 
+                    message: 'CV processed successfully',
+                    parserStatus: doc?.parserStatus || 'SUCCESS'
+                } 
+            });
+        }
+
+        return res.status(200).json({ success: true, data: { status: run.status } });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
     }
 };

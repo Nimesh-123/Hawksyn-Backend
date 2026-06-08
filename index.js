@@ -23,6 +23,9 @@ require('./src/modules/assurance/crons/slaBreach.cron.js');
 const cronService = require('./src/services/cronService');
 cronService.init();
 
+// --- Initialize Background Workers ---
+require('./src/queues/cvWorker');
+
 // --- Global Logging & Request ID ---
 const requestLogger = require('./middleware/requestLogger.js');
 const errorHandler = require('./middleware/errorHandler.js');
@@ -46,7 +49,17 @@ app.get('/', (req, res) => {
 app.use(`${process.env.API_COMMON_ROUTE}/uploads`, express.static(path.join(__dirname, 'uploads')));
 app.use(`${process.env.API_COMMON_ROUTE}/chat`, require('./src/modules/expert/chat.route.js'));
 
-app.use(`${process.env.API_COMMON_ROUTE}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+const swaggerUiOptions = {
+    swaggerOptions: {
+        // Increase Swagger UI's internal browser timeout to 5 minutes (300,000 ms)
+        requestInterceptor: (req) => {
+            req.timeout = 300000;
+            return req;
+        }
+    }
+};
+
+app.use(`${process.env.API_COMMON_ROUTE}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
 // --- Routes ---
 const apiPrefix = process.env.API_COMMON_ROUTE || '/api/v1';
@@ -71,5 +84,5 @@ const io = new Server(server, {
 });
 initChatSocket(io);
 
-// Set timeout to 2 minutes for AI processing
-server.timeout = 120000;
+// Set timeout to 10 minutes for AI processing
+server.timeout = 600000;

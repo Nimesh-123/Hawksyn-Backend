@@ -129,15 +129,15 @@ async function callWithRetry(modelName, promptText, userInput, maxTokens, return
 }
 
 async function callGeminiFlash(promptText, userInput, maxTokens = 8000) {
-  return callWithRetry('gemini-2.0-flash', promptText, userInput, maxTokens, false);
+  return callWithRetry('gemini-3.5-flash', promptText, userInput, maxTokens, false);
 }
 
 async function callGeminiPro(promptText, userInput, maxTokens = 8000) {
-  return callWithRetry('gemini-2.0-flash', promptText, userInput, maxTokens, false);
+  return callWithRetry('gemini-3.5-flash', promptText, userInput, maxTokens, false);
 }
 
 async function callGeminiFlashRaw(promptText, userInput, maxTokens = 16000) {
-  return callWithRetry('gemini-2.0-flash', promptText, userInput, maxTokens, true);
+  return callWithRetry('gemini-3.5-flash', promptText, userInput, maxTokens, true);
 }
 
 module.exports = { callGeminiFlash, callGeminiPro, callGeminiFlashRaw };

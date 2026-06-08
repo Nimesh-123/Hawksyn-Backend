@@ -10,7 +10,7 @@ const { db } = require('../../src/models/index.model.js');
  * 4. Attaches decoded payload to req.user
  */
 exports.authenticate = async (req, res, next) => {
-    console.log(`[Auth] Incoming Request: ${req.method} ${req.originalUrl}`);
+    // console.log(`[Auth] Incoming Request: ${req.method} ${req.originalUrl}`);
     try {
         const public_routes = [
             '/auth',
@@ -57,7 +57,7 @@ exports.authenticate = async (req, res, next) => {
 
             let entity;
             let role = decoded.role;
-            console.log('[DEBUG Auth] Decoded role:', role, 'ID:', decoded.id, 'Path:', cleanPath);
+            // console.log('[DEBUG Auth] Decoded role:', role, 'ID:', decoded.id, 'Path:', cleanPath);
 
             if (role?.includes('admin')) {
                 entity = await db.Admin.findById(decoded.id);

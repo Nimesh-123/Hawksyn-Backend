@@ -90,17 +90,14 @@ router.post('/:runId/cv/keep-existing', cvController.keepExistingCv);
  * @swagger
  * /runs/{runId}/cv/upload:
  *   post:
- *     summary: Upload and Parse new CV for a specific run
- *     tags: ["5. Run Operations (AI Flow)"]
- *     security:
- *       - bearerAuth: []
+ *     summary: Upload and attach a new CV to a run (Async via Queue)
+ *     tags: [Runs]
  *     parameters:
  *       - in: path
  *         name: runId
  *         required: true
  *         schema:
  *           type: string
- *         example: RUN_20260310_0001
  *     requestBody:
  *       required: true
  *       content:
@@ -112,10 +109,28 @@ router.post('/:runId/cv/keep-existing', cvController.keepExistingCv);
  *                 type: string
  *                 format: binary
  *     responses:
- *       200:
- *         description: CV uploaded, parsed and attached to run
+ *       202:
+ *         description: CV uploaded and added to processing queue
  */
 router.post('/:runId/cv/upload', upload.single('cv'), cvController.uploadRunCv);
+
+/**
+ * @swagger
+ * /runs/{runId}/cv/status:
+ *   get:
+ *     summary: Poll the status of the CV parsing job
+ *     tags: [Runs]
+ *     parameters:
+ *       - in: path
+ *         name: runId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Current processing status
+ */
+router.get('/:runId/cv/status', cvController.getCvProcessingStatus);
 
 
 /**

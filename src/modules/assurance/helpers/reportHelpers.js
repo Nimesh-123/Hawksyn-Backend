@@ -98,7 +98,22 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
     const signalsArray = Array.isArray(signalsSource) ? signalsSource : Object.entries(signalsSource).map(([k, v]) => ({ ...v, signalId: k }));
     let signalsNarrative = '';
 
+    let rawDomain = profileSnapshot?.domain || profileSnapshot?.employment?.domain || profileSnapshot?.inferred?.domainIndicator;
+    if (rawDomain && String(rawDomain).toUpperCase() === 'UNKNOWN') rawDomain = null;
+    const finalDomain = rawDomain || 'Not provided';
+
+    const accScore = integrityPack.accuracy?.score || 0;
+    let accBand = integrityPack.accuracy?.band;
+    if (!accBand || String(accBand).toUpperCase() === 'UNKNOWN') {
+        if (accScore >= 80) accBand = 'FULL';
+        else if (accScore >= 50) accBand = 'MEDIUM';
+        else accBand = 'LOW';
+    }
+
     const baseMap = {
+        CANDIDATE_NAME: findDeepValue(profileSnapshot, 'fullName') || findDeepValue(profileSnapshot, 'name') || 'Candidate',
+        CONFIRMED_PROFILE: JSON.stringify(profileSnapshot),
+        CV_AEUS: JSON.stringify(profileSnapshot),
         CURRENT_ROLE: currentRole,
         CV_ROLE_TITLE: currentRole,
         EXPERIENCE_YEARS: String(experienceYears),
@@ -107,10 +122,10 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         CV_SKILLS_CURRENT: skills,
         CURRENT_COMPANY: currentCompany,
         CV_COMPANY: currentCompany,
-        DOMAIN: profileSnapshot?.domain || profileSnapshot?.employment?.domain || profileSnapshot?.inferred?.domainIndicator || 'Not provided',
-        CV_INDUSTRY: profileSnapshot?.domain || profileSnapshot?.employment?.domain || profileSnapshot?.inferred?.domainIndicator || 'Not provided',
-        ACCURACY_SCORE: String(integrityPack.accuracy?.score || 0),
-        ACCURACY_BAND: integrityPack.accuracy?.band || 'UNKNOWN',
+        DOMAIN: finalDomain,
+        CV_INDUSTRY: finalDomain,
+        ACCURACY_SCORE: String(accScore),
+        ACCURACY_BAND: accBand,
         RED_FLAGS: redFlagsSummary,
         RED_FLAG_LIST: redFlagsSummary,
         CONTRADICTIONS: contradictionsSummary,
@@ -124,7 +139,12 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         ANALYST_NOTE: externalSignals?.analystNote || 'Insufficient market data for this profile.',
         EXTERNAL_SIGNALS: '',
         SIGNALS: '',
-        SIGNAL_COUNT: String(signalsArray.length)
+        SIGNAL_COUNT: String(signalsArray.length),
+        
+        // --- FIX FOR UNKNOWN FIELDS ---
+        INDUSTRY: finalDomain,
+        COVERAGE_ANCHOR_STATUS: (integrityPack?.coverage?.allCovered !== false) ? 'Complete' : 'Partial',
+        INTENT_HORIZON: '180 Days' // Default fallback, typically 180 or 365 days
     };
 
     // Add Constraint Scores
@@ -148,8 +168,11 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
     }
     
     const recheckDate = new Date();
-    recheckDate.setDate(recheckDate.getDate() + 90);
-    baseMap.RECHECK_DATE = recheckDate.toISOString().split('T')[0];
+    recheckDate.setDate(recheckDate.getDate() + 30);
+    const dd = String(recheckDate.getDate()).padStart(2, '0');
+    const mm = String(recheckDate.getMonth() + 1).padStart(2, '0');
+    const yyyy = recheckDate.getFullYear();
+    baseMap.RECHECK_DATE = `${dd}-${mm}-${yyyy}`;
 
     for (const sig of signalsArray) {
         if (!sig || typeof sig !== 'object') continue;
@@ -187,6 +210,12 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         if (!baseMap[qId]) {
             baseMap[qId] = label;
         }
+    }
+
+    // Populate Q1_ANSWER to Q10_ANSWER
+    for (let i = 1; i <= 10; i++) {
+        const qId = `Q_RO_${String(i).padStart(3, '0')}`;
+        baseMap[`Q${i}_ANSWER`] = getAnswerText(rasAnswers, qId, questionsMap);
     }
 
     // Debug Log
@@ -269,9 +298,17 @@ const extractVerdict = (text) => {
 function getAnswerText(rasAnswers, questionId, questionsMap) {
     const answer = rasAnswers.find(a => a.questionId === questionId);
     if (!answer) return 'Not answered';
+
+    // New JSON structure support
+    if (answer.answerLabel) return answer.answerLabel;
+    if (answer.answerValue) return answer.answerValue;
+    if (answer.answerText) return answer.answerText;
+
+    // Legacy format fallback
     const q = questionsMap[questionId];
+    if (!q) return 'Not answered';
     const optionMap = { a: q?.option_a, b: q?.option_b, c: q?.option_c, d: q?.option_d };
-    return optionMap[answer.selectedOption?.toLowerCase()] || answer.answerText || 'Not answered';
+    return optionMap[answer.selectedOption?.toLowerCase()] || 'Not answered';
 }
 
 function getConstraintBand(score) {
@@ -282,7 +319,8 @@ function getConstraintBand(score) {
 }
 
 function formatSignal(signalsRas, signalId) {
-    const signal = signalsRas?.artifactJson?.signals?.[signalId];
+    const signal = signalsRas?.artifactJson?.signals?.signals?.[signalId] 
+                || signalsRas?.artifactJson?.signals?.[signalId];
     if (!signal) return 'Signal not collected';
     return {
         value: signal.index_value || signal.value || 'Unknown',

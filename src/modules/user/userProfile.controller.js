@@ -67,6 +67,16 @@ exports.getUserProfile = async (req, res) => {
         const p = profile.confirmedProfile || profile.originalParsedData.structured;
         const aeuList = profile.originalParsedData.aeuList || [];
 
+        let mappedExperience = p.work?.experience || [];
+        if (mappedExperience.length === 0 && Array.isArray(profile.originalParsedData?.roles)) {
+            mappedExperience = profile.originalParsedData.roles.map(r => ({
+                title: r.role_metadata?.title || 'Unknown Role',
+                company: r.role_metadata?.company || 'Unknown Company',
+                duration: `${r.role_metadata?.start_date || ''} - ${r.role_metadata?.end_date || 'Present'}`,
+                description: (r.base_aeus || []).map(ae => ae.raw_text || '').join('\n')
+            }));
+        }
+
         // Clean User Facing Response (Identical to Original)
         const cleanResponse = {
             isConfirmed: profile.isConfirmed,
@@ -81,7 +91,7 @@ exports.getUserProfile = async (req, res) => {
                 linkedinUrl: p.identity?.linkedinUrl || p.identity?.social_links?.linkedin || "",
                 githubUrl: p.identity?.githubUrl || p.identity?.social_links?.github || ""
             },
-            experience: p.work?.experience || [],
+            experience: mappedExperience,
             projects: p.work?.projects || [],
             skills: {
                 technical: p.composition?.skills?.technical || [],
@@ -126,7 +136,7 @@ exports.updateUserProfile = async (req, res) => {
 
         if (!userProfile) return res.status(404).json({ success: false, message: "User profile not found" });
 
-        const existingProfile = userProfile.confirmedProfile || userProfile.originalParsedData.structured;
+        const existingProfile = userProfile.confirmedProfile || userProfile.originalParsedData?.structured || {};
         const mergedProfile = JSON.parse(JSON.stringify(existingProfile));
         deepMerge(mergedProfile, profile);
 
@@ -137,7 +147,7 @@ exports.updateUserProfile = async (req, res) => {
             changeDetails: []
         };
 
-        compareFields(userProfile.originalParsedData.structured, mergedProfile, builtOverrideMap);
+        compareFields(userProfile.originalParsedData?.structured || {}, mergedProfile, builtOverrideMap);
 
         if (Array.isArray(assumptionsReview)) {
             assumptionsReview.forEach(r => {

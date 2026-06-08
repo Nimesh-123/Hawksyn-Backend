@@ -8,7 +8,7 @@ const AiPromptSchema = new mongoose.Schema({
     },
     title: { type: String },
     promptText: { type: String, required: true },
-    modelFamily: { type: String, default: 'claude-3-sonnet' },
+    modelFamily: { type: String, default: 'gemini-2.0-flash' },
     temperature: { type: Number, default: 0.7 },
     maxTokens: { type: Number, default: 4000 },
     isActive: { type: Boolean, default: true }
