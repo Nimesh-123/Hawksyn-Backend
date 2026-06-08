@@ -25,8 +25,8 @@ async function generatePdfFromHtml(html, options = {}) {
             margin: {
                 top: options.marginTop || '20px',
                 bottom: options.marginBottom || '20px',
-                right: '20px',
-                left: '20px'
+                right: options.marginRight || '0px',
+                left: options.marginLeft || '0px'
             },
             displayHeaderFooter: options.displayHeaderFooter || false,
             headerTemplate: options.headerTemplate || '',

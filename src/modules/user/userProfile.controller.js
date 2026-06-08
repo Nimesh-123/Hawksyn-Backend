@@ -136,7 +136,7 @@ exports.updateUserProfile = async (req, res) => {
 
         if (!userProfile) return res.status(404).json({ success: false, message: "User profile not found" });
 
-        const existingProfile = userProfile.confirmedProfile || userProfile.originalParsedData.structured;
+        const existingProfile = userProfile.confirmedProfile || userProfile.originalParsedData?.structured || {};
         const mergedProfile = JSON.parse(JSON.stringify(existingProfile));
         deepMerge(mergedProfile, profile);
 
@@ -147,7 +147,7 @@ exports.updateUserProfile = async (req, res) => {
             changeDetails: []
         };
 
-        compareFields(userProfile.originalParsedData.structured, mergedProfile, builtOverrideMap);
+        compareFields(userProfile.originalParsedData?.structured || {}, mergedProfile, builtOverrideMap);
 
         if (Array.isArray(assumptionsReview)) {
             assumptionsReview.forEach(r => {

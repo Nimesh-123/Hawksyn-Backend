@@ -16,11 +16,15 @@ const requestLogger = (req, res, next) => {
   const originalSend = res.send;
   res.send = function (body) {
     try {
-      const parsed = (typeof body === 'string') ? JSON.parse(body) : body;
-      req.responseBody = parsed;
-      if (res.statusCode >= 400 && parsed) {
-        // Hawksyn standard uses .message or .error for failure reasons
-        req.failureReason = parsed.message || parsed.error || (typeof body === 'string' ? body : null);
+      if (Buffer.isBuffer(body)) {
+        req.responseBody = '[Binary Buffer Data]';
+      } else {
+        const parsed = (typeof body === 'string') ? JSON.parse(body) : body;
+        req.responseBody = parsed;
+        if (res.statusCode >= 400 && parsed) {
+          // Hawksyn standard uses .message or .error for failure reasons
+          req.failureReason = parsed.message || parsed.error || (typeof body === 'string' ? body : null);
+        }
       }
     } catch (e) {
       // Not JSON or error parsing, store as string if string
