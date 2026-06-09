@@ -847,128 +847,27 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     Seven dimensions were computed independently. Each has a weight. The composite is the weighted average. ${secData['SEC_RO_002']?.overview_prose || 'Analysis completed.'}
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-    <div>
-      <div style="margin-bottom:11px">
+  <div style="margin-bottom:20px">
+    ${report && report.constraintScores && report.constraintScores.length > 0 ? 
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' + 
+        report.constraintScores.map((c, i) => {
+            if (i > 3) return ''; // Only show first 4 on this page
+            return `<div style="margin-bottom:11px">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-    <span style="font-size:12px;color:#444;font-weight:500">C1 · Role Security<span style="font-size:10px;color:#AAA;margin-left:6px">×1.5</span></span>
+    <span style="font-size:12px;color:#444;font-weight:500">${c.constraintName}<span style="font-size:10px;color:#AAA;margin-left:6px">×${c.weight || '1.0'}</span></span>
     <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;font-weight:700;color:#FF9F43">56</span>
-      <span style="font-size:10px;color:#FF9F43;background:#FF9F4318;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:0.06em">FRAGILE</span>
+      <span style="font-size:11px;font-weight:700;color:${getBarColor(c.score)}">${c.score}</span>
+      <span style="font-size:10px;color:${getBarColor(c.score)};background:${getBarColor(c.score)}18;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:0.06em">${c.band}</span>
     </div>
   </div>
   <div style="height:6px;background:#EFEFEF;border-radius:3px;overflow:hidden">
-    <div style="width:56%;height:6px;background:#FF9F43;border-radius:3px"></div>
+    <div style="width:${c.score}%;height:6px;background:${getBarColor(c.score)};border-radius:3px"></div>
+  </div>
+</div>`;
+        }).join('') + '</div>'
+    : '<div style="font-size:12px;color:#AAA;font-style:italic">Constraint scores pending...</div>'}
   </div>
 </div>
-      <div style="margin-bottom:11px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-    <span style="font-size:12px;color:#444;font-weight:500">C2 · Market Demand<span style="font-size:10px;color:#AAA;margin-left:6px">×1.5</span></span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;font-weight:700;color:#FFC107">71</span>
-      <span style="font-size:10px;color:#FFC107;background:#FFC10718;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:0.06em">MODERATE</span>
-    </div>
-  </div>
-  <div style="height:6px;background:#EFEFEF;border-radius:3px;overflow:hidden">
-    <div style="width:71%;height:6px;background:#FFC107;border-radius:3px"></div>
-  </div>
-</div>
-      <div style="margin-bottom:11px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-    <span style="font-size:12px;color:#444;font-weight:500">C3 · Skill Currency<span style="font-size:10px;color:#AAA;margin-left:6px">×1.0</span></span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;font-weight:700;color:#FF4757">37</span>
-      <span style="font-size:10px;color:#FF4757;background:#FF475718;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:0.06em">CRITICAL</span>
-    </div>
-  </div>
-  <div style="height:6px;background:#EFEFEF;border-radius:3px;overflow:hidden">
-    <div style="width:37%;height:6px;background:#FF4757;border-radius:3px"></div>
-  </div>
-</div>
-      <div style="margin-bottom:11px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-    <span style="font-size:12px;color:#444;font-weight:500">C4 · Financial Buffer<span style="font-size:10px;color:#AAA;margin-left:6px">×1.5</span></span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;font-weight:700;color:#FF4757">0</span>
-      <span style="font-size:10px;color:#FF4757;background:#FF475718;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:0.06em">CRITICAL</span>
-    </div>
-  </div>
-  <div style="height:6px;background:#EFEFEF;border-radius:3px;overflow:hidden">
-    <div style="width:0%;height:6px;background:#FF4757;border-radius:3px"></div>
-  </div>
-</div>
-    </div>
-    <div>
-      <div style="margin-bottom:11px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-    <span style="font-size:12px;color:#444;font-weight:500">C5 · Skill Portability<span style="font-size:10px;color:#AAA;margin-left:6px">×1.0</span></span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;font-weight:700;color:#FF9F43">47</span>
-      <span style="font-size:10px;color:#FF9F43;background:#FF9F4318;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:0.06em">FRAGILE</span>
-    </div>
-  </div>
-  <div style="height:6px;background:#EFEFEF;border-radius:3px;overflow:hidden">
-    <div style="width:47%;height:6px;background:#FF9F43;border-radius:3px"></div>
-  </div>
-</div>
-      <div style="margin-bottom:11px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-    <span style="font-size:12px;color:#444;font-weight:500">C6 · Network & Visibility<span style="font-size:10px;color:#AAA;margin-left:6px">×1.0</span></span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;font-weight:700;color:#FFC107">75</span>
-      <span style="font-size:10px;color:#FFC107;background:#FFC10718;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:0.06em">MODERATE</span>
-    </div>
-  </div>
-  <div style="height:6px;background:#EFEFEF;border-radius:3px;overflow:hidden">
-    <div style="width:75%;height:6px;background:#FFC107;border-radius:3px"></div>
-  </div>
-</div>
-      <div style="margin-bottom:11px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-    <span style="font-size:12px;color:#444;font-weight:500">C7 · Career Mobility<span style="font-size:10px;color:#AAA;margin-left:6px">×1.5</span></span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;font-weight:700;color:#FFC107">63</span>
-      <span style="font-size:10px;color:#FFC107;background:#FFC10718;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:0.06em">MODERATE</span>
-    </div>
-  </div>
-  <div style="height:6px;background:#EFEFEF;border-radius:3px;overflow:hidden">
-    <div style="width:63%;height:6px;background:#FFC107;border-radius:3px"></div>
-  </div>
-</div>
-    </div>
-  </div>
-
-  <!-- Composite calc -->
-  <div style="background:#F8F8F8;border:1px solid #E8E8E8;border-radius:10px;padding:16px 20px;margin-bottom:18px">
-    <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Composite Formula</div>
-    <div style="font-size:12px;color:#555;font-family:monospace;line-height:1.8">
-      (C1×1.5 + C2×1.5 + C3×1.0 + C4×1.5 + C5×1.0 + C6×1.0 + C7×1.5) ÷ 9<br>
-      = (84 + 106.5 + 37 + 0 + 47 + 75 + 94.5) ÷ 9<br>
-      = <strong style="color:#FF4757">444 ÷ 9 = 49.3 → 49 → STOP</strong>
-    </div>
-  </div>
-
-  <!-- Compound risk -->
-  <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.25);border-radius:10px;padding:16px 20px;border-left:3px solid #FF4757">
-    <div style="font-size:11px;font-weight:700;color:#FF4757;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Compound Risk Pattern Detected</div>
-    <div style="font-size:13px;color:#554444;line-height:1.65">
-      <strong style="color:#333">Cannot Move and Cannot Stay Safely.</strong> C3 CRITICAL means your current skill set is degrading in market value. C4 CRITICAL means you have no financial buffer to absorb a forced exit. These two CRITICAL constraints operating together are not additive — they are multiplicative in impact.
-    </div>
-  </div>
-</div>
-<div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
-    padding:0 28px;display:flex;align-items:center;justify-content:space-between;
-    flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
-  <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
-  <div style="display:flex;align-items:center;gap:8px">
-    <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
-      <div style="width:14%;height:2px;background:#E8622A;border-radius:1px"></div>
-    </div>
-    <span style="font-size:10px;color:#888;letter-spacing:0.06em">4 / 28</span>
-  </div>
-</div>
-  </div>
   <!-- FOOTER CORNERS -->
   <div style="position:absolute;bottom:36px;left:0;width:28px;overflow:hidden;background:#F0F0F0;border-top:1px solid #CCCCCC;border-right:1px solid #CCCCCC"><svg width="28" height="28" viewBox="0 0 28 28" style="display:block"><circle cx="0" cy="28" r="26" fill="none" stroke="#888" stroke-width="0.8" opacity="0.2"/><circle cx="0" cy="28" r="20" fill="none" stroke="#888" stroke-width="0.8" opacity="0.28"/><circle cx="0" cy="28" r="14" fill="none" stroke="#888" stroke-width="0.8" opacity="0.36"/><circle cx="0" cy="28" r="8" fill="none" stroke="#888" stroke-width="0.8" opacity="0.44"/><circle cx="7" cy="21" r="2.5" fill="#999" opacity="0.5"/></svg></div>
   <div style="position:absolute;bottom:36px;right:0;width:28px;overflow:hidden;background:#F0F0F0;border-top:1px solid #CCCCCC;border-left:1px solid #CCCCCC"><svg width="28" height="28" viewBox="0 0 28 28" style="display:block"><circle cx="28" cy="28" r="26" fill="none" stroke="#888" stroke-width="0.8" opacity="0.2"/><circle cx="28" cy="28" r="20" fill="none" stroke="#888" stroke-width="0.8" opacity="0.28"/><circle cx="28" cy="28" r="14" fill="none" stroke="#888" stroke-width="0.8" opacity="0.36"/><circle cx="28" cy="28" r="8" fill="none" stroke="#888" stroke-width="0.8" opacity="0.44"/><circle cx="21" cy="21" r="2.5" fill="#999" opacity="0.5"/></svg></div>
@@ -1250,41 +1149,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·04</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">What You Are Actually Good At</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:18px">
-    This is based on what your profile confirms — not what you claim. STRONG means the signal is there. MODERATE means it is present but not distinctive. FRAGILE means the pattern is thin.
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
-    <div>
-      <div style="font-size:11px;letter-spacing:0.12em;color:#888;text-transform:uppercase;margin-bottom:12px">Confirmed Strengths</div>
-      <div style="background:#F0FFF4;border:1px solid rgba(46,213,115,0.3);border-radius:10px;padding:14px 16px;margin-bottom:10px">
-        <div style="font-size:13px;font-weight:700;color:#1A7A40;margin-bottom:4px">Node.js Backend Architecture</div>
-        <div style="font-size:12px;color:#336644;line-height:1.6">Ten years of consistent use. Multiple projects. Pattern is confirmed STRONG. This is your most hireable signal.</div>
-      </div>
-      <div style="background:#F0FFF4;border:1px solid rgba(46,213,115,0.3);border-radius:10px;padding:14px 16px;margin-bottom:10px">
-        <div style="font-size:13px;font-weight:700;color:#1A7A40;margin-bottom:4px">PostgreSQL Data Modelling</div>
-        <div style="font-size:12px;color:#336644;line-height:1.6">Consistent secondary skill. Confirmed STRONG. High demand in mid-size product companies.</div>
-      </div>
-    </div>
-    <div>
-      <div style="font-size:11px;letter-spacing:0.12em;color:#888;text-transform:uppercase;margin-bottom:12px">Moderate Signals</div>
-      <div style="background:#FFFBF0;border:1px solid rgba(255,193,7,0.3);border-radius:10px;padding:14px 16px;margin-bottom:10px">
-        <div style="font-size:13px;font-weight:700;color:#7A5A00;margin-bottom:4px">Cross-Domain Delivery</div>
-        <div style="font-size:12px;color:#6A5000;line-height:1.6">10 companies in 10 years is a double-edged signal. You have delivered in varied environments. You also carry a job-hopping penalty.</div>
-      </div>
-      <div style="background:#FFFBF0;border:1px solid rgba(255,193,7,0.3);border-radius:10px;padding:14px 16px">
-        <div style="font-size:13px;font-weight:700;color:#7A5A00;margin-bottom:4px">Technical Problem Solving</div>
-        <div style="font-size:12px;color:#6A5000;line-height:1.6">Pattern present across roles. MODERATE. Not differentiated enough to carry a pitch on its own.</div>
-      </div>
-    </div>
-  </div>
-
-  <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.2);border-radius:10px;padding:14px 18px;border-left:3px solid #FF4757">
-    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">The double-edged reality</div>
-    <div style="font-size:13px;color:#554444;line-height:1.65">
-      ${secData['SEC_RO_004']?.interpretation_callout || 'Interpretation pending...'}
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_001')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -1362,37 +1227,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·05</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">Where Do You Fit Well Today</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:18px">
-    Based on your confirmed skills and experience band, these are the roles where your profile maps directly. Fit is EXACT when your current skills match the JD. It is MAPPED when your skills overlap with what is demanded but you need a bridge.
-  </div>
-  <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px">
-    <tr style="background:#F4F4F4"><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Role</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Fit Type</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Demand Signal</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Hiring Difficulty</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Senior Backend Developer</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">EXACT</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">HIGH — active demand on Naukri</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Low barrier</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Node.js Tech Lead</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">EXACT</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">MODERATE — fewer openings, higher pay</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Medium barrier</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Backend Architect</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">MAPPED</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">HIGH — but needs system design proof</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">High barrier</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">API / Integration Engineer</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">EXACT</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">HIGH — SaaS product companies hiring</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Low barrier</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Engineering Manager</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">MAPPED</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">MODERATE — needs people management proof</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">High barrier</td></tr>
-  </table>
-
-  <div style="background:#F4F8FF;border:1px solid rgba(100,130,255,0.25);border-radius:10px;padding:16px 18px;margin-bottom:16px">
-    <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">What this means in practice</div>
-    <div style="font-size:13px;color:#445;line-height:1.65">
-      You can get interviews for Senior Backend Developer and API Engineer roles without additional preparation. Tech Lead is possible now. Architect and EM require you to build proof points that are currently not visible in your profile — system design work or documented team leadership.
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:10px;padding:14px 16px;border-left:3px solid #2ED573">
-      <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:6px">Immediate Opportunity</div>
-      <div style="font-size:13px;color:#333;font-weight:600">Senior Backend / API roles</div>
-      <div style="font-size:12px;color:#555;margin-top:4px">No bridging needed. Apply now.</div>
-    </div>
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:10px;padding:14px 16px;border-left:3px solid #FFC107">
-      <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:6px">12-Month Target</div>
-      <div style="font-size:13px;color:#333;font-weight:600">Node.js Tech Lead</div>
-      <div style="font-size:12px;color:#555;margin-top:4px">Achievable with visible leadership proof.</div>
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_005')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -1470,36 +1305,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·06</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">Industries Looking For You</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:18px">
-    ${secData['SEC_RO_006']?.description || 'Demand computed against market data.'}
-  </div>
-  <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px">
-    <tr style="background:#F4F4F4"><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Sector</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Demand Level</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Read Level</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Signal Basis</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">BFSI — Banking & Fintech</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">HIGH</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">EXACT</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Node.js API integrations actively hired</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">SaaS Product Companies</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">HIGH</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">EXACT</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Backend engineers in high demand</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">E-commerce & Retail Tech</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">MODERATE</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">EXACT</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">PostgreSQL skills match data pipelines</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">IT Services & Outsourcing</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">HIGH</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">MAPPED</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Volume hiring but commoditised pay</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">HealthTech & EdTech</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">MODERATE</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">MAPPED</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Growing sector, stack fit is partial</td></tr>
-  </table>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
-    <div style="background:#F0FFF4;border:1px solid rgba(46,213,115,0.3);border-radius:10px;padding:14px 16px">
-      <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:6px">Highest Return Sector</div>
-      <div style="font-size:14px;font-weight:700;color:#1A7A40;margin-bottom:4px">BFSI + SaaS Product</div>
-      <div style="font-size:12px;color:#336644;line-height:1.6">Highest pay bands for your exact stack. Target these first.</div>
-    </div>
-    <div style="background:#FFF8F0;border:1px solid rgba(232,98,42,0.25);border-radius:10px;padding:14px 16px">
-      <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:6px">Avoid for Now</div>
-      <div style="font-size:14px;font-weight:700;color:#AA4400;margin-bottom:4px">IT Services / Outsourcing</div>
-      <div style="font-size:12px;color:#774400;line-height:1.6">Demand is high but pay is commoditised. Joining here makes the C3 problem worse, not better.</div>
-    </div>
-  </div>
-
-  <div style="background:#F4F8FF;border:1px solid rgba(100,130,255,0.2);border-radius:10px;padding:14px 18px">
-    <div style="font-size:13px;color:#334;line-height:1.65">
-      <strong style="color:#222">One positioning point:</strong> fintech API work and SaaS platform backend are your two clearest entry angles. If you have done payments integration or multi-tenant architecture, that is a headline claim, not a buried bullet point on your CV.
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_006')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -1577,51 +1383,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·07</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">Your Unique Value Proposition</span>
 </div>
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-    <div style="background:#FFF4EE;border:1px solid rgba(232,98,42,0.3);border-radius:10px;padding:12px 18px;flex:1">
-      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">UVP Grade</div>
-      <div style="font-size:28px;font-weight:800;color:#E8622A;line-height:1">SOLID</div>
-    </div>
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:10px;padding:12px 18px;flex:3">
-      <div style="font-size:13px;color:#555;line-height:1.65">
-        SOLID means your profile gets you hired. It does not mean you are irreplaceable. The distinction matters at this stage of your career.
-      </div>
-    </div>
-  </div>
-
-  <div style="margin-bottom:20px">
-    <div style="font-size:11px;letter-spacing:0.12em;color:#888;text-transform:uppercase;margin-bottom:10px">Gets-Hired Statement</div>
-    <div style="background:#F8F8F8;border:1px solid #E0E0E0;border-radius:10px;padding:16px 18px;border-left:3px solid #2ED573">
-      <div style="font-size:14px;color:#333;line-height:1.7;font-style:italic">
-        "${secData['SEC_RO_007']?.what_you_bring || 'Value proposition pending.'}"
-      </div>
-    </div>
-  </div>
-
-  <div style="margin-bottom:20px">
-    <div style="font-size:11px;letter-spacing:0.12em;color:#888;text-transform:uppercase;margin-bottom:10px">What It Does Not Say Yet</div>
-    <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.2);border-radius:10px;padding:16px 18px;border-left:3px solid #FF4757">
-      <div style="font-size:13px;color:#554444;line-height:1.7">
-        ${secData['SEC_RO_007']?.what_is_missing || 'Missing elements pending.'}
-      </div>
-    </div>
-  </div>
-
-  <div style="font-size:11px;letter-spacing:0.12em;color:#888;text-transform:uppercase;margin-bottom:10px">How to Move SOLID to Irreplaceable</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:8px;padding:12px 14px">
-      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">Document scale</div>
-      <div style="font-size:11px;color:#666;line-height:1.5">Name the largest system you touched. Users served. Transactions per second. One number changes the conversation.</div>
-    </div>
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:8px;padding:12px 14px">
-      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">Add one modern layer</div>
-      <div style="font-size:11px;color:#666;line-height:1.5">TypeScript, Docker, or a cloud platform. Not to follow trends — to signal you are not frozen in 2019.</div>
-    </div>
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:8px;padding:12px 14px">
-      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">Claim a niche</div>
-      <div style="font-size:11px;color:#666;line-height:1.5">Fintech APIs. Healthcare backends. Pick one. A specialist beats a generalist at the senior level.</div>
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_007')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -1699,40 +1461,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·08</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">Where You Might Be Fooling Yourself</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:18px">
-    The Belief-Signal Index measures the gap between how you assessed your own situation and what the evidence shows. BSI 0 means no gap was detected.
-  </div>
-
-  <div style="background:#F0FFF4;border:1px solid rgba(46,213,115,0.3);border-radius:12px;padding:20px 22px;margin-bottom:20px;border-left:3px solid #2ED573">
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
-      <div style="font-size:52px;font-weight:900;color:#2ED573;line-height:1">0</div>
-      <div>
-        <div style="font-size:14px;font-weight:700;color:#1A7A40">BSI Score — LOW Band</div>
-        <div style="font-size:12px;color:#336644;margin-top:3px">No self-serving contradictions detected. Your MCQ responses were internally consistent with your CV data.</div>
-      </div>
-    </div>
-    <div style="font-size:13px;color:#336644;line-height:1.65">
-      BSI 0 is not a comfort score. It means you are not lying to yourself about your situation. The STOP verdict came from real constraints — C3 and C4 are genuinely critical. You are seeing the risk clearly. Seeing it does not reduce it.
-    </div>
-  </div>
-
-  <div style="font-size:11px;letter-spacing:0.12em;color:#888;text-transform:uppercase;margin-bottom:12px">What Zero Contradictions Means</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px">
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:10px;padding:14px 16px">
-      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:5px">You are not overestimating your market value</div>
-      <div style="font-size:12px;color:#555;line-height:1.55">Your self-assessment of salary expectations and role-level matched the profile signal.</div>
-    </div>
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:10px;padding:14px 16px">
-      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:5px">You are not hiding your risk from the engine</div>
-      <div style="font-size:12px;color:#555;line-height:1.55">Your MCQ answers about financial buffer and job mobility matched your CV history. No masking detected.</div>
-    </div>
-  </div>
-
-  <div style="background:#F8F8F8;border:1px solid #E0E0E0;border-radius:10px;padding:14px 18px">
-    <div style="font-size:13px;color:#444;line-height:1.65">
-      <strong style="color:#222">The uncomfortable truth:</strong> the risk is external and structural. Your stack is being commoditised by AI tools, your company history creates a hiring penalty, and you have no financial buffer. You can see this. That awareness does not change the constraints — it only means you have no excuse to delay action.
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_008')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -1810,96 +1539,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·09</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">AI Exposure</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:18px">
-    AI exposure measures how much of what you currently do can be automated, augmented, or replaced by AI tools over the next twelve months. MODERATE means the risk is real but not immediate.
-  </div>
-
-  <div style="display:flex;gap:16px;margin-bottom:20px">
-    <div style="background:#FFFBF0;border:1px solid rgba(255,193,7,0.35);border-radius:12px;padding:20px 22px;flex:1;border-top:3px solid #FFC107">
-      <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:6px">Overall AI Exposure</div>
-      <div style="font-size:48px;font-weight:900;color:#FFC107;line-height:1;letter-spacing:-0.04em">MODERATE</div>
-      <div style="font-size:12px;color:#7A6000;margin-top:8px;line-height:1.5">Not immediate. The risk grows if your stack stays static for another 12–18 months.</div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:10px;flex:1">
-      <div style="margin-bottom:11px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-    <span style="font-size:12px;color:#444;font-weight:500">Routine Code Generation</span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;font-weight:700;color:#FFC107">72</span>
-      <span style="font-size:10px;color:#FFC107;background:#FFC10718;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:0.06em">MODERATE</span>
-    </div>
-  </div>
-  <div style="height:6px;background:#EFEFEF;border-radius:3px;overflow:hidden">
-    <div style="width:72%;height:6px;background:#FFC107;border-radius:3px"></div>
-  </div>
-</div>
-      <div style="margin-bottom:11px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-    <span style="font-size:12px;color:#444;font-weight:500">Boilerplate & Scaffolding</span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;font-weight:700;color:#2ED573">84</span>
-      <span style="font-size:10px;color:#2ED573;background:#2ED57318;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:0.06em">STRONG</span>
-    </div>
-  </div>
-  <div style="height:6px;background:#EFEFEF;border-radius:3px;overflow:hidden">
-    <div style="width:84%;height:6px;background:#2ED573;border-radius:3px"></div>
-  </div>
-</div>
-      <div style="margin-bottom:11px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-    <span style="font-size:12px;color:#444;font-weight:500">System Design & Architecture</span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;font-weight:700;color:#FF4757">28</span>
-      <span style="font-size:10px;color:#FF4757;background:#FF475718;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:0.06em">CRITICAL</span>
-    </div>
-  </div>
-  <div style="height:6px;background:#EFEFEF;border-radius:3px;overflow:hidden">
-    <div style="width:28%;height:6px;background:#FF4757;border-radius:3px"></div>
-  </div>
-</div>
-      <div style="margin-bottom:11px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-    <span style="font-size:12px;color:#444;font-weight:500">Debugging Complex Systems</span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;font-weight:700;color:#FF9F43">45</span>
-      <span style="font-size:10px;color:#FF9F43;background:#FF9F4318;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:0.06em">FRAGILE</span>
-    </div>
-  </div>
-  <div style="height:6px;background:#EFEFEF;border-radius:3px;overflow:hidden">
-    <div style="width:45%;height:6px;background:#FF9F43;border-radius:3px"></div>
-  </div>
-</div>
-      <div style="margin-bottom:11px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-    <span style="font-size:12px;color:#444;font-weight:500">Business Logic Implementation</span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;font-weight:700;color:#FFC107">61</span>
-      <span style="font-size:10px;color:#FFC107;background:#FFC10718;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:0.06em">MODERATE</span>
-    </div>
-  </div>
-  <div style="height:6px;background:#EFEFEF;border-radius:3px;overflow:hidden">
-    <div style="width:61%;height:6px;background:#FFC107;border-radius:3px"></div>
-  </div>
-</div>
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-    <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.2);border-radius:10px;padding:14px 16px;border-left:3px solid #FF4757">
-      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:5px">High-risk tasks in your current role</div>
-      <div style="font-size:12px;color:#554444;line-height:1.55">Routine CRUD APIs, boilerplate setup, simple query writing. AI tools already do these competently. The entry-level work in your job description is automatable today.</div>
-    </div>
-    <div style="background:#F0FFF4;border:1px solid rgba(46,213,115,0.3);border-radius:10px;padding:14px 16px;border-left:3px solid #2ED573">
-      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:5px">What protects you</div>
-      <div style="font-size:12px;color:#336644;line-height:1.55">System design decisions, cross-team coordination, debugging distributed systems under pressure, and domain-specific business logic. These require context that AI does not have.</div>
-    </div>
-  </div>
-
-  <div style="background:#F8F8F8;border:1px solid #E0E0E0;border-radius:10px;padding:13px 16px">
-    <div style="font-size:13px;color:#444;line-height:1.65">
-      The MODERATE rating is not reassuring. It is a twelve-month window. After that, as AI tool capability improves and junior developers become proficient with AI-assisted coding, the demand for mid-level backend developers who only do what AI can approximate will compress.
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_009')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -1977,39 +1617,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·10</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">What Parts AI Can Replace</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:16px">
-    This is conditional. The answer depends on what your day-to-day work actually looks like. Read the branch that matches your current role.
-  </div>
-
-  <!-- Branch A -->
-  <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.2);border-radius:10px;padding:14px 18px;margin-bottom:12px;border-left:4px solid #FF4757">
-    <div style="font-size:11px;font-weight:700;color:#FF4757;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Branch A — If your work is mostly feature development</div>
-    <div style="font-size:13px;color:#554444;line-height:1.65">
-      AI exposure is HIGH. GitHub Copilot and similar tools can produce first-draft implementations of standard CRUD features, REST endpoints, and database queries faster than manual coding. If this is your primary output, your role is directly in the compression zone.
-    </div>
-  </div>
-
-  <!-- Branch B -->
-  <div style="background:#FFFBF0;border:1px solid rgba(255,193,7,0.25);border-radius:10px;padding:14px 18px;margin-bottom:12px;border-left:4px solid #FFC107">
-    <div style="font-size:11px;font-weight:700;color:#9A7000;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Branch B — If your work is mostly system ownership and maintenance</div>
-    <div style="font-size:13px;color:#665500;line-height:1.65">
-      AI exposure is MODERATE. You hold institutional context — architecture history, failure patterns, dependency decisions. AI does not have that context. Your value is in knowing what not to change, not just what to build.
-    </div>
-  </div>
-
-  <!-- Branch C -->
-  <div style="background:#F0FFF4;border:1px solid rgba(46,213,115,0.25);border-radius:10px;padding:14px 18px;margin-bottom:16px;border-left:4px solid #2ED573">
-    <div style="font-size:11px;font-weight:700;color:#1A7A40;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Branch C — If your work involves cross-team technical decisions</div>
-    <div style="font-size:13px;color:#336644;line-height:1.65">
-      AI exposure is LOW for the next twelve months. Technical decision-making that involves business trade-offs, organisational context, and multi-system risk assessment is not automatable at your company's current maturity level.
-    </div>
-  </div>
-
-  <div style="background:#F8F8F8;border:1px solid #E0E0E0;border-radius:10px;padding:13px 16px">
-    <div style="font-size:13px;color:#444;line-height:1.65">
-      <strong style="color:#222">The honest read:</strong> most mid-level developers spend 60–70% of their time on Branch A work. If that is true for you, your AI exposure is closer to HIGH than MODERATE. The only way to move to Branch B or C is to deliberately take on different work — not wait for it to happen.
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_010')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -2087,37 +1695,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·11</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">How the Market Treats People Like You</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:18px">
-    The market does not hire individuals — it hires a profile type. Your profile type is a mid-experience backend developer with a common stack and a fragmented history. The market has a name for that position.
-  </div>
-
-  <!-- Band position -->
-  <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.25);border-radius:12px;padding:20px 22px;margin-bottom:18px;border-top:3px solid #FF4757">
-    <div style="display:flex;align-items:center;gap:20px">
-      <div style="flex:0 0 auto">
-        <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px">Market Band</div>
-        <div style="font-size:40px;font-weight:900;color:#FF4757;line-height:1">SQUEEZED</div>
-      </div>
-      <div style="flex:1;font-size:13px;color:#554444;line-height:1.7;border-left:1px solid rgba(255,71,87,0.2);padding-left:18px">
-        SQUEEZED means you are caught between two forces. AI tools close from below — doing entry-level work cheaper. Senior specialists with deep niches or leadership proof close from above — getting the premium roles. The middle band is thinning.
-      </div>
-    </div>
-  </div>
-
-  <!-- Market comparison table -->
-  <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px">
-    <tr style="background:#F4F4F4"><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Profile Type</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Market Treatment</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Pay Band</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Stability</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Your current type — Common stack, fragmented history</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">SQUEEZED</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">₹15–28L</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Declining</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Same stack + niche domain (fintech/healthcare)</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">SPECIALIST</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">₹22–40L</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Stable</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Same stack + team leadership proof</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">LEAD</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">₹28–50L</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Stable</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Same stack + system design + scale proof</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">ARCHITECT</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">₹40–70L</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Growing</td></tr>
-  </table>
-
-  <div style="background:#F8F8F8;border:1px solid #E0E0E0;border-radius:10px;padding:14px 18px">
-    <div style="font-size:13px;color:#444;line-height:1.65">
-      The gap between your current market position and the three above it is not a skills gap — it is a proof gap. The market cannot see what you have not documented. This is actionable. The Action Plan in Chapter 6 addresses exactly this.
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_011')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -2301,27 +1879,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·12</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">Role Changes</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:18px">
-    The backend developer role is not disappearing. It is changing shape. These are the four structural shifts happening in the next twelve to twenty-four months that affect your position directly.
-  </div>
-  <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px">
-    <tr style="background:#F4F4F4"><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Shift</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Direction</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Your Exposure</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Timeline</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">AI pair-programming becomes standard</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Entry-level output commoditised</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">HIGH — affects daily task value</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Now–12 months</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Seniority redefined by architecture not tenure</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Experience years lose weight</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">MODERATE — 10yr experience + no arch proof</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">12–24 months</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Stack consolidation (TypeScript dominance)</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">JS/TS replacing plain Node.js jobs</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">HIGH — pure Node.js CVs deprioritised</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Now–18 months</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Full-stack roles absorbing backend-only roles</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Backend specialists squeezed</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">MODERATE — depends on company size</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">18–36 months</td></tr>
-  </table>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
-    <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.2);border-radius:10px;padding:14px 16px;border-left:3px solid #FF4757">
-      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:5px">What changes fastest</div>
-      <div style="font-size:12px;color:#554444;line-height:1.55">The daily task value of routine backend work. This is already happening. Hiring managers are reducing headcount for feature-level developers while increasing demand for architects and leads.</div>
-    </div>
-    <div style="background:#F0FFF4;border:1px solid rgba(46,213,115,0.3);border-radius:10px;padding:14px 16px;border-left:3px solid #2ED573">
-      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:5px">What stays stable</div>
-      <div style="font-size:12px;color:#336644;line-height:1.55">The need for someone who owns the system end to end. Backend engineers with architectural accountability and business context will still be valuable. The title may change.</div>
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_012')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -2399,39 +1957,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·13</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">Cut Risk</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:18px">
-    Cut risk is the probability of involuntary exit — termination, role elimination, or forced departure — within the horizon window. Your cut risk is rated HIGH based on three independent drivers.
-  </div>
-
-  <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.25);border-radius:12px;padding:18px 20px;margin-bottom:18px;border-left:4px solid #FF4757">
-    <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px">Cut Risk Rating</div>
-    <div style="font-size:40px;font-weight:900;color:#FF4757;line-height:1;margin-bottom:8px">HIGH</div>
-    <div style="font-size:13px;color:#554444;line-height:1.6">Three concurrent drivers were detected. Any one of them alone would rate MODERATE. Together they rate HIGH.</div>
-  </div>
-
-  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
-    <div style="background:#FAFAFA;border:1px solid #E0E0E0;border-radius:10px;padding:14px 18px;border-left:3px solid #FF4757">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-        <span style="font-size:11px;font-weight:700;color:#FF4757;background:rgba(255,71,87,0.1);padding:3px 9px;border-radius:6px">Driver 1</span>
-        <span style="font-size:13px;font-weight:700;color:#333">Skill Currency at CRITICAL (C3 = 37)</span>
-      </div>
-      <div style="font-size:12px;color:#555;line-height:1.6">When a company evaluates a backend team for cost reduction, developers with outdated or common stacks get cut first. Your Node.js/PostgreSQL combination without modern additions is a cost-reduction target profile.</div>
-    </div>
-    <div style="background:#FAFAFA;border:1px solid #E0E0E0;border-radius:10px;padding:14px 18px;border-left:3px solid #FF4757">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-        <span style="font-size:11px;font-weight:700;color:#FF4757;background:rgba(255,71,87,0.1);padding:3px 9px;border-radius:6px">Driver 2</span>
-        <span style="font-size:13px;font-weight:700;color:#333">Job-hopping pattern (RF·003)</span>
-      </div>
-      <div style="font-size:12px;color:#555;line-height:1.6">10 companies in 10 years signals low switching cost to a hiring manager. If your current company faces headcount pressure, you will be on the short list for exit because you are perceived as someone who will move anyway.</div>
-    </div>
-    <div style="background:#FAFAFA;border:1px solid #E0E0E0;border-radius:10px;padding:14px 18px;border-left:3px solid #FF9F43">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-        <span style="font-size:11px;font-weight:700;color:#FF9F43;background:rgba(255,159,67,0.1);padding:3px 9px;border-radius:6px">Driver 3</span>
-        <span style="font-size:13px;font-weight:700;color:#333">No upskilling signal (RF·005)</span>
-      </div>
-      <div style="font-size:12px;color:#555;line-height:1.6">No evidence of learning investment in recent history. In a team review, a developer who is not growing is a liability in an AI-accelerating environment.</div>
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_013')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -2509,33 +2035,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·14</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">What You Are Not Seeing</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:16px">
-    BSI 0 means you have no manufactured blind spots — you are not hiding risk from yourself. But awareness is not the same as visibility. These are things that are real in your situation that are easy to miss because they are structural, not personal.
-  </div>
-
-  <div style="background:#F0F4FF;border:1px solid rgba(100,130,255,0.25);border-radius:10px;padding:12px 16px;margin-bottom:14px">
-    <div style="font-size:11px;font-weight:700;color:#4455AA;text-transform:uppercase;margin-bottom:4px">AWARE MODE — BSI 0</div>
-    <div style="font-size:13px;color:#334;line-height:1.65">You are not self-deceiving. The risks below are not about psychology — they are about structural dynamics that are easy to underweight when you are inside them.</div>
-  </div>
-
-  <div style="display:flex;flex-direction:column;gap:11px;margin-bottom:16px">
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:10px;padding:14px 16px">
-      <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:5px">The market does not know you have ten years of experience</div>
-      <div style="font-size:12px;color:#555;line-height:1.6">Your CV shows ten companies in ten years. What a hiring manager reads is: this person stays an average of twelve months. That is not ten years of experience — that is one year repeated ten times in the market's mental model.</div>
-    </div>
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:10px;padding:14px 16px">
-      <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:5px">The next job will not solve the C4 problem</div>
-      <div style="font-size:12px;color:#555;line-height:1.6">Getting a new role at higher pay helps. But if financial buffer stays at zero, the next forced exit — even twelve months from now — will put you in the same position with the same constraint. C4 requires savings, not just income.</div>
-    </div>
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:10px;padding:14px 16px">
-      <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:5px">Your current company may not be a safe harbour</div>
-      <div style="font-size:12px;color:#555;line-height:1.6">TechBazaar Solutions has no public data available in this system. The lack of signal means no safety inference can be made. Staying put is not automatically the conservative option.</div>
-    </div>
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:10px;padding:14px 16px">
-      <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:5px">AI tools are accelerating faster than most developers track</div>
-      <div style="font-size:12px;color:#555;line-height:1.6">GitHub Copilot, Cursor, and code generation tools are improving at a rate that outpaces most mid-career developers' awareness. The risk you feel today is lower than the risk that exists in eighteen months.</div>
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_014')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -2613,28 +2113,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·15</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">Big Unknowns</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:18px">
-    These are variables the engine could not resolve from available inputs. They are not missing data errors — they are genuine uncertainties that affect the reliability of the outlook.
-  </div>
-  <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px">
-    <tr style="background:#F4F4F4"><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Unknown</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Why It Matters</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">What Changes If Resolved</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">TechBazaar Solutions company health</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">No public data available. Cannot assess job security at current employer.</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Resolves whether staying is safer than moving now.</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Actual savings and monthly burn rate</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">C4=0 is based on MCQ self-report. Actual number unknown.</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Could shift C4 from CRITICAL to FRAGILE if buffer exists.</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Manager relationship quality</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Affects cut risk in the near term. Not capturable from CV or MCQ.</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">High-quality relationship reduces short-term cut risk.</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">AI adoption rate at current employer</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Determines how fast the task automation risk materialises.</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Fast adopter = compress timeline. Slow adopter = more runway.</td></tr>
-  </table>
-
-  <div style="background:#F8F8F8;border:1px solid #E0E0E0;border-radius:10px;padding:14px 18px;margin-bottom:14px">
-    <div style="font-size:13px;color:#444;line-height:1.65">
-      The verdict is based on what is measurable. These unknowns do not invalidate the STOP verdict — four CRITICAL or FRAGILE constraints produce STOP regardless. They do affect the urgency timeline and the specific actions to prioritise first.
-    </div>
-  </div>
-
-  <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.2);border-radius:10px;padding:14px 18px;border-left:3px solid #FF4757">
-    <div style="font-size:13px;color:#554444;line-height:1.65">
-      <strong style="color:#222">One action you can take today:</strong> verify your actual financial position. Calculate three months of living expenses. Check if you have that amount liquid. If you do not, C4 is confirmed CRITICAL and financial stabilisation becomes priority one before any career move.
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_015')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -2712,51 +2191,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·16</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">Negative Scenario</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:16px">
-    This is not a prediction. It is a plausible cascade that becomes likely if no constraints are addressed in the next twelve months. Read it as a cost-of-inaction analysis.
-  </div>
-
-  <div style="display:flex;flex-direction:column;gap:0;margin-bottom:18px">
-    <div style="display:flex;gap:0">
-      <div style="flex:0 0 36px;display:flex;flex-direction:column;align-items:center">
-        <div style="width:28px;height:28px;border-radius:50%;background:#FF4757;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#FFF;flex-shrink:0">1</div>
-        <div style="width:2px;flex:1;background:#FF475733;min-height:24px"></div>
-      </div>
-      <div style="flex:1;padding:0 0 16px 14px">
-        <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:4px">Months 1–3: Stack stagnation continues</div>
-        <div style="font-size:12px;color:#555;line-height:1.6">No upskilling. TypeScript and modern tooling adoption in the market accelerates. Your CV falls further behind the current hiring benchmark. Recruiters start filtering your profile at screen stage.</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:0">
-      <div style="flex:0 0 36px;display:flex;flex-direction:column;align-items:center">
-        <div style="width:28px;height:28px;border-radius:50%;background:#FF6B7A;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#FFF;flex-shrink:0">2</div>
-        <div style="width:2px;flex:1;background:#FF475733;min-height:24px"></div>
-      </div>
-      <div style="flex:1;padding:0 0 16px 14px">
-        <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:4px">Months 4–6: Role is targeted in cost review</div>
-        <div style="font-size:12px;color:#555;line-height:1.6">TechBazaar Solutions faces a budget cycle. Backend developer roles are reviewed. Your profile — common stack, fragmented history, no visible growth — is a cost-reduction candidate.</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:0">
-      <div style="flex:0 0 36px;display:flex;flex-direction:column;align-items:center">
-        <div style="width:28px;height:28px;border-radius:50%;background:#FF9FAA;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#FFF;flex-shrink:0">3</div>
-        <div style="width:2px;flex:1;background:#FF475733;min-height:24px"></div>
-      </div>
-      <div style="flex:1;padding:0 0 16px 14px">
-        <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:4px">Months 7–9: Forced exit with zero buffer</div>
-        <div style="font-size:12px;color:#555;line-height:1.6">Exit happens. C4=0 means no financial runway. Immediate pressure to accept the first available offer regardless of role quality or pay. The cycle resets at a lower position.</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:0">
-      <div style="flex:0 0 36px;display:flex;flex-direction:column;align-items:center">
-        <div style="width:28px;height:28px;border-radius:50%;background:#FFCCCC;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#FF4757;flex-shrink:0">4</div>
-      </div>
-      <div style="flex:1;padding:0 0 0 14px">
-        <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:4px">Month 10–12: Eleventh company in eleven years</div>
-        <div style="font-size:12px;color:#555;line-height:1.6">The job-hopping pattern deepens. Each cycle makes the next employer more cautious. The SQUEEZED market position becomes COMMODITY. Exits from the squeezed band without upward movement become progressively harder.</div>
-      </div>
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_016')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -2834,57 +2269,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·17</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">Positive Scenario</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:16px">
-    This is what the trajectory looks like if the three highest-impact constraints — C3, C4, and the job-hopping perception — are addressed in order. This is achievable within twelve months.
-  </div>
-
-  <div style="display:flex;flex-direction:column;gap:0;margin-bottom:18px">
-    <div style="display:flex;gap:0">
-      <div style="flex:0 0 36px;display:flex;flex-direction:column;align-items:center">
-        <div style="width:28px;height:28px;border-radius:50%;background:#2ED573;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#FFF;flex-shrink:0">1</div>
-        <div style="width:2px;flex:1;background:#2ED57333;min-height:24px"></div>
-      </div>
-      <div style="flex:1;padding:0 0 16px 14px">
-        <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:4px">Months 1–2: Stack modernisation begins</div>
-        <div style="font-size:12px;color:#555;line-height:1.6">TypeScript adoption starts. One certification or visible GitHub project using a modern toolchain. C3 signal begins improving. Recruiter screen pass-rate increases immediately.</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:0">
-      <div style="flex:0 0 36px;display:flex;flex-direction:column;align-items:center">
-        <div style="width:28px;height:28px;border-radius:50%;background:#54D98E;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#FFF;flex-shrink:0">2</div>
-        <div style="width:2px;flex:1;background:#2ED57333;min-height:24px"></div>
-      </div>
-      <div style="flex:1;padding:0 0 16px 14px">
-        <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:4px">Months 3–6: Financial buffer target set and started</div>
-        <div style="font-size:12px;color:#555;line-height:1.6">Three months of expenses as savings target. Even partial progress on C4 reduces the panic-exit risk. The constraint moves from CRITICAL toward FRAGILE. Decision quality improves immediately.</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:0">
-      <div style="flex:0 0 36px;display:flex;flex-direction:column;align-items:center">
-        <div style="width:28px;height:28px;border-radius:50%;background:#7FE3AA;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#FFF;flex-shrink:0">3</div>
-        <div style="width:2px;flex:1;background:#2ED57333;min-height:24px"></div>
-      </div>
-      <div style="flex:1;padding:0 0 16px 14px">
-        <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:4px">Months 4–8: CV narrative restructured</div>
-        <div style="font-size:12px;color:#555;line-height:1.6">Ten companies reframed as a cross-domain specialist story rather than a fragmented history. One headline metric per role. A niche claim — fintech or SaaS — that creates a consistent thread across the career history.</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:0">
-      <div style="flex:0 0 36px;display:flex;flex-direction:column;align-items:center">
-        <div style="width:28px;height:28px;border-radius:50%;background:#AAEEC8;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#1A7A40;flex-shrink:0">4</div>
-      </div>
-      <div style="flex:1;padding:0 0 0 14px">
-        <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:4px">Month 9–12: Targeted move to SPECIALIST band</div>
-        <div style="font-size:12px;color:#555;line-height:1.6">Application to BFSI or SaaS product companies with modernised stack, niche positioning, and buffer in place. The market band position shifts from SQUEEZED to SPECIALIST. Composite score projection: 62–68, entering PAUSE band. Next audit: different conversation.</div>
-      </div>
-    </div>
-  </div>
-
-  <div style="background:#F0FFF4;border:1px solid rgba(46,213,115,0.3);border-radius:10px;padding:13px 16px">
-    <div style="font-size:13px;color:#336644;line-height:1.65">
-      This scenario requires three things done in sequence. None of them are exceptional. All of them require sustained effort over months, not weekend sprints. The timeline is realistic. The difficulty is the discipline to maintain it.
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_017')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -3063,29 +2448,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·18</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">Skill Portability</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:18px">
-    Portability measures how easily your skills transfer to a different role, sector, or employment type if your current situation ends. It is not about whether you are good — it is about how fast you can land after an exit.
-  </div>
-  <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px">
-    <tr style="background:#F4F4F4"><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Skill</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Portability</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Transfer Speed</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Constraint</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Node.js Backend Development</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">HIGH</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Immediate</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Common — low premium unless specialised</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">PostgreSQL Data Modelling</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">HIGH</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Immediate</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Commodity — needs pairing with rarer skills</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">System Architecture</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">LOW</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">6–12 months</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Not proven in profile — needs documentation</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">TypeScript (not yet confirmed)</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">MEDIUM if added</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">4–8 weeks to learn</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Currently absent from profile</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Team Leadership</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">LOW</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Not provable from CV</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">No documented people management signal</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Domain Knowledge (Fintech/SaaS)</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">HIGH if claimed</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Immediate</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Not positioned — needs explicit CV statement</td></tr>
-  </table>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-    <div style="background:#F0FFF4;border:1px solid rgba(46,213,115,0.3);border-radius:10px;padding:14px 16px;border-left:3px solid #2ED573">
-      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:5px">Immediate portability</div>
-      <div style="font-size:12px;color:#336644;line-height:1.55">Your core Node.js and PostgreSQL skills are portable today. You can get interviews. The problem is that everyone with your profile can too — which means no premium.</div>
-    </div>
-    <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.2);border-radius:10px;padding:14px 16px;border-left:3px solid #FF4757">
-      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:5px">What slows you down</div>
-      <div style="font-size:12px;color:#554444;line-height:1.55">Architecture and leadership skills are not provable from your profile. These are the skills that differentiate senior from mid-level. Without them visible, you compete at mid-level pay bands.</div>
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_018')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -3163,37 +2526,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·19</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">Would Someone Hire You</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:18px">
-    Hirability is not about skill — it is about whether a hiring manager looking at your profile today would shortlist you. The answer varies by sector and role level.
-  </div>
-  <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px">
-    <tr style="background:#F4F4F4"><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Sector / Role Type</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Shortlist Probability</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Barrier</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Action Required</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Senior Backend Developer (SaaS product)</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">HIGH</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Job-hopping flag on CV</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">CV narrative fix</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Senior Backend Developer (BFSI)</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">HIGH</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Minor — strong stack match</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">None immediate</td></tr>
-    <tr style="background:#FFFFFF"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Node.js Tech Lead (any sector)</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">MEDIUM</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">No visible leadership proof</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Document one example</td></tr>
-    <tr style="background:#F8F8F8"><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">Backend Architect (any sector)</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">LOW</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">No system design proof</td><td style="padding:9px 12px;font-size:12px;color:#444;border-bottom:1px solid #EFEFEF;vertical-align:top">6–12 month proof build</td></tr>
-  </table>
-
-  <div style="background:#F0FFF4;border:1px solid rgba(46,213,115,0.3);border-radius:10px;padding:14px 18px;margin-bottom:14px">
-    <div style="font-size:13px;color:#336644;line-height:1.65">
-      <strong style="color:#222">The one thing that helps immediately:</strong> fixing the CV narrative around the job-hopping pattern. Every shortlist decision at Senior Backend level in SaaS and BFSI goes through a human screen. A recruiter who sees ten companies in ten years clicks away. One framing change removes that filter without requiring any upskilling.
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:8px;padding:12px 14px;text-align:center">
-      <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:6px">Best Bet Now</div>
-      <div style="font-size:13px;font-weight:700;color:#2ED573">BFSI Senior Backend</div>
-    </div>
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:8px;padding:12px 14px;text-align:center">
-      <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:6px">Fix First</div>
-      <div style="font-size:13px;font-weight:700;color:#FFC107">CV Job-Hop Narrative</div>
-    </div>
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:8px;padding:12px 14px;text-align:center">
-      <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:6px">12-Month Target</div>
-      <div style="font-size:13px;font-weight:700;color:#E8622A">Tech Lead Role</div>
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_019')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -3271,41 +2604,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·20</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">Survival Period</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:16px">
-    How long can you sustain yourself if exit happens today? Based on C4=0, the answer is: not independently. This is the single most urgent constraint in your profile.
-  </div>
-
-  <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.3);border-radius:12px;padding:18px 20px;margin-bottom:18px;border-left:4px solid #FF4757">
-    <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px">Forced Exit Survival Status</div>
-    <div style="font-size:36px;font-weight:900;color:#FF4757;line-height:1;margin-bottom:8px">CANNOT SURVIVE FORCED EXIT</div>
-    <div style="font-size:13px;color:#554444;line-height:1.6">C4 = 0. No financial buffer documented. Forced exit today means immediate income pressure with no decision quality. The next role will be chosen by necessity, not strategy.</div>
-  </div>
-
-  <!-- 3-scenario comparison -->
-  <div style="font-size:11px;letter-spacing:0.12em;color:#888;text-transform:uppercase;margin-bottom:12px">Scenario Comparison</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
-    <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.2);border-radius:10px;padding:14px 16px;border-top:3px solid #FF4757">
-      <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:6px">No Buffer (Current)</div>
-      <div style="font-size:14px;font-weight:700;color:#FF4757;margin-bottom:6px">0 months</div>
-      <div style="font-size:11px;color:#554444;line-height:1.5">Accept any offer. Possible downgrade in role or pay. Hopping pattern deepens.</div>
-    </div>
-    <div style="background:#FFFBF0;border:1px solid rgba(255,193,7,0.25);border-radius:10px;padding:14px 16px;border-top:3px solid #FFC107">
-      <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:6px">3-Month Buffer</div>
-      <div style="font-size:14px;font-weight:700;color:#FFC107;margin-bottom:6px">Strategic search possible</div>
-      <div style="font-size:11px;color:#665500;line-height:1.5">Can wait for right role. Can negotiate. Decision quality is restored.</div>
-    </div>
-    <div style="background:#F0FFF4;border:1px solid rgba(46,213,115,0.25);border-radius:10px;padding:14px 16px;border-top:3px solid #2ED573">
-      <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:6px">6-Month Buffer</div>
-      <div style="font-size:14px;font-weight:700;color:#2ED573;margin-bottom:6px">Full optionality</div>
-      <div style="font-size:11px;color:#336644;line-height:1.5">Can upskill during search. Can target premium roles. Exit becomes a strategic event.</div>
-    </div>
-  </div>
-
-  <div style="background:#F8F8F8;border:1px solid #E0E0E0;border-radius:10px;padding:13px 16px">
-    <div style="font-size:13px;color:#444;line-height:1.65">
-      Building a three-month buffer on your current income is achievable in six to eight months with deliberate expense management. This is not a lifestyle sacrifice — it is a decision-quality investment. Every rupee in that buffer is a rupee of negotiating power.
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_020')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -3383,50 +2682,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·21</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">Exit Plan</span>
 </div>
-  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:16px">
-    This is not a resignation plan. It is a structured sequence for moving from your current STOP position to a PAUSE or PROCEED position — whether that means a better role at a new company or a significantly different standing in the market.
-  </div>
-
-  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px">
-    <div style="background:#FAFAFA;border:1px solid #E0E0E0;border-radius:10px;padding:16px 18px">
-      <div style="display:flex;align-items:flex-start;gap:14px">
-        <div style="background:#E8622A;color:#FFF;font-size:13px;font-weight:700;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:5px">Stabilise first — do not move from panic</div>
-          <div style="font-size:12px;color:#555;line-height:1.6">Before any role change: set a three-month savings target. Calculate the exact monthly amount. Set up a separate account. This takes 48 hours to initiate and restores decision quality immediately. Do not interview for anything until this is started.</div>
-          <div style="font-size:11px;color:#E8622A;margin-top:6px;font-weight:600">Timeline: Start today · Fully funded: 6–8 months</div>
-        </div>
-      </div>
-    </div>
-
-    <div style="background:#FAFAFA;border:1px solid #E0E0E0;border-radius:10px;padding:16px 18px">
-      <div style="display:flex;align-items:flex-start;gap:14px">
-        <div style="background:#E8622A;color:#FFF;font-size:13px;font-weight:700;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:5px">${secData['SEC_RO_026']?.actions?.[2]?.priority_label || 'Priority action 3'} — four weeks</div>
-          <div style="font-size:12px;color:#555;line-height:1.6">One public GitHub project using TypeScript and Node.js. Does not need to be complex. Needs to exist. This is the minimum signal that moves you past automated CV filters that screen for TypeScript. Udemy course + one project = done.</div>
-          <div style="font-size:11px;color:#E8622A;margin-top:6px;font-weight:600">Timeline: Weeks 2–6 · One evening per week minimum</div>
-        </div>
-      </div>
-    </div>
-
-    <div style="background:#FAFAFA;border:1px solid #E0E0E0;border-radius:10px;padding:16px 18px">
-      <div style="display:flex;align-items:flex-start;gap:14px">
-        <div style="background:#E8622A;color:#FFF;font-size:13px;font-weight:700;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:5px">Rewrite your CV once around a niche claim</div>
-          <div style="font-size:12px;color:#555;line-height:1.6">Pick one: fintech APIs or SaaS backend platforms. Reframe every past role around that thread. Add one metric per company. The ten-company history becomes a cross-domain specialist story rather than a fragmented timeline.</div>
-          <div style="font-size:11px;color:#E8622A;margin-top:6px;font-weight:600">Timeline: One weekend · Requires honest inventory of past work</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div style="background:#F0FFF4;border:1px solid rgba(46,213,115,0.3);border-radius:10px;padding:13px 16px">
-    <div style="font-size:13px;color:#336644;line-height:1.65">
-      These three steps in sequence change your market position. Not dramatically — but enough to shift from SQUEEZED to SPECIALIST in the next hire cycle. The goal is not the next job. The goal is the position you negotiate from.
-    </div>
-  </div>
+  ${renderSectionContent('SEC_RO_021')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
