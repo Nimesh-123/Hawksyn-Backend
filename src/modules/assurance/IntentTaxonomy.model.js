@@ -8,6 +8,8 @@ const IntentTaxonomySchema = new mongoose.Schema({
     intentType: { type: String, enum: ['STABILITY', 'SWITCH', 'UPSKILL', 'DECISION', 'PLANNING', 'SURVIVAL', 'GROWTH'] },
     primaryOutcome: { type: String },
     defaultVerdictMode: { type: String },
+    displayLabel: { type: String },
+    meaningText: { type: String },
     isActive: { type: Boolean, default: true }
 }, {
     timestamps: true,

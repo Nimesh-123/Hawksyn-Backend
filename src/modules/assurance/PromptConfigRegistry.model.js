@@ -16,6 +16,10 @@ const PromptConfigRegistrySchema = new mongoose.Schema({
     certaintyCapPercent: { type: Number },
     retryPolicy: { type: String },
     outputSchemaReference: { type: String, default: null },
+    wordCeiling: { type: Number },
+    outputType: { type: String },
+    guardrailCategories: [{ type: String }],
+    conditionalDisplay: { type: String },
     isActive: { type: Boolean, default: true }
 }, {
     timestamps: true,
