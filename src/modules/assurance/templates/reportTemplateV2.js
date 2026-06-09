@@ -329,7 +329,7 @@ function buildReportHtmlV2(reportData) {
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -355,7 +355,7 @@ function buildReportHtmlV2(reportData) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hawksyn — ${profile?.name || 'User'} — Decision Assurance Report</title>
+<title>Hawksyn — ${profile?.fullName || profile?.name || 'User'} — Decision Assurance Report</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -454,9 +454,9 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
         <div style="width:50px;height:50px;border-radius:50%;background:#FFF4EE;
           border:2px solid rgba(232,98,42,0.4);display:flex;align-items:center;
-          justify-content:center;font-size:16px;font-weight:800;color:#E8622A;flex-shrink:0">SA</div>
+          justify-content:center;font-size:16px;font-weight:800;color:#E8622A;flex-shrink:0">${(profile?.fullName || profile?.name || 'User').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}</div>
         <div>
-          <div style="font-size:20px;font-weight:700;color:#111;margin-bottom:3px">${profile?.name || 'User'}</div>
+          <div style="font-size:20px;font-weight:700;color:#111;margin-bottom:3px">${profile?.fullName || profile?.name || 'User'}</div>
           <div style="font-size:13px;color:#555">${profile?.experience?.[0]?.title || 'Professional'}</div>
           <div style="font-size:12px;color:#888;margin-top:1px">${profile?.experience?.[0]?.company || 'Organization'}</div>
         </div>
@@ -464,7 +464,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div style="padding-bottom:12px;border-bottom:0.5px solid #EBEBEB">
           <div style="font-size:11px;letter-spacing:0.1em;color:#888;text-transform:uppercase;margin-bottom:4px">Experience</div>
-          <div style="font-size:17px;color:#222;font-weight:600">${profile?.experience?.length || 'N/A'} years</div>
+          <div style="font-size:17px;color:#222;font-weight:600">${profile?.totalExperienceYears || profile?.experience?.length || 'N/A'} years</div>
         </div>
         <div style="padding-bottom:12px;border-bottom:0.5px solid #EBEBEB">
           <div style="font-size:11px;letter-spacing:0.1em;color:#888;text-transform:uppercase;margin-bottom:4px">Function</div>
@@ -633,7 +633,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 </div><div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -770,7 +770,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -975,7 +975,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -1076,7 +1076,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 </div><div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -1154,7 +1154,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -1232,7 +1232,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -1310,7 +1310,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -1388,7 +1388,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -1466,7 +1466,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -1544,7 +1544,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -1622,7 +1622,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -1700,7 +1700,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -1806,7 +1806,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 </div><div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -1884,7 +1884,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -1962,7 +1962,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -2040,7 +2040,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -2118,7 +2118,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -2196,7 +2196,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -2274,7 +2274,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -2375,7 +2375,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 </div><div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -2453,7 +2453,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -2531,7 +2531,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -2609,7 +2609,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -2687,7 +2687,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -2827,7 +2827,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
@@ -2958,7 +2958,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
     flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
-  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · ${runId}</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.fullName || profile?.name || 'User'} · ${runId}</span>
   <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">

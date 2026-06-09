@@ -629,19 +629,31 @@ exports.generateReport = async (req, res) => {
         // NAYA - DB ke exact paths pe direct jaao
         const rawParsed = run.cvSnapshot?.parsedData || {};
 
+        const experienceList = (extractedCV?.roles && extractedCV.roles.length > 0) ? extractedCV.roles.map(r => ({
+                            title: r.role_metadata?.title || 'Unknown Role',
+                            company: r.role_metadata?.company || 'Unknown Company',
+                            duration: `${r.role_metadata?.start_date || ''} to ${r.role_metadata?.end_date || 'Present'}`,
+                            description: (r.base_aeus || []).map(ae => ae.raw_text || '').join('\n')
+                        }))
+                     : (rawParsed.work?.experience || normalizedProfile.work?.experience || rawParsed.employment?.history || normalizedProfile.employment?.history || []);
+
+        let expYears = 'N/A';
+        if (extractedCV?.normalized_metrics?.total_experience_years) {
+            expYears = Math.round(extractedCV.normalized_metrics.total_experience_years);
+        } else if (rawParsed.work?.totalYears) {
+            expYears = rawParsed.work.totalYears;
+        } else if (experienceList.length > 0) {
+            expYears = experienceList.length * 2; // Rough estimate: 2 years per role if no data is found
+        }
+
         const templateProfile = {
             fullName: rawParsed.identity?.fullName
                    || rawParsed.identity?.name
                    || normalizedProfile.fullName
                    || 'Candidate',
 
-            experience: (extractedCV?.roles && extractedCV.roles.length > 0) ? extractedCV.roles.map(r => ({
-                            title: r.role_metadata?.title || 'Unknown Role',
-                            company: r.role_metadata?.company || 'Unknown Company',
-                            duration: `${r.role_metadata?.start_date || ''} to ${r.role_metadata?.end_date || 'Present'}`,
-                            description: (r.base_aeus || []).map(ae => ae.raw_text || '').join('\n')
-                        }))
-                     : (rawParsed.work?.experience || normalizedProfile.work?.experience || rawParsed.employment?.history || normalizedProfile.employment?.history || []),
+            experience: experienceList,
+            totalExperienceYears: expYears,
 
             skills: {
                 technical: rawParsed.composition?.skills?.technical
