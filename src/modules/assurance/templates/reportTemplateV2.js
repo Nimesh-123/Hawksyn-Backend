@@ -3,6 +3,98 @@ function buildReportHtmlV2(reportData) {
     const { report, runId, generatedAt, role, profile } = reportData;
     const dateStr = generatedAt ? new Date(generatedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US');
 
+    // Extract SEC_RO_027 for Personalised Playbook
+    const playbookSec = report && report.sections ? report.sections.find(s => s.section_id === 'SEC_RO_027' || s.sectionId === 'SEC_RO_027') : null;
+    let playbookHtml = '';
+    
+    if (playbookSec) {
+        let rowsHtml = '';
+        if (playbookSec.playbook_rows && Array.isArray(playbookSec.playbook_rows)) {
+            playbookSec.playbook_rows.forEach((row, i) => {
+                const badgeColor = row.milestone_type === 'EXECUTE' ? '#E8622A' : (row.milestone_type === 'CHECKPOINT' ? '#FFC107' : '#FF4757');
+                const badgeTextcolor = row.milestone_type === 'CHECKPOINT' ? '#555' : '#FFF';
+                rowsHtml += `
+    <div style="background:#FAFAFA;border:1px solid #E0E0E0;border-radius:10px;padding:14px 18px;border-left:4px solid ${badgeColor};margin-bottom:11px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="font-size:11px;font-weight:700;color:${badgeTextcolor};background:${badgeColor};padding:3px 10px;border-radius:6px">${row.period_label || `STEP ${i+1}`} · ${row.milestone_type}</span>
+        <span style="font-size:13px;font-weight:700;color:#333">${row.goal_or_checkpoint || ''}</span>
+      </div>
+      <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:6px">${row.specific_action || ''}</div>
+      <div style="font-size:11px;color:${badgeColor};font-weight:600">Criteria: ${row.success_criteria_or_contingency || ''}</div>
+    </div>`;
+            });
+        }
+
+        playbookHtml = `
+<div id="p29"><div class="pg" style="background:#FFFFFF;width:794px;min-height:1123px;
+  display:flex;flex-direction:column;border:1px solid #AAAAAA;
+  border-bottom:5px solid #111111;font-family:'Inter',system-ui,sans-serif;
+  position:relative;overflow:hidden">
+  <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0"
+    viewBox="0 0 794 1123" preserveAspectRatio="xMidYMid slice">
+  <circle cx="794" cy="1123" r="680" fill="none" stroke="#DDDDDD" stroke-width="1.2"/>
+  <circle cx="794" cy="1123" r="560" fill="none" stroke="#D5D5D5" stroke-width="1.4"/>
+  <circle cx="794" cy="1123" r="440" fill="none" stroke="#CCCCCC" stroke-width="1.6"/>
+  <circle cx="794" cy="1123" r="320" fill="none" stroke="#C5C5C5" stroke-width="1.8"/>
+  <circle cx="794" cy="1123" r="210" fill="none" stroke="#BBBBBB" stroke-width="2"/>
+  <circle cx="794" cy="1123" r="110" fill="none" stroke="#B0B0B0" stroke-width="2.2"/>
+  <circle cx="794" cy="1123" r="40"  fill="none" stroke="#AAAAAA" stroke-width="2.5"/>
+  <circle cx="794" cy="1123" r="490" fill="none" stroke="#E8622A" stroke-width="0.7" stroke-dasharray="3 18" opacity="0.18"/>
+  <circle cx="794" cy="1123" r="370" fill="none" stroke="#E8622A" stroke-width="0.7" stroke-dasharray="3 18" opacity="0.13"/>
+  <path d="M794,1083 A40,40 0 0,1 754,1123 L794,1123 Z" fill="#E8622A" opacity="0.55"/>
+</svg>
+  <!-- MAIN COLUMN -->
+  <div style="margin-left:28px;margin-right:28px;display:flex;flex-direction:column;min-height:1123px">
+    <div style="height:56px;background:#111111;display:flex;align-items:center;
+    justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
+  <div style="display:flex;align-items:center;gap:12px">
+    <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <span style="font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.5);text-transform:uppercase">CH7 — Personalised Playbook</span>
+  </div>
+  <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:#E8622A"></div>
+</div>
+<div style="flex:1;padding:28px 44px 0 44px;position:relative;z-index:2">
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+    <span style="width:28px;height:2px;background:#E8622A;display:inline-block;border-radius:1px"></span>
+    <span style="font-size:12px;letter-spacing:0.18em;color:#E8622A;text-transform:uppercase;font-weight:700">Your Personalised Playbook</span>
+  </div>
+  <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:20px">
+    ${playbookSec.playbook_lead || ''}
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:11px">
+    ${rowsHtml}
+  </div>
+
+  <div style="font-size:13px;color:#333;line-height:1.65;margin-top:30px;font-weight:600;background:#FFF5F5;border-top:2px solid #FF4757;padding:14px 18px;border-radius:0 0 10px 10px;">
+    ${playbookSec.playbook_close || ''}
+  </div>
+</div>
+<div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
+    padding:0 28px;display:flex;align-items:center;justify-content:space-between;
+    flex-shrink:0;font-family:'Inter',system-ui;position:relative;z-index:3">
+  <span style="font-size:10px;letter-spacing:0.06em;color:#888;text-transform:uppercase">Confidential · ${profile?.name || 'User'} · RUN_0027</span>
+  <span style="font-size:10px;letter-spacing:0.06em;color:#AAA;text-transform:uppercase">Hawksyn · Hyumeans Pvt Ltd</span>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div style="width:72px;height:2px;background:#D8D8D8;border-radius:1px;overflow:hidden">
+      <div style="width:100%;height:2px;background:#E8622A;border-radius:1px"></div>
+    </div>
+    <span style="font-size:10px;color:#888;letter-spacing:0.06em">29 / 29</span>
+  </div>
+</div>
+  </div>
+</div></div>
+<script>
+  const nav = document.getElementById('nav');
+  if (nav) {
+    nav.insertAdjacentHTML('beforeend', '<a href="#p29" style="display:flex;align-items:center;gap:10px;padding:5px 10px;color:#888;text-decoration:none;font-size:11px;white-space:nowrap" onmouseover="this.style.color=\\'#FFC107\\'" onmouseout="this.style.color=\\'#888\\'"><span style="width:20px;height:20px;border-radius:4px;background:#FFC107;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#FFF;flex-shrink:0">P</span>Playbook</a>');
+  }
+</script>
+        `;
+    }
+
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -3373,6 +3465,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
   <div style="position:absolute;bottom:36px;left:0;width:28px;overflow:hidden;background:#F0F0F0;border-top:1px solid #CCCCCC;border-right:1px solid #CCCCCC"><svg width="28" height="28" viewBox="0 0 28 28" style="display:block"><circle cx="0" cy="28" r="26" fill="none" stroke="#888" stroke-width="0.8" opacity="0.2"/><circle cx="0" cy="28" r="20" fill="none" stroke="#888" stroke-width="0.8" opacity="0.28"/><circle cx="0" cy="28" r="14" fill="none" stroke="#888" stroke-width="0.8" opacity="0.36"/><circle cx="0" cy="28" r="8" fill="none" stroke="#888" stroke-width="0.8" opacity="0.44"/><circle cx="7" cy="21" r="2.5" fill="#999" opacity="0.5"/></svg></div>
   <div style="position:absolute;bottom:36px;right:0;width:28px;overflow:hidden;background:#F0F0F0;border-top:1px solid #CCCCCC;border-left:1px solid #CCCCCC"><svg width="28" height="28" viewBox="0 0 28 28" style="display:block"><circle cx="28" cy="28" r="26" fill="none" stroke="#888" stroke-width="0.8" opacity="0.2"/><circle cx="28" cy="28" r="20" fill="none" stroke="#888" stroke-width="0.8" opacity="0.28"/><circle cx="28" cy="28" r="14" fill="none" stroke="#888" stroke-width="0.8" opacity="0.36"/><circle cx="28" cy="28" r="8" fill="none" stroke="#888" stroke-width="0.8" opacity="0.44"/><circle cx="21" cy="21" r="2.5" fill="#999" opacity="0.5"/></svg></div>
 </div></div>
+${playbookHtml}
 </body>
 </html>
 `;
