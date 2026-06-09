@@ -16,6 +16,248 @@ function buildReportHtmlV2(reportData) {
         });
     }
 
+    // ─── Dynamic render helpers (ported from reportTemplate.js V1) ───
+    const md = (text) => {
+        if (!text) return '';
+        return text
+            .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/__([^_]+?)__/g, '<strong>$1</strong>')
+            .replace(/\*([^*\n]+?)\*/g, '<em>$1</em>')
+            .replace(/_([^_\n]+?)_/g, '<em>$1</em>')
+            .replace(/\*+/g, '');
+    };
+
+    const proseToHtml = (text) => {
+        if (!text) return '';
+        if (text.includes(' • ') || text.startsWith('• ')) {
+            const parts = text.split(/\s?•\s+/).filter(Boolean);
+            if (parts.length > 1) {
+                return '<div style="margin:8px 0"><ul style="margin:0;padding-left:18px;color:#374151;font-size:12px;line-height:1.7">' + parts.map(p => '<li style="margin-bottom:4px">' + md(p.trim()) + '</li>').join('') + '</ul></div>';
+            }
+        }
+        const lines = text.split(/\n+/).filter(l => l.trim());
+        if (lines.length > 1) {
+            return '<div style="margin:8px 0"><ul style="margin:0;padding-left:18px;color:#374151;font-size:12px;line-height:1.7">' + lines.map(l => '<li style="margin-bottom:4px">' + md(l.trim()) + '</li>').join('') + '</ul></div>';
+        }
+        return '<div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:10px">' + md(text.trim()) + '</div>';
+    };
+
+    const innerProseToHtml = (text) => {
+        if (!text) return '';
+        if (text.includes(' • ') || text.startsWith('• ')) {
+            const parts = text.split(/\s?•\s+/).filter(Boolean);
+            if (parts.length > 1) return '<ul style="margin:4px 0;padding-left:16px">' + parts.map(p => '<li style="margin-bottom:3px;font-size:12px">' + md(p.trim()) + '</li>').join('') + '</ul>';
+        }
+        const lines = text.split(/\n+/).filter(l => l.trim());
+        if (lines.length > 1) return '<ul style="margin:4px 0;padding-left:16px">' + lines.map(l => '<li style="margin-bottom:3px;font-size:12px">' + md(l.trim()) + '</li>').join('') + '</ul>';
+        return md(text.trim());
+    };
+
+    // Helper to get constraint bar color
+    const getBarColor = (score) => score >= 70 ? '#2ED573' : score >= 50 ? '#FFC107' : '#FF4757';
+    const getBandLabel = (score) => score >= 70 ? 'SOLID' : score >= 50 ? 'FRAGILE' : 'CRITICAL';
+    const getVerdictColor = (v) => { 
+        if (!v) return '#FF4757';
+        const vUp = String(v).toUpperCase();
+        return vUp === 'PROCEED' ? '#2ED573' : vUp === 'PAUSE' ? '#FFC107' : '#FF4757';
+    };
+
+    // Parse the report sections into named data
+    const sections = report && report.sections ? report.sections : [];
+    const getSectData = (id) => secData[id] || null;
+
+    // Dynamic section renderer — mirrors reportTemplate.js logic
+    const renderSectionContent = (sectionId) => {
+        const data = getSectData(sectionId);
+        if (!data) return '<div style="font-size:12px;color:#AAA;font-style:italic;padding:10px 0">Section data is being generated...</div>';
+
+        switch(sectionId) {
+            case 'SEC_RO_001':
+                return proseToHtml(data.summary_prose || '');
+
+            case 'SEC_RO_002':
+                return proseToHtml(data.overview_prose || '') + 
+                    (data.uncomfortable_truth ? '<div style="background:#FFF5F5;border-left:3px solid #FF4757;padding:12px 16px;border-radius:6px;margin-top:12px"><strong style="color:#FF4757">' + (data.uncomfortable_truth.label || 'Truth') + ':</strong> ' + innerProseToHtml(data.uncomfortable_truth.content || '') + '</div>' : '');
+
+            case 'SEC_RO_003':
+                return '<div style="display:flex;gap:20px">' +
+                    '<div style="flex:1"><div style="font-weight:700;color:#059669;font-size:11px;margin-bottom:8px;text-transform:uppercase">What This Report Covers</div>' +
+                    '<ul style="padding-left:16px;margin:0">' + (data.covers || []).map(i => '<li style="font-size:12px;color:#374151;margin-bottom:4px">' + (i.item || i) + '</li>').join('') + '</ul></div>' +
+                    '<div style="flex:1"><div style="font-weight:700;color:#6b7280;font-size:11px;margin-bottom:8px;text-transform:uppercase">What It Does Not Cover</div>' +
+                    '<ul style="padding-left:16px;margin:0">' + (data.does_not_cover || []).map(i => '<li style="font-size:12px;color:#374151;margin-bottom:4px">' + (i.item || i) + '</li>').join('') + '</ul></div></div>' +
+                    '<div style="font-size:11px;font-style:italic;color:#9ca3af;margin-top:12px">Methodology: ' + (data.methodology_note || '') + '</div>';
+
+            case 'SEC_RO_004': {
+                let chartHtml = '';
+                const chartData = data.chart_data || [];
+                if (chartData.length > 0) {
+                    chartHtml = '<div style="margin:12px 0">' + chartData.map(item => {
+                        const score = parseInt(item.score || item.exposure_percent || 0);
+                        const color = item.bar_color || getBarColor(score);
+                        return '<div style="margin-bottom:8px"><div style="font-size:11px;font-weight:700;color:#4b5563;margin-bottom:3px">' + (item.capability_name || item.task_category || '') + '</div>' +
+                            '<div style="background:#e5e7eb;height:20px;border-radius:10px;position:relative;overflow:hidden"><div style="height:100%;width:' + score + '%;background:' + color + ';position:absolute;left:0;top:0;border-radius:10px"></div>' +
+                            '<div style="position:absolute;right:10px;top:0;font-size:10px;color:#333;font-weight:800;line-height:20px">' + score + '%</div></div></div>';
+                    }).join('') + '</div>';
+                } else if (report && report.constraintScores && report.constraintScores.length > 0) {
+                    chartHtml = '<div style="margin:12px 0">' + report.constraintScores.map(c => {
+                        const score = c.score || 0;
+                        const color = getBarColor(score);
+                        return '<div style="margin-bottom:8px"><div style="font-size:11px;font-weight:700;color:#4b5563;margin-bottom:3px">' + c.constraintName.replace(/\s*\(C\d\)$/, '') + '</div>' +
+                            '<div style="background:#e5e7eb;height:20px;border-radius:10px;position:relative;overflow:hidden"><div style="height:100%;width:' + score + '%;background:' + color + ';position:absolute;left:0;top:0;border-radius:10px"></div>' +
+                            '<div style="position:absolute;right:10px;top:0;font-size:10px;color:#333;font-weight:800;line-height:20px">' + score + '%</div></div></div>';
+                    }).join('') + '</div>';
+                }
+                return proseToHtml(data.context_prose || '') + chartHtml +
+                    (data.interpretation_callout ? '<div style="background:#FEF3C7;padding:12px;border-radius:6px;border-left:3px solid #F59E0B;margin-top:10px;font-size:12px">' + innerProseToHtml(data.interpretation_callout) + '</div>' : '');
+            }
+
+            case 'SEC_RO_005':
+                return '<table style="width:100%;border-collapse:collapse;margin:8px 0"><thead><tr style="background:#111827;color:white"><th style="text-align:left;padding:8px;font-size:10px">Role</th><th style="padding:8px;font-size:10px">Fit</th><th style="padding:8px;font-size:10px">Durability</th></tr></thead><tbody>' +
+                    (data.fit_rows || []).map(r => '<tr><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px"><strong>' + (r.role_type || '') + '</strong></td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.fit_level || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.durability || '') + '</td></tr>' +
+                    '<tr><td colspan="3" style="font-size:10px;color:#6b7280;padding:4px 8px 8px">' + (r.notes || '') + '</td></tr>').join('') + '</tbody></table>';
+
+            case 'SEC_RO_006': {
+                const rows = data.sector_rows || [];
+                const signal = data.key_signal || '';
+                if (rows.length === 0) return proseToHtml(data.description || '');
+                return '<table style="width:100%;border-collapse:collapse;margin:8px 0"><thead><tr style="background:#111827;color:white"><th style="text-align:left;padding:8px;font-size:10px">Sector</th><th style="padding:8px;font-size:10px">Demand</th><th style="padding:8px;font-size:10px">Outlook</th><th style="padding:8px;font-size:10px">Risk</th></tr></thead><tbody>' +
+                    rows.map(r => '<tr><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.sector || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.demand_now || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.one_year_outlook || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.risk_to_role || '') + '</td></tr>').join('') + '</tbody></table>' +
+                    (signal ? '<div style="background:#FEF3C7;padding:12px;border-radius:6px;border-left:3px solid #F59E0B;margin-top:10px;font-size:12px">' + innerProseToHtml(signal) + '</div>' : '');
+            }
+
+            case 'SEC_RO_007':
+                return '<div style="display:flex;gap:20px"><div style="flex:1"><div style="font-weight:700;color:#059669;font-size:11px;margin-bottom:8px;text-transform:uppercase">What You Bring</div>' +
+                    proseToHtml(data.what_you_bring || '') + '</div><div style="flex:1"><div style="font-weight:700;color:#EF4444;font-size:11px;margin-bottom:8px;text-transform:uppercase">What Is Missing</div>' +
+                    proseToHtml(data.what_is_missing || '') + '</div></div>';
+
+            case 'SEC_RO_008': {
+                const items = [...(data.red_flags || []), ...(data.contradictions || [])];
+                if (!items || items.length === 0) return '<div style="background:#F3F4F6;border-left:3px solid #9CA3AF;padding:12px;border-radius:6px;font-size:12px"><strong>Auditor Note:</strong> No internal contradictions were detected.</div>';
+                return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+                    items.map(f => {
+                        const sevColor = (f.severity || '').toLowerCase() === 'high' ? '#FF4757' : '#FFC107';
+                        return '<div style="padding:12px;border-radius:6px;border-left:3px solid ' + sevColor + ';background:#FAFAFA"><div style="font-weight:800;font-size:10px;margin-bottom:4px;color:#111">' + (f.rf_label || f.contradiction_id || 'Finding') + '</div><div style="font-size:11px;color:#4b5563">' + innerProseToHtml(f.content || '') + '</div></div>';
+                    }).join('') + '</div>';
+            }
+
+            case 'SEC_RO_009': {
+                const chartD = data.chart_data || [];
+                const callout = data.exposure_callout || data.interpretation_callout || '';
+                const overallPct = data.overall_exposure_percent || null;
+                let chartHtml = '';
+                if (Array.isArray(chartD) && chartD.length > 0) {
+                    chartHtml = '<div style="margin:12px 0">' + chartD.map(item => {
+                        const score = parseInt(item.exposure_percent || item.score || 0);
+                        const color = item.bar_color || getBarColor(score);
+                        return '<div style="margin-bottom:8px"><div style="font-size:11px;font-weight:700;color:#4b5563;margin-bottom:3px">' + (item.task_category || '') + '</div><div style="background:#e5e7eb;height:20px;border-radius:10px;position:relative;overflow:hidden"><div style="height:100%;width:' + score + '%;background:' + color + ';position:absolute;left:0;top:0;border-radius:10px"></div><div style="position:absolute;right:10px;top:0;font-size:10px;color:#333;font-weight:800;line-height:20px">' + score + '%</div></div></div>';
+                    }).join('') + '</div>';
+                }
+                return proseToHtml(data.methodology_note || data.context_prose || '') +
+                    (overallPct ? '<div style="background:#FEF3C7;padding:10px;border-radius:6px;border-left:3px solid #F59E0B;margin-bottom:10px;font-size:12px"><strong>Overall Exposure: ' + overallPct + '%</strong></div>' : '') +
+                    chartHtml +
+                    (callout ? '<div style="background:#FEF3C7;padding:12px;border-radius:6px;border-left:3px solid #F59E0B;margin-top:10px;font-size:12px">' + innerProseToHtml(callout) + '</div>' : '');
+            }
+
+            case 'SEC_RO_010':
+                return '<table style="width:100%;border-collapse:collapse;margin:8px 0"><thead><tr style="background:#111827;color:white"><th style="text-align:left;padding:8px;font-size:10px">Task Category</th><th style="padding:8px;font-size:10px">AI Capability</th><th style="padding:8px;font-size:10px">Replaces User?</th><th style="padding:8px;font-size:10px">Timeline</th></tr></thead><tbody>' +
+                    (data.task_rows || []).map(r => '<tr><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.task_category || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.ai_capability || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.replaces_user || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.timeline || '') + '</td></tr>').join('') + '</tbody></table>';
+
+            case 'SEC_RO_011':
+                if (data.chart_data && data.chart_data.length > 0) {
+                    return proseToHtml(data.context_prose || '') + '<table style="width:100%;border-collapse:collapse;margin:8px 0"><thead><tr style="background:#111827;color:white"><th style="text-align:left;padding:8px;font-size:10px">Experience Band</th><th style="padding:8px;font-size:10px">Demand (2023)</th><th style="padding:8px;font-size:10px">Demand (2026)</th></tr></thead><tbody>' +
+                        data.chart_data.map(r => '<tr><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.experience_band || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.demand_2023 || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.demand_2026 || '') + '</td></tr>').join('') + '</tbody></table>' +
+                        (data.salary_signal_callout ? '<div style="background:#FEF3C7;padding:12px;border-radius:6px;border-left:3px solid #F59E0B;margin-top:10px;font-size:12px">' + innerProseToHtml(data.salary_signal_callout) + '</div>' : '');
+                }
+                return proseToHtml(data.context_prose || '');
+
+            case 'SEC_RO_012':
+                return '<div style="border-left:2px solid #e5e7eb;margin-left:10px;padding-left:20px">' +
+                    (data.timeline_rows || []).map(r => '<div style="position:relative;margin-bottom:16px"><div style="position:absolute;left:-28px;top:4px;width:12px;height:12px;background:#111827;border-radius:50%"></div><div style="font-weight:800;font-size:11px;color:#111;text-transform:uppercase;margin-bottom:3px">' + (r.period || '') + '</div><div style="font-size:11px;color:#4b5563">' + innerProseToHtml(r.description || '') + '</div></div>').join('') + '</div>';
+
+            case 'SEC_RO_013':
+                return '<table style="width:100%;border-collapse:collapse;margin:8px 0"><thead><tr style="background:#111827;color:white"><th style="text-align:left;padding:8px;font-size:10px">Scenario</th><th style="padding:8px;font-size:10px">12 Mo</th><th style="padding:8px;font-size:10px">24 Mo</th></tr></thead><tbody>' +
+                    (data.probability_rows || []).map(r => '<tr><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.scenario || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.prob_12m || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.prob_24m || '') + '</td></tr>').join('') + '</tbody></table>';
+
+            case 'SEC_RO_014':
+                return '<div style="font-weight:700;font-size:14px;color:#D97706;margin-bottom:12px">Blind Spot Index (BSI): ' + (data.bsi_score || '--') + '/100</div>' +
+                    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+                    (data.blind_spots || []).map(b => '<div style="padding:12px;border-radius:6px;border-left:3px solid #FFC107;background:#FFFBEB"><div style="font-weight:800;font-size:10px;margin-bottom:4px;color:#111">#' + (b.blind_spot_number || '') + ' ' + (b.name || '') + '</div><div style="font-size:11px;color:#4b5563">' + innerProseToHtml(b.content || '') + '</div><div style="margin-top:6px;font-size:10px;font-weight:700;color:#92400E">LIABILITY: ' + (b.shadow_liability || '') + '</div></div>').join('') + '</div>';
+
+            case 'SEC_RO_015':
+                return '<table style="width:100%;border-collapse:collapse;margin:8px 0"><thead><tr style="background:#111827;color:white"><th style="text-align:left;padding:8px;font-size:10px">Variable</th><th style="padding:8px;font-size:10px">If Favourable</th><th style="padding:8px;font-size:10px">If Unfavourable</th><th style="padding:8px;font-size:10px">Control</th></tr></thead><tbody>' +
+                    (data.unknown_rows || []).map(r => '<tr><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px"><strong>' + (r.variable || '') + '</strong></td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.if_favourable || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.if_unfavourable || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px"><span style="background:#111;color:white;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700">' + (r.user_control || '') + '</span></td></tr>').join('') + '</tbody></table>';
+
+            case 'SEC_RO_016': {
+                const triggerEvent = data.trigger_event || data.triggerEvent || '';
+                return '<div style="background:#FEF3C7;padding:12px;border-radius:6px;border-left:3px solid #F59E0B;margin-bottom:12px;font-size:12px"><strong>Trigger:</strong> ' + innerProseToHtml(triggerEvent) + '</div>' +
+                    '<div style="display:grid;grid-template-columns:1fr;gap:8px">' +
+                    (data.cascade || []).map(c => '<div style="display:flex;gap:12px;background:#FAFAFA;padding:12px;border-radius:6px;border:1px solid #e5e7eb"><div style="background:#111;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0">' + (c.order_label || c.orderLabel || '') + '</div><div style="font-size:12px;color:#555">' + innerProseToHtml(c.description || '') + '</div></div>').join('') + '</div>';
+            }
+
+            case 'SEC_RO_017':
+                return proseToHtml(data.scenario_prose || '') +
+                    '<div style="background:#EFF6FF;border-left:3px solid #3B82F6;padding:14px;border-radius:6px;font-size:12px;margin-top:10px"><strong>Best Case Condition:</strong> ' + innerProseToHtml(data.best_case_condition || '') + '</div>';
+
+            case 'SEC_RO_018':
+                return proseToHtml(data.transferability_prose || '');
+
+            case 'SEC_RO_019':
+                return '<table style="width:100%;border-collapse:collapse;margin:8px 0"><thead><tr style="background:#111827;color:white"><th style="text-align:left;padding:8px;font-size:10px">Employer Type</th><th style="padding:8px;font-size:10px">Would Hire?</th><th style="padding:8px;font-size:10px">Level</th><th style="padding:8px;font-size:10px">Salary Range</th></tr></thead><tbody>' +
+                    (data.hire_rows || []).map(r => '<tr><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.employer_type || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.would_hire || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.level || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.salary_range || '') + '</td></tr>').join('') + '</tbody></table>' +
+                    '<div style="background:#FEF3C7;padding:12px;border-radius:6px;border-left:3px solid #F59E0B;font-size:12px"><strong>Marketability Score: ' + (data.marketability_score || '--') + '/100</strong><br>' + innerProseToHtml(data.marketability_note || '') + '</div>';
+
+            case 'SEC_RO_020':
+                return '<table style="width:100%;border-collapse:collapse;margin:8px 0"><thead><tr style="background:#111827;color:white"><th style="text-align:left;padding:8px;font-size:10px">Factor</th><th style="padding:8px;font-size:10px">Assumption</th><th style="padding:8px;font-size:10px">Assessment</th></tr></thead><tbody>' +
+                    (data.survival_rows || []).map(r => '<tr><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px"><strong>' + (r.factor || '') + '</strong></td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.assumption || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.assessment || '') + '</td></tr>').join('') + '</tbody></table>' +
+                    '<div style="background:#FEF3C7;padding:12px;border-radius:6px;border-left:3px solid #F59E0B;font-size:12px"><strong>Summary:</strong> ' + innerProseToHtml(data.survival_summary || '') + '</div>';
+
+            case 'SEC_RO_021':
+                return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+                    (data.recovery_steps || []).map(r => '<div style="background:#FAFAFA;padding:12px;border-radius:6px;border:1px solid #e5e7eb"><div style="font-weight:700;font-size:11px;color:#111;margin-bottom:4px">' + (r.month_label || '') + '</div><div style="font-size:11px;color:#4b5563">' + innerProseToHtml(r.action || '') + '</div></div>').join('') + '</div>' +
+                    '<div style="background:#FEF3C7;padding:12px;border-radius:6px;border-left:3px solid #F59E0B;margin-top:12px;font-size:12px"><strong>Reversibility Score: ' + (data.reversibility_score || '--') + '/100</strong><br>' + innerProseToHtml(data.reversibility_note || '') + '</div>';
+
+            case 'SEC_RO_022':
+                return '<div style="background:#FFFBEB;border:2px solid #F59E0B;border-radius:8px;padding:20px"><div style="font-weight:800;font-size:16px;color:#92400E;margin-bottom:10px">' + (data.verdict_label || report.verdict || '') + ' — ' + (data.verdict_subtitle || '') + '</div>' +
+                    proseToHtml(data.verdict_explanation || '') +
+                    (report && report.constraintScores && report.constraintScores.length > 0 ? '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #FDE68A"><div style="font-weight:700;font-size:11px;color:#92400E;margin-bottom:6px">DAC Score Constraint Breakdown:</div><ul style="color:#92400E;padding-left:16px;margin:0">' + report.constraintScores.map(c => '<li style="font-size:11px;margin-bottom:3px"><strong>' + c.constraintName + ':</strong> ' + c.score + '/100 (' + c.band + ')</li>').join('') + '</ul></div>' : '') +
+                    (data.do_not_misread_callout ? '<div style="margin-top:12px;font-weight:700;color:#B45309;font-size:10px;border-top:1px solid #FDE68A;padding-top:8px">NOTE: ' + innerProseToHtml(data.do_not_misread_callout) + '</div>' : '') + '</div>';
+
+            case 'SEC_RO_023':
+                if (data.certainty_rows && data.certainty_rows.length > 0) {
+                    return '<table style="width:100%;border-collapse:collapse;margin:8px 0"><thead><tr style="background:#111827;color:white"><th style="text-align:left;padding:8px;font-size:10px">Factor</th><th style="padding:8px;font-size:10px">Level</th><th style="padding:8px;font-size:10px">Impact</th></tr></thead><tbody>' +
+                        data.certainty_rows.map(r => '<tr><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.factor || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.level || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.impact || '') + '</td></tr>').join('') + '</tbody></table>';
+                }
+                return proseToHtml(data.validity_statement || data.description || '');
+
+            case 'SEC_RO_024':
+                return proseToHtml(data.validity_statement || '') +
+                    '<div style="font-size:12px;margin:8px 0"><strong>Expires:</strong> ' + (data.expiry_date || '') + '</div>' +
+                    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+                    (data.triggers || []).map(t => '<div style="padding:12px;border-radius:6px;border-left:3px solid #ddd;background:#FAFAFA"><div style="font-weight:800;font-size:10px;margin-bottom:4px;color:#111">' + (t.trigger_label || '') + '</div><div style="font-size:11px;color:#4b5563">' + innerProseToHtml(t.description || t.content || '') + '</div></div>').join('') + '</div>';
+
+            case 'SEC_RO_025':
+                return '<div style="font-size:12px;margin:8px 0"><strong>Mandatory Re-run:</strong> ' + (data.mandatory_rerun_date || '') + '</div>' +
+                    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+                    (data.early_triggers || []).map(t => '<div style="padding:12px;border-radius:6px;border-left:3px solid #ddd;background:#FAFAFA"><div style="font-weight:800;font-size:10px;margin-bottom:4px;color:#111">' + (t.trigger_label || '') + '</div><div style="font-size:11px;color:#4b5563">' + innerProseToHtml(t.description || t.content || '') + '</div></div>').join('') + '</div>' +
+                    '<div style="background:#FEF3C7;padding:12px;border-radius:6px;border-left:3px solid #F59E0B;margin-top:12px;font-size:12px"><strong>Action Before Rerun:</strong><br>' + innerProseToHtml(data.action_before_rerun || '') + '</div>';
+
+            case 'SEC_RO_026':
+                return '<div style="display:flex;flex-direction:column;gap:10px">' +
+                    (data.actions || []).map(a => {
+                        const pLevel = (a.priority_level || '').toLowerCase();
+                        const color = pLevel.includes('urgent') ? '#FF4757' : pLevel.includes('important') ? '#FFC107' : '#3B82F6';
+                        return '<div style="background:#FAFAFA;border:1px solid #E0E0E0;border-radius:8px;padding:14px 18px;border-left:4px solid ' + color + '"><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="background:' + color + ';color:#FFF;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:700">' + (a.priority_level || '') + '</span><span style="font-size:12px;font-weight:700;color:#333">' + (a.priority_label || '') + '</span></div><div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:6px">' + innerProseToHtml(a.action || '') + '</div><div style="font-size:11px;color:' + color + ';font-weight:600">Impact: ' + (a.impact || '') + '</div></div>';
+                    }).join('') + '</div>';
+
+            default:
+                if (data && data.summary_prose) return proseToHtml(data.summary_prose);
+                if (data && data.description) return proseToHtml(data.description);
+                if (typeof data === 'string') return proseToHtml(data);
+                return '<div style="font-size:12px;color:#AAA;font-style:italic">Section content pending...</div>';
+        }
+    };
+
+
     const playbookSec = report && report.sections ? report.sections.find(s => s.section_id === 'SEC_RO_027' || s.sectionId === 'SEC_RO_027') : null;
     let playbookHtml = '';
     
@@ -222,11 +464,11 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div style="padding-bottom:12px;border-bottom:0.5px solid #EBEBEB">
           <div style="font-size:11px;letter-spacing:0.1em;color:#888;text-transform:uppercase;margin-bottom:4px">Experience</div>
-          <div style="font-size:17px;color:#222;font-weight:600">${profile?.experience?.length ? profile.experience.length : '10'} years</div>
+          <div style="font-size:17px;color:#222;font-weight:600">${profile?.experience?.length || 'N/A'} years</div>
         </div>
         <div style="padding-bottom:12px;border-bottom:0.5px solid #EBEBEB">
           <div style="font-size:11px;letter-spacing:0.1em;color:#888;text-transform:uppercase;margin-bottom:4px">Function</div>
-          <div style="font-size:17px;color:#222;font-weight:600">Backend Dev</div>
+          <div style="font-size:17px;color:#222;font-weight:600">${profile?.experience?.[0]?.title || role || 'Professional'}</div>
         </div>
         <div>
           <div style="font-size:11px;letter-spacing:0.1em;color:#888;text-transform:uppercase;margin-bottom:4px">Horizon</div>
@@ -377,18 +619,15 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     
     <div style="flex:1;background:#FAFAFA;border:1px solid #E8E8E8;border-radius:12px;padding:18px 20px;border-top:3px solid #E8622A">
       <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Composite Score</div>
-      <div style="font-size:40px;font-weight:800;color:#FF4757;letter-spacing:-0.04em;line-height:1">49</div>
-      <div style="font-size:11px;color:#888;margin-top:4px">STOP band</div>
+      <div style="font-size:40px;font-weight:800;color:#FF4757;letter-spacing:-0.04em;line-height:1">${report.compositeScore || '--'}</div><div style="font-size:11px;color:#888;margin-top:4px">${report.verdict || 'UNKNOWN'} band</div>
     </div>
     <div style="flex:1;background:#FAFAFA;border:1px solid #E8E8E8;border-radius:12px;padding:18px 20px;border-top:3px solid #2ED573">
       <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Data Integrity</div>
-      <div style="font-size:24px;font-weight:800;color:#2ED573;letter-spacing:-0.02em;line-height:1.1">COMPLETE</div>
-      <div style="font-size:11px;color:#888;margin-top:4px">All inputs verified</div>
+      <div style="font-size:24px;font-weight:800;color:#2ED573;letter-spacing:-0.02em;line-height:1.1">${report.accuracyBand || accuracyBand || 'COMPLETE'}</div><div style="font-size:11px;color:#888;margin-top:4px">All inputs verified</div>
     </div>
     <div style="flex:1;background:#FAFAFA;border:1px solid #E8E8E8;border-radius:12px;padding:18px 20px;border-top:3px solid #FFC107">
       <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Confidence</div>
-      <div style="font-size:24px;font-weight:800;color:#FFC107;letter-spacing:-0.02em;line-height:1.1">MEDIUM</div>
-      <div style="font-size:11px;color:#888;margin-top:4px">Accuracy 77 / 100</div>
+      <div style="font-size:24px;font-weight:800;color:#FFC107;letter-spacing:-0.02em;line-height:1.1">${report.confidence || 'MEDIUM'}</div><div style="font-size:11px;color:#888;margin-top:4px">Confidence level</div>
     </div>
   </div>
 </div><div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
@@ -479,7 +718,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:12px;
   padding:18px 20px;border-top:3px solid #FF4757">
   <div style="font-size:11px;letter-spacing:0.1em;color:#888;text-transform:uppercase;margin-bottom:6px">Composite Score</div>
-  <div style="font-size:26px;font-weight:800;color:#FF4757;letter-spacing:-0.03em;line-height:1">49</div>
+  <div style="font-size:26px;font-weight:800;color:${getVerdictColor(report.verdict)};letter-spacing:-0.03em;line-height:1">${report.compositeScore || '--'}</div>
   <div style="font-size:11px;color:#888;margin-top:2px">STOP band · 0–49 range</div>
 </div>
     <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:12px;
@@ -605,7 +844,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">What Is Really Going On</span>
 </div>
   <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:20px">
-    Seven dimensions were computed independently. Each has a weight. The composite is the weighted average. Four of your seven are below 60. That is why the composite is 49.
+    Seven dimensions were computed independently. Each has a weight. The composite is the weighted average. ${secData['SEC_RO_002']?.overview_prose || 'Analysis completed.'}
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
@@ -1043,7 +1282,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
   <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.2);border-radius:10px;padding:14px 18px;border-left:3px solid #FF4757">
     <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:6px">The double-edged reality</div>
     <div style="font-size:13px;color:#554444;line-height:1.65">
-      Your core technical skills are real and hireable. But they are not rare. Node.js and PostgreSQL are among the most common backend stacks in India. The skills get you interviews. They do not get you the upper tier of the market. That gap is what the next seven sections measure.
+      ${secData['SEC_RO_004']?.interpretation_callout || 'Interpretation pending...'}
     </div>
   </div>
 </div>
@@ -1232,7 +1471,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">Industries Looking For You</span>
 </div>
   <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:18px">
-    Demand is computed against NASSCOM sector data and Naukri role-signal feeds. READ_LEVEL EXACT means your current stack is in direct demand in that sector. MAPPED means demand exists but your profile needs positioning.
+    ${secData['SEC_RO_006']?.description || 'Demand computed against market data.'}
   </div>
   <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px">
     <tr style="background:#F4F4F4"><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Sector</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Demand Level</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Read Level</td><td style="padding:9px 12px;font-size:11px;font-weight:700;color:#555;letter-spacing:0.08em;text-transform:uppercase;border-bottom:2px solid #E0E0E0">Signal Basis</td></tr>
@@ -1354,7 +1593,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="font-size:11px;letter-spacing:0.12em;color:#888;text-transform:uppercase;margin-bottom:10px">Gets-Hired Statement</div>
     <div style="background:#F8F8F8;border:1px solid #E0E0E0;border-radius:10px;padding:16px 18px;border-left:3px solid #2ED573">
       <div style="font-size:14px;color:#333;line-height:1.7;font-style:italic">
-        "A Senior Backend Developer with 10 years of consistent Node.js and PostgreSQL experience across multiple industry verticals. Available for immediate joining."
+        "${secData['SEC_RO_007']?.what_you_bring || 'Value proposition pending.'}"
       </div>
     </div>
   </div>
@@ -1363,7 +1602,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="font-size:11px;letter-spacing:0.12em;color:#888;text-transform:uppercase;margin-bottom:10px">What It Does Not Say Yet</div>
     <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.2);border-radius:10px;padding:16px 18px;border-left:3px solid #FF4757">
       <div style="font-size:13px;color:#554444;line-height:1.7">
-        It does not say you can lead a team. It does not say you have built something that scaled. It does not say why a company should pay you 30% above market. Until it says one of those things, SOLID stays at the gets-hired level.
+        ${secData['SEC_RO_007']?.what_is_missing || 'Missing elements pending.'}
       </div>
     </div>
   </div>
@@ -3164,7 +3403,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
       <div style="display:flex;align-items:flex-start;gap:14px">
         <div style="background:#E8622A;color:#FFF;font-size:13px;font-weight:700;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
         <div>
-          <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:5px">Add TypeScript to your visible profile — four weeks</div>
+          <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:5px">${secData['SEC_RO_026']?.actions?.[2]?.priority_label || 'Priority action 3'} — four weeks</div>
           <div style="font-size:12px;color:#555;line-height:1.6">One public GitHub project using TypeScript and Node.js. Does not need to be complex. Needs to exist. This is the minimum signal that moves you past automated CV filters that screen for TypeScript. Udemy course + one project = done.</div>
           <div style="font-size:11px;color:#E8622A;margin-top:6px;font-weight:600">Timeline: Weeks 2–6 · One evening per week minimum</div>
         </div>
@@ -3282,7 +3521,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
   <text x="165" y="35" font-size="9" fill="#888" font-family="Inter,sans-serif">75</text>
   <text x="174" y="115" font-size="9" fill="#2ED573" font-family="Inter,sans-serif">100</text>
   <!-- Score label -->
-  <text x="100" y="88" text-anchor="middle" font-size="22" font-weight="900" fill="#FF4757" font-family="Inter,sans-serif">49</text>
+  <text x="100" y="88" text-anchor="middle" font-size="22" font-weight="900" fill="${getVerdictColor(report.verdict)}" font-family="Inter,sans-serif">${report.compositeScore || '--'}</text>
 </svg>
       <div style="font-size:10px;color:#888;letter-spacing:0.1em;text-transform:uppercase;margin-top:4px">Composite Position</div>
     </div>
@@ -3292,7 +3531,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:20px">
     <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.2);border-radius:10px;padding:14px 16px;border-top:2px solid #FF4757">
       <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Composite</div>
-      <div style="font-size:28px;font-weight:800;color:#FF4757;line-height:1">49</div>
+      <div style="font-size:28px;font-weight:800;color:${getVerdictColor(report.verdict)};line-height:1">${report.compositeScore || '--'}</div>
       <div style="font-size:10px;color:#888;margin-top:4px">STOP band · 0–49</div>
     </div>
     <div style="background:#F0FFF4;border:1px solid rgba(46,213,115,0.2);border-radius:10px;padding:14px 16px;border-top:2px solid #2ED573">
@@ -3405,7 +3644,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <span style="font-size:12px;letter-spacing:0.18em;color:#E8622A;text-transform:uppercase;font-weight:700">Prioritised Action Plan</span>
   </div>
   <div style="font-size:13px;color:#555;line-height:1.65;margin-bottom:20px">
-    Five actions in priority order. Do them sequentially. Do not start Step 3 before Step 1 is underway. Each step has a success marker so you know when it is done.
+    ${secData['SEC_RO_026']?.actions ? secData['SEC_RO_026'].actions.length + ' actions in priority order.' : 'Your personalised action plan is being generated...'}
   </div>
 
   <div style="display:flex;flex-direction:column;gap:11px">
@@ -3413,20 +3652,20 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="background:#FAFAFA;border:1px solid #E0E0E0;border-radius:10px;padding:14px 18px;border-left:4px solid #FF4757">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
         <span style="font-size:11px;font-weight:700;color:#FFF;background:#FF4757;padding:3px 10px;border-radius:6px">STEP 1 · URGENT</span>
-        <span style="font-size:13px;font-weight:700;color:#333">Calculate your exact financial position — today</span>
+        <span style="font-size:13px;font-weight:700;color:#333">${secData['SEC_RO_026']?.actions?.[0]?.priority_label || 'Priority action 1'}</span>
       </div>
-      <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:6px">Open a spreadsheet. List monthly expenses. Multiply by three. Check if that amount is liquid. If not, set up a dedicated savings account and automate a monthly transfer. This takes two hours and is the highest-leverage action in this report.</div>
-      <div style="font-size:11px;color:#E8622A;font-weight:600">Success marker: three-month buffer target defined and saving started</div>
+      <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:6px">${secData['SEC_RO_026']?.actions?.[0]?.action || 'Action details pending...'}</div>
+      <div style="font-size:11px;color:#E8622A;font-weight:600">${secData['SEC_RO_026']?.actions?.[0]?.impact || 'Impact pending'}</div>
     </div>
 
     <!-- Step 2 -->
     <div style="background:#FAFAFA;border:1px solid #E0E0E0;border-radius:10px;padding:14px 18px;border-left:4px solid #FF9F43">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
         <span style="font-size:11px;font-weight:700;color:#FFF;background:#FF9F43;padding:3px 10px;border-radius:6px">STEP 2 · THIS WEEK</span>
-        <span style="font-size:13px;font-weight:700;color:#333">Pick a niche and rewrite your CV headline</span>
+        <span style="font-size:13px;font-weight:700;color:#333">${secData['SEC_RO_026']?.actions?.[1]?.priority_label || 'Priority action 2'}</span>
       </div>
-      <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:6px">Choose fintech APIs or SaaS backend. Rewrite your CV summary in two sentences using that niche. Change your LinkedIn headline. This does not require new skills — it requires a decision and forty-five minutes of writing.</div>
-      <div style="font-size:11px;color:#FF9F43;font-weight:600">Success marker: LinkedIn headline and CV summary updated · niche stated explicitly</div>
+      <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:6px">${secData['SEC_RO_026']?.actions?.[1]?.action || 'Action details pending...'}</div>
+      <div style="font-size:11px;color:#FF9F43;font-weight:600">${secData['SEC_RO_026']?.actions?.[1]?.impact || 'Impact pending'}</div>
     </div>
 
     <!-- Step 3 -->
@@ -3435,28 +3674,28 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
         <span style="font-size:11px;font-weight:700;color:#555;background:#FFC107;padding:3px 10px;border-radius:6px">STEP 3 · WEEKS 2–6</span>
         <span style="font-size:13px;font-weight:700;color:#333">Add TypeScript to your visible profile</span>
       </div>
-      <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:6px">One public GitHub repo. TypeScript + Node.js. Does not need to be impressive — needs to exist and be dated recently. This single signal removes you from automated CV filters that screen out non-TypeScript profiles.</div>
-      <div style="font-size:11px;color:#9A7000;font-weight:600">Success marker: GitHub repo live · TypeScript listed on CV · visible to recruiters</div>
+      <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:6px">${secData['SEC_RO_026']?.actions?.[2]?.action || 'Action details pending...'}</div>
+      <div style="font-size:11px;color:#9A7000;font-weight:600">${secData['SEC_RO_026']?.actions?.[2]?.impact || 'Impact pending'}</div>
     </div>
 
     <!-- Step 4 -->
     <div style="background:#FAFAFA;border:1px solid #E0E0E0;border-radius:10px;padding:14px 18px;border-left:4px solid #E8622A">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
         <span style="font-size:11px;font-weight:700;color:#FFF;background:#E8622A;padding:3px 10px;border-radius:6px">STEP 4 · MONTHS 2–4</span>
-        <span style="font-size:13px;font-weight:700;color:#333">Rewrite the ten-company history into a specialist story</span>
+        <span style="font-size:13px;font-weight:700;color:#333">${secData['SEC_RO_026']?.actions?.[3]?.priority_label || 'Priority action 4'}</span>
       </div>
-      <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:6px">For each company: one metric, one technical decision you owned, one outcome. Reframe the summary as cross-domain specialist experience, not a fragmented timeline. This is the CV fix that changes shortlist probability from LOW to HIGH in SaaS and BFSI.</div>
-      <div style="font-size:11px;color:#E8622A;font-weight:600">Success marker: CV tells one coherent story · each role has a metric</div>
+      <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:6px">${secData['SEC_RO_026']?.actions?.[3]?.action || 'Action details pending...'}</div>
+      <div style="font-size:11px;color:#E8622A;font-weight:600">${secData['SEC_RO_026']?.actions?.[3]?.impact || 'Impact pending'}</div>
     </div>
 
     <!-- Step 5 -->
     <div style="background:#FAFAFA;border:1px solid #E0E0E0;border-radius:10px;padding:14px 18px;border-left:4px solid #2ED573">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
         <span style="font-size:11px;font-weight:700;color:#FFF;background:#2ED573;padding:3px 10px;border-radius:6px">STEP 5 · MONTHS 5–12</span>
-        <span style="font-size:13px;font-weight:700;color:#333">Target one quality move — BFSI or SaaS product company</span>
+        <span style="font-size:13px;font-weight:700;color:#333">${secData['SEC_RO_026']?.actions?.[4]?.priority_label || 'Priority action 5'}</span>
       </div>
-      <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:6px">Apply only after steps 1–4 are done. Target Senior Backend roles in BFSI or SaaS product companies. Negotiate. Do not accept the first offer unless C4 is still at zero. If buffer is in place, you can wait for the right role.</div>
-      <div style="font-size:11px;color:#2ED573;font-weight:600">Success marker: offer at SPECIALIST band pay · role in target sector · buffer intact</div>
+      <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:6px">${secData['SEC_RO_026']?.actions?.[4]?.action || 'Action details pending...'}</div>
+      <div style="font-size:11px;color:#2ED573;font-weight:600">${secData['SEC_RO_026']?.actions?.[4]?.impact || 'Impact pending'}</div>
     </div>
   </div>
 </div>
