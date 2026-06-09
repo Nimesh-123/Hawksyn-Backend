@@ -835,7 +835,6 @@ exports.downloadReport = async (req, res) => {
 
         if (!reportRas) return res.status(404).json({ success: false, message: 'Report not found' });
 
-        // Helper to get readable names
         const caseNameMap = { 'CASE_ROLE_OBSOLESCENCE': 'Role Obsolescence Risk' };
         const intentNameMap = {
             'INT_ROLE_RISK_REALITY_CHECK': 'Role Reality Check',
@@ -844,12 +843,30 @@ exports.downloadReport = async (req, res) => {
             'RO': 'Role Elimination Risk'
         };
 
+        const rawParsed = userProfile?.originalParsedData?.structured || run.cvSnapshot?.parsedData || {};
+        const normalizedProfile = userProfile?.confirmedProfile || {};
+        const experienceList = rawParsed.work?.experience || normalizedProfile.work?.experience || rawParsed.employment?.history || normalizedProfile.employment?.history || [];
+        
+        let expYears = 'N/A';
+        if (rawParsed.work?.totalYears) {
+            expYears = rawParsed.work.totalYears;
+        } else if (experienceList.length > 0) {
+            expYears = experienceList.length * 2;
+        }
+        
+        const mergedProfile = {
+            ...normalizedProfile,
+            fullName: rawParsed.identity?.fullName || rawParsed.identity?.name || normalizedProfile.fullName || 'Candidate',
+            experience: experienceList,
+            totalExperienceYears: expYears
+        };
+
         const html = buildReportHtml({
             report: reportRas.artifactJson,
             runId, generatedAt: reportRas.createdAt,
             accuracyBand: reportRas.artifactJson.accuracyBand,
-            role: userProfile?.confirmedProfile?.identity?.currentRoleTitle || 'Professional',
-            profile: userProfile?.confirmedProfile || userProfile?.originalParsedData?.structured,
+            role: normalizedProfile.identity?.currentRoleTitle || normalizedProfile.currentRoleTitle || 'Professional',
+            profile: mergedProfile,
             caseName: caseNameMap[run.caseId] || run.caseId,
             intentName: intentNameMap[run.intentId] || run.intentId
         });
@@ -887,12 +904,30 @@ exports.sendReportEmail = async (req, res) => {
 
         if (!reportRas) return res.status(404).json({ success: false, message: 'Report not found' });
 
+        const rawParsed = userProfile?.originalParsedData?.structured || run.cvSnapshot?.parsedData || {};
+        const normalizedProfile = userProfile?.confirmedProfile || {};
+        const experienceList = rawParsed.work?.experience || normalizedProfile.work?.experience || rawParsed.employment?.history || normalizedProfile.employment?.history || [];
+        
+        let expYears = 'N/A';
+        if (rawParsed.work?.totalYears) {
+            expYears = rawParsed.work.totalYears;
+        } else if (experienceList.length > 0) {
+            expYears = experienceList.length * 2;
+        }
+        
+        const mergedProfile = {
+            ...normalizedProfile,
+            fullName: rawParsed.identity?.fullName || rawParsed.identity?.name || normalizedProfile.fullName || 'Candidate',
+            experience: experienceList,
+            totalExperienceYears: expYears
+        };
+
         const html = buildReportHtml({
             report: reportRas.artifactJson,
             runId, generatedAt: reportRas.createdAt,
             accuracyBand: reportRas.artifactJson.accuracyBand,
-            role: userProfile?.confirmedProfile?.identity?.currentRoleTitle || 'Professional',
-            profile: userProfile?.confirmedProfile || userProfile?.originalParsedData?.structured
+            role: normalizedProfile.identity?.currentRoleTitle || normalizedProfile.currentRoleTitle || 'Professional',
+            profile: mergedProfile
         });
         const pdfBuffer = await generatePdfFromHtml(html, {
             displayHeaderFooter: true,
