@@ -629,19 +629,48 @@ exports.generateReport = async (req, res) => {
         // NAYA - DB ke exact paths pe direct jaao
         const rawParsed = run.cvSnapshot?.parsedData || {};
 
-        const templateProfile = {
-            fullName: rawParsed.identity?.fullName
-                   || rawParsed.identity?.name
-                   || normalizedProfile.fullName
-                   || 'Candidate',
-
-            experience: (extractedCV?.roles && extractedCV.roles.length > 0) ? extractedCV.roles.map(r => ({
+        const experienceList = (extractedCV?.roles && extractedCV.roles.length > 0) ? extractedCV.roles.map(r => ({
                             title: r.role_metadata?.title || 'Unknown Role',
                             company: r.role_metadata?.company || 'Unknown Company',
                             duration: `${r.role_metadata?.start_date || ''} to ${r.role_metadata?.end_date || 'Present'}`,
                             description: (r.base_aeus || []).map(ae => ae.raw_text || '').join('\n')
                         }))
-                     : (rawParsed.work?.experience || normalizedProfile.work?.experience || rawParsed.employment?.history || normalizedProfile.employment?.history || []),
+                     : (rawParsed.work?.experience || normalizedProfile.work?.experience || rawParsed.employment?.history || normalizedProfile.employment?.history || []);
+
+        let expYears = 'N/A';
+        if (extractedCV?.normalized_metrics?.total_experience_years) {
+            expYears = Math.round(extractedCV.normalized_metrics.total_experience_years);
+        } else if (extractedCV?.precomputed_stats?.total_experience_months) {
+            expYears = Math.round(extractedCV.precomputed_stats.total_experience_months / 12);
+        } else if (rawParsed.work?.totalYears) {
+            expYears = rawParsed.work.totalYears;
+        } else if (normalizedProfile.totalYears) {
+            expYears = normalizedProfile.totalYears;
+        } else if (normalizedProfile.experienceYears) {
+            expYears = normalizedProfile.experienceYears;
+        } else if (experienceList.length > 0) {
+            expYears = Math.round(experienceList.reduce((acc, r) => acc + (r.duration_months || 24), 0) / 12) || (experienceList.length * 2);
+        }
+
+        const userDoc = await db.User.findById(run.userId);
+        
+        let candidateName = extractedCV?.header?.name 
+                           || extractedCV?.candidate_name 
+                           || rawParsed.identity?.fullName 
+                           || rawParsed.identity?.name 
+                           || normalizedProfile.fullName 
+                           || normalizedProfile.name;
+
+        if (!candidateName || candidateName.toLowerCase() === 'user' || candidateName.toLowerCase() === 'candidate') {
+            candidateName = userDoc?.name || userDoc?.fullName || userDoc?.email?.split('@')[0] || 'Candidate';
+        }
+
+        const templateProfile = {
+            fullName: candidateName,
+            name: candidateName,
+
+            experience: experienceList,
+            totalExperienceYears: expYears,
 
             skills: {
                 technical: rawParsed.composition?.skills?.technical
@@ -823,7 +852,6 @@ exports.downloadReport = async (req, res) => {
 
         if (!reportRas) return res.status(404).json({ success: false, message: 'Report not found' });
 
-        // Helper to get readable names
         const caseNameMap = { 'CASE_ROLE_OBSOLESCENCE': 'Role Obsolescence Risk' };
         const intentNameMap = {
             'INT_ROLE_RISK_REALITY_CHECK': 'Role Reality Check',
@@ -832,12 +860,30 @@ exports.downloadReport = async (req, res) => {
             'RO': 'Role Elimination Risk'
         };
 
+        const rawParsed = userProfile?.originalParsedData?.structured || run.cvSnapshot?.parsedData || {};
+        const normalizedProfile = userProfile?.confirmedProfile || {};
+        const experienceList = rawParsed.work?.experience || normalizedProfile.work?.experience || rawParsed.employment?.history || normalizedProfile.employment?.history || [];
+        
+        let expYears = 'N/A';
+        if (rawParsed.work?.totalYears) {
+            expYears = rawParsed.work.totalYears;
+        } else if (experienceList.length > 0) {
+            expYears = experienceList.length * 2;
+        }
+        
+        const mergedProfile = {
+            ...normalizedProfile,
+            fullName: rawParsed.identity?.fullName || rawParsed.identity?.name || normalizedProfile.fullName || 'Candidate',
+            experience: experienceList,
+            totalExperienceYears: expYears
+        };
+
         const html = buildReportHtml({
             report: reportRas.artifactJson,
             runId, generatedAt: reportRas.createdAt,
             accuracyBand: reportRas.artifactJson.accuracyBand,
-            role: userProfile?.confirmedProfile?.identity?.currentRoleTitle || 'Professional',
-            profile: userProfile?.confirmedProfile || userProfile?.originalParsedData?.structured,
+            role: normalizedProfile.identity?.currentRoleTitle || normalizedProfile.currentRoleTitle || 'Professional',
+            profile: mergedProfile,
             caseName: caseNameMap[run.caseId] || run.caseId,
             intentName: intentNameMap[run.intentId] || run.intentId
         });
@@ -875,12 +921,30 @@ exports.sendReportEmail = async (req, res) => {
 
         if (!reportRas) return res.status(404).json({ success: false, message: 'Report not found' });
 
+        const rawParsed = userProfile?.originalParsedData?.structured || run.cvSnapshot?.parsedData || {};
+        const normalizedProfile = userProfile?.confirmedProfile || {};
+        const experienceList = rawParsed.work?.experience || normalizedProfile.work?.experience || rawParsed.employment?.history || normalizedProfile.employment?.history || [];
+        
+        let expYears = 'N/A';
+        if (rawParsed.work?.totalYears) {
+            expYears = rawParsed.work.totalYears;
+        } else if (experienceList.length > 0) {
+            expYears = experienceList.length * 2;
+        }
+        
+        const mergedProfile = {
+            ...normalizedProfile,
+            fullName: rawParsed.identity?.fullName || rawParsed.identity?.name || normalizedProfile.fullName || 'Candidate',
+            experience: experienceList,
+            totalExperienceYears: expYears
+        };
+
         const html = buildReportHtml({
             report: reportRas.artifactJson,
             runId, generatedAt: reportRas.createdAt,
             accuracyBand: reportRas.artifactJson.accuracyBand,
-            role: userProfile?.confirmedProfile?.identity?.currentRoleTitle || 'Professional',
-            profile: userProfile?.confirmedProfile || userProfile?.originalParsedData?.structured
+            role: normalizedProfile.identity?.currentRoleTitle || normalizedProfile.currentRoleTitle || 'Professional',
+            profile: mergedProfile
         });
         const pdfBuffer = await generatePdfFromHtml(html, {
             displayHeaderFooter: true,
