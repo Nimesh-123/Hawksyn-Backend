@@ -332,6 +332,8 @@ exports.generateReport = async (req, res) => {
             expYears = parseFloat(Number(normalizedProfile.totalYears).toFixed(1));
         } else if (normalizedProfile.experienceYears) {
             expYears = parseFloat(Number(normalizedProfile.experienceYears).toFixed(1));
+        } else if (rawParsed.total_experience_years) {
+            expYears = parseFloat(Number(rawParsed.total_experience_years).toFixed(1));
         } else if (experienceList.length > 0) {
             expYears = parseFloat((experienceList.reduce((acc, r) => acc + (r.duration_months || 24), 0) / 12).toFixed(1)) || (experienceList.length * 2);
         }
@@ -636,17 +638,19 @@ exports.generateReport = async (req, res) => {
             verdict: constraintScores?.verdict || integrityPack.verdict || 'PAUSE',
             compositeScore: constraintScores?.composite || integrityPack.compositeScore || 0,
             constraintScores: constraintScores ? [
-                { constraintId: 'CONS_RO_001', constraintName: 'Role Automation Exposure (C1)',    score: constraintScores.C1, band: constraintScores.C1_band },
-                { constraintId: 'CONS_RO_002', constraintName: 'Skill Relevance and Depreciation (C2)', score: constraintScores.C2, band: constraintScores.C2_band },
-                { constraintId: 'CONS_RO_003', constraintName: 'Company and Role Stability (C3)',  score: constraintScores.C3, band: constraintScores.C3_band },
-                { constraintId: 'CONS_RO_004', constraintName: 'Financial Resilience (C4)',        score: constraintScores.C4, band: constraintScores.C4_band },
-                { constraintId: 'CONS_RO_005', constraintName: 'Transition Readiness (C5)',        score: constraintScores.C5, band: constraintScores.C5_band },
-                { constraintId: 'CONS_RO_006', constraintName: 'Learning Velocity (C6)',           score: constraintScores.C6, band: constraintScores.C6_band },
-                { constraintId: 'CONS_RO_007', constraintName: 'Internal Role Uniqueness (C7)',    score: constraintScores.C7, band: constraintScores.C7_band },
+                { constraintId: 'CONS_RO_001', constraintName: 'Role Automation Exposure (C1)',    score: constraintScores.C1, band: constraintScores.C1_band, weight: 1.5 },
+                { constraintId: 'CONS_RO_002', constraintName: 'Skill Relevance and Depreciation (C2)', score: constraintScores.C2, band: constraintScores.C2_band, weight: 1.5 },
+                { constraintId: 'CONS_RO_003', constraintName: 'Company and Role Stability (C3)',  score: constraintScores.C3, band: constraintScores.C3_band, weight: 1.0 },
+                { constraintId: 'CONS_RO_004', constraintName: 'Financial Resilience (C4)',        score: constraintScores.C4, band: constraintScores.C4_band, weight: 1.5 },
+                { constraintId: 'CONS_RO_005', constraintName: 'Transition Readiness (C5)',        score: constraintScores.C5, band: constraintScores.C5_band, weight: 1.0 },
+                { constraintId: 'CONS_RO_006', constraintName: 'Learning Velocity (C6)',           score: constraintScores.C6, band: constraintScores.C6_band, weight: 1.0 },
+                { constraintId: 'CONS_RO_007', constraintName: 'Internal Role Uniqueness (C7)',    score: constraintScores.C7, band: constraintScores.C7_band, weight: 1.5 }
             ] : (integrityPack.constraints?.results || []),
             confidence:   integrityPack.confidence || 'MEDIUM',
             accuracyScore: integrityPack.accuracy?.score || 0,
             accuracyBand:  integrityPack.accuracy?.band || 'FULL',
+            bsiScore:      bsiScore,
+            bsiBand:       bsiScore < 30 ? 'LOW' : bsiScore < 70 ? 'MEDIUM' : 'HIGH',
             redFlags:      integrityPack.redFlags?.triggered || [],
             warnings:      integrityPack.warnings || [],
             tokenUsage:    totalTokenUsage,
