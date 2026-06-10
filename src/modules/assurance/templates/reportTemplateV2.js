@@ -179,7 +179,7 @@ function buildReportHtmlV2(reportData) {
                     (data.probability_rows || []).map(r => '<tr><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.scenario || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.prob_12m || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.prob_24m || '') + '</td></tr>').join('') + '</tbody></table>';
 
             case 'SEC_RO_014':
-                return '<div style="font-weight:700;font-size:14px;color:#D97706;margin-bottom:12px">Blind Spot Index (BSI): ' + (data.bsi_score || '--') + '/100</div>' +
+                return '<div style="font-weight:700;font-size:14px;color:#D97706;margin-bottom:12px">Blind Spot Index (BSI): ' + (data.bsi_score !== undefined && data.bsi_score !== null ? data.bsi_score : '--') + '/100</div>' +
                     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
                     (data.blind_spots || []).map(b => '<div style="padding:12px;border-radius:6px;border-left:3px solid #FFC107;background:#FFFBEB"><div style="font-weight:800;font-size:10px;margin-bottom:4px;color:#111">#' + (b.blind_spot_number || '') + ' ' + (b.name || '') + '</div><div style="font-size:11px;color:#4b5563">' + innerProseToHtml(b.content || '') + '</div><div style="margin-top:6px;font-size:10px;font-weight:700;color:#92400E">LIABILITY: ' + (b.shadow_liability || '') + '</div></div>').join('') + '</div>';
 
@@ -541,6 +541,22 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
         <div style="font-size:10px;color:#E8622A;font-weight:700;margin-bottom:4px">CH 6</div>
         <div style="font-size:12px;color:#333;font-weight:600">Action Plan</div>
         <div style="font-size:11px;color:#888;margin-top:2px">Next Steps</div>
+      </div>
+    </div>
+
+    <!-- Auditor SLA Block -->
+    <div style="margin-top:24px;background:#FFF4EE;border:1px solid rgba(232,98,42,0.3);border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:16px">
+      <div style="width:42px;height:42px;background:#E8622A;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+      </div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div style="font-size:11px;letter-spacing:0.08em;color:#E8622A;text-transform:uppercase;font-weight:800">Human Auditor Assignment</div>
+          <div style="font-size:10px;color:#E8622A;font-weight:700;background:rgba(232,98,42,0.1);padding:3px 8px;border-radius:10px">VERIFIED</div>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:2px">Assigned to: ${report?.auditorName || 'Hawksyn Expert Network'}</div>
+        <div style="font-size:12px;color:#555">Auditor Brief: Reviewing algorithmic findings against real-world contextual data.</div>
+        <div style="font-size:11px;color:#888;margin-top:4px;font-weight:500">SLA: Processed &amp; Verified within 24–48 hours of intake.</div>
       </div>
     </div>
   </div>

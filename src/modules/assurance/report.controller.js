@@ -639,17 +639,17 @@ exports.generateReport = async (req, res) => {
 
         let expYears = 'N/A';
         if (extractedCV?.normalized_metrics?.total_experience_years) {
-            expYears = Math.round(extractedCV.normalized_metrics.total_experience_years);
+            expYears = parseFloat(Number(extractedCV.normalized_metrics.total_experience_years).toFixed(1));
         } else if (extractedCV?.precomputed_stats?.total_experience_months) {
-            expYears = Math.round(extractedCV.precomputed_stats.total_experience_months / 12);
+            expYears = parseFloat((extractedCV.precomputed_stats.total_experience_months / 12).toFixed(1));
         } else if (rawParsed.work?.totalYears) {
-            expYears = rawParsed.work.totalYears;
+            expYears = parseFloat(Number(rawParsed.work.totalYears).toFixed(1));
         } else if (normalizedProfile.totalYears) {
-            expYears = normalizedProfile.totalYears;
+            expYears = parseFloat(Number(normalizedProfile.totalYears).toFixed(1));
         } else if (normalizedProfile.experienceYears) {
-            expYears = normalizedProfile.experienceYears;
+            expYears = parseFloat(Number(normalizedProfile.experienceYears).toFixed(1));
         } else if (experienceList.length > 0) {
-            expYears = Math.round(experienceList.reduce((acc, r) => acc + (r.duration_months || 24), 0) / 12) || (experienceList.length * 2);
+            expYears = parseFloat((experienceList.reduce((acc, r) => acc + (r.duration_months || 24), 0) / 12).toFixed(1)) || (experienceList.length * 2);
         }
 
         const userDoc = await db.User.findById(run.userId);
