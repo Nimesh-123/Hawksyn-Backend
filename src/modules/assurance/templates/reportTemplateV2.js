@@ -617,7 +617,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
   </div>
   <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:#E8622A"></div>
 </div>
-<div style="flex:1;padding:52px 44px 0 44px;display:flex;flex-direction:column;justify-content:space-between;position:relative;z-index:2">
+<div style="flex:1;padding:52px 44px 0 44px;display:flex;flex-direction:column;justify-content:flex-start;gap:64px;position:relative;z-index:2">
   <div>
     <div style="font-size:13px;letter-spacing:0.2em;color:#E8622A;text-transform:uppercase;font-weight:700;margin-bottom:16px">
       <span style="display:inline-block;width:28px;height:2px;background:#E8622A;vertical-align:middle;margin-right:10px;border-radius:1px"></span>
@@ -1057,7 +1057,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
   </div>
   <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:#E8622A"></div>
 </div>
-<div style="flex:1;padding:52px 44px 0 44px;display:flex;flex-direction:column;justify-content:space-between;position:relative;z-index:2">
+<div style="flex:1;padding:52px 44px 0 44px;display:flex;flex-direction:column;justify-content:flex-start;gap:64px;position:relative;z-index:2">
   <div>
     <div style="font-size:13px;letter-spacing:0.2em;color:#E8622A;text-transform:uppercase;font-weight:700;margin-bottom:16px">
       <span style="display:inline-block;width:28px;height:2px;background:#E8622A;vertical-align:middle;margin-right:10px;border-radius:1px"></span>
@@ -1782,7 +1782,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
   </div>
   <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:#FF4757"></div>
 </div>
-<div style="flex:1;padding:52px 44px 0 44px;display:flex;flex-direction:column;justify-content:space-between;position:relative;z-index:2">
+<div style="flex:1;padding:52px 44px 0 44px;display:flex;flex-direction:column;justify-content:flex-start;gap:64px;position:relative;z-index:2">
   <div>
     <div style="font-size:13px;letter-spacing:0.2em;color:#FF4757;text-transform:uppercase;font-weight:700;margin-bottom:16px">
       <span style="display:inline-block;width:28px;height:2px;background:#FF4757;vertical-align:middle;margin-right:10px;border-radius:1px"></span>
@@ -2356,7 +2356,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
   </div>
   <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:#E8622A"></div>
 </div>
-<div style="flex:1;padding:52px 44px 0 44px;display:flex;flex-direction:column;justify-content:space-between;position:relative;z-index:2">
+<div style="flex:1;padding:52px 44px 0 44px;display:flex;flex-direction:column;justify-content:flex-start;gap:64px;position:relative;z-index:2">
   <div>
     <div style="font-size:13px;letter-spacing:0.2em;color:#E8622A;text-transform:uppercase;font-weight:700;margin-bottom:16px">
       <span style="display:inline-block;width:28px;height:2px;background:#E8622A;vertical-align:middle;margin-right:10px;border-radius:1px"></span>
