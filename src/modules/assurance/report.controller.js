@@ -640,17 +640,34 @@ exports.generateReport = async (req, res) => {
         let expYears = 'N/A';
         if (extractedCV?.normalized_metrics?.total_experience_years) {
             expYears = Math.round(extractedCV.normalized_metrics.total_experience_years);
+        } else if (extractedCV?.precomputed_stats?.total_experience_months) {
+            expYears = Math.round(extractedCV.precomputed_stats.total_experience_months / 12);
         } else if (rawParsed.work?.totalYears) {
             expYears = rawParsed.work.totalYears;
+        } else if (normalizedProfile.totalYears) {
+            expYears = normalizedProfile.totalYears;
+        } else if (normalizedProfile.experienceYears) {
+            expYears = normalizedProfile.experienceYears;
         } else if (experienceList.length > 0) {
-            expYears = experienceList.length * 2; // Rough estimate: 2 years per role if no data is found
+            expYears = Math.round(experienceList.reduce((acc, r) => acc + (r.duration_months || 24), 0) / 12) || (experienceList.length * 2);
+        }
+
+        const userDoc = await db.User.findById(run.userId);
+        
+        let candidateName = extractedCV?.header?.name 
+                           || extractedCV?.candidate_name 
+                           || rawParsed.identity?.fullName 
+                           || rawParsed.identity?.name 
+                           || normalizedProfile.fullName 
+                           || normalizedProfile.name;
+
+        if (!candidateName || candidateName.toLowerCase() === 'user' || candidateName.toLowerCase() === 'candidate') {
+            candidateName = userDoc?.name || userDoc?.fullName || userDoc?.email?.split('@')[0] || 'Candidate';
         }
 
         const templateProfile = {
-            fullName: rawParsed.identity?.fullName
-                   || rawParsed.identity?.name
-                   || normalizedProfile.fullName
-                   || 'Candidate',
+            fullName: candidateName,
+            name: candidateName,
 
             experience: experienceList,
             totalExperienceYears: expYears,
