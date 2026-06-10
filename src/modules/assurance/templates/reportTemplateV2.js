@@ -554,7 +554,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
           <div style="font-size:11px;letter-spacing:0.08em;color:#E8622A;text-transform:uppercase;font-weight:800">Human Auditor Assignment</div>
           <div style="font-size:10px;color:#E8622A;font-weight:700;background:rgba(232,98,42,0.1);padding:3px 8px;border-radius:10px">VERIFIED</div>
         </div>
-        <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:2px">Assigned to: ${report?.auditorName || 'Hawksyn Expert Network'}</div>
+        <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:2px">Assigned to: ${reportData?.auditorName || 'Hawksyn Expert Network'}</div>
         <div style="font-size:12px;color:#555">Auditor Brief: Reviewing algorithmic findings against real-world contextual data.</div>
         <div style="font-size:11px;color:#888;margin-top:4px;font-weight:500">SLA: Processed &amp; Verified within 24–48 hours of intake.</div>
       </div>
