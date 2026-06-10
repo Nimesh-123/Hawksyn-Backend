@@ -308,6 +308,36 @@ exports.generateReport = async (req, res) => {
         const d = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
         const recheckDate = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
 
+        // Fetch ExtractedCV for roles & compute experience before placeholders
+        const extractedCV = await db.ExtractedCV.findOne({ candidate_id: run.userId.toString() });
+        const rawParsed = run.cvSnapshot?.parsedData || {};
+
+        const experienceList = (extractedCV?.roles && extractedCV.roles.length > 0) ? extractedCV.roles.map(r => ({
+                            title: r.role_metadata?.title || 'Unknown Role',
+                            company: r.role_metadata?.company || 'Unknown Company',
+                            duration: `${r.role_metadata?.start_date || ''} to ${r.role_metadata?.end_date || 'Present'}`,
+                            description: (r.base_aeus || []).map(ae => ae.raw_text || '').join('\n'),
+                            duration_months: r.role_metadata?.duration_months || 24
+                        }))
+                     : (rawParsed.work?.experience || normalizedProfile.work?.experience || rawParsed.employment?.history || normalizedProfile.employment?.history || []);
+
+        let expYears = 'N/A';
+        if (extractedCV?.normalized_metrics?.total_experience_years) {
+            expYears = parseFloat(Number(extractedCV.normalized_metrics.total_experience_years).toFixed(1));
+        } else if (extractedCV?.precomputed_stats?.total_experience_months) {
+            expYears = parseFloat((extractedCV.precomputed_stats.total_experience_months / 12).toFixed(1));
+        } else if (rawParsed.work?.totalYears) {
+            expYears = parseFloat(Number(rawParsed.work.totalYears).toFixed(1));
+        } else if (normalizedProfile.totalYears) {
+            expYears = parseFloat(Number(normalizedProfile.totalYears).toFixed(1));
+        } else if (normalizedProfile.experienceYears) {
+            expYears = parseFloat(Number(normalizedProfile.experienceYears).toFixed(1));
+        } else if (experienceList.length > 0) {
+            expYears = parseFloat((experienceList.reduce((acc, r) => acc + (r.duration_months || 24), 0) / 12).toFixed(1)) || (experienceList.length * 2);
+        }
+
+        normalizedProfile.totalExperienceYears = expYears;
+
         const placeholders = buildPlaceholderMap(
             normalizedProfile,
             rasAnswers,
@@ -498,7 +528,8 @@ exports.generateReport = async (req, res) => {
                         "13. VERDICT ALIGNMENT: Your data projections must strictly align with the VERDICT (e.g. if PAUSE, do NOT show increasing demand/salary bands in Section 10).\\n" +
                         "14. NO 'MAYBE' FOR EMPLOYERS: In Section 18, strictly output 'YES' or 'NO' for each employer type. NEVER use 'MAYBE'.\\n" +
                         "15. HYPER-PERSONALIZATION: The Uncomfortable Truth (Section 2) MUST specifically attack a weakness found in the candidate's actual CV, Skills, or Domain. No generic statements.\\n" +
-                        "16. PLAYBOOK ALIGNMENT: Focus the analysis on the generic professional dimensions, constraints, and MCQ answers evaluated by the system. Do NOT make specific technical skills (e.g. Java, Python, coding) the center of the report. The report must evaluate general career resilience and role risks, not technical proficiency.";
+                        "16. PLAYBOOK ALIGNMENT: Focus the analysis on the generic professional dimensions, constraints, and MCQ answers evaluated by the system. Do NOT make specific technical skills (e.g. Java, Python, coding) the center of the report. The report must evaluate general career resilience and role risks, not technical proficiency.\\n" +
+                        "17. STRICT FORMATTING: NEVER output long paragraphs. All descriptive text, explanations, and insights MUST be formatted as short, concise bullet points to ensure high readability.";
 
                     let llmResult = await callLLM({
                         modelFamily: prompt.modelFamily,
@@ -623,34 +654,7 @@ exports.generateReport = async (req, res) => {
             generatedAt:   new Date()
         };
 
-        // Fetch ExtractedCV for roles
-        const extractedCV = await db.ExtractedCV.findOne({ candidate_id: run.userId.toString() });
-
-        // NAYA - DB ke exact paths pe direct jaao
-        const rawParsed = run.cvSnapshot?.parsedData || {};
-
-        const experienceList = (extractedCV?.roles && extractedCV.roles.length > 0) ? extractedCV.roles.map(r => ({
-                            title: r.role_metadata?.title || 'Unknown Role',
-                            company: r.role_metadata?.company || 'Unknown Company',
-                            duration: `${r.role_metadata?.start_date || ''} to ${r.role_metadata?.end_date || 'Present'}`,
-                            description: (r.base_aeus || []).map(ae => ae.raw_text || '').join('\n')
-                        }))
-                     : (rawParsed.work?.experience || normalizedProfile.work?.experience || rawParsed.employment?.history || normalizedProfile.employment?.history || []);
-
-        let expYears = 'N/A';
-        if (extractedCV?.normalized_metrics?.total_experience_years) {
-            expYears = parseFloat(Number(extractedCV.normalized_metrics.total_experience_years).toFixed(1));
-        } else if (extractedCV?.precomputed_stats?.total_experience_months) {
-            expYears = parseFloat((extractedCV.precomputed_stats.total_experience_months / 12).toFixed(1));
-        } else if (rawParsed.work?.totalYears) {
-            expYears = parseFloat(Number(rawParsed.work.totalYears).toFixed(1));
-        } else if (normalizedProfile.totalYears) {
-            expYears = parseFloat(Number(normalizedProfile.totalYears).toFixed(1));
-        } else if (normalizedProfile.experienceYears) {
-            expYears = parseFloat(Number(normalizedProfile.experienceYears).toFixed(1));
-        } else if (experienceList.length > 0) {
-            expYears = parseFloat((experienceList.reduce((acc, r) => acc + (r.duration_months || 24), 0) / 12).toFixed(1)) || (experienceList.length * 2);
-        }
+        // Experience logic moved up to before buildPlaceholderMap
 
         const userDoc = await db.User.findById(run.userId);
         
