@@ -728,16 +728,11 @@ exports.generateReport = async (req, res) => {
                 intentName: intentNameMap[run.intentId] || run.intentId
             });
             const pdfBuffer = await generatePdfFromHtml(html, {
-                displayHeaderFooter: true,
-                headerTemplate: '<span></span>',
-                footerTemplate: `
-                  <div style="font-family: 'Inter', sans-serif; width: 100%; display: flex; justify-content: space-between; font-size: 7.5pt; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 8px; margin: 0 15mm; box-sizing: border-box; -webkit-print-color-adjust: exact;">
-                    <span>Case #${runId} | Hawksyn AI V1</span>
-                    <span>Page <span class="pageNumber"></span></span>
-                  </div>
-                `,
-                marginBottom: '20mm',
-                marginTop: '15mm'
+                displayHeaderFooter: false,
+                marginBottom: '0px',
+                marginTop: '0px',
+                marginLeft: '0px',
+                marginRight: '0px'
             });
             const s3Result = await s3Service.uploadFile(
                 pdfBuffer,
@@ -893,16 +888,11 @@ exports.downloadReport = async (req, res) => {
         });
 
         const pdfBuffer = await generatePdfFromHtml(html, {
-            displayHeaderFooter: true,
-            headerTemplate: '<span></span>',
-            footerTemplate: `
-              <div style="font-family: 'Inter', sans-serif; width: 100%; display: flex; justify-content: space-between; font-size: 7.5pt; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 8px; margin: 0 15mm; box-sizing: border-box; -webkit-print-color-adjust: exact;">
-                <span>Case #${runId} | Hawksyn AI V1</span>
-                <span>Page <span class="pageNumber"></span></span>
-              </div>
-            `,
-            marginBottom: '20mm',
-            marginTop: '15mm'
+            displayHeaderFooter: false,
+            marginBottom: '0px',
+            marginTop: '0px',
+            marginLeft: '0px',
+            marginRight: '0px'
         });
         res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename=Report_${runId}.pdf` });
         return res.send(pdfBuffer);
@@ -951,16 +941,11 @@ exports.sendReportEmail = async (req, res) => {
             profile: mergedProfile
         });
         const pdfBuffer = await generatePdfFromHtml(html, {
-            displayHeaderFooter: true,
-            headerTemplate: '<span></span>',
-            footerTemplate: `
-              <div style="font-family: 'Inter', sans-serif; width: 100%; display: flex; justify-content: space-between; font-size: 7.5pt; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 8px; margin: 0 15mm; box-sizing: border-box; -webkit-print-color-adjust: exact;">
-                <span>Case #${runId} | Hawksyn AI V1</span>
-                <span>Page <span class="pageNumber"></span></span>
-              </div>
-            `,
-            marginBottom: '20mm',
-            marginTop: '15mm'
+            displayHeaderFooter: false,
+            marginBottom: '0px',
+            marginTop: '0px',
+            marginLeft: '0px',
+            marginRight: '0px'
         });
 
         const transporter = nodemailer.createTransport({
