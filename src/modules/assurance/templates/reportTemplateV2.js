@@ -898,8 +898,8 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Composite Formula</div>
     <div style="font-size:12px;color:#555;font-family:monospace;line-height:1.8">
       (C1×1.5 + C2×1.5 + C3×1.0 + C4×1.5 + C5×1.0 + C6×1.0 + C7×1.5) ÷ 9<br>
-      = (\${report.constraintScores[0]?.score*1.5 || 0} + \${report.constraintScores[1]?.score*1.5 || 0} + \${report.constraintScores[2]?.score*1.0 || 0} + \${report.constraintScores[3]?.score*1.5 || 0} + \${report.constraintScores[4]?.score*1.0 || 0} + \${report.constraintScores[5]?.score*1.0 || 0} + \${report.constraintScores[6]?.score*1.5 || 0}) ÷ 9<br>
-      = <strong style="color:\${getBarColor(report.compositeScore)}">\${Math.round(( (report.constraintScores[0]?.score*1.5||0) + (report.constraintScores[1]?.score*1.5||0) + (report.constraintScores[2]?.score*1.0||0) + (report.constraintScores[3]?.score*1.5||0) + (report.constraintScores[4]?.score*1.0||0) + (report.constraintScores[5]?.score*1.0||0) + (report.constraintScores[6]?.score*1.5||0) )*10)/10} ÷ 9 = \${report.compositeScore || 0} → \${report.verdict || 'UNKNOWN'}</strong>
+      = (${report.constraintScores[0]?.score*1.5 || 0} + ${report.constraintScores[1]?.score*1.5 || 0} + ${report.constraintScores[2]?.score*1.0 || 0} + ${report.constraintScores[3]?.score*1.5 || 0} + ${report.constraintScores[4]?.score*1.0 || 0} + ${report.constraintScores[5]?.score*1.0 || 0} + ${report.constraintScores[6]?.score*1.5 || 0}) ÷ 9<br>
+      = <strong style="color:${getBarColor(report.compositeScore)}">${Math.round(( (report.constraintScores[0]?.score*1.5||0) + (report.constraintScores[1]?.score*1.5||0) + (report.constraintScores[2]?.score*1.0||0) + (report.constraintScores[3]?.score*1.5||0) + (report.constraintScores[4]?.score*1.0||0) + (report.constraintScores[5]?.score*1.0||0) + (report.constraintScores[6]?.score*1.5||0) )*10)/10} ÷ 9 = ${report.compositeScore || 0} → ${report.verdict || 'UNKNOWN'}</strong>
     </div>
   </div>
 
