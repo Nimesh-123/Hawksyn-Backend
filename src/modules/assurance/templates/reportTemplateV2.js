@@ -179,7 +179,7 @@ function buildReportHtmlV2(reportData) {
                     (data.probability_rows || []).map(r => '<tr><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.scenario || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.prob_12m || '') + '</td><td style="border-bottom:1px solid #e5e7eb;padding:8px;font-size:11px">' + (r.prob_24m || '') + '</td></tr>').join('') + '</tbody></table>';
 
             case 'SEC_RO_014':
-                return '<div style="font-weight:700;font-size:14px;color:#D97706;margin-bottom:12px">Blind Spot Index (BSI): ' + (data.bsi_score !== undefined && data.bsi_score !== null ? data.bsi_score : '--') + '/100</div>' +
+                return '<div style="font-weight:700;font-size:14px;color:#D97706;margin-bottom:12px">Blind Spot Index (BSI): ' + (data.bsiScore !== undefined && data.bsiScore !== null ? data.bsiScore : (report.bsiScore !== undefined && report.bsiScore !== null ? report.bsiScore : '--')) + '/100</div>' +
                     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
                     (data.blind_spots || []).map(b => '<div style="padding:12px;border-radius:6px;border-left:3px solid #FFC107;background:#FFFBEB"><div style="font-weight:800;font-size:10px;margin-bottom:4px;color:#111">#' + (b.blind_spot_number || '') + ' ' + (b.name || '') + '</div><div style="font-size:11px;color:#4b5563">' + innerProseToHtml(b.content || '') + '</div><div style="margin-top:6px;font-size:10px;font-weight:700;color:#92400E">LIABILITY: ' + (b.shadow_liability || '') + '</div></div>').join('') + '</div>';
 
@@ -865,9 +865,8 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
 
   <div style="margin-bottom:20px">
     ${report && report.constraintScores && report.constraintScores.length > 0 ? 
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' + 
-        report.constraintScores.map((c, i) => {
-            if (i > 3) return ''; // Only show first 4 on this page
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px"><div>' + 
+        report.constraintScores.slice(0, 4).map((c) => {
             return `<div style="margin-bottom:11px">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
     <span style="font-size:12px;color:#444;font-weight:500">${c.constraintName}<span style="font-size:10px;color:#AAA;margin-left:6px">×${c.weight || '1.0'}</span></span>
@@ -880,7 +879,40 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="width:${c.score}%;height:6px;background:${getBarColor(c.score)};border-radius:3px"></div>
   </div>
 </div>`;
-        }).join('') + '</div>'
+        }).join('') + '</div><div>' + 
+        report.constraintScores.slice(4).map((c) => {
+            return `<div style="margin-bottom:11px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+    <span style="font-size:12px;color:#444;font-weight:500">${c.constraintName}<span style="font-size:10px;color:#AAA;margin-left:6px">×${c.weight || '1.0'}</span></span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:11px;font-weight:700;color:${getBarColor(c.score)}">${c.score}</span>
+      <span style="font-size:10px;color:${getBarColor(c.score)};background:${getBarColor(c.score)}18;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:0.06em">${c.band}</span>
+    </div>
+  </div>
+  <div style="height:6px;background:#EFEFEF;border-radius:3px;overflow:hidden">
+    <div style="width:${c.score}%;height:6px;background:${getBarColor(c.score)};border-radius:3px"></div>
+  </div>
+</div>`;
+        }).join('') + '</div></div>' + 
+        `
+  <!-- Composite calc -->
+  <div style="background:#F8F8F8;border:1px solid #E8E8E8;border-radius:10px;padding:16px 20px;margin-bottom:18px">
+    <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Composite Formula</div>
+    <div style="font-size:12px;color:#555;font-family:monospace;line-height:1.8">
+      (C1×1.5 + C2×1.5 + C3×1.0 + C4×1.5 + C5×1.0 + C6×1.0 + C7×1.5) ÷ 9<br>
+      = (\${report.constraintScores[0]?.score*1.5 || 0} + \${report.constraintScores[1]?.score*1.5 || 0} + \${report.constraintScores[2]?.score*1.0 || 0} + \${report.constraintScores[3]?.score*1.5 || 0} + \${report.constraintScores[4]?.score*1.0 || 0} + \${report.constraintScores[5]?.score*1.0 || 0} + \${report.constraintScores[6]?.score*1.5 || 0}) ÷ 9<br>
+      = <strong style="color:\${getBarColor(report.compositeScore)}">\${Math.round(( (report.constraintScores[0]?.score*1.5||0) + (report.constraintScores[1]?.score*1.5||0) + (report.constraintScores[2]?.score*1.0||0) + (report.constraintScores[3]?.score*1.5||0) + (report.constraintScores[4]?.score*1.0||0) + (report.constraintScores[5]?.score*1.0||0) + (report.constraintScores[6]?.score*1.5||0) )*10)/10} ÷ 9 = \${report.compositeScore || 0} → \${report.verdict || 'UNKNOWN'}</strong>
+    </div>
+  </div>
+
+  <!-- Compound risk -->
+  <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.25);border-radius:10px;padding:16px 20px;border-left:3px solid #FF4757">
+    <div style="font-size:11px;font-weight:700;color:#FF4757;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Compound Risk Pattern Detected</div>
+    <div style="font-size:13px;color:#554444;line-height:1.65">
+      \${secData['SEC_RO_002']?.compound_risk_prose || '<strong style="color:#333">Cannot Move and Cannot Stay Safely.</strong> C3 CRITICAL means your current skill set is degrading in market value. C4 CRITICAL means you have no financial buffer to absorb a forced exit. These two CRITICAL constraints operating together are not additive — they are multiplicative in impact.'}
+    </div>
+  </div>
+        `
     : '<div style="font-size:12px;color:#AAA;font-style:italic">Constraint scores pending...</div>'}
   </div>
 </div>
@@ -964,8 +996,8 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     </div>
     <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:12px;padding:18px;border-top:3px solid #555">
       <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">BSI Score</div>
-      <div style="font-size:28px;font-weight:800;color:#555;line-height:1">0</div>
-      <div style="font-size:11px;color:#888;margin-top:6px">LOW band · No self-serving bias detected</div>
+      <div style="font-size:28px;font-weight:800;color:#555;line-height:1">${report.bsiScore !== undefined ? report.bsiScore : 0}</div>
+      <div style="font-size:11px;color:#888;margin-top:6px">${report.bsiBand || 'LOW'} band · No self-serving bias detected</div>
     </div>
   </div>
 

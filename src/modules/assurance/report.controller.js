@@ -647,6 +647,8 @@ exports.generateReport = async (req, res) => {
             confidence:   integrityPack.confidence || 'MEDIUM',
             accuracyScore: integrityPack.accuracy?.score || 0,
             accuracyBand:  integrityPack.accuracy?.band || 'FULL',
+            bsiScore:      bsiScore,
+            bsiBand:       bsiScore < 30 ? 'LOW' : bsiScore < 70 ? 'MEDIUM' : 'HIGH',
             redFlags:      integrityPack.redFlags?.triggered || [],
             warnings:      integrityPack.warnings || [],
             tokenUsage:    totalTokenUsage,
