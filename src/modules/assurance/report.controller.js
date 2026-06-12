@@ -35,6 +35,7 @@ exports.generateReport = async (req, res) => {
         if (!isDisconnected) {
             console.log(`[Report-Gen] Client disconnected (${reason}) for runId: ${req.params.runId}. Process will complete in background.`);
             isDisconnected = true;
+            
         }
     };
 
@@ -321,6 +322,8 @@ exports.generateReport = async (req, res) => {
                         }))
                      : (rawParsed.work?.experience || normalizedProfile.work?.experience || rawParsed.employment?.history || normalizedProfile.employment?.history || []);
 
+        const educationList = extractedCV?.education || rawParsed.education || normalizedProfile.education || [];
+
         let expYears = 'N/A';
         if (extractedCV?.normalized_metrics?.total_experience_years) {
             expYears = parseFloat(Number(extractedCV.normalized_metrics.total_experience_years).toFixed(1));
@@ -348,6 +351,9 @@ exports.generateReport = async (req, res) => {
             signalsRas?.artifactJson || {}
         );
 
+        placeholders.WORK_HISTORY = JSON.stringify(experienceList);
+        placeholders.EDUCATION_HISTORY = JSON.stringify(educationList);
+
         if (constraintScores) {
             placeholders.C1_SCORE = constraintScores.C1; placeholders.C1_STATUS = constraintScores.C1_band;
             placeholders.C2_SCORE = constraintScores.C2; placeholders.C2_STATUS = constraintScores.C2_band;
@@ -357,6 +363,7 @@ exports.generateReport = async (req, res) => {
             placeholders.C6_SCORE = constraintScores.C6; placeholders.C6_STATUS = constraintScores.C6_band;
             placeholders.C7_SCORE = constraintScores.C7; placeholders.C7_STATUS = constraintScores.C7_band;
             placeholders.COMPOSITE_SCORE = constraintScores.composite;
+            placeholders.VERDICT = constraintScores.verdict;
             placeholders.CONSTRAINT_SCORES_ALL = JSON.stringify({
                 C1: { score: constraintScores.C1, band: constraintScores.C1_band, name: 'Role Automation Exposure' },
                 C2: { score: constraintScores.C2, band: constraintScores.C2_band, name: 'Skill Relevance' },
@@ -418,6 +425,11 @@ exports.generateReport = async (req, res) => {
             goldExamples.map((ex, i) => `[Ex ${i + 1}]\n${JSON.stringify(ex.sections?.map(s => ({ id: s.sectionId, content: s.content })) || ex, null, 2)}`).join('\n\n')
             : "";
 
+        // ─── FIX 2: Playbook Diagnostics (Pre-generation) ──────────────
+        const hasPlaybookTaxonomy = sections.some(s => s.sectionId === 'SEC_RO_027');
+        const hasPlaybookPrompt = !!promptsMap['SEC_RO_027'];
+        console.log(`[PLAYBOOK-CHECK]\ntaxonomyFound=${hasPlaybookTaxonomy}\npromptFound=${hasPlaybookPrompt}`);
+
         // 4. Batched Generation of Sections (Stable Processing)
         const reportSections = [];
         const batchSize = 3;
@@ -447,6 +459,7 @@ exports.generateReport = async (req, res) => {
 
                 const anchorCheck = checkAnchors(section, integrityPack, externalCoverage);
                 if (!anchorCheck.allCovered && section.fallbackPolicy === 'ESCALATE') {
+                    console.log(`[DEGRADED] Section=${section.sectionId} missing required evidence anchors (ESCALATE). Internal: [${anchorCheck.missingInternal.join(', ')}], External: [${anchorCheck.missingExternal.join(', ')}]`);
                     sectionOut.status = 'ESCALATED';
                     sectionOut.content = "Missing required evidence anchors.";
                     return sectionOut;
@@ -482,7 +495,7 @@ exports.generateReport = async (req, res) => {
                                 sectionPlaceholders[phKey] = String(getDeepValue(externalSignals, ref.replace('externalSignals.', '')) || 'N/A');
                             } else {
                                 const deepVal = getDeepValue(normalizedProfile, ref);
-                                sectionPlaceholders[phKey] = (deepVal !== undefined && deepVal !== null) ? String(deepVal) : (placeholders[ref] || 'N/A');
+                                sectionPlaceholders[phKey] = (deepVal !== undefined && deepVal !== null) ? String(deepVal) : (placeholders[ref] || sectionPlaceholders[phKey] || 'N/A');
                             }
                         }
                     }
@@ -494,20 +507,124 @@ exports.generateReport = async (req, res) => {
 
                     const ostContract = ostMap[section.sectionId]?.llmJsonContract;
 
-                    // Clean the evidence package so the LLM doesn't see internal identifiers
-                    const cleanEvidence = { ...placeholders };
+                    // ─── FIX 1: Clean evidence package with WHITELIST protection ─────────
+                    // PROTECTED keys that MUST survive into the LLM payload:
+                    //   Q1_ANSWER–Q10_ANSWER, C1_SCORE–C7_SCORE, C1_STATUS–C7_STATUS,
+                    //   CONSTRAINT_SCORES_ALL, CONTRADICTION_LIST_WITH_SEVERITY,
+                    //   CONTRADICTION_COUNT, COMPOSITE_SCORE, VERDICT, CONFIDENCE,
+                    //   DRO_BEHAVIOURAL_RISK_LIST, BSI_SCORE, BSI_PRE_COMPUTED
+                    const PROTECTED_KEYS = new Set([
+                        'Q1_ANSWER','Q2_ANSWER','Q3_ANSWER','Q4_ANSWER','Q5_ANSWER',
+                        'Q6_ANSWER','Q7_ANSWER','Q8_ANSWER','Q9_ANSWER','Q10_ANSWER',
+                        'C1_SCORE','C2_SCORE','C3_SCORE','C4_SCORE','C5_SCORE','C6_SCORE','C7_SCORE',
+                        'C1_STATUS','C2_STATUS','C3_STATUS','C4_STATUS','C5_STATUS','C6_STATUS','C7_STATUS',
+                        'CONSTRAINT_SCORES_ALL','COMPOSITE_SCORE','VERDICT','CONFIDENCE','CONFIDENCE_BAND',
+                        'CONTRADICTION_LIST_WITH_SEVERITY','CONTRADICTION_COUNT',
+                        'DRO_BEHAVIOURAL_RISK_LIST','BSI_SCORE','BSI_PRE_COMPUTED',
+                        'DOMAIN','CV_INDUSTRY','INDUSTRY','CURRENT_ROLE','CV_ROLE_TITLE',
+                        'EXPERIENCE_YEARS','YEARS_IN_DOMAIN','SKILLS','CV_SKILLS_CURRENT',
+                        'CURRENT_COMPANY','CV_COMPANY','CANDIDATE_NAME',
+                        'RED_FLAGS','RED_FLAG_LIST','CONTRADICTIONS','CONTRADICTION_LIST',
+                        'ACCURACY_SCORE','ACCURACY_BAND','TOTAL_PENALTY',
+                        'SIGNAL_DATA_QUALITY','ANALYST_NOTE','EXTERNAL_SIGNALS','SIGNALS','SIGNAL_COUNT',
+                        'LABOUR_MARKET_SIGNAL','INDUSTRY_SIGNAL','COMPANY_SIGNAL','AI_DEMAND_SIGNAL','REGULATORY_SIGNAL',
+                        'RECHECK_DATE','RUN_DATE','INTENT','ACTIVE_INTENT',
+                        'COVERAGE_ANCHOR_STATUS','INTENT_HORIZON',
+                        'AI_DISPLACEMENT_RISK','AI_DISPLACEMENT_RATIONALE','AUTOMATION_OVERLAP',
+                        'WORK_HISTORY', 'EDUCATION_HISTORY'
+                    ]);
+
+                    const cleanEvidence = { ...sectionPlaceholders };
                     for (const key of Object.keys(cleanEvidence)) {
+                        // Skip protected keys — these MUST reach the LLM
+                        if (PROTECTED_KEYS.has(key)) continue;
+
+                        // Delete internal system identifiers that leak raw IDs
                         if (
-                            /^(EST|CONTR|RF|DRO|CONS|Q|C\d)_/i.test(key) ||
-                            key.endsWith('_VALUE') ||
-                            key.endsWith('_RATIONALE') ||
-                            key.endsWith('_CONFIDENCE') ||
+                            /^(EST_|CONTR_|RF_|DRO_RO_|CONS_RO_|Q_RO_)/i.test(key) ||
                             key === 'CONFIRMED_PROFILE' ||
-                            key === 'CV_AEUS' ||
-                            key === 'CONSTRAINT_SCORES_ALL'
+                            key === 'CV_AEUS'
                         ) {
                             delete cleanEvidence[key];
                         }
+                    }
+
+                    // ─── FIX 3: Enhanced debug logging before LLM call ───────────────────
+                    console.log(`[LLM-PRE] Section=${section.sectionId} | PRIMARY CALL`, {
+                        domain: cleanEvidence.DOMAIN,
+                        currentRole: cleanEvidence.CURRENT_ROLE,
+                        company: cleanEvidence.CURRENT_COMPANY,
+                        expYears: cleanEvidence.EXPERIENCE_YEARS,
+                        verdict: cleanEvidence.VERDICT,
+                        compositeScore: cleanEvidence.COMPOSITE_SCORE,
+                        confidence: cleanEvidence.CONFIDENCE,
+                        contradictionCount: cleanEvidence.CONTRADICTION_COUNT,
+                        contradictionData: cleanEvidence.CONTRADICTION_LIST_WITH_SEVERITY ? 'PRESENT' : 'MISSING',
+                        constraintScoresAll: cleanEvidence.CONSTRAINT_SCORES_ALL ? 'PRESENT' : 'MISSING',
+                        droList: cleanEvidence.DRO_BEHAVIOURAL_RISK_LIST ? 'PRESENT' : 'MISSING',
+                        bsiScore: cleanEvidence.BSI_SCORE,
+                        q1: cleanEvidence.Q1_ANSWER,
+                        q2: cleanEvidence.Q2_ANSWER,
+                        q3: cleanEvidence.Q3_ANSWER,
+                        q4: cleanEvidence.Q4_ANSWER,
+                        q5: cleanEvidence.Q5_ANSWER,
+                        q6: cleanEvidence.Q6_ANSWER,
+                        q7: cleanEvidence.Q7_ANSWER,
+                        q8: cleanEvidence.Q8_ANSWER,
+                        q9: cleanEvidence.Q9_ANSWER,
+                        q10: cleanEvidence.Q10_ANSWER,
+                        c1: cleanEvidence.C1_SCORE,
+                        c2: cleanEvidence.C2_SCORE,
+                        c3: cleanEvidence.C3_SCORE,
+                        c4: cleanEvidence.C4_SCORE,
+                        c5: cleanEvidence.C5_SCORE,
+                        c6: cleanEvidence.C6_SCORE,
+                        c7: cleanEvidence.C7_SCORE,
+                        evidenceKeyCount: Object.keys(cleanEvidence).length,
+                        protectedKeysPresent: [...PROTECTED_KEYS].filter(k => cleanEvidence[k] !== undefined).length
+                    });
+
+                    // ─── FIX 4: Strict validation for critical placeholders ──────────────
+                    const missingCritical = [];
+                    const degradedCritical = [];
+                    if (!cleanEvidence.DOMAIN || cleanEvidence.DOMAIN === 'Not provided' || cleanEvidence.DOMAIN === 'UNKNOWN') missingCritical.push('DOMAIN');
+                    if (!cleanEvidence.CURRENT_ROLE || cleanEvidence.CURRENT_ROLE === 'Not provided') missingCritical.push('CURRENT_ROLE');
+                    if (!cleanEvidence.VERDICT) missingCritical.push('VERDICT');
+                    if (!cleanEvidence.COMPOSITE_SCORE || cleanEvidence.COMPOSITE_SCORE === '0') degradedCritical.push('COMPOSITE_SCORE=0');
+                    if (!cleanEvidence.CONSTRAINT_SCORES_ALL || String(cleanEvidence.CONSTRAINT_SCORES_ALL).includes('UNKNOWN')) missingCritical.push('CONSTRAINT_SCORES_ALL');
+                    if (!cleanEvidence.Q1_ANSWER || cleanEvidence.Q1_ANSWER === 'Not answered') missingCritical.push('Q1_ANSWER');
+                    if (!cleanEvidence.Q2_ANSWER || cleanEvidence.Q2_ANSWER === 'Not answered') degradedCritical.push('Q2_ANSWER');
+                    if (!cleanEvidence.Q5_ANSWER || cleanEvidence.Q5_ANSWER === 'Not answered') degradedCritical.push('Q5_ANSWER');
+                    if (!cleanEvidence.C1_SCORE) missingCritical.push('C1_SCORE');
+                    if (!cleanEvidence.CONTRADICTION_LIST_WITH_SEVERITY) degradedCritical.push('CONTRADICTION_LIST_WITH_SEVERITY');
+                    if (!cleanEvidence.DRO_BEHAVIOURAL_RISK_LIST) degradedCritical.push('DRO_BEHAVIOURAL_RISK_LIST');
+                    if (missingCritical.length > 0) {
+                        console.error(`[LLM-CRITICAL] Section=${section.sectionId} MISSING CRITICAL DATA: ${missingCritical.join(', ')}`);
+                    }
+                    if (degradedCritical.length > 0) {
+                        console.warn(`[LLM-WARN] Section=${section.sectionId} DEGRADED DATA: ${degradedCritical.join(', ')}`);
+                    }
+
+                    // ─── PHASE 3: PLACEHOLDER-MISSING Audit ──────────────
+                    const unresolvedPlaceholders = [];
+                    const matches = userPrompt.match(/\{\{[A-Za-z0-9_]+\}\}/g);
+                    if (matches) {
+                        matches.forEach(m => {
+                            if (!unresolvedPlaceholders.includes(m)) unresolvedPlaceholders.push(m);
+                        });
+                    }
+
+                    const placeholderAuditMissing = [];
+                    const auditKeys = ['DOMAIN', 'CURRENT_ROLE', 'CURRENT_COMPANY', 'COMPOSITE_SCORE', 'VERDICT', 'CONSTRAINT_SCORES_ALL', 'Q1_ANSWER', 'Q2_ANSWER', 'Q3_ANSWER', 'Q4_ANSWER', 'Q5_ANSWER', 'Q6_ANSWER', 'Q7_ANSWER', 'Q8_ANSWER', 'Q9_ANSWER', 'Q10_ANSWER', 'C1_SCORE', 'C2_SCORE', 'C3_SCORE', 'C4_SCORE', 'C5_SCORE', 'C6_SCORE', 'C7_SCORE'];
+                    for (const key of auditKeys) {
+                        const val = cleanEvidence[key];
+                        if (val === undefined || val === null || val === 'N/A' || val === 'Not provided' || String(val).toUpperCase() === 'UNKNOWN') {
+                            placeholderAuditMissing.push(key);
+                        }
+                    }
+
+                    if (unresolvedPlaceholders.length > 0 || placeholderAuditMissing.length > 0) {
+                        console.log(`[PLACEHOLDER-MISSING]\nsection=${section.sectionId}\nunresolved=[${unresolvedPlaceholders.join(', ')}]\nmissing=[${placeholderAuditMissing.join(', ')}]`);
                     }
 
                     const systemPromptBase = (prompt.systemPrompt || '') +
@@ -530,8 +647,15 @@ exports.generateReport = async (req, res) => {
                         "13. VERDICT ALIGNMENT: Your data projections must strictly align with the VERDICT (e.g. if PAUSE, do NOT show increasing demand/salary bands in Section 10).\\n" +
                         "14. NO 'MAYBE' FOR EMPLOYERS: In Section 18, strictly output 'YES' or 'NO' for each employer type. NEVER use 'MAYBE'.\\n" +
                         "15. HYPER-PERSONALIZATION: The Uncomfortable Truth (Section 2) MUST specifically attack a weakness found in the candidate's actual CV, Skills, or Domain. No generic statements.\\n" +
-                        "16. PLAYBOOK ALIGNMENT: Focus the analysis on the generic professional dimensions, constraints, and MCQ answers evaluated by the system. Do NOT make specific technical skills (e.g. Java, Python, coding) the center of the report. The report must evaluate general career resilience and role risks, not technical proficiency.\\n" +
-                        "17. STRICT FORMATTING: NEVER output long paragraphs. All descriptive text, explanations, and insights MUST be formatted as short, concise bullet points to ensure high readability.";
+                        "17. STRICT FORMATTING: NEVER output long paragraphs. All descriptive text, explanations, and insights MUST be formatted as short, concise bullet points to ensure high readability.\n" +
+                        "18. STRICT MATHEMATICAL AUTHORITY: You are a reporter, not an evaluator. The numerical scores, bands, contradictions, BSI values, accuracy values and verdicts provided in the EVIDENCE PACKAGE are absolute ground truth. You may explain what the evidence means, but you must NEVER recalculate, reinterpret, override, invent, estimate, or derive alternative scores from raw answers.\n" +
+                        "19. CONSTRAINTS ARE LOCKED: Always use the exact score and band from CONSTRAINT_SCORES_ALL. If Financial Resilience is 75/MODERATE then it must remain 75/MODERATE. Never convert it to 0, CRITICAL, HIGH, or LOW unless explicitly provided.\n" +
+                        "20. VERDICT AND ACCURACY ARE FINAL: VERDICT, ACCURACY_SCORE, and ACCURACY_BAND are authoritative. Never contradict them or generate alternative verdicts.\n" +
+                        "21. CONTRADICTION ENFORCEMENT: If CONTRADICTION_COUNT > 0, you MUST report the contradictions from CONTRADICTION_LIST_WITH_SEVERITY. You are forbidden from writing 'No contradictions detected' when contradictions exist.\n" +
+                        "22. BSI ENFORCEMENT: BSI_SCORE and BSI_BAND are authoritative. Do not contradict them. If BSI indicates a severe blind spot, do not state 'no bias', 'no blind spots', or 'no behavioural risks'.\n" +
+                        "23. UNKNOWN SUPPRESSION: If any value equals UNKNOWN, N/A, 'Not provided', or 'Not answered', silently omit the statement. Do not print those values, and do not fabricate replacement values. If a QX_ANSWER is 'Not answered', do NOT guess or fabricate what the question was about (e.g., do not assume it was about financial runway).\n" +
+                        "24. SCHEMA MAPPING RULES: If the JSON schema asks for 'dac_score', you MUST provide the exact value of COMPOSITE_SCORE from the evidence package. Never output the BSI score or marketability score as the dac_score.\n" +
+                        "25. STRICT EMPTY ARRAYS: If CONTRADICTION_COUNT is 0, the `contradictions` array MUST be `[]`. If BSI_SCORE is 0, the `blind_spots` array MUST be `[]`. If DRO_BEHAVIOURAL_RISK_LIST is empty or `[]`, the `red_flags` array MUST be `[]`. Do NOT invent red flags, contradictions, or blind spots if they are not explicitly provided in the EVIDENCE PACKAGE.";
 
                     let llmResult = await callLLM({
                         modelFamily: prompt.modelFamily,
@@ -546,6 +670,12 @@ exports.generateReport = async (req, res) => {
                     if (playbook && playbook.adversarialMirrorEnabled) {
                         const challengerPrompt = `Challenge the following claims using the provided EVIDENCE PACKAGE. Identify logical gaps, contradictions, or over-optimistic conclusions.\n\nPRIMARY TEXT:\n${llmResult.text}`;
 
+                        // ─── FIX 3: Debug log for adversarial LLM call ───────────────────
+                        console.log(`[LLM-PRE] Section=${section.sectionId} | ADVERSARIAL CALL`, {
+                            primaryTextLength: llmResult.text?.length || 0,
+                            temperature: 0.5
+                        });
+
                         const challengerResult = await callLLM({
                             modelFamily: prompt.modelFamily,
                             systemPrompt: systemPromptBase + "\n\nROLE: You are the Adversarial Challenger.",
@@ -555,6 +685,13 @@ exports.generateReport = async (req, res) => {
                         });
 
                         const mergerPrompt = `Merge the PRIMARY DRAFT and the ADVERSARIAL CRITIQUE into a professional, highly balanced final section output. Ensure it reads cohesively.\n\nPRIMARY DRAFT:\n${llmResult.text}\n\nADVERSARIAL CRITIQUE:\n${challengerResult.text}`;
+
+                        // ─── FIX 3: Debug log for merger LLM call ────────────────────────
+                        console.log(`[LLM-PRE] Section=${section.sectionId} | MERGER CALL`, {
+                            primaryTextLength: llmResult.text?.length || 0,
+                            challengerTextLength: challengerResult.text?.length || 0,
+                            temperature: 0.3
+                        });
 
                         const mergerResult = await callLLM({
                             modelFamily: prompt.modelFamily,
@@ -602,8 +739,60 @@ exports.generateReport = async (req, res) => {
                         .replace(/Generation failed\./gi, '[Section pending human auditor review]')
                         .trim();
 
-                    sectionOut.content = applyCertaintyCap(sanitizedText, prompt.certaintyCapPercent || 85, integrityPack.accuracy?.band);
-                    sectionOut.status = anchorCheck.allCovered ? 'COMPLETE' : 'DEGRADED';
+                    // ─── FIX 1, 3, 4, 7: Post-LLM Validation & Normalization ───
+                    let finalContent = sanitizedText;
+                    let isEmptyContent = !finalContent || finalContent === '' || finalContent.includes('[Section pending human auditor review]');
+
+                    if (finalContent.startsWith('{')) {
+                        try {
+                            let parsed = JSON.parse(finalContent);
+                            
+                            // Fix 1: Normalize JSON fields
+                            if (parsed.sectionid) { parsed.sectionId = parsed.sectionid; delete parsed.sectionid; }
+                            if (parsed.sectorrows) { parsed.sector_rows = parsed.sectorrows; delete parsed.sectorrows; }
+                            if (parsed.taskrows) { parsed.task_rows = parsed.taskrows; delete parsed.taskrows; }
+                            if (parsed.chartdata) { parsed.chart_data = parsed.chartdata; delete parsed.chartdata; }
+                            if (parsed.fitrows) { parsed.fit_rows = parsed.fitrows; delete parsed.fitrows; }
+                            if (parsed.recovery_plan) { parsed.recovery_steps = parsed.recovery_plan; delete parsed.recovery_plan; }
+
+                            // Fix 3: BSI Validation Overwrite
+                            if (section.sectionId === 'SEC_RO_014') {
+                                parsed.bsiScore = bsiScore;
+                            }
+
+                            // Check emptiness
+                            const values = Object.values(parsed);
+                            if (values.length === 0 || values.every(v => v === null || v === '' || (Array.isArray(v) && v.length === 0))) {
+                                isEmptyContent = true;
+                            }
+
+                            finalContent = JSON.stringify(parsed);
+                        } catch (e) {
+                            console.warn(`[JSON-PARSE-WARN] Section=${section.sectionId} returned malformed JSON. Preserving raw string.`);
+                        }
+                    }
+
+                    // Fix 4: DRO Validation
+                    if (['SEC_RO_008', 'SEC_RO_013', 'SEC_RO_014'].includes(section.sectionId) && behaviouralDROs.length > 0) {
+                        const contentUpper = finalContent.toUpperCase();
+                        const missingDROs = behaviouralDROs.filter(dro => !contentUpper.includes(String(dro.name).toUpperCase()));
+                        if (missingDROs.length > 0) {
+                            console.warn(`[DRO-MISSING] Section=${section.sectionId} is missing activated DROs: ${missingDROs.map(d=>d.name).join(', ')}`);
+                        }
+                    }
+
+                    sectionOut.content = applyCertaintyCap(finalContent, prompt.certaintyCapPercent || 85, integrityPack.accuracy?.band);
+                    
+                    // Fix 6 & 7: Status assignment
+                    if (isEmptyContent) {
+                        console.warn(`[EMPTY-SECTION] Section=${section.sectionId} generated empty or fallback content.`);
+                        sectionOut.status = 'INCOMPLETE';
+                    } else if (!anchorCheck.allCovered) {
+                        console.log(`[DEGRADED] Section=${section.sectionId} missing required evidence anchors. Internal: [${anchorCheck.missingInternal.join(', ')}], External: [${anchorCheck.missingExternal.join(', ')}]`);
+                        sectionOut.status = 'DEGRADED';
+                    } else {
+                        sectionOut.status = 'COMPLETE';
+                    }
                     sectionOut.tokenUsage = llmResult.usageMetadata;
                     sectionOut.duration = llmResult.duration;
                     return sectionOut;
@@ -617,6 +806,22 @@ exports.generateReport = async (req, res) => {
 
             const batchResults = await Promise.all(batchPromises);
             reportSections.push(...batchResults);
+        }
+
+        // ─── FIX 2: Playbook Diagnostics (Post-generation) ──────────────
+        const playbookSec = reportSections.find(s => s.sectionId === 'SEC_RO_027');
+        console.log(`[PLAYBOOK-CHECK]\ngenerated=${!!playbookSec}\nsaved=${!!playbookSec}\nrendered=Pending template`);
+
+        // ─── FIX 8: Final Quality Gate ──────────────
+        const finalSectionIds = new Set();
+        for (const s of reportSections) {
+            if (finalSectionIds.has(s.sectionId)) console.warn(`[QUALITY-GATE] Duplicate section detected: ${s.sectionId}`);
+            finalSectionIds.add(s.sectionId);
+
+            const text = String(s.content || '');
+            if (/\{\{[A-Za-z0-9_]+\}\}/.test(text)) console.warn(`[QUALITY-GATE] Unresolved placeholders in ${s.sectionId}`);
+            if (!text || text.trim() === '') console.warn(`[QUALITY-GATE] Empty content in ${s.sectionId}`);
+            if (/\b(EST_[A-Z0-9_]+|CONTR_RO_[0-9]+|DRO_RO_[0-9]+|CONS_RO_[0-9]+)\b/.test(text)) console.warn(`[QUALITY-GATE] Internal ID leak in ${s.sectionId}`);
         }
 
 

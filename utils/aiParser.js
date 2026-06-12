@@ -225,7 +225,9 @@ const mapNewPipelineToHawksyn = (inputDoc) => {
                 seniorityLevel: seniorityInference?.title || (seniorityInference?.inferred_claim ? seniorityInference.inferred_claim.split(':')[0] : "") || stats.seniority_level || "",
                 totalExperienceYears: stats.total_experience_years || 0,
                 employmentStatus: stats.employment_status || "",
+                industry: stats.industry || "",
                 domainIndicator: stats.domain_indicator || "",
+                sector: stats.sector || "",
                 highestEducationLevel: stats.highest_education_level || "",
                 seniorityConfidence: 0.9,
                 senioritySummary
