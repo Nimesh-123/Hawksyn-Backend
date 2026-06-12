@@ -29,21 +29,20 @@ const PLAYBOOK_MAPPING = {
     '18_RCM_(Risk_Map)': { model: 'RiskConstraintMap', idField: 'rcmId' },
 
     // 4. Reporting & UI
-    // '19_CONF_(Badges)': { model: 'VerdictLogicTable', idField: 'ruleId' }, // TODO: Lacks pivot logic, causes VLT validation failure
-    // '20_IM_(Threshold_Mods)': { model: 'AccuracyScoringPolicy', idField: 'intentId' }, // TODO: Lacks pivot logic
     '21_DAST_(Report_Sections)': { model: 'DecisionAssuranceSections', idField: 'sectionId' },
     '22_PCR_(Prompt_Registry)': { model: 'PromptConfigRegistry', idField: 'promptId' },
     '23_OST_(Objective_Scoring)': { model: 'ObjectiveScoringTaxonomy', idField: 'schemaId' },
     '24_DPKT_(Placeholders)': { model: 'DataPatternKeyTaxonomy', idField: 'patternKeyId' },
     '25_EST_(External_Signals)': { model: 'ExternalSignalTaxonomy', idField: 'signalId' },
-    // '26_REMED_(Remediation)': { model: 'RedFlagTaxonomy', idField: 'remediationCode' },
+    '26_GR_(Guardrails)': { model: 'GuardrailRegistry', idField: 'grRuleId' },
     
-    'Questions_1': { model: 'MandatoryObjectiveInput', idField: 'moiId' },
-    'Questions_2': { model: 'MoiQuestionMapping', idField: 'moiqmId' },
-    'Questions_3': { model: 'DependencyRules', idField: 'dependencyRuleId' },
-    'Constraints_1': { model: 'ConstraintQuestionMapping', idField: 'cqmtId' },
-    'Constraints_2': { model: 'Constraints', idField: 'constraintId' },
-    'Constraints_3': { model: 'DependencyRules', idField: 'dependencyRuleId' }
+    '27_MOI_(Mandatory_Inputs)': { model: 'MandatoryObjectiveInput', idField: 'moiId' },
+    '28_MQM_(MoiQuestionMapping)': { model: 'MoiQuestionMapping', idField: 'moiqmId' },
+    '29_CAT_(CoverageRequirements)': { model: 'CoverageRequirements', idField: 'crtId' },
+    '30_IER_(Integrity_Rules)': { model: 'IntegrityEligibilityRules', idField: 'ierId' },
+    '31_ELR_(Eval_Registry)': { model: 'EvaluationLibraryRegistry', idField: 'elrId' },
+    '32_WARN_(Warnings)': { model: 'Warnings', idField: 'warningId' },
+    '33_SRC_(SourceRegistry)': { model: 'SourceRegistry', idField: 'sourceId' }
 };
 
 /**

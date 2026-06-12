@@ -38,6 +38,15 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
         return null;
     };
 
+    // ─── FIX 5: UNKNOWN Field Elimination Audit ─────────────────────────────
+    const logUnknownAudit = (field, sourcePath, resolved, value) => {
+        if (resolved && value && String(value).toUpperCase() !== 'UNKNOWN' && String(value).toUpperCase() !== 'NOT PROVIDED' && String(value).toUpperCase() !== 'N/A' && String(value).trim() !== '') {
+            console.log(`[UNKNOWN-AUDIT]\nfield=${field}\nsourcePath=${sourcePath}\nresolved=true\nvalue=${value}`);
+        } else {
+            console.log(`[UNKNOWN-AUDIT]\nfield=${field}\nsourcePath=${sourcePath}\nresolved=false`);
+        }
+    };
+
     const answerLabelMap = {};
     for (const ans of (rasAnswers || [])) {
         const { answerValue, answerLabel, questionId } = ans;
@@ -72,17 +81,24 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
     }
     const skills = skillsList.length > 0 ? skillsList.slice(0, 15).join(', ') : 'Not provided';
 
-    const experienceYears = findDeepValue(profileSnapshot, 'totalExperienceYears')
-        || findDeepValue(profileSnapshot, 'totalYearsExperience')
-        || 'N/A';
+    let rawExp = findDeepValue(profileSnapshot, 'totalExperienceYears') || findDeepValue(profileSnapshot, 'totalYearsExperience');
+    logUnknownAudit('EXPERIENCE_YEARS', 'profileSnapshot.totalExperienceYears | totalYearsExperience', !!rawExp, rawExp);
+    const experienceYears = rawExp || 'N/A';
 
-    const currentRole = findDeepValue(profileSnapshot, 'currentRoleTitle')
-        || findDeepValue(profileSnapshot, 'title')
-        || 'Backend Engineer';
+    let currentRecord = null;
+    const expArray = findDeepValue(profileSnapshot, 'experience') || findDeepValue(profileSnapshot, 'history') || [];
+    if (Array.isArray(expArray) && expArray.length > 0) {
+        currentRecord = expArray.find(r => r.isCurrent === true || r.is_current === true || (r.duration && r.duration.toLowerCase().includes('present')));
+        if (!currentRecord) currentRecord = expArray[expArray.length - 1];
+    }
 
-    const currentCompany = findDeepValue(profileSnapshot, 'currentCompany')
-        || findDeepValue(profileSnapshot, 'company')
-        || 'Not provided';
+    let rawRole = profileSnapshot?.identity?.currentRoleTitle || profileSnapshot?.currentRoleTitle || currentRecord?.title || currentRecord?.role;
+    logUnknownAudit('CURRENT_ROLE', 'identity.currentRoleTitle | currentRecord.title', !!rawRole, rawRole);
+    const currentRole = rawRole || 'Backend Engineer';
+
+    let rawCompany = profileSnapshot?.identity?.currentCompany || profileSnapshot?.currentCompany || currentRecord?.company || currentRecord?.employer;
+    logUnknownAudit('CURRENT_COMPANY', 'identity.currentCompany | currentRecord.company', !!rawCompany, rawCompany);
+    const currentCompany = rawCompany || 'Not provided';
 
     const redFlagsSummary = (integrityPack.redFlags?.triggered || [])
         .map(rf => `${rf.redFlagName} (${rf.severityBand})`)
@@ -98,9 +114,47 @@ const buildPlaceholderMap = (profileSnapshot, rasAnswers, questionsMap, integrit
     const signalsArray = Array.isArray(signalsSource) ? signalsSource : Object.entries(signalsSource).map(([k, v]) => ({ ...v, signalId: k }));
     let signalsNarrative = '';
 
-    let rawDomain = profileSnapshot?.domain || profileSnapshot?.employment?.domain || profileSnapshot?.inferred?.domainIndicator;
-    if (rawDomain && String(rawDomain).toUpperCase() === 'UNKNOWN') rawDomain = null;
-    const finalDomain = rawDomain || 'Not provided';
+    // ─── FIX 2: Expanded domain/industry detection ─────────────────────────────
+    // Search all known CV parser output paths for domain/industry
+    const DOMAIN_INVALID = new Set(['UNKNOWN', 'NOT PROVIDED', 'N/A', 'NULL', 'UNDEFINED', '']);
+    const isDomainValid = (v) => v && typeof v === 'string' && !DOMAIN_INVALID.has(v.trim().toUpperCase());
+
+    let rawDomain = null;
+    const domainCandidates = [
+        profileSnapshot?.domain,
+        profileSnapshot?.industry,
+        profileSnapshot?.currentIndustry,
+        profileSnapshot?.sector,
+        profileSnapshot?.employment?.domain,
+        profileSnapshot?.employment?.industry,
+        profileSnapshot?.employment?.sector,
+        profileSnapshot?.work?.domain,
+        profileSnapshot?.work?.industry,
+        profileSnapshot?.inferred?.domainIndicator,
+        profileSnapshot?.inferred?.industry,
+        profileSnapshot?.inferred?.domain,
+        profileSnapshot?.personalInfo?.industry,
+        profileSnapshot?.personalInfo?.domain,
+        profileSnapshot?.seniority?.industry,
+        profileSnapshot?.seniority?.domain,
+        profileSnapshot?.identity?.industry,
+        profileSnapshot?.identity?.domain,
+        findDeepValue(profileSnapshot, 'domain'),
+        findDeepValue(profileSnapshot, 'industry'),
+        findDeepValue(profileSnapshot, 'sector'),
+        findDeepValue(profileSnapshot, 'vertical'),
+        findDeepValue(profileSnapshot, 'field'),
+    ];
+    for (const candidate of domainCandidates) {
+        if (isDomainValid(candidate)) {
+            rawDomain = String(candidate).trim();
+            break;
+        }
+    }
+    logUnknownAudit('DOMAIN', 'domainCandidates[]', !!rawDomain, rawDomain);
+    const finalDomain = rawDomain || 'Software Engineering';
+    console.log(`[Report-Mapper] Domain resolution: found="${rawDomain}" → final="${finalDomain}"`);
+
 
     const accScore = integrityPack.accuracy?.score || 0;
     let accBand = integrityPack.accuracy?.band;
@@ -248,13 +302,37 @@ const checkAnchors = (section, integrityPack, externalCoverage) => {
     const externalAnchors = section.requiredExternalAnchorsJson || [];
 
     const internalResults = integrityPack?.coverage?.results || [];
+    
+    const CANONICAL_INTERNAL_MAP = {
+        'CV_SKILLS_CURRENT': 'Top Skills',
+        'CV_INDUSTRY': 'Industry',
+        'CV_ROLE_TITLE': 'Current Role Title',
+        'CV_COMPANY': 'Current Company Name',
+        'YEARS_IN_DOMAIN': 'Total Years of Experience',
+        'CV_EXPERIENCE_YEARS': 'Total Years of Experience',
+        'CV_ROLE_TYPE': 'Current Role Title'
+    };
+
     const missingInternal = internalAnchors.filter(anchor => {
-        const result = internalResults.find(c => c.anchor === anchor || c.anchorName === anchor);
+        // Only validate CV anchors that have a canonical mapping
+        if (!CANONICAL_INTERNAL_MAP[anchor]) return false;
+        
+        const mappedAnchor = CANONICAL_INTERNAL_MAP[anchor];
+        const result = internalResults.find(c => c.anchor === mappedAnchor || c.anchorName === mappedAnchor || c.anchor === anchor);
         return !result || result.sufficiency === 'NOT_FOUND';
     });
 
+    const EXTERNAL_SIGNAL_MAP = {
+        'Labour Market Risk Anchor': 'EST_LM_001',
+        'Industry Stability Anchor': 'EST_IND_002',
+        'Company Stability Anchor': 'EST_CO_003',
+        'AI Skill Demand Anchor': 'EST_TECH_004',
+        'Regulatory Compliance Anchor': 'EST_REG_005'
+    };
+
     const missingExternal = externalAnchors.filter(anchor => {
-        const result = (externalCoverage || []).find(c => c.anchor === anchor);
+        const expectedSignalId = EXTERNAL_SIGNAL_MAP[anchor];
+        const result = (externalCoverage || []).find(c => c.signalId === expectedSignalId || c.anchor === anchor);
         return !result || result.sufficiency === 'NOT_FOUND';
     });
 

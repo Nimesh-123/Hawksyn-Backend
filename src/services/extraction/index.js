@@ -581,6 +581,12 @@ Check 8 — Domain depth
 If > 8 distinct domain terms used appropriately across roles:
   -> I-AEU capability: domain depth
 
+Check 9 — Domain Inference
+Infer the industry, domain_indicator, and sector from the candidate's roles, company names, and projects.
+Example 1: Backend Engineer + SaaS Company -> industry = Technology, domain_indicator = SaaS
+Example 2: IT Services Firm -> industry = IT Services
+Example 3: Banking Client Projects -> sector = Financial Services
+
 ## I-AEU RULES
 Max 12 I-AEUs total. Bucket limits:
   capability: 3   seniority: 2   behavior: 2   risk: 3   consistency: 2
@@ -602,6 +608,11 @@ If > 30% of supporting B-AEUs have any of:
 ## OUTPUT SCHEMA
 Return JSON with this structure:
 {
+  "inferred_profile": {
+    "industry": "<industry>",
+    "domain_indicator": "<domain_indicator>",
+    "sector": "<sector>"
+  },
   "inference_aeus": [
     {
       "iaeu_id": "I_CAP_001",           (format: I_<TYPE>_<NNN>)
@@ -1023,6 +1034,9 @@ async function runExtractionPipeline(candidateId, rawText, db) {
       avg_tenure_months: repairedRoles.length > 0 ? totalMonths / repairedRoles.length : 0,
       top_skills: (skills?.skills || []).map(s => s.skill_name).slice(0, 5),
       ...consolidated.meta_stats,
+      industry: consolidated.inferred_profile?.industry || consolidated.industry || "",
+      domain_indicator: consolidated.inferred_profile?.domain_indicator || consolidated.domain_indicator || consolidated.domainIndicator || "",
+      sector: consolidated.inferred_profile?.sector || consolidated.sector || "",
       seniority_sequence: senioritySequence,
       ...trajectory,
       ...chronoRisks

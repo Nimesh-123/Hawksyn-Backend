@@ -318,8 +318,9 @@ exports.uploadPlaybook = async (req, res) => {
                     normalizedRow.ierId = normalizedRow.ierId || normalizedRow.id || `IER_RO_R${rowNum}`;
 
                     // Map Integrity Status to State enum
-                    if (normalizedRow.integrityStatus) {
-                        const status = normalizedRow.integrityStatus.replace('_INTEGRITY', '').toUpperCase();
+                    const rawState = normalizedRow.integrityState || normalizedRow.integrityStatus;
+                    if (rawState) {
+                        const status = String(rawState).toUpperCase().replace('_INTEGRITY', '').trim();
                         if (['COMPLETE', 'FULL', 'PARTIAL', 'MINIMAL'].includes(status)) {
                             normalizedRow.integrityState = status;
                         } else {
@@ -330,6 +331,12 @@ exports.uploadPlaybook = async (req, res) => {
                     // Map Condition to Anchors Json
                     if (normalizedRow.eligibilityConditionJson && !normalizedRow.requiredAnchorsJson) {
                         normalizedRow.requiredAnchorsJson = normalizedRow.eligibilityConditionJson;
+                    }
+
+                    // Coerce verdictDeliverable text to boolean
+                    if (typeof normalizedRow.verdictDeliverable === 'string') {
+                        const vdStr = normalizedRow.verdictDeliverable.toUpperCase().trim();
+                        normalizedRow.verdictDeliverable = !(vdStr === 'FALSE' || vdStr === 'NO' || vdStr === '0' || vdStr === '');
                     }
 
                     // Defaults for missing required model fields

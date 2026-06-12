@@ -733,7 +733,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
   padding:18px 20px;border-top:3px solid #FF4757">
   <div style="font-size:11px;letter-spacing:0.1em;color:#888;text-transform:uppercase;margin-bottom:6px">Composite Score</div>
   <div style="font-size:26px;font-weight:800;color:${getVerdictColor(report.verdict)};letter-spacing:-0.03em;line-height:1">${report.compositeScore || '--'}</div>
-  <div style="font-size:11px;color:#888;margin-top:2px">STOP band · 0–49 range</div>
+  <div style="font-size:11px;color:#888;margin-top:2px">${report.verdict || 'UNKNOWN'} band · ${report.verdict === 'STOP' ? '0–49' : report.verdict === 'PAUSE' ? '50–69' : '70–100'} range</div>
 </div>
     <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:12px;
   padding:18px 20px;border-top:3px solid #2ED573">
@@ -992,10 +992,10 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
       <div style="font-size:28px;font-weight:800;color:#FFC107;line-height:1">77</div>
       <div style="font-size:11px;color:#888;margin-top:6px">MEDIUM band · 65–84. Sufficient for verdict confidence.</div>
     </div>
-    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:12px;padding:18px;border-top:3px solid #555">
+    <div style="background:#FAFAFA;border:1px solid #E8E8E8;border-radius:12px;padding:18px;border-top:3px solid #555;position:relative">
       <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">BSI Score</div>
       <div style="font-size:28px;font-weight:800;color:#555;line-height:1">${report.bsiScore !== undefined ? report.bsiScore : 0}</div>
-      <div style="font-size:11px;color:#888;margin-top:6px">${report.bsiBand || 'LOW'} band · No self-serving bias detected</div>
+      <div style="font-size:11px;color:#888;margin-top:6px;line-height:1.4">${report.bsiBand || 'LOW'} band · No self-serving bias detected<br><span style="color:#AAA;font-size:9.5px">Formula: Σ |Self Reported Score - Market Signal Score|</span></div>
     </div>
   </div>
 
@@ -1195,7 +1195,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     padding:4px 10px;border-radius:6px;letter-spacing:0.08em;flex-shrink:0">SEC·04</span>
   <span style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.02em">What You Are Actually Good At</span>
 </div>
-  ${renderSectionContent('SEC_RO_001')}
+  ${renderSectionContent('SEC_RO_004')}
 </div>
 <div style="height:36px;background:#F0F0F0;border-top:1px solid #D8D8D8;
     padding:0 28px;display:flex;align-items:center;justify-content:space-between;
@@ -2834,7 +2834,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="background:#FFF5F5;border:1px solid rgba(255,71,87,0.2);border-radius:10px;padding:14px 16px;border-top:2px solid #FF4757">
       <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Composite</div>
       <div style="font-size:28px;font-weight:800;color:${getVerdictColor(report.verdict)};line-height:1">${report.compositeScore || '--'}</div>
-      <div style="font-size:10px;color:#888;margin-top:4px">STOP band · 0–49</div>
+      <div style="font-size:10px;color:#888;margin-top:4px">${report.verdict || 'UNKNOWN'} band · ${report.verdict === 'STOP' ? '0–49' : report.verdict === 'PAUSE' ? '50–69' : '70–100'}</div>
     </div>
     <div style="background:#F0FFF4;border:1px solid rgba(46,213,115,0.2);border-radius:10px;padding:14px 16px;border-top:2px solid #2ED573">
       <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Integrity</div>
