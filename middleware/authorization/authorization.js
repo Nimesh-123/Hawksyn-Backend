@@ -20,7 +20,8 @@ exports.authenticate = async (req, res, next) => {
             '/user/login-with-pin',
             '/user/forgot-pin',
             '/user/auth/google',
-            '/expert/auth/login'
+            '/expert/auth/login',
+            '/hip/public'
         ];
 
         const fullPath = req.originalUrl || '';
@@ -35,7 +36,7 @@ exports.authenticate = async (req, res, next) => {
             route => cleanPath === route || cleanPath.startsWith(route + '/')
         );
 
-        if (isPublicRoute) {
+        if (isPublicRoute || cleanPath.includes('/hip/public')) {
             return next();
         }
 

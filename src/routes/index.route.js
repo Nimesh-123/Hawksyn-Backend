@@ -14,11 +14,13 @@ const expertAuthRoute = require('../modules/expert/expertAuth.route.js');
 const expertRoute = require('../modules/expert/expert.route.js');
 const notificationRoutes = require('../modules/notification/notification.route.js');
 const contentRoutes = require('../modules/support/content.route.js');
+const hipRoutes = require('../modules/hip/hip.route.js');
 
 // 1. PUBLIC ROUTES (Login / Signup)
 route.use('/auth', authRoute);
 route.use('/content', contentRoutes); // /api/v1/content/faq
 route.use('/legal', contentRoutes);   // /api/v1/legal/content
+route.use('/hip', hipRoutes);         // /api/v1/hip/...
 
 // 2. PROTECTED ROUTES (Requires valid JWT Token)
 route.use('/admin', adminRoute);

@@ -40,6 +40,7 @@
     "fuse.js": "^7.3.0",
     "geoip-lite": "^1.4.10",
     "google-auth-library": "^10.6.2",
+    "handlebars": "^4.7.9",
     "ioredis": "^5.11.0",
     "jsonwebtoken": "^9.0.2",
     "langdetect": "^0.2.1",
