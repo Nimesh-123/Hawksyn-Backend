@@ -270,7 +270,7 @@ exports.deleteAccount = async (req, res) => {
 
             return RESPONSE.success(res, 200, 2002, { message: "Account permanently deleted." });
         } else {
-            const { reason, comment } = req.body;
+            const { reason, comment } = req.body || {};
             user.isDeleted = true;
             user.deletedAt = new Date();
             user.deletionReason = reason || "No reason provided";

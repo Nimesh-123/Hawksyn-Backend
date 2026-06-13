@@ -1,0 +1,83 @@
+const express = require('express');
+const router = express.Router();
+const hipController = require('./hip.controller');
+
+/**
+ * @swagger
+ * tags:
+ *   name: HIP Profiles
+ *   description: Hawksyn Intelligence Profile endpoints
+ */
+
+/**
+ * @swagger
+ * /hip/public/profile/{slug}:
+ *   get:
+ *     summary: Get Public HIP Profile
+ *     description: Returns the raw HTML template of the generated HIP Profile injected with data.
+ *     tags: [HIP Profiles]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique slug of the generated profile (e.g., alex-mercer-1234)
+ *     responses:
+ *       200:
+ *         description: Successfully returned the HTML profile
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
+ *       404:
+ *         description: Profile not found
+ *       500:
+ *         description: Server Error
+ */
+// GET: Serve the public HIP HTML Profile
+router.get('/public/profile/:slug', hipController.getPublicProfile);
+
+/**
+ * @swagger
+ * /hip/trigger:
+ *   post:
+ *     summary: Trigger HIP Generation
+ *     description: Triggers the generation of the HIP Profile for a specific user. This makes 25 LLM calls and may take 30-60 seconds.
+ *     tags: [HIP Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: The ID of the User (candidate_id in PSDEResult) to generate the profile for.
+ *                 example: 6a2ab160af418202adb4fbbc
+ *     responses:
+ *       200:
+ *         description: Generation successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 profileSlug:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized, missing token or user info
+ *       500:
+ *         description: Generation Error
+ */
+// POST: Trigger manual generation of a profile (internal/admin)
+router.post('/trigger', hipController.triggerGeneration);
+
+module.exports = router;

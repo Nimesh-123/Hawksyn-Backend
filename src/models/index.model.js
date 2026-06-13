@@ -65,4 +65,9 @@ db.SystemConfig = require('../modules/admin/SystemConfig.model.js');
 db.FAQ = require('../modules/support/FAQ.model.js');
 db.LegalContent = require('../modules/support/LegalContent.model.js');
 
+// HIP Models
+db.HipGuardrailRule = require('../modules/hip/HipGuardrailRule.model.js');
+db.HipSectionPrompt = require('../modules/hip/HipSectionPrompt.model.js');
+db.HipProfile = require('../modules/hip/HipProfile.model.js');
+
 module.exports = { db };
