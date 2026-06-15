@@ -44,7 +44,7 @@ async function callGemini(modelName, promptText, userInput, maxTokens, returnRaw
     });
     
     const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('TIMEOUT')), 60000)
+        setTimeout(() => reject(new Error('TIMEOUT')), 120000)
     );
     
     const result = await Promise.race([generatePromise, timeoutPromise]);
