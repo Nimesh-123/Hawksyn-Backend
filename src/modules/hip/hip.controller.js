@@ -22,7 +22,7 @@ class HipController {
             const psdeResult = await db.PSDEResult.findOne({ candidate_id: profile.userId }).lean() || {};
 
             // 2. Load the HTML Wireframe Template
-            const templatePath = path.join(__dirname, '../../../HIP/HIP_Template_Dynamic.hbs');
+            const templatePath = path.join(__dirname, 'HIP_Template_Dynamic.hbs');
             if (!fs.existsSync(templatePath)) {
                 return res.status(500).send("<html><body>Error: Wireframe template missing on server.</body></html>");
             }
