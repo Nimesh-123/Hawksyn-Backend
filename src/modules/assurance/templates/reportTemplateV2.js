@@ -605,7 +605,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_1.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -703,7 +703,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_2.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -840,7 +840,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_3.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -960,7 +960,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_4.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -1077,7 +1077,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_5.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -1178,7 +1178,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_6.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -1256,7 +1256,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_7.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -1334,7 +1334,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_8.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -1412,7 +1412,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_9.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -1490,7 +1490,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_10.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -1568,7 +1568,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_11.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -1646,7 +1646,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_12.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -1724,7 +1724,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_13.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -1802,7 +1802,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_14.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -1908,7 +1908,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_15.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -1986,7 +1986,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_16.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -2064,7 +2064,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_17.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -2142,7 +2142,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_18.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -2220,7 +2220,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_19.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -2298,7 +2298,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_20.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -2376,7 +2376,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_21.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -2477,7 +2477,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_22.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -2555,7 +2555,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_23.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -2633,7 +2633,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_24.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -2711,7 +2711,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_25.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -2782,7 +2782,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_26.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>
@@ -2929,7 +2929,7 @@ body{background:#BBBBBB;display:flex;flex-direction:column;align-items:center;ga
     <div style="height:56px;background:#111111;display:flex;align-items:center;
     justify-content:space-between;padding:0 28px 0 22px;flex-shrink:0;position:relative;z-index:3">
   <div style="display:flex;align-items:center;gap:12px">
-    <img src="http://localhost:3002/images/report/img_27.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
+    <img src="http://localhost:3002/images/report/img_0.png" style="height:26px;width:auto;object-fit:contain" alt="Hawksyn">
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.15)"></div>
     <span style="font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.45);text-transform:uppercase">Decision Assurance Report</span>
   </div>

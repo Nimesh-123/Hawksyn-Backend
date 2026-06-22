@@ -21,7 +21,8 @@ exports.authenticate = async (req, res, next) => {
             '/user/forgot-pin',
             '/user/auth/google',
             '/expert/auth/login',
-            '/hip/public'
+            '/hip/public',
+            '/user/home-status'
         ];
 
         const fullPath = req.originalUrl || '';
@@ -34,14 +35,13 @@ exports.authenticate = async (req, res, next) => {
 
         const isPublicRoute = public_routes.some(
             route => cleanPath === route || cleanPath.startsWith(route + '/')
-        );
-
-        if (isPublicRoute || cleanPath.includes('/hip/public')) {
-            return next();
-        }
+        ) || cleanPath.includes('/hip/public');
 
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            if (isPublicRoute) {
+                return next();
+            }
             return RESPONSE.error(res, 401, 3001, 'Unauthorized: No token provided');
         }
 

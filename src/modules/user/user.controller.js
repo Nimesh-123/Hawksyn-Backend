@@ -104,6 +104,10 @@ exports.verifyOTP = async (req, res) => {
         user.countryCode = region.countryCode;
         user.preferredCurrency = region.currency;
         user.isEmailVerified = true;
+        
+        // Unblock account on successful OTP verify
+        user.isBlocked = false;
+        user.wrongPinCount = 0;
 
         // Save FCM Token if provided during login
         if (req.body.fcmToken) user.fcmToken = req.body.fcmToken;
@@ -127,15 +131,34 @@ exports.verifyOTP = async (req, res) => {
 exports.setPin = async (req, res) => {
     try {
         const { email, mPin, confirmMPin } = req.body;
+        if (!mPin || !confirmMPin) return RESPONSE.error(res, 400, 3005, "MPIN is required");
         if (mPin !== confirmMPin) return RESPONSE.error(res, 400, 3005, "MPIN and Confirm MPIN do not match");
 
-        const commonPins = ['1234', '1111', '0000', '1212', '2580', '1379'];
+        if (mPin.length !== 6) {
+            return RESPONSE.error(res, 400, 3013, "M-PIN must be exactly 6 digits");
+        }
+
+        const commonPins = ['123456', '000000', '111111', '222222', '333333', '123123', '654321', '987654'];
         if (commonPins.includes(mPin)) {
             return RESPONSE.error(res, 400, 3013, "The provided PIN is too common and is blocked for security reasons.");
         }
 
-        const user = await db.User.findOne({ email, isDeleted: false });
-        if (!user) return RESPONSE.error(res, 404, 3001);
+        let user;
+        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+            const token = req.headers.authorization.split(' ')[1];
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                user = await db.User.findById(decoded.id);
+            } catch(e) {
+                console.warn("[Set PIN] Auth token invalid, falling back to email if provided");
+            }
+        }
+
+        if (!user && email) {
+            user = await db.User.findOne({ email, isDeleted: false });
+        }
+
+        if (!user) return RESPONSE.error(res, 404, 3001, "User not found or email required");
 
         user.mPin = await bcrypt.hash(mPin, 10);
         user.mPinSet = true;
@@ -161,14 +184,21 @@ exports.loginWithPin = async (req, res) => {
         const user = await db.User.findOne({ email, isDeleted: false });
 
         if (!user) return RESPONSE.error(res, 404, 3001);
-        if (user.isBlocked) return RESPONSE.error(res, 403, 3008);
+        if (user.isBlocked) return RESPONSE.error(res, 403, 3008, "Account locked. Too many incorrect attempts. You need to re-verify your identity to reset your PIN.");
         if (!user.mPin) return RESPONSE.error(res, 400, 3004, "M-PIN not set");
 
         if (!(await bcrypt.compare(mPin, user.mPin))) {
             user.wrongPinCount += 1;
-            if (user.wrongPinCount >= 5) user.isBlocked = true;
+            
+            if (user.wrongPinCount >= 3) {
+                user.isBlocked = true;
+                await user.save();
+                return RESPONSE.error(res, 403, 3008, "Account locked. Too many incorrect attempts.");
+            }
+            
             await user.save();
-            return RESPONSE.error(res, 401, 3004, "The M-PIN you entered is incorrect. Please try again.");
+            const attemptsRemaining = 3 - user.wrongPinCount;
+            return RESPONSE.error(res, 401, 3004, `Incorrect PIN. ${attemptsRemaining} attempt${attemptsRemaining === 1 ? '' : 's'} remaining.`);
         }
 
         user.wrongPinCount = 0;
@@ -309,143 +339,174 @@ exports.uploadCV = async (req, res) => {
         const uploadRes = await uploadFile(file.buffer, fileName, file.mimetype);
         const fileUrl = uploadRes.url;
 
-        let extractedData = null;
-        let parserStatus = "FAILED";
-        let errorReason = null;
+        // Run the AI parsing asynchronously in the background
+        (async () => {
+            let extractedData = null;
+            let parserStatus = "FAILED";
+            let errorReason = null;
 
-        try {
-            extractedData = await smartCVParser(file.buffer, file.originalname, file.mimetype, req.user.id, fileUrl);
+            try {
+                extractedData = await smartCVParser(file.buffer, file.originalname, file.mimetype, req.user.id, fileUrl);
+
+                if (extractedData && extractedData.isCv === false) {
+                    await deleteFile(fileName);
+
+                    // Update the already created DocumentUploads record with NOT_A_CV status
+                    const userId = req.user.id;
+                    await db.DocumentUploads.findOneAndUpdate(
+                        { userId, isActive: true },
+                        {
+                            $set: {
+                                cvUrl: null,
+                                parsedCvData: null,
+                                parserStatus: 'NOT_A_CV',
+                                errorReason: 'Detected as non-CV document.',
+                                parserMetadata: extractedData ? {
+                                    llm: extractedData.llm,
+                                    model: extractedData.model,
+                                    modelUsed: extractedData.modelUsed,
+                                    duration: extractedData.totalPipelineDuration || extractedData.parsingDuration,
+                                    tokenUsage: extractedData.tokenUsage
+                                } : null,
+                                isActive: false
+                            }
+                        }
+                    );
+
+                    await createAuditLog({ ip: req.ip, user: req.user, headers: req.headers }, 'CV_REJECTED', userId, { reason: 'NOT_A_CV', fileName: file.originalname });
+                    return;
+                }
+
+                if (extractedData) {
+                    try {
+                        const { sanitizeParsedData } = require('../cv/helpers/cvSanitizer.js');
+                        extractedData = sanitizeParsedData(extractedData);
+                        parserStatus = "SUCCESS";
+                    } catch (e) { parserStatus = "SUCCESS"; }
+                }
+            } catch (aiError) {
+                if (aiError.name === 'GuardrailError') {
+                    await deleteFile(fileName);
+                    
+                    const userId = req.user.id;
+                    // No need to create DocumentUploads record here since smartCVParser already created the rejected log.
+
+                    await createAuditLog({ ip: req.ip, user: req.user, headers: req.headers }, 'CV_REJECTED', userId, {
+                        reason: aiError.userMessage,
+                        ruleId: aiError.ruleId,
+                        layer: aiError.layer,
+                        fileName: file.originalname
+                    });
+                    return;
+                }
+                console.error("[AI Fail]", aiError.message);
+            }
+
+            const isExtractionBlank = !extractedData ||
+                (extractedData.aeuList?.length < 3 &&
+                    (!extractedData.structured?.work?.experience?.length) &&
+                    (!extractedData.structured?.composition?.skills?.technical?.length));
+
+            if (isExtractionBlank && parserStatus !== "FAILED") {
+                parserStatus = "EMPTY";
+                errorReason = "AI returned blank data.";
+            }
 
             if (extractedData && extractedData.isCv === false) {
-                await deleteFile(fileName);
+                parserStatus = "NOT_A_CV";
+                errorReason = "Detected as non-CV document.";
+            } else if (parserStatus === "FAILED") {
+                errorReason = "Pipeline failure.";
+            }
 
-                // Update the already created DocumentUploads record with NOT_A_CV status
-                const userId = req.user.id;
-                await db.DocumentUploads.findOneAndUpdate(
-                    { userId, isActive: true },
-                    {
-                        $set: {
-                            cvUrl: null,
-                            parsedCvData: null,
-                            parserStatus: 'NOT_A_CV',
-                            errorReason: 'Detected as non-CV document.',
-                            parserMetadata: extractedData ? {
-                                llm: extractedData.llm,
-                                model: extractedData.model,
-                                modelUsed: extractedData.modelUsed,
-                                duration: extractedData.totalPipelineDuration || extractedData.parsingDuration,
-                                tokenUsage: extractedData.tokenUsage
-                            } : null,
-                            isActive: false
-                        }
+            const userId = req.user.id;
+
+            // Update the active DocumentUploads record created by smartCVParser
+            const newCv = await db.DocumentUploads.findOneAndUpdate(
+                { userId, isActive: true },
+                {
+                    $set: {
+                        parsedCvData: extractedData ? JSON.parse(JSON.stringify(extractedData)) : null,
+                        parserStatus,
+                        errorReason,
+                        parserMetadata: extractedData ? {
+                            llm: extractedData.llm,
+                            model: extractedData.model,
+                            modelUsed: extractedData.modelUsed,
+                            duration: extractedData.totalPipelineDuration || extractedData.parsingDuration,
+                            tokenUsage: extractedData.tokenUsage
+                        } : null
                     }
-                );
+                },
+                { new: true }
+            );
 
-                await createAuditLog(req, 'CV_REJECTED', userId, { reason: 'NOT_A_CV', fileName: file.originalname });
+            await db.UserProfile.findOneAndUpdate(
+                { userId },
+                {
+                    lastCvUploadId: newCv?._id || null,
+                    cvUrl: fileUrl,
+                    originalParsedData: newCv?.parsedCvData || null,
+                    confirmedProfile: null,
+                    isConfirmed: false
+                },
+                { upsert: true }
+            );
 
-                return RESPONSE.error(res, 400, 3009, "Not a valid CV.");
+            if (newCv?._id) {
+                await createAuditLog({ ip: req.ip, user: req.user, headers: req.headers }, 'CV_UPLOADED', userId, { cvUploadId: newCv._id });
             }
 
             if (extractedData) {
-                try {
-                    const { sanitizeParsedData } = require('../cv/helpers/cvSanitizer.js');
-                    extractedData = sanitizeParsedData(extractedData);
-                    parserStatus = "SUCCESS";
-                } catch (e) { parserStatus = "SUCCESS"; }
-            }
-        } catch (aiError) {
-            if (aiError.name === 'GuardrailError') {
-                await deleteFile(fileName);
-                
-                const userId = req.user.id;
-                // No need to create DocumentUploads record here since smartCVParser already created the rejected log.
-
-                await createAuditLog(req, 'CV_REJECTED', userId, {
-                    reason: aiError.userMessage,
-                    ruleId: aiError.ruleId,
-                    layer: aiError.layer,
-                    fileName: file.originalname
-                });
-
-                return res.status(400).json({
-                    success: false,
-                    message: aiError.userMessage,
-                    code: "CV_GUARDRAIL_REJECTION",
-                    error: {
-                        ruleId: aiError.ruleId,
-                        layer: aiError.layer,
-                        userMessage: aiError.userMessage,
-                        remediationAction: aiError.remediationAction
-                    }
+                await createAuditLog({ ip: req.ip, user: req.user, headers: req.headers }, 'PROFILE_CV_PARSED', userId, {
+                    extractedRoles: extractedData.aeuList?.length || 0
                 });
             }
 
-            console.error("[AI Fail]", aiError.message);
-        }
+        })().catch(backgroundError => console.error("[Background Parse Error]", backgroundError));
 
-        const isExtractionBlank = !extractedData ||
-            (extractedData.aeuList.length < 3 &&
-                (!extractedData.structured.work?.experience?.length) &&
-                (!extractedData.structured.composition?.skills?.technical?.length));
-
-        if (isExtractionBlank && parserStatus !== "FAILED") {
-            parserStatus = "EMPTY";
-            errorReason = "AI returned blank data.";
-        }
-
-        if (extractedData && extractedData.isCv === false) {
-            parserStatus = "NOT_A_CV";
-            errorReason = "Detected as non-CV document.";
-        } else if (parserStatus === "FAILED") {
-            errorReason = "Pipeline failure.";
-        }
-
-        const userId = req.user.id;
-
-        // Update the active DocumentUploads record created by smartCVParser
-        const newCv = await db.DocumentUploads.findOneAndUpdate(
-            { userId, isActive: true },
-            {
-                $set: {
-                    parsedCvData: extractedData ? JSON.parse(JSON.stringify(extractedData)) : null,
-                    parserStatus,
-                    errorReason,
-                    parserMetadata: extractedData ? {
-                        llm: extractedData.llm,
-                        model: extractedData.model,
-                        modelUsed: extractedData.modelUsed,
-                        duration: extractedData.totalPipelineDuration || extractedData.parsingDuration,
-                        tokenUsage: extractedData.tokenUsage
-                    } : null
-                }
-            },
-            { new: true }
-        );
-
-        await db.UserProfile.findOneAndUpdate(
-            { userId },
-            {
-                lastCvUploadId: newCv._id,
-                cvUrl: fileUrl,
-                originalParsedData: newCv.parsedCvData,
-                confirmedProfile: null,
-                isConfirmed: false
-            },
-            { upsert: true }
-        );
-
-        await createAuditLog(req, 'CV_UPLOADED', userId, { cvUploadId: newCv._id });
-
-        return RESPONSE.success(res, 200, 1001, {
-            message: "CV processed successfully",
+        return RESPONSE.success(res, 202, 1001, {
+            message: "CV uploaded. AI parsing started in background.",
             cvUrl: fileUrl,
-            parsedData: extractedData,
-            tokenUsage: extractedData?.tokenUsage || null,
-            cost: extractedData?.tokenUsage ? calculateAICost(extractedData.llm + '-' + extractedData.model, extractedData.tokenUsage) : 0
+            status: "PROCESSING"
         });
-    } catch (error) {
-        console.error("[Upload Fail]", error.message);
-        return RESPONSE.error(res, 500, 9999, "Failed to upload CV.");
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+exports.getCvStatus = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const doc = await db.DocumentUploads.findOne({ userId }).sort({ createdAt: -1 });
+
+        if (!doc) {
+            return RESPONSE.success(res, 200, 2000, {
+                status: 'PROCESSING',
+                message: 'CV upload initializing',
+                parserStatus: 'PENDING',
+                liveMetrics: {}
+            });
+        }
+
+        if (doc.parserStatus === 'SUCCESS' || doc.parserStatus === 'EMPTY' || doc.parserStatus === 'NOT_A_CV' || doc.parserStatus === 'FAILED' || doc.parserStatus === 'REJECTED') {
+            return RESPONSE.success(res, 200, 2000, {
+                status: 'COMPLETED',
+                message: 'CV processing completed',
+                parserStatus: doc.parserStatus,
+                parsedData: doc.parsedCvData,
+                errorReason: doc.errorReason
+            });
+        }
+
+        return RESPONSE.success(res, 200, 2000, {
+            status: 'PROCESSING',
+            message: 'CV is currently being processed by AI',
+            parserStatus: doc.parserStatus,
+            liveMetrics: doc.parserLiveMetrics || {}
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
     }
 };
 
@@ -673,3 +734,113 @@ exports.applyAsExpert = async (req, res) => {
         return RESPONSE.error(res, 500, 9999, err.message);
     }
 };
+
+exports.sendWhatsAppOTP = async (req, res) => {
+    try {
+        const { whatsappNumber } = req.body;
+        if (!whatsappNumber) return RESPONSE.error(res, 400, 1003, "WhatsApp number is required");
+
+        const otp = generateOTP();
+        const otpHash = await bcrypt.hash(otp, 10);
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        
+        await db.OTP.findOneAndUpdate(
+            { whatsappNumber },
+            { otp: otpHash, expiresAt, failCount: 0 },
+            { upsert: true, new: true }
+        );
+
+        console.log(`[DEV WhatsApp] OTP for ${whatsappNumber}: ${otp} (Valid for 10 mins)`);
+
+        return RESPONSE.success(res, 200, 2003, { message: "WhatsApp code sent successfully" });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+const generateClocksWithSteps = async (userId) => {
+    try {
+        const profile = await db.UserProfile.findOne({ userId }).lean();
+        const mergedProfile = profile?.confirmedProfile || profile?.originalParsedData?.structured || {};
+        const clockService = require('../../services/clockService.js');
+        
+        // Step 1: AI Exposure (initial)
+        await db.UserClocks.updateOne({ userId }, { $set: { generationStatus: 'MARKET_VELOCITY' } });
+        await new Promise(r => setTimeout(r, 2000));
+        
+        // Step 2: Market Velocity
+        await db.UserClocks.updateOne({ userId }, { $set: { generationStatus: 'SKILL_HALFLIFE' } });
+        await new Promise(r => setTimeout(r, 2000));
+        
+        // Step 3: Skill Halflife
+        await db.UserClocks.updateOne({ userId }, { $set: { generationStatus: 'OPPORTUNITY_WINDOW' } });
+        
+        // Actual Generation (takes a few seconds)
+        await clockService.recalibrateForUser(userId, mergedProfile);
+        
+        // Step 4: Completed
+        await db.UserClocks.updateOne({ userId }, { $set: { generationStatus: 'COMPLETED' } });
+    } catch (err) {
+        console.error("[Clock Gen Worker] Error generating clocks:", err);
+        await db.UserClocks.updateOne({ userId }, { $set: { generationStatus: 'PENDING' } });
+    }
+};
+
+exports.verifyWhatsAppOTP = async (req, res) => {
+    try {
+        const { whatsappNumber, otp } = req.body;
+
+        const otpRecord = await db.OTP.findOne({ whatsappNumber });
+        if (!otpRecord) return RESPONSE.error(res, 404, 3003, "OTP expired or not found.");
+
+        if (otpRecord.failCount >= 5) return RESPONSE.error(res, 403, 3008, "Too many failed attempts.");
+
+        const isMatch = await bcrypt.compare(otp, otpRecord.otp);
+        if (!isMatch) {
+            otpRecord.failCount += 1;
+            await otpRecord.save();
+            return RESPONSE.error(res, 400, 3002, "Incorrect code. Please try again.");
+        }
+
+        const user = await db.User.findById(req.user.id);
+        if (!user) return RESPONSE.error(res, 404, 3001);
+
+        user.isPhoneVerified = true;
+        user.whatsappNumber = whatsappNumber;
+        await user.save();
+
+        otpRecord.isUsed = true;
+        otpRecord.expiresAt = new Date(); 
+        await otpRecord.save();
+
+        let clock = await db.UserClocks.findOne({ userId: req.user.id });
+        if (!clock) {
+            clock = await db.UserClocks.create({ userId: req.user.id, generationStatus: 'AI_EXPOSURE' });
+        } else {
+            clock.generationStatus = 'AI_EXPOSURE';
+            await clock.save();
+        }
+
+        // Run background generation
+        generateClocksWithSteps(req.user.id);
+
+        return RESPONSE.success(res, 200, 1001, { message: "Phone verified. Starting your clocks..." });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+exports.getClocksStatus = async (req, res) => {
+    try {
+        const clock = await db.UserClocks.findOne({ userId: req.user.id }).lean();
+        if (!clock) {
+            return RESPONSE.success(res, 200, 1001, { status: "PENDING" });
+        }
+        return RESPONSE.success(res, 200, 1001, { status: clock.generationStatus });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+
+

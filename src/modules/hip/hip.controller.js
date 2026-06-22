@@ -91,25 +91,108 @@ class HipController {
     // Trigger manual generation of a profile (internal/admin)
     async triggerGeneration(req, res) {
         try {
-            const { userId } = req.body; 
-            if (!userId) return res.status(400).json({ success: false, message: 'userId is required in the body' });
+            const userId = req.body.userId || req.user?.id; 
+            if (!userId) return res.status(400).json({ success: false, message: 'userId is required' });
 
-            const profile = await hipService.generateHipProfile(userId);
-            
-            // Build the full clickable URL to make it easy to test
-            const baseUrl = process.env.API_URL || `${req.protocol}://${req.get('host')}/api/v1`;
-            const profileUrl = `${baseUrl}/hip/public/profile/${profile.profileSlug}`;
+            let profile = await db.HipProfile.findOne({ userId });
+            if (!profile) {
+                profile = new db.HipProfile({
+                    userId,
+                    runId: `run-${Date.now()}`,
+                    profileSlug: `hip-${userId}-${Date.now()}`,
+                    status: 'DRAFT',
+                    generationStatus: 'CAREER_SIGNALS'
+                });
+                await profile.save();
+            } else {
+                profile.generationStatus = 'CAREER_SIGNALS';
+                profile.status = 'DRAFT';
+                await profile.save();
+            }
+
+            // Start background process
+            generateHipProfileWithSteps(userId);
 
             res.json({ 
                 success: true, 
-                profileSlug: profile.profileSlug,
-                profileUrl: profileUrl 
+                status: 'CAREER_SIGNALS'
             });
         } catch (error) {
             console.error('Generation Error:', error);
             res.status(500).json({ success: false, message: error.message });
         }
     }
+
+    async getHipStatus(req, res) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+            const profile = await db.HipProfile.findOne({ userId }).lean();
+            if (!profile) {
+                return res.status(200).json({ success: true, status: 'PENDING' });
+            }
+
+            let responsePayload = { success: true, status: profile.generationStatus };
+
+            if (profile.generationStatus === 'COMPLETED') {
+                const psdeResult = await db.PSDEResult.findOne({ candidate_id: userId }).lean() || {};
+                const userProfile = await db.UserProfile.findOne({ userId }).lean() || {};
+                const parsedCV = userProfile.confirmedProfile || userProfile.originalParsedData || {};
+                
+                // Try to extract top signal from S02, else default
+                let topSignal = 'You grew faster than most people at your level';
+                if (profile.sectionsData instanceof Map && profile.sectionsData.has('S02')) {
+                    const s02 = profile.sectionsData.get('S02');
+                    if (s02 && s02.top_signal) topSignal = s02.top_signal;
+                } else if (profile.sectionsData && profile.sectionsData.S02) {
+                    topSignal = profile.sectionsData.S02.top_signal || topSignal;
+                }
+
+                responsePayload.profileData = {
+                    fullName: profile.seoMetadata?.jsonLdPerson?.name || "User",
+                    jobTitle: profile.seoMetadata?.jsonLdPerson?.jobTitle || "Professional",
+                    tag: parsedCV.structured?.inferred?.industry || parsedCV.inferred?.industry || "Strategist",
+                    topSignal: topSignal,
+                    signalCount: psdeResult.total_detected || 14,
+                    clockCount: 4,
+                    verified: !!profile.publishedAt
+                };
+            }
+
+            return res.status(200).json(responsePayload);
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
 }
+
+// Background Task Function
+const generateHipProfileWithSteps = async (userId) => {
+    try {
+        await db.HipProfile.updateOne({ userId }, { generationStatus: 'CAREER_SIGNALS' });
+        await new Promise(resolve => setTimeout(resolve, 2500));
+
+        await db.HipProfile.updateOne({ userId }, { generationStatus: 'CLOCK_DATA' });
+        await new Promise(resolve => setTimeout(resolve, 2500));
+
+        await db.HipProfile.updateOne({ userId }, { generationStatus: 'PROFILE_CARD' });
+        await new Promise(resolve => setTimeout(resolve, 2500));
+
+        await db.HipProfile.updateOne({ userId }, { generationStatus: 'SECURE_PIN' });
+        
+        // Heavy generation
+        const profile = await hipService.generateHipProfile(userId);
+
+        await db.HipProfile.updateOne(
+            { userId }, 
+            { generationStatus: 'COMPLETED', status: 'PUBLISHED', publishedAt: new Date(), profileSlug: profile.profileSlug }
+        );
+
+    } catch (error) {
+        console.error('Background HIP Generation Error:', error);
+        await db.HipProfile.updateOne({ userId }, { generationStatus: 'PENDING' });
+    }
+};
 
 module.exports = new HipController();

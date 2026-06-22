@@ -15,6 +15,8 @@ const userSchema = new mongoose.Schema(
         mPin: { type: String }, // Hashed 4-digit PIN
         wrongPinCount: { type: Number, default: 0 },
         isEmailVerified: { type: Boolean, default: false },
+        isPhoneVerified: { type: Boolean, default: false },
+        whatsappNumber: { type: String, trim: true },
         isDeleted: { type: Boolean, default: false },
         deletedAt: { type: Date },
         deletionReason: { type: String, default: null }, // Selected from dropdown 

@@ -26,18 +26,14 @@ const UserClocksSchema = new mongoose.Schema({
     previousOpportunityWindowScore: { type: Number, default: null },
 
     // Validity States
-    validityState: {
-        type: String,
-        enum: ['FROZEN', 'ACTIVE_CLOCK', 'ACTIVE_CASE'],
-        default: 'FROZEN'
-    },
-    caseValidUntil: { type: Date, default: null },
+    validityState: { type: String, enum: ['ACTIVE_CLOCK', 'ACTIVE_CASE', 'FROZEN'], default: 'FROZEN' },
+    generationStatus: { type: String, enum: ['PENDING', 'AI_EXPOSURE', 'MARKET_VELOCITY', 'SKILL_HALFLIFE', 'OPPORTUNITY_WINDOW', 'COMPLETED'], default: 'PENDING' },
+    pulseId: { type: String, default: null },
     clockValidUntil: { type: Date, default: null },
     effectiveValidUntil: { type: Date, default: null },
     daysLeft: { type: Number, default: 0 },
 
     insightText: { type: String, default: '' },
-    pulseId: { type: String, default: null },
     lastCalculatedAt: { type: Date, default: Date.now },
     lastCalculatedBy: { type: String, enum: ['AUTO_OPEN', 'HAWK', 'CASE_RUN'], default: 'AUTO_OPEN' },
 

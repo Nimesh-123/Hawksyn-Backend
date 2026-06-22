@@ -23,6 +23,7 @@ const hipProfileSchema = new mongoose.Schema({
     },
 
     status: { type: String, enum: ['DRAFT', 'PUBLISHED', 'ARCHIVED'], default: 'DRAFT' },
+    generationStatus: { type: String, enum: ['PENDING', 'CAREER_SIGNALS', 'CLOCK_DATA', 'PROFILE_CARD', 'SECURE_PIN', 'COMPLETED'], default: 'PENDING' },
     publishedAt: { type: Date }
 }, { timestamps: true });
 

@@ -80,4 +80,24 @@ router.get('/public/profile/:slug', hipController.getPublicProfile);
 // POST: Trigger manual generation of a profile (internal/admin)
 router.post('/trigger', hipController.triggerGeneration);
 
+/**
+ * @swagger
+ * /hip/status:
+ *   get:
+ *     summary: Get HIP Generation Status
+ *     description: Polling endpoint to get the status of the HIP generation.
+ *     tags: [HIP Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully returned the status
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server Error
+ */
+// GET: Polling endpoint to check HIP generation status
+router.get('/status', hipController.getHipStatus);
+
 module.exports = router;

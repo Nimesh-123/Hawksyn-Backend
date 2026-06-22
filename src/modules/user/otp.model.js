@@ -4,9 +4,14 @@ const otpSchema = new mongoose.Schema(
     {
         email: {
             type: String,
-            required: true,
+            required: false,
             trim: true,
             lowercase: true
+        },
+        whatsappNumber: {
+            type: String,
+            required: false,
+            trim: true
         },
         otp: {
             type: String,

@@ -55,6 +55,72 @@ route.post('/verify-otp', userController.verifyOTP);
 
 /**
  * @swagger
+ * /user/clocks/send-whatsapp-otp:
+ *   post:
+ *     summary: Send OTP via WhatsApp for Clock Activation
+ *     tags: ["8. Command Center & Trends"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               whatsappNumber:
+ *                 type: string
+ *                 example: "+91 9876543210"
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+route.post('/clocks/send-whatsapp-otp', userController.sendWhatsAppOTP);
+
+/**
+ * @swagger
+ * /user/clocks/verify-whatsapp-otp:
+ *   post:
+ *     summary: Verify WhatsApp OTP and trigger Clock Generation
+ *     tags: ["8. Command Center & Trends"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               whatsappNumber:
+ *                 type: string
+ *                 example: "+91 9876543210"
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+route.post('/clocks/verify-whatsapp-otp', userController.verifyWhatsAppOTP);
+
+/**
+ * @swagger
+ * /user/clocks/status:
+ *   get:
+ *     summary: Get Clocks Generation Status (Polling)
+ *     tags: ["8. Command Center & Trends"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+route.get('/clocks/status', userController.getClocksStatus);
+
+
+/**
+ * @swagger
  * /user/set-pin:
  *   post:
  *     summary: Set M-PIN
@@ -217,6 +283,20 @@ route.post('/forgot-pin', userController.forgotPin);
  *         description: User not found
  */
 route.post('/upload-cv', upload.single('cv'), userController.uploadCV);
+
+/**
+ * @swagger
+ * /user/upload-cv/status:
+ *   get:
+ *     summary: Get live status of CV parsing
+ *     tags: ["2. Onboarding (Profile Setup)"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+route.get('/upload-cv/status', userController.getCvStatus);
 
 /**
  * @swagger

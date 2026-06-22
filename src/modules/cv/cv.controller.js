@@ -278,7 +278,16 @@ exports.getCvProcessingStatus = async (req, res) => {
         }
 
         if (run.status === 'CV_PROCESSING') {
-            return res.status(200).json({ success: true, data: { status: 'PROCESSING', message: 'CV is currently being processed by AI' } });
+            const doc = await db.DocumentUploads.findOne({ userId, isActive: true });
+            return res.status(200).json({ 
+                success: true, 
+                data: { 
+                    status: 'PROCESSING', 
+                    message: 'CV is currently being processed by AI',
+                    parserStatus: doc?.parserStatus || 'PENDING',
+                    liveMetrics: doc?.parserLiveMetrics || {}
+                } 
+            });
         }
 
         if (run.status === 'CV_UPLOADED') {

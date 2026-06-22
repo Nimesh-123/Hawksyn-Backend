@@ -67,4 +67,19 @@ router.get('/profile', userProfileController.getUserProfile);
 
 router.put('/profile', userProfileController.updateUserProfile);
 
+/**
+ * @swagger
+ * /user/home-status:
+ *   get:
+ *     summary: Get Home Screen Stepper Status
+ *     description: Returns the ACTIVE, COMPLETED, or LOCKED status for Card 1 (Discover Yourself), Card 2 (Skill Clocks), and Card 3 (Build My HIP).
+ *     tags: ["2. Onboarding (Profile Setup)"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Home status retrieved successfully
+ */
+router.get('/home-status', userProfileController.getHomeStatus);
+
 module.exports = router;
