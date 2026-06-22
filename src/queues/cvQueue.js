@@ -1,3 +1,4 @@
+/* 
 const { Queue } = require('bullmq');
 const IORedis = require('ioredis');
 
@@ -23,3 +24,4 @@ module.exports = {
     cvQueue,
     connection
 };
+*/

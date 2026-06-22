@@ -185,10 +185,11 @@ exports.uploadRunCv = async (req, res) => {
         const uploadRes = await uploadFile(file.buffer, fileName, file.mimetype);
         const fileUrl = uploadRes.url;
 
-        // --- NEW ASYNC FLOW (BullMQ) ---
-        const { cvQueue } = require('../../queues/cvQueue');
+        // --- NATIVE ASYNC FLOW (Bypassing Redis/BullMQ) ---
+        const { processCVInBackground } = require('../../queues/cvWorker');
         
-        const job = await cvQueue.add('parseCV', {
+        // Execute asynchronously without awaiting
+        processCVInBackground({
             runId,
             userId,
             originalname: file.originalname,
@@ -196,7 +197,7 @@ exports.uploadRunCv = async (req, res) => {
             fileUrl,
             fileName,
             ip: req.ip
-        });
+        }).catch(err => console.error("Background CV Processing failed:", err));
 
         // Set status to indicate CV is in queue
         await db.Runs.findOneAndUpdate(
@@ -207,8 +208,8 @@ exports.uploadRunCv = async (req, res) => {
         return res.status(202).json({
             success: true,
             data: {
-                message: "CV uploaded successfully and added to processing queue.",
-                jobId: job.id,
+                message: "CV uploaded successfully and added to background processing.",
+                jobId: `local-${runId}`, // Mock jobId
                 runId,
                 cvUrl: fileUrl,
                 status: "PROCESSING"

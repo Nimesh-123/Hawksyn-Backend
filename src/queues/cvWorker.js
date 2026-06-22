@@ -1,5 +1,3 @@
-const { Worker } = require('bullmq');
-const { connection } = require('./cvQueue');
 const { db } = require('../models/index.model');
 const { smartCVParser } = require('../../utils/aiParser');
 const { deleteFile } = require('../../utils/s3');
@@ -16,10 +14,10 @@ async function fetchFileBuffer(url) {
     return Buffer.from(arrayBuffer);
 }
 
-const worker = new Worker('cvParsingQueue', async (job) => {
-    const { runId, userId, originalname, mimetype, fileUrl, fileName, ip } = job.data;
+exports.processCVInBackground = async (jobData) => {
+    const { runId, userId, originalname, mimetype, fileUrl, fileName, ip } = jobData;
     
-    console.log(`[Queue] Processing CV for Run: ${runId}`);
+    console.log(`[Background] Processing CV for Run: ${runId}`);
     
     // Mock req object for createAuditLog since we are out of express context
     const mockReq = { ip: ip || '122.161.48.0', user: { id: userId } };
@@ -122,10 +120,11 @@ const worker = new Worker('cvParsingQueue', async (job) => {
             if (user) await notificationService.notifyParsingComplete(runId, user);
         }
 
+        console.log(`[Background] Job completed successfully for runId: ${runId}`);
         return { success: true, parserStatus };
 
     } catch (error) {
-        console.error(`[Queue] Failed processing runId: ${runId}`, error);
+        console.error(`[Background] Failed processing runId: ${runId}`, error);
         
         if (error.name === 'GuardrailError') {
             await deleteFile(fileName);
@@ -134,27 +133,12 @@ const worker = new Worker('cvParsingQueue', async (job) => {
                 fileName: originalname,
                 reason: error.userMessage
             });
-            throw error; // Let BullMQ handle failure state
+        } else {
+            await createAuditLog(mockReq, 'CV_PARSING_FAILED', userId, {
+                runId,
+                fileName: originalname,
+                error: error.message
+            });
         }
-
-        await createAuditLog(mockReq, 'CV_PARSING_FAILED', userId, {
-            runId,
-            fileName: originalname,
-            error: error.message
-        });
-        throw error; // Rethrow to trigger BullMQ retries
     }
-}, {
-    connection,
-    concurrency: 15 // LIMIT TO 15 CONCURRENT GEMINI REQUESTS!
-});
-
-worker.on('completed', (job) => {
-    console.log(`[Queue] Job ${job.id} completed successfully for runId: ${job.data.runId}`);
-});
-
-worker.on('failed', (job, err) => {
-    console.error(`[Queue] Job ${job.id} failed for runId: ${job.data.runId} - ${err.message}`);
-});
-
-module.exports = worker;
+};
