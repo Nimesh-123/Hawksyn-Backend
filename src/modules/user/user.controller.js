@@ -23,6 +23,9 @@ const prepareUserResponse = async (user) => {
         userResponse.parsedCvData = userActiveCv.parsedCvData;
     }
 
+    const userProfile = await db.UserProfile.findOne({ userId: user._id });
+    userResponse.profileConfirmed = userProfile ? userProfile.isConfirmed : false;
+
     delete userResponse.mPin;
     delete userResponse.refreshToken;
     return userResponse;
@@ -751,6 +754,21 @@ exports.sendWhatsAppOTP = async (req, res) => {
         );
 
         console.log(`[DEV WhatsApp] OTP for ${whatsappNumber}: ${otp} (Valid for 10 mins)`);
+
+        // Send push notification as a fallback since WhatsApp API is not yet integrated
+        if (req.user && req.user.id) {
+            const user = await db.User.findById(req.user.id);
+            if (user && user.fcmToken) {
+                const notificationService = require('../../services/notificationService');
+                await notificationService.sendPushNotification(
+                    user.fcmToken,
+                    'Verification Code',
+                    `Your OTP for WhatsApp verification is ${otp}`,
+                    { type: 'WHATSAPP_OTP', otp }
+                );
+                console.log(`[Push Notification] OTP sent to FCM token for user ${req.user.id}`);
+            }
+        }
 
         return RESPONSE.success(res, 200, 2003, { message: "WhatsApp code sent successfully" });
     } catch (err) {

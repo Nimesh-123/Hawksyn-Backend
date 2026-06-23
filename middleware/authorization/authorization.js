@@ -64,11 +64,17 @@ exports.authenticate = async (req, res, next) => {
                 entity = await db.Admin.findById(decoded.id);
             } else if (role === 'expert') {
                 const expert = await db.RiskAuditorRegistry.findById(decoded.id);
-                if (!expert) return RESPONSE.error(res, 404, 3001, 'Expert not found');
+                if (!expert) {
+                    if (isPublicRoute) return next();
+                    return RESPONSE.error(res, 404, 3001, 'Expert not found');
+                }
                 entity = expert;
             } else {
                 const user = await db.User.findById(decoded.id);
-                if (!user) return RESPONSE.error(res, 404, 3001, 'User not found');
+                if (!user) {
+                    if (isPublicRoute) return next();
+                    return RESPONSE.error(res, 404, 3001, 'User not found');
+                }
                 
                 entity = user;
                 role = user.role;
@@ -83,17 +89,27 @@ exports.authenticate = async (req, res, next) => {
                 }
             }
 
-            if (!entity) return RESPONSE.error(res, 404, 3001, 'User/Admin/Expert not found');
+            if (!entity) {
+                if (isPublicRoute) return next();
+                return RESPONSE.error(res, 404, 3001, 'User/Admin/Expert not found');
+            }
 
             // User specific checks (only for normal users)
             if (!role?.includes('admin')) {
                 const isProfileRoute = cleanPath === '/expert/profile';
                 if (role === 'expert' && entity.status !== 'ACTIVE' && !isProfileRoute) {
+                    if (isPublicRoute) return next();
                     return RESPONSE.error(res, 403, 3003, 'Expert account is inactive');
                 }
                 
-                if (entity.isDeleted) return RESPONSE.error(res, 404, 3001, 'Account is deleted');
-                if (entity.isBlocked) return RESPONSE.error(res, 403, 3003, 'Account is blocked');
+                if (entity.isDeleted) {
+                    if (isPublicRoute) return next();
+                    return RESPONSE.error(res, 404, 3001, 'Account is deleted');
+                }
+                if (entity.isBlocked) {
+                    if (isPublicRoute) return next();
+                    return RESPONSE.error(res, 403, 3003, 'Account is blocked');
+                }
             }
 
             req.user = { 
@@ -109,6 +125,7 @@ exports.authenticate = async (req, res, next) => {
                 if (role === 'expert' && isExpertAuditingRoute) {
                     // Allowed
                 } else {
+                    if (isPublicRoute) return next();
                     return RESPONSE.error(res, 403, 4444, 'Permission Denied: Admin access required');
                 }
             }
@@ -116,12 +133,14 @@ exports.authenticate = async (req, res, next) => {
 
             next();
         } catch (err) {
+            if (isPublicRoute) return next();
             if (err.name === 'TokenExpiredError') {
                 return RESPONSE.error(res, 401, 1002, 'Token Expired');
             }
             return RESPONSE.error(res, 401, 1002, 'Invalid Token');
         }
     } catch (e) {
+        if (isPublicRoute) return next();
         return RESPONSE.error(res, 500, 9999, 'Internal server error');
     }
 };
