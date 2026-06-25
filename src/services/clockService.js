@@ -310,7 +310,7 @@ async function recalibrateForUser(userId, profile) {
         }
 
         // 3. Save to UserClocks 
-        const validityDays = 7;
+        const validityDays = 30;
         const clockValidUntil = new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000);
 
         console.log(`[ClockService] 💾 Saving to UserClocks for user: ${userId}`);

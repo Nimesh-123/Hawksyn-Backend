@@ -29,15 +29,15 @@ router.get('/prompt/:promptId', adminConfigController.getPromptConfig);
 router.post('/prompt', adminConfigController.upsertPromptConfig);
 
 /**
- * @route   GET /api/v1/admin/config/system/:configKey
- * @desc    Get system settings by key
+ * @route   GET /api/v1/admin/config/system
+ * @desc    Get global system settings
  * @access  Admin
  */
-router.get('/system/:configKey', adminConfigController.getSystemSettings);
+router.get('/system', adminConfigController.getSystemSettings);
 
 /**
  * @route   POST /api/v1/admin/config/system
- * @desc    Update or create system settings
+ * @desc    Update global system settings
  * @access  Admin
  */
 router.post('/system', adminConfigController.updateSystemSettings);

@@ -12,14 +12,14 @@ async function getPrompt(promptId, defaults = {}) {
         if (config) {
             return {
                 promptText: config.promptText || defaults.promptText,
-                modelFamily: config.modelFamily || defaults.modelFamily || 'claude-3-sonnet',
+                modelFamily: config.modelFamily || defaults.modelFamily || 'claude-sonnet-4-6',
                 temperature: config.temperature ?? defaults.temperature ?? 0.7,
                 maxTokens: config.maxTokens ?? defaults.maxTokens ?? 4000
             };
         }
         return {
             promptText: defaults.promptText,
-            modelFamily: defaults.modelFamily || 'claude-3-sonnet',
+            modelFamily: defaults.modelFamily || 'claude-sonnet-4-6',
             temperature: defaults.temperature ?? 0.7,
             maxTokens: defaults.maxTokens ?? 4000
         };
@@ -27,7 +27,7 @@ async function getPrompt(promptId, defaults = {}) {
         console.error(`[PromptConfig] Error fetching ${promptId}:`, error.message);
         return {
             promptText: defaults.promptText,
-            modelFamily: defaults.modelFamily || 'claude-3-sonnet',
+            modelFamily: defaults.modelFamily || 'claude-sonnet-4-6',
             temperature: defaults.temperature ?? 0.7,
             maxTokens: defaults.maxTokens ?? 4000
         };

@@ -14,7 +14,7 @@ const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const { aiSemaphore } = require('../../utils/concurrency.js');
-const modelFamily = 'claude-3-7-sonnet-latest';
+const modelFamily = 'claude-haiku-4-5-20251001';
 
 /**
  * Universal JSON LLM Caller
@@ -125,7 +125,7 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
             // If it's a 404 (Model Not Found), we should definitely skip to Gemini
             console.warn(`[AI-Provider] ⚠️ Falling back to Gemini...`);
             try {
-                const modelObj = gemini.getGenerativeModel({ model: 'gemini-3.5-flash' });
+                const modelObj = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
                 const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
                 const result = await modelObj.generateContent(fullPrompt);
                 const response = await result.response;
@@ -153,7 +153,7 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
     if (!forceProvider || forceProvider === 'Gemini') {
         try {
             console.log(`[AI-Provider] ⚡ ${forceProvider ? 'FORCED' : 'DEFAULT'}: Attempting Gemini (Gemini-2.0-Flash)...`);
-            const modelObj = gemini.getGenerativeModel({ model: 'gemini-3.5-flash' });
+            const modelObj = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
             const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
             const result = await modelObj.generateContent(fullPrompt);
             const response = await result.response;
@@ -205,7 +205,7 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
         // Gemini Flash (Fallback 1)
         try {
             console.log('[AI-Provider] 🤖 Attempting Gemini (Gemini-2.0-Flash)...');
-            const model = gemini.getGenerativeModel({ model: 'gemini-3.5-flash' });
+            const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
             const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
             const result = await model.generateContent(fullPrompt);
             const response = await result.response;
@@ -230,7 +230,7 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
             try {
                 console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Sonnet) [High Accuracy]...');
                 const message = await anthropic.messages.create({
-                    model: "claude-3-7-sonnet-latest",
+                    model: "claude-sonnet-4-6",
                     max_tokens: 8192,
                     system: systemPrompt,
                     messages: [{ role: 'user', content: prompt }]
@@ -335,7 +335,7 @@ async function _executeGenerateText(prompt, systemPrompt, forceProvider) {
     if (!forceProvider || forceProvider === 'Gemini') {
         try {
             console.log(`[AI-Provider] ⚡ ${forceProvider ? 'FORCED' : 'DEFAULT'}: Attempting Gemini (Gemini-2.0-Flash) [Text]...`);
-            const model = gemini.getGenerativeModel({ model: 'gemini-3.5-flash' });
+            const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
             const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
             const result = await model.generateContent(fullPrompt);
             const response = await result.response;
@@ -381,7 +381,7 @@ async function _executeGenerateText(prompt, systemPrompt, forceProvider) {
         // --- Step 2: GEMINI (Fallback 1) ---
         try {
             console.log('[AI-Provider] 🤖 Attempting Gemini (Gemini-2.0-Flash) [Text]...');
-            const model = gemini.getGenerativeModel({ model: 'gemini-3.5-flash' });
+            const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
             const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
             const result = await model.generateContent(fullPrompt);
             const response = await result.response;
@@ -403,7 +403,7 @@ async function _executeGenerateText(prompt, systemPrompt, forceProvider) {
             try {
                 console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Sonnet) [Text]...');
                 const message = await anthropic.messages.create({
-                    model: 'claude-3-7-sonnet-latest',
+                    model: 'claude-sonnet-4-6',
                     max_tokens: 4096,
                     system: systemPrompt,
                     messages: [{ role: 'user', content: prompt }]

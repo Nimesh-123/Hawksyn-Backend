@@ -79,28 +79,27 @@ exports.getAllPromptConfigs = async (req, res) => {
     }
 };
 /**
- * Get System Settings by Key
- * GET /api/v1/admin/config/system/:configKey
+ * Get System Settings
+ * GET /api/v1/admin/config/system
  */
 exports.getSystemSettings = async (req, res) => {
     try {
-        const { configKey } = req.params;
-        let config = await db.SystemConfig.findOne({ configKey });
+        let config = await db.SystemConfig.findOne({ configKey: 'GLOBAL_SETTINGS' });
         
-        // Default Chat Settings if not found
-        if (!config && configKey === 'CHAT_SETTINGS') {
-            config = {
-                configKey: 'CHAT_SETTINGS',
-                configValue: {
-                    freeDaysAfterExpertAssign: 30,
-                    chatChargePerMonth: 500,
-                    freeDaysAfterHawkRun: 7
-                }
-            };
-        }
-
         if (!config) {
-            return RESPONSE.error(res, 404, 4004, `Settings for ${configKey} not found`);
+            config = {
+                configKey: 'GLOBAL_SETTINGS',
+                configValue: {
+                    chatSettings: {
+                        freeDaysAfterExpertAssign: 30,
+                        chatChargePerMonth: 500,
+                        freeDaysAfterHawkRun: 7,
+                        slaCommitmentHours: 72
+                    },
+                    cvReuploadPrice: 99
+                },
+                description: 'Global configuration for the entire system'
+            };
         }
 
         return RESPONSE.success(res, 200, 1001, config);
@@ -110,20 +109,20 @@ exports.getSystemSettings = async (req, res) => {
 };
 
 /**
- * Update or Create System Settings
+ * Update System Settings
  * POST /api/v1/admin/config/system
  */
 exports.updateSystemSettings = async (req, res) => {
     try {
-        const { configKey, configValue, description } = req.body;
+        const { configValue, description } = req.body;
 
-        if (!configKey || !configValue) {
-            return RESPONSE.error(res, 400, 1003, 'configKey and configValue are required');
+        if (!configValue) {
+            return RESPONSE.error(res, 400, 1003, 'configValue is required');
         }
 
         const config = await db.SystemConfig.findOneAndUpdate(
-            { configKey },
-            { $set: { configValue, description } },
+            { configKey: 'GLOBAL_SETTINGS' },
+            { $set: { configValue, description: description || 'Global configuration for the entire system' } },
             { upsert: true, new: true }
         );
 

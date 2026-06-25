@@ -254,6 +254,24 @@ exports.getLatestCvReport = async (req, res) => {
         // Generate Recruiter Intelligence report
         const report = generateReport(extractedCV, psdeResult, uploadMeta?.parserMetadata?.metrics);
 
+        // Pre-calculate Hub Summary for the 'Who I Am' UI to make it easy for frontend
+        let flagsRaisedCount = 0;
+        if (report.data_health) {
+            flagsRaisedCount += (report.data_health.warnings?.length || 0);
+            flagsRaisedCount += (report.data_health.critical_flags?.length || 0);
+        }
+        if (report.extracted_cv?.gap_periods) {
+            flagsRaisedCount += report.extracted_cv.gap_periods.filter(g => g.flag_raised).length;
+        }
+
+        report.hub_summary = {
+            signalsFired: report.evidence_stats?.total_evidence_units || psdeResult.total_detected || 0,
+            flagsRaised: flagsRaisedCount,
+            profileScore: report.data_health?.validation_score || 100,
+            scanCompletedDate: report.meta?.generated_at || new Date(),
+            archetypesEvaluated: psdeResult.total_evaluated || 330
+        };
+
         return res.status(200).json({
             success: true,
             data: report

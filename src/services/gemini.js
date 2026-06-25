@@ -1,7 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-console.log('✅ [Gemini Service] Loaded successfully with 2026 models (2.0/2.5)');
+console.log('✅ [Gemini Service] Loaded successfully with models (2.0)');
 
 // Safety settings — BLOCK_NONE on all categories
 const SAFETY_SETTINGS = [
@@ -129,15 +129,15 @@ async function callWithRetry(modelName, promptText, userInput, maxTokens, return
 }
 
 async function callGeminiFlash(promptText, userInput, maxTokens = 8000) {
-  return callWithRetry('gemini-2.5-flash', promptText, userInput, maxTokens, false);
+  return callWithRetry('gemini-2.0-flash', promptText, userInput, maxTokens, false);
 }
 
 async function callGeminiPro(promptText, userInput, maxTokens = 8000) {
-  return callWithRetry('gemini-2.5-pro', promptText, userInput, maxTokens, false);
+  return callWithRetry('gemini-1.5-pro', promptText, userInput, maxTokens, false);
 }
 
 async function callGeminiFlashRaw(promptText, userInput, maxTokens = 16000) {
-  return callWithRetry('gemini-2.5-flash', promptText, userInput, maxTokens, true);
+  return callWithRetry('gemini-2.0-flash', promptText, userInput, maxTokens, true);
 }
 
 module.exports = { callGeminiFlash, callGeminiPro, callGeminiFlashRaw };

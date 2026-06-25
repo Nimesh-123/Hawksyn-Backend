@@ -249,7 +249,7 @@ exports.getHomeStatus = async (req, res) => {
         }
 
         const userId = req.user.id;
-        
+
         // 1. Check Discover Yourself (Card 1)
         const profile = await db.UserProfile.findOne({ userId }).lean();
         const isDiscoverComplete = !!(profile && profile.isConfirmed);

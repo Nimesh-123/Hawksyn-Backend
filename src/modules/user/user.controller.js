@@ -331,6 +331,25 @@ exports.forgotPin = async (req, res) => {
 
 exports.uploadCV = async (req, res) => {
     try {
+        const userId = req.user.id;
+        
+        // --- RERUN PAYMENT VALIDATION ---
+        const userDoc = await db.User.findById(userId);
+        const existingCV = await db.DocumentUploads.findOne({ userId, parserStatus: 'SUCCESS' });
+        
+        let isPaidRerun = false;
+        // If the user already uploaded a successful CV before, this is a Re-upload (Rerun).
+        if (existingCV) {
+            if (!userDoc.hasPaidForRerun) {
+                return RESPONSE.error(res, 402, 4002, "Payment Required. Please purchase a CV Re-upload activation to proceed.");
+            }
+            // Consume the paid status since they are now uploading the CV
+            userDoc.hasPaidForRerun = false;
+            await userDoc.save();
+            isPaidRerun = true;
+        }
+        // --- END PAYMENT VALIDATION ---
+
         if (!req.file) return RESPONSE.error(res, 400, 3009, "No file provided.");
 
         const file = req.file;
@@ -377,6 +396,19 @@ exports.uploadCV = async (req, res) => {
                     );
 
                     await createAuditLog({ ip: req.ip, user: req.user, headers: req.headers }, 'CV_REJECTED', userId, { reason: 'NOT_A_CV', fileName: file.originalname });
+                    
+                    const socketService = require('../../sockets/socketService');
+                    const io = socketService.getIO();
+                    if (io) {
+                        io.to(userId.toString()).emit('cv_parse_update', {
+                            status: 'COMPLETED',
+                            parserStatus: 'NOT_A_CV',
+                            errorReason: 'Detected as non-CV document.'
+                        });
+                    }
+                    if (isPaidRerun) {
+                        await db.User.findByIdAndUpdate(userId, { $set: { hasPaidForRerun: true } });
+                    }
                     return;
                 }
 
@@ -400,6 +432,19 @@ exports.uploadCV = async (req, res) => {
                         layer: aiError.layer,
                         fileName: file.originalname
                     });
+
+                    const socketService = require('../../sockets/socketService');
+                    const io = socketService.getIO();
+                    if (io) {
+                        io.to(userId.toString()).emit('cv_parse_update', {
+                            status: 'COMPLETED',
+                            parserStatus: 'REJECTED',
+                            errorReason: aiError.userMessage
+                        });
+                    }
+                    if (isPaidRerun) {
+                        await db.User.findByIdAndUpdate(userId, { $set: { hasPaidForRerun: true } });
+                    }
                     return;
                 }
                 console.error("[AI Fail]", aiError.message);
@@ -466,7 +511,26 @@ exports.uploadCV = async (req, res) => {
                 });
             }
 
-        })().catch(backgroundError => console.error("[Background Parse Error]", backgroundError));
+            const socketService = require('../../sockets/socketService');
+            const io = socketService.getIO();
+            if (io) {
+                io.to(userId.toString()).emit('cv_parse_update', {
+                    status: 'COMPLETED',
+                    parserStatus: parserStatus,
+                    errorReason: errorReason
+                });
+            }
+
+            if (isPaidRerun && parserStatus !== "SUCCESS") {
+                await db.User.findByIdAndUpdate(userId, { $set: { hasPaidForRerun: true } });
+            }
+
+        })().catch(async (backgroundError) => {
+            console.error("[Background Parse Error]", backgroundError);
+            if (isPaidRerun) {
+                await db.User.findByIdAndUpdate(req.user.id, { $set: { hasPaidForRerun: true } });
+            }
+        });
 
         return RESPONSE.success(res, 202, 1001, {
             message: "CV uploaded. AI parsing started in background.",
@@ -860,5 +924,72 @@ exports.getClocksStatus = async (req, res) => {
     }
 };
 
+/**
+ * Mock Razorpay Order Creation for CV Re-upload
+ * POST /api/v1/user/payment/razorpay/create-order
+ */
+exports.createRazorpayOrder = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        // Mock order ID generation
+        const crypto = require('crypto');
+        const mockOrderId = `order_${crypto.randomBytes(8).toString('hex')}`;
 
+        return RESPONSE.success(res, 200, 1001, {
+            order_id: mockOrderId,
+            amount: 9900, // 99 INR in paise
+            currency: "INR",
+            message: "Razorpay mock order created."
+        });
+    } catch (error) {
+        console.error('[Razorpay Order Error]', error);
+        return RESPONSE.error(res, 500, 9999, error.message);
+    }
+};
 
+/**
+ * Verify Mock Razorpay Payment for CV Re-upload
+ * POST /api/v1/user/payment/razorpay/verify
+ */
+exports.verifyRazorpayPayment = async (req, res) => {
+    try {
+        const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+        const userId = req.user.id;
+
+        if (!razorpay_payment_id || !razorpay_order_id) {
+            return RESPONSE.error(res, 400, 1003, 'Payment details are required');
+        }
+
+        // Ideally, here you verify the signature using crypto and RAZORPAY_KEY_SECRET.
+        // For now, we mock the success.
+
+        const newPayment = await db.Payments.create({
+            paymentId: `PAY_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+            userId,
+            platform: 'web',
+            productId: 'CV_RERUN',
+            purchaseId: razorpay_payment_id,
+            amount: 99,
+            currency: 'INR',
+            status: 'COMPLETED',
+            isTestPayment: true,
+            paymentMethod: 'RAZORPAY',
+            verifiedAt: new Date(),
+            metadata: { razorpay_order_id, razorpay_signature }
+        });
+
+        // Update the user profile to set hasPaidForRerun
+        await db.User.findByIdAndUpdate(userId, { $set: { hasPaidForRerun: true } });
+
+        return RESPONSE.success(res, 200, 1001, {
+            message: 'Payment verified successfully. You can now re-upload your CV.',
+            hasPaidForRerun: true,
+            paymentId: newPayment.paymentId
+        });
+
+    } catch (error) {
+        console.error('[Razorpay Verification Error]', error);
+        return RESPONSE.error(res, 500, 9999, error.message);
+    }
+};

@@ -125,6 +125,8 @@ route.get('/clocks/status', userController.getClocksStatus);
  *   post:
  *     summary: Set M-PIN
  *     tags: ["1. Authentication & Security"]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -422,5 +424,49 @@ route.post('/change-pin', userController.changeMPin);
 
 route.post('/apply-expert', userController.applyAsExpert);
 
+/**
+ * @swagger
+ * /user/payment/razorpay/create-order:
+ *   post:
+ *     summary: Create Razorpay Order for CV Re-upload
+ *     tags: ["9. Billing & Payments"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns mock Razorpay order ID
+ */
+route.post('/payment/razorpay/create-order', userController.createRazorpayOrder);
+
+/**
+ * @swagger
+ * /user/payment/razorpay/verify:
+ *   post:
+ *     summary: Verify Razorpay Payment for CV Re-upload
+ *     tags: ["9. Billing & Payments"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [razorpay_payment_id, razorpay_order_id]
+ *             properties:
+ *               razorpay_payment_id:
+ *                 type: string
+ *                 example: "pay_29QQoUBi66xm2f"
+ *               razorpay_order_id:
+ *                 type: string
+ *                 example: "order_9A33XWu170gUtm"
+ *               razorpay_signature:
+ *                 type: string
+ *                 example: "9ef0c35..."
+ *     responses:
+ *       200:
+ *         description: Payment verified successfully
+ */
+route.post('/payment/razorpay/verify', userController.verifyRazorpayPayment);
 
 module.exports = route;

@@ -47,7 +47,8 @@ const userSchema = new mongoose.Schema(
             rerunReminder: { type: Boolean, default: true },
             productUpdates: { type: Boolean, default: false }
         },
-        chatExpiryDate: { type: Date, default: null }
+        chatExpiryDate: { type: Date, default: null },
+        hasPaidForRerun: { type: Boolean, default: false }
     },
     { timestamps: true }
 );

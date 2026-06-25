@@ -150,6 +150,7 @@ class HipController {
                 }
 
                 responsePayload.profileData = {
+                    // Original fields in case they are needed elsewhere
                     fullName: profile.seoMetadata?.jsonLdPerson?.name || "User",
                     jobTitle: profile.seoMetadata?.jsonLdPerson?.jobTitle || "Professional",
                     tag: parsedCV.structured?.inferred?.industry || parsedCV.inferred?.industry || "Strategist",
@@ -170,16 +171,26 @@ class HipController {
 // Background Task Function
 const generateHipProfileWithSteps = async (userId) => {
     try {
+        const socketService = require('../../sockets/socketService');
+        const emitUpdate = (status) => {
+            const io = socketService.getIO();
+            if (io) io.to(userId.toString()).emit('hip_generation_update', { status });
+        };
+
         await db.HipProfile.updateOne({ userId }, { generationStatus: 'CAREER_SIGNALS' });
+        emitUpdate('CAREER_SIGNALS');
         await new Promise(resolve => setTimeout(resolve, 2500));
 
         await db.HipProfile.updateOne({ userId }, { generationStatus: 'CLOCK_DATA' });
+        emitUpdate('CLOCK_DATA');
         await new Promise(resolve => setTimeout(resolve, 2500));
 
         await db.HipProfile.updateOne({ userId }, { generationStatus: 'PROFILE_CARD' });
+        emitUpdate('PROFILE_CARD');
         await new Promise(resolve => setTimeout(resolve, 2500));
 
         await db.HipProfile.updateOne({ userId }, { generationStatus: 'SECURE_PIN' });
+        emitUpdate('SECURE_PIN');
         
         // Heavy generation
         const profile = await hipService.generateHipProfile(userId);
@@ -188,6 +199,7 @@ const generateHipProfileWithSteps = async (userId) => {
             { userId }, 
             { generationStatus: 'COMPLETED', status: 'PUBLISHED', publishedAt: new Date(), profileSlug: profile.profileSlug }
         );
+        emitUpdate('COMPLETED');
 
     } catch (error) {
         console.error('Background HIP Generation Error:', error);

@@ -13,7 +13,6 @@ const route = require('./src/routes/index.route.js');
 require('./middleware/database/connectDatabase.js');
 
 // --- Real-time Chat ---
-const { Server } = require('socket.io');
 const { initChatSocket } = require('./src/sockets/chatSocket');
 
 require('./src/modules/signals/crons/trendEngine.cron.js');
@@ -76,12 +75,8 @@ const server = app.listen(PORT, () => {
 });
   
 // --- Initialize Socket.io ---
-const io = new Server(server, {
-    cors: {
-        origin: "*", // Adjust for production
-        methods: ["GET", "POST"]
-    }
-});
+const socketService = require('./src/sockets/socketService');
+const io = socketService.init(server);
 initChatSocket(io);
 
 // Set timeout to 10 minutes for AI processing
