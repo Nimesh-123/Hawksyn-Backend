@@ -100,4 +100,53 @@ router.post('/trigger', hipController.triggerGeneration);
 // GET: Polling endpoint to check HIP generation status
 router.get('/status', hipController.getHipStatus);
 
+
+/**
+ * @swagger
+ * /hip/toggle-status:
+ *   post:
+ *     summary: Toggle HIP Status
+ *     description: Toggles the profile status between Live (PUBLISHED) and Paused (DRAFT).
+ *     tags: [HIP Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully toggled status
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Profile not found
+ *       500:
+ *         description: Server Error
+ */
+router.post('/toggle-status', hipController.toggleHipStatus);
+
+
+/**
+ * @swagger
+ * /hip/download-pdf:
+ *   get:
+ *     summary: Download HIP as PDF
+ *     description: Generates a PDF of the user's HIP profile using Puppeteer and returns it as a downloadable file.
+ *     tags: [HIP Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully downloaded PDF
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Profile not found
+ *       500:
+ *         description: Server Error
+ */
+router.get('/download-pdf', hipController.downloadHipPdf);
+
 module.exports = router;

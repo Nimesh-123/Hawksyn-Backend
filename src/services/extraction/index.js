@@ -1015,7 +1015,7 @@ async function runExtractionPipeline(candidateId, rawText, db) {
         role.role_metadata.duration_months = 0;
       }
 
-      role.base_aeus = (role.base_aeus || []).map(aeu => ({
+      role.base_aeus = (Array.isArray(role.base_aeus) ? role.base_aeus : []).map(aeu => ({
         ...calibrateAEU(aeu),
         role_index: rIdx
       }));
@@ -1074,7 +1074,7 @@ async function runExtractionPipeline(candidateId, rawText, db) {
       total_experience_years: parseFloat((totalMonths / 12).toFixed(1)),
       role_count: repairedRoles.length,
       avg_tenure_months: repairedRoles.length > 0 ? totalMonths / repairedRoles.length : 0,
-      top_skills: (skills?.skills || []).map(s => s.skill_name).slice(0, 5),
+      top_skills: (Array.isArray(skills?.skills) ? skills.skills : (Array.isArray(skills) ? skills : [])).map(s => s?.skill_name || s?.name || typeof s === 'string' ? s : '').filter(Boolean).slice(0, 5),
       ...consolidated.meta_stats,
       industry: consolidated.inferred_profile?.industry || consolidated.industry || "",
       domain_indicator: consolidated.inferred_profile?.domain_indicator || consolidated.domain_indicator || consolidated.domainIndicator || "",

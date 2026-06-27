@@ -295,6 +295,13 @@ exports.deleteAccount = async (req, res) => {
             await db.Payments.deleteMany({ userId });
             await db.UserProfile.deleteMany({ userId });
             await db.DocumentUploads.deleteMany({ userId });
+            await db.ExtractedCV.deleteMany({ candidate_id: userId });
+            await db.PSDEResult.deleteMany({ candidate_id: userId });
+            await db.AEUAuditLog.deleteMany({ candidate_id: userId });
+            await db.HipProfile.deleteMany({ userId });
+            await db.Notifications.deleteMany({ userId });
+            await db.ExpertQuery.deleteMany({ userId });
+            await db.ChatMessage.deleteMany({ senderId: userId }); // Delete chats sent by user
             await db.UserClocks.deleteMany({ userId });
             await db.ClockHistory.deleteMany({ userId });
             await db.UserCredits.deleteMany({ userId });
@@ -717,8 +724,13 @@ exports.changeMPin = async (req, res) => {
         const isMatch = await bcrypt.compare(String(oldPin), user.mPin);
         if (!isMatch) return RESPONSE.error(res, 401, 3012, "The old PIN you entered is incorrect.");
 
-        const commonPins = ['1234', '1111', '0000', '1212', '2580', '1379'];
-        if (commonPins.includes(String(newPin))) {
+        const pinStr = String(newPin);
+        if (pinStr.length !== 6) {
+            return RESPONSE.error(res, 400, 3013, "M-PIN must be exactly 6 digits");
+        }
+
+        const commonPins = ['123456', '000000', '111111', '222222', '333333', '123123', '654321', '987654'];
+        if (commonPins.includes(pinStr)) {
             return RESPONSE.error(res, 400, 3013, "The new PIN is too common. Please choose a more secure one.");
         }
 
@@ -991,5 +1003,68 @@ exports.verifyRazorpayPayment = async (req, res) => {
     } catch (error) {
         console.error('[Razorpay Verification Error]', error);
         return RESPONSE.error(res, 500, 9999, error.message);
+    }
+};
+
+exports.uploadProfilePhoto = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        if (!req.file) return RESPONSE.error(res, 400, 3009, "No file provided.");
+        
+        const file = req.file;
+        if (!file.mimetype.startsWith('image/')) return RESPONSE.error(res, 400, 3009, "Only image files allowed.");
+        if (file.size > 5 * 1024 * 1024) return RESPONSE.error(res, 400, 3009, "Limit 5MB exceeded.");
+
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const fileName = `profile-photos/${userId}-${uniqueSuffix}-${file.originalname}`;
+        const uploadRes = await uploadFile(file.buffer, fileName, file.mimetype);
+        const fileUrl = uploadRes.url;
+
+        // Update the user model
+        await db.User.findByIdAndUpdate(userId, { profilePhoto: fileUrl });
+        
+        return RESPONSE.success(res, 200, 1001, {
+            message: "Profile photo updated successfully.",
+            profilePhoto: fileUrl
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+exports.getAuditTrail = async (req, res) => {
+    try {
+        const userId = req.user ? req.user.id : null;
+        if (!userId) {
+            return RESPONSE.error(res, 401, 3001, "Unauthorized: User not found");
+        }
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const action = req.query.action;
+
+        const query = { userId };
+        if (action) {
+            query.action = action;
+        }
+
+        const skip = (page - 1) * limit;
+
+        const total = await db.AuditLog.countDocuments(query);
+        const logs = await db.AuditLog.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        return RESPONSE.success(res, 200, 1001, {
+            total,
+            page,
+            limit,
+            logs
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
     }
 };

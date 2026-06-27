@@ -62,6 +62,8 @@ exports.getUserProfile = async (req, res) => {
             db.User.findById(userId)
         ]);
 
+        const cvDoc = (profile && profile.lastCvUploadId) ? await db.DocumentUploads.findById(profile.lastCvUploadId) : null;
+
         if (!profile) return res.status(404).json({ success: false, message: "Please upload your CV first" });
 
         const p = profile.confirmedProfile || profile.originalParsedData.structured;
@@ -82,11 +84,28 @@ exports.getUserProfile = async (req, res) => {
             isConfirmed: profile.isConfirmed,
             confirmedAt: profile.confirmedAt,
             mPinSet: user ? user.mPinSet : false,
+            
+            // --- NEW: Account info for "My Account" screen ---
+            authStatus: {
+                isEmailVerified: user ? user.isEmailVerified : false,
+                isPhoneVerified: user ? user.isPhoneVerified : false,
+                whatsappNumber: user ? user.whatsappNumber : "",
+                email: user ? user.email : "",
+                profilePhoto: user ? (user.profilePhoto || user.avatar) : null
+            },
+            cvFile: cvDoc ? {
+                fileName: cvDoc.file_name_original || cvDoc.fileName,
+                fileSizeBytes: cvDoc.file_size_bytes,
+                cvUrl: cvDoc.cvUrl || profile.cvUrl,
+                uploadedAt: cvDoc.uploadedAt
+            } : null,
+            // -------------------------------------------------
+
             personalInfo: {
                 fullName: p.identity?.fullName || p.identity?.name || "",
                 email: p.identity?.email || "",
                 phone: p.identity?.phone || "",
-                location: p.identity?.location || "",
+                location: typeof p.identity?.location === 'object' ? [p.identity.location.primary_city, p.identity.location.state].filter(Boolean).join(', ') : (p.identity?.location || ""),
                 currentRoleTitle: p.identity?.currentRoleTitle || p.identity?.headline_title || "",
                 linkedinUrl: p.identity?.linkedinUrl || p.identity?.social_links?.linkedin || "",
                 githubUrl: p.identity?.githubUrl || p.identity?.social_links?.github || ""

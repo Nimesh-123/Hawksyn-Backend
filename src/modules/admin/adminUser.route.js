@@ -145,6 +145,27 @@ const expertController = require('../expert/expert.controller.js');
 route.get('/all', adminController.getAllUsers);
 route.get('/active', adminController.getActiveUsers);
 route.get('/deleted', adminController.getDeletedUsers);
+
+/**
+ * @swagger
+ * /admin/users/{id}/restore:
+ *   patch:
+ *     summary: Restore a soft-deleted user
+ *     tags: [Admin - Users]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The user ID
+ *     responses:
+ *       200:
+ *         description: User restored successfully
+ */
+route.patch('/:id/restore', adminController.restoreUser);
 route.get('/:userId/details', adminController.getUserDetails);
 route.patch('/:userId/block', adminController.blockUser);
 route.patch('/:userId/toggle-expert', expertController.toggleUserExpertStatus);

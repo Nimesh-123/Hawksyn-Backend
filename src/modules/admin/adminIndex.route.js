@@ -20,6 +20,7 @@ route.use('/manage', adminManageRoute);
 route.use('/reports', adminReportsRoute); // AI Training Data — Report Rating
 route.use('/playbook', adminPlaybookRoute);
 route.use('/config', adminConfigRoute);
+route.use('/helpdesk', require('../helpdesk/helpdeskAdmin.route.js'));
 
 /**
  * @swagger

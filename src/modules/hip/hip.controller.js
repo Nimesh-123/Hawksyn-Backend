@@ -16,6 +16,19 @@ class HipController {
                 return res.status(404).send("<html><body><h1>Profile Not Found</h1><p>The requested Hawksyn Intelligence Profile does not exist or has been removed.</p></body></html>");
             }
 
+            if (profile.status !== 'PUBLISHED') {
+                return res.status(200).send(`
+                <html>
+                    <body style="background:#080808;color:#f0f0f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+                        <div style="text-align:center;padding:20px;border:1px solid #333;border-radius:12px;background:#111;">
+                            <h2 style="color:#f0a030;margin-top:0;">Profile Paused</h2>
+                            <p style="color:#888;">This Hawksyn Intelligence Profile is currently not visible.</p>
+                        </div>
+                    </body>
+                </html>
+                `);
+            }
+
             // Fetch extra collections directly in the API for dynamic PROFILE rendering
             const userProfile = await db.UserProfile.findOne({ userId: profile.userId });
             const cvData = userProfile?.confirmedProfile || userProfile?.originalParsedData || {};
@@ -149,6 +162,10 @@ class HipController {
                     topSignal = profile.sectionsData.S02.top_signal || topSignal;
                 }
 
+                responsePayload.profileSlug = profile.profileSlug;
+                responsePayload.isLive = profile.status === 'PUBLISHED';
+                responsePayload.shareUrl = `https://hip.hawksyn.com/${profile.profileSlug}`;
+
                 responsePayload.profileData = {
                     // Original fields in case they are needed elsewhere
                     fullName: profile.seoMetadata?.jsonLdPerson?.name || "User",
@@ -166,6 +183,120 @@ class HipController {
             return res.status(500).json({ success: false, message: error.message });
         }
     }
+
+    async toggleHipStatus(req, res) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+            const profile = await db.HipProfile.findOne({ userId });
+            if (!profile) return res.status(404).json({ success: false, message: 'Profile not found' });
+
+            profile.status = profile.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED';
+            await profile.save();
+
+            return res.status(200).json({ 
+                success: true, 
+                message: `Profile is now ${profile.status === 'PUBLISHED' ? 'Live' : 'Paused'}`,
+                isLive: profile.status === 'PUBLISHED',
+                status: profile.status
+            });
+        } catch (error) {
+            console.error('Error toggling HIP status:', error);
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+
+    async downloadHipPdf(req, res) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+            const profile = await db.HipProfile.findOne({ userId });
+            if (!profile) {
+                return res.status(404).json({ success: false, message: 'Profile not found' });
+            }
+
+            const userProfile = await db.UserProfile.findOne({ userId: profile.userId });
+            const cvData = userProfile?.confirmedProfile || userProfile?.originalParsedData || {};
+            const psdeResult = await db.PSDEResult.findOne({ candidate_id: profile.userId }).lean() || {};
+
+            const templatePath = path.join(__dirname, 'HIP_Template_Dynamic.hbs');
+            if (!fs.existsSync(templatePath)) {
+                return res.status(500).json({ success: false, message: "Template missing on server" });
+            }
+            const rawHtml = fs.readFileSync(templatePath, 'utf8');
+            const template = Handlebars.compile(rawHtml);
+            
+            const viewData = {
+                META: {
+                    canonical_url: profile.seoMetadata?.canonicalUrl,
+                    og_image_url: profile.seoMetadata?.ogImageUrl,
+                    description: profile.seoMetadata?.metaDescription,
+                    og_description: profile.seoMetadata?.metaDescription,
+                    favicon_url: 'https://hawksyn.com/favicon.ico',
+                    apple_touch_icon_url: 'https://hawksyn.com/apple-touch-icon.png',
+                    locale: 'en_IN'
+                },
+                PROFILE: {
+                    full_name: profile.seoMetadata?.jsonLdPerson?.name,
+                    first_name: profile.seoMetadata?.jsonLdPerson?.name?.split(' ')[0],
+                    last_name: profile.seoMetadata?.jsonLdPerson?.name?.split(' ')?.slice(1)?.join(' '),
+                    current_title: profile.seoMetadata?.jsonLdPerson?.jobTitle,
+                    linkedin_url: cvData?.structured?.identity?.social_links?.linkedin || profile.seoMetadata?.jsonLdPerson?.sameAs || '',
+                    primary_domain: cvData?.structured?.inferred?.industry || cvData?.inferred?.industry || cvData.domain || 'Technology', 
+                    traits_evaluated: psdeResult.total_evaluated || '330', 
+                    strong_signals: psdeResult.total_detected || '3', 
+                    years_experience: Math.round(cvData?.structured?.inferred?.totalExperienceYears || cvData?.inferred?.totalExperienceYears) || cvData.yearsOfExperience || '8',
+                    rarity_score: profile.seoMetadata?.rarityScore || 95,
+                    partial_matches: psdeResult.total_partial || '5'
+                },
+                CERT: {
+                    run_id: profile.runId,
+                    date_verified: profile.publishedAt ? profile.publishedAt.toISOString() : new Date().toISOString()
+                },
+                PSDE: {
+                    rarity_score: profile.seoMetadata?.rarityScore
+                },
+                hip: {}
+            };
+
+            const sections = profile.sectionsData instanceof Map ? Object.fromEntries(profile.sectionsData) : (profile.sectionsData || {});
+            for (const [secId, data] of Object.entries(sections)) {
+                const lowerId = secId.toLowerCase();
+                viewData.hip[lowerId] = data;
+            }
+
+            const finalHtml = template(viewData);
+
+            const puppeteer = require('puppeteer');
+            const browser = await puppeteer.launch({ 
+                headless: true,
+                args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+            });
+            const page = await browser.newPage();
+            
+            await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
+            
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' }
+            });
+            
+            await browser.close();
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=Hawksyn-HIP-${profile.profileSlug || 'Profile'}.pdf`);
+            return res.send(Buffer.from(pdfBuffer));
+            
+        } catch (error) {
+            console.error('Error generating HIP PDF:', error);
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
 }
 
 // Background Task Function

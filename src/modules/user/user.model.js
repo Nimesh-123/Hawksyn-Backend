@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema(
         name: { type: String, trim: true },
         fullName: { type: String, trim: true },
         avatar: { type: String }, // User profile picture from Google/Social
+        profilePhoto: { type: String, default: null }, // User uploaded profile photo
         googleId: { type: String }, // Unique identifier for Google login
         email: {
             type: String,
@@ -38,6 +39,7 @@ const userSchema = new mongoose.Schema(
         notificationPreferences: {
             push: { type: Boolean, default: true },
             email: { type: Boolean, default: true },
+            whatsapp: { type: Boolean, default: true },
             // Slide 39 Toggles
             clockCritical: { type: Boolean, default: true }, // Locked to ON in logic
             clockExpired:  { type: Boolean, default: true },

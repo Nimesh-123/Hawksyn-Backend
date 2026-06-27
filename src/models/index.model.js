@@ -67,7 +67,13 @@ db.LegalContent = require('../modules/support/LegalContent.model.js');
 
 // HIP Models
 db.HipGuardrailRule = require('../modules/hip/HipGuardrailRule.model.js');
+
 db.HipSectionPrompt = require('../modules/hip/HipSectionPrompt.model.js');
 db.HipProfile = require('../modules/hip/HipProfile.model.js');
+
+// Helpdesk Models
+db.Ticket = require('../modules/helpdesk/Ticket.model.js');
+db.TicketMessage = require('../modules/helpdesk/TicketMessage.model.js');
+
 
 module.exports = { db };

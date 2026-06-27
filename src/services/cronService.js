@@ -18,6 +18,7 @@ class CronService {
         // NEW: Reset Daily Caseload for all experts at Midnight (00:00)
         cron.schedule('0 0 * * *', () => {
             this.resetDailyCaseloads();
+            this.processPermanentDeletions(); // Also process 30-day permanent deletions
         });
 
         // B35: Refresh Stale Market Signals (Every Wednesday at 3 AM)
@@ -37,6 +38,61 @@ class CronService {
             logger.info('[Cron] Daily Caseload Reset Complete.');
         } catch (error) {
             logger.error(`[Cron Error] Failed to reset caseloads: ${error.message}`);
+        }
+    }
+
+    async processPermanentDeletions() {
+        try {
+            logger.info('[Cron] Starting 30-day permanent account deletion process...');
+            
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            // Find users who have been soft-deleted for more than 30 days
+            const usersToDelete = await db.User.find({
+                isDeleted: true,
+                deletedAt: { $lte: thirtyDaysAgo }
+            }).select('_id');
+
+            if (usersToDelete.length === 0) {
+                logger.info('[Cron] No accounts pending permanent deletion today.');
+                return;
+            }
+
+            for (const user of usersToDelete) {
+                const userId = user._id;
+                logger.info(`[Cron] Permanently deleting account for user: ${userId}`);
+
+                const runs = await db.Runs.find({ userId }).select('runId');
+                const runIds = runs.map(r => r.runId);
+
+                if (runIds.length > 0) {
+                    await db.Ras.deleteMany({ runId: { $in: runIds } });
+                    await db.CaseFile.deleteMany({ runId: { $in: runIds } });
+                }
+
+                await db.Runs.deleteMany({ userId });
+                await db.Payments.deleteMany({ userId });
+                await db.UserProfile.deleteMany({ userId });
+                await db.DocumentUploads.deleteMany({ userId });
+                await db.ExtractedCV.deleteMany({ candidate_id: userId });
+                await db.PSDEResult.deleteMany({ candidate_id: userId });
+                await db.AEUAuditLog.deleteMany({ candidate_id: userId });
+                await db.HipProfile.deleteMany({ userId });
+                await db.Notifications.deleteMany({ userId });
+                await db.ExpertQuery.deleteMany({ userId });
+                await db.ChatMessage.deleteMany({ senderId: userId });
+                await db.UserClocks.deleteMany({ userId });
+                await db.ClockHistory.deleteMany({ userId });
+                await db.UserCredits.deleteMany({ userId });
+                await db.AuditLog.deleteMany({ userId });
+                
+                await db.User.findByIdAndDelete(userId);
+            }
+
+            logger.info(`[Cron] Successfully permanently deleted ${usersToDelete.length} accounts.`);
+        } catch (error) {
+            logger.error(`[Cron Error] Failed to process permanent deletions: ${error.message}`);
         }
     }
 

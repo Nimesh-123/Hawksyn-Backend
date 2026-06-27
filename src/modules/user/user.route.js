@@ -469,4 +469,60 @@ route.post('/payment/razorpay/create-order', userController.createRazorpayOrder)
  */
 route.post('/payment/razorpay/verify', userController.verifyRazorpayPayment);
 
+
+/**
+ * @swagger
+ * /user/upload-profile-photo:
+ *   post:
+ *     summary: Upload User Profile Photo
+ *     tags: ["2. Onboarding (Profile Setup)"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profilePhoto:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Profile photo updated successfully.
+ *       400:
+ *         description: Invalid file type or file too large.
+ */
+route.post('/upload-profile-photo', upload.single('profilePhoto'), userController.uploadProfilePhoto);
+
+/**
+ * @swagger
+ * /user/audit-trail:
+ *   get:
+ *     summary: Get user's own audit trail
+ *     tags: ["1. Authentication & Security"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: action
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+route.get('/audit-trail', userController.getAuditTrail);
+
 module.exports = route;

@@ -113,7 +113,7 @@ exports.getUnreadCount = async (req, res) => {
 exports.updatePreferences = async (req, res) => {
     try {
         const { 
-            push, email, 
+            push, email, whatsapp,
             clockCritical, clockExpired, expertReplied, 
             chatClosing, reportReady, rerunReminder, productUpdates 
         } = req.body;
@@ -124,6 +124,7 @@ exports.updatePreferences = async (req, res) => {
         // Core Toggles
         if (push !== undefined)  updateData['notificationPreferences.push'] = push;
         if (email !== undefined) updateData['notificationPreferences.email'] = email;
+        if (whatsapp !== undefined) updateData['notificationPreferences.whatsapp'] = whatsapp;
 
         // Notification Toggles
         if (clockExpired !== undefined)  updateData['notificationPreferences.clockExpired'] = clockExpired;

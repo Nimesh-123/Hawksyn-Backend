@@ -6,6 +6,22 @@ const { createAuditLog } = require('../../../utils/auditLogger.js');
 const { calculateAICost, convertToLocalCurrency } = require('../admin/helpers/aiCostHelper.js');
 const { detectRegionFromIP } = require('../../../utils/regionHelper');
 const { generateReport } = require('./report/reportGenerator');
+const path = require('path');
+const fs = require('fs');
+const Handlebars = require('handlebars');
+const puppeteer = require('puppeteer');
+
+Handlebars.registerHelper('eq', function (a, b) {
+    return a === b;
+});
+
+Handlebars.registerHelper('multiply', function (a, b) {
+    return Number(a) * Number(b);
+});
+
+Handlebars.registerHelper('gt', function (a, b) {
+    return Number(a) > Number(b);
+});
 
 
 /**
@@ -324,5 +340,70 @@ exports.getCvProcessingStatus = async (req, res) => {
         return res.status(200).json({ success: true, data: { status: run.status } });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Download the CV Intelligence Report as PDF
+ */
+exports.downloadCvReportPdf = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const userProfile = await db.UserProfile.findOne({ userId });
+        if (!userProfile || !userProfile.cvUrl) {
+            return res.status(404).json({ success: false, message: "Parsed CV data not found for this user" });
+        }
+
+        const [extractedCV, psdeResult, uploadMeta] = await Promise.all([
+            db.ExtractedCV.findOne({ candidate_id: userId }),
+            db.PSDEResult.findOne({ candidate_id: userId }).sort({ created_at: -1 }),
+            db.DocumentUploads.findById(userProfile.lastCvUploadId)
+        ]);
+
+        if (!extractedCV || !psdeResult) {
+            return res.status(404).json({ success: false, message: "Required intelligence data not found" });
+        }
+
+        const report = generateReport(extractedCV, psdeResult, uploadMeta?.parserMetadata?.metrics);
+
+        const templatePath = path.join(__dirname, 'templates', 'CV_Report_Template.hbs');
+        if (!fs.existsSync(templatePath)) {
+            return res.status(500).json({ success: false, message: "Template missing on server" });
+        }
+
+        const rawHtml = fs.readFileSync(templatePath, 'utf8');
+        const template = Handlebars.compile(rawHtml);
+        
+        const finalHtml = template({ report });
+
+        let browser;
+        try {
+            browser = await puppeteer.launch({ 
+                headless: true,
+                args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+            });
+            const page = await browser.newPage();
+            
+            await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
+            
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' }
+            });
+            
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=Hawksyn-Report-${report.header.candidate_name.replace(/\\s+/g, '-')}.pdf`);
+            return res.send(Buffer.from(pdfBuffer));
+        } finally {
+            if (browser) {
+                await browser.close();
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error generating CV Report PDF:', error);
+        return res.status(500).json({ success: false, message: 'Failed to generate PDF. Please try again.' });
     }
 };
