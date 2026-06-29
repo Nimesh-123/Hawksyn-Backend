@@ -26,6 +26,11 @@ const prepareUserResponse = async (user) => {
     const userProfile = await db.UserProfile.findOne({ userId: user._id });
     userResponse.profileConfirmed = userProfile ? userProfile.isConfirmed : false;
 
+    if (userResponse.profilePhoto && userResponse.profilePhoto.includes('amazonaws.com')) {
+        const baseUrl = process.env.API_URL || 'http://localhost:3002/api/v1';
+        userResponse.profilePhoto = `${baseUrl}/user/profile-photo/${userResponse._id}`;
+    }
+
     delete userResponse.mPin;
     delete userResponse.refreshToken;
     return userResponse;
@@ -857,26 +862,39 @@ const generateClocksWithSteps = async (userId) => {
         const profile = await db.UserProfile.findOne({ userId }).lean();
         const mergedProfile = profile?.confirmedProfile || profile?.originalParsedData?.structured || {};
         const clockService = require('../../services/clockService.js');
+        const socketService = require('../../sockets/socketService');
+        const io = socketService.getIO();
+
+        const emitStatus = (status) => {
+            if (io) io.to(userId.toString()).emit('clock_generation_update', { status });
+        };
         
         // Step 1: AI Exposure (initial)
         await db.UserClocks.updateOne({ userId }, { $set: { generationStatus: 'MARKET_VELOCITY' } });
+        emitStatus('MARKET_VELOCITY');
         await new Promise(r => setTimeout(r, 2000));
         
         // Step 2: Market Velocity
         await db.UserClocks.updateOne({ userId }, { $set: { generationStatus: 'SKILL_HALFLIFE' } });
+        emitStatus('SKILL_HALFLIFE');
         await new Promise(r => setTimeout(r, 2000));
         
         // Step 3: Skill Halflife
         await db.UserClocks.updateOne({ userId }, { $set: { generationStatus: 'OPPORTUNITY_WINDOW' } });
+        emitStatus('OPPORTUNITY_WINDOW');
         
         // Actual Generation (takes a few seconds)
         await clockService.recalibrateForUser(userId, mergedProfile);
         
         // Step 4: Completed
         await db.UserClocks.updateOne({ userId }, { $set: { generationStatus: 'COMPLETED' } });
+        emitStatus('COMPLETED');
     } catch (err) {
         console.error("[Clock Gen Worker] Error generating clocks:", err);
         await db.UserClocks.updateOne({ userId }, { $set: { generationStatus: 'PENDING' } });
+        const socketService = require('../../sockets/socketService');
+        const io = socketService.getIO();
+        if (io) io.to(userId.toString()).emit('clock_generation_update', { status: 'PENDING', error: err.message });
     }
 };
 
@@ -1016,20 +1034,43 @@ exports.uploadProfilePhoto = async (req, res) => {
         if (!file.mimetype.startsWith('image/')) return RESPONSE.error(res, 400, 3009, "Only image files allowed.");
         if (file.size > 5 * 1024 * 1024) return RESPONSE.error(res, 400, 3009, "Limit 5MB exceeded.");
 
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const fileName = `profile-photos/${userId}-${uniqueSuffix}-${file.originalname}`;
-        const uploadRes = await uploadFile(file.buffer, fileName, file.mimetype);
-        const fileUrl = uploadRes.url;
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const fileName = `profile-photos/${userId}-${uniqueSuffix}-${file.originalname}`;
+    const uploadRes = await uploadFile(file.buffer, fileName, file.mimetype);
+    const fileUrl = uploadRes.url;
 
-        // Update the user model
-        await db.User.findByIdAndUpdate(userId, { profilePhoto: fileUrl });
-        
-        return RESPONSE.success(res, 200, 1001, {
-            message: "Profile photo updated successfully.",
-            profilePhoto: fileUrl
-        });
+    // Update the user model
+    await db.User.findByIdAndUpdate(userId, { profilePhoto: fileUrl });
+    
+    const baseUrl = process.env.API_URL || 'http://localhost:3002/api/v1';
+    const proxyUrl = `${baseUrl}/user/profile-photo/${userId}`;
+
+    return RESPONSE.success(res, 200, 1001, {
+        message: "Profile photo updated successfully.",
+        profilePhoto: proxyUrl
+    });
+} catch (err) {
+    return RESPONSE.error(res, 500, 9999, err.message);
+}
+};
+
+exports.downloadProfilePhotoS3 = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await db.User.findById(id);
+        if (!user || !user.profilePhoto) return res.status(404).json({ success: false, message: 'Profile photo not found.' });
+
+        const urlObj = new URL(user.profilePhoto);
+        const key = urlObj.pathname.startsWith('/') ? urlObj.pathname.substring(1) : urlObj.pathname;
+
+        const { getFileStream } = require('../../../utils/s3');
+        const { Body, ContentType } = await getFileStream(key);
+
+        res.setHeader('Content-Type', ContentType || 'image/jpeg');
+        // Let it display inline
+        return Body.pipe(res);
     } catch (err) {
-        return RESPONSE.error(res, 500, 9999, err.message);
+        return res.status(500).json({ success: false, message: err.message });
     }
 };
 

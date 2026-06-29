@@ -164,8 +164,8 @@ class HipController {
 
                 responsePayload.profileSlug = profile.profileSlug;
                 responsePayload.isLive = profile.status === 'PUBLISHED';
-                responsePayload.shareUrl = `https://hip.hawksyn.com/${profile.profileSlug}`;
-
+                const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3002}/api/v1`;
+                responsePayload.shareUrl = `${baseUrl}/hip/public/profile/${profile.profileSlug}`;
                 responsePayload.profileData = {
                     // Original fields in case they are needed elsewhere
                     fullName: profile.seoMetadata?.jsonLdPerson?.name || "User",

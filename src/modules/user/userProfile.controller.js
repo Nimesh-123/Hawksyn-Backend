@@ -91,7 +91,7 @@ exports.getUserProfile = async (req, res) => {
                 isPhoneVerified: user ? user.isPhoneVerified : false,
                 whatsappNumber: user ? user.whatsappNumber : "",
                 email: user ? user.email : "",
-                profilePhoto: user ? (user.profilePhoto || user.avatar) : null
+                profilePhoto: user ? ((user.profilePhoto || user.avatar)?.includes('amazonaws.com') ? `${process.env.API_URL || 'http://localhost:3002/api/v1'}/user/profile-photo/${user._id}` : (user.profilePhoto || user.avatar)) : null
             },
             cvFile: cvDoc ? {
                 fileName: cvDoc.file_name_original || cvDoc.fileName,
@@ -280,7 +280,7 @@ exports.getHomeStatus = async (req, res) => {
 
         // 3. Check HIP (Card 3)
         const hip = await db.HipProfile.findOne({ userId }).lean();
-        const isHipComplete = !!(user && user.mPinSet && hip && hip.publishedAt);
+        const isHipComplete = !!(user && hip && hip.publishedAt);
 
         // Determine Statuses
         const status = {

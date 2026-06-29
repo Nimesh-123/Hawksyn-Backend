@@ -22,7 +22,8 @@ exports.authenticate = async (req, res, next) => {
             '/user/auth/google',
             '/expert/auth/login',
             '/hip/public',
-            '/user/home-status'
+            '/user/home-status',
+            '/user/profile-photo'
         ];
 
         const fullPath = req.originalUrl || '';
@@ -38,6 +39,7 @@ exports.authenticate = async (req, res, next) => {
         ) || cleanPath.includes('/hip/public');
 
         const authHeader = req.headers.authorization;
+        
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             if (isPublicRoute) {
                 return next();

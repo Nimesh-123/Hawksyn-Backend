@@ -2499,6 +2499,22 @@
       .sc-col:last-child { border-bottom: none; }
       .gl-grid { grid-template-columns: 1fr; }
     }
+    @media print {
+      .reveal {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+      }
+      .profile-name .char {
+        opacity: 1 !important;
+        transform: none !important;
+        animation: none !important;
+      }
+      * {
+        transition: none !important;
+        animation: none !important;
+      }
+    }
   </style>
 </head>
 

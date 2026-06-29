@@ -498,6 +498,24 @@ route.post('/upload-profile-photo', upload.single('profilePhoto'), userControlle
 
 /**
  * @swagger
+ * /user/profile-photo/{id}:
+ *   get:
+ *     summary: View user profile photo (Proxy from S3)
+ *     tags: ["1. Authentication & Security"]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Profile photo stream
+ */
+route.get('/profile-photo/:id', userController.downloadProfilePhotoS3);
+
+/**
+ * @swagger
  * /user/audit-trail:
  *   get:
  *     summary: Get user's own audit trail

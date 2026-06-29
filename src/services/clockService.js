@@ -7,7 +7,7 @@ const { generateJSON } = require('./aiProvider.js');
 async function generateClockScores({ role, industry, skills, achievements, tenure }) {
     const skillsText = Array.isArray(skills) ? skills.join(', ') : (skills || 'Not specified');
     const achievementsText = Array.isArray(achievements) ? achievements.join(', ') : (achievements || 'Not specified');
-    const prompt = `You are a career risk analyst for Hawksyn Decision Assurance Platform.  Calculate 4 clock scores for this professional based on current market conditions.
+const prompt = `You are a career risk analyst for Hawksyn Decision Assurance Platform. Calculate 4 clock scores and detailed insights for this professional based on current market conditions.
 
 User Profile:
 - Role: ${role}
@@ -16,51 +16,70 @@ User Profile:
 - Key Achievements: ${achievementsText}
 - Current Tenure: ${tenure} years
 
-Calculate these 4 scores:
+For each of the 4 clocks below, you MUST provide 3 specific "Career Factors" extracted from their CV. Each factor must have an impactDirection (UP, DOWN, or NEUTRAL). 
+You must also provide a Market Signal, a Peer Signal, and actionable advice (What Changes).
 
-1. AI Exposure Score (0-100):
-   How much of this user's daily work can now be done by AI tools?
-   Higher score = more risk.
-   Check if AI agents can perform tasks listed in their achievements.
-
-2. Career Momentum Score (0-100):
-   How fast are jobs in this sector opening vs closing right now?
-   Based on job postings growth minus layoff frequency.
-
-3. Skill Relevance Score (0-100):
-   What % of top-tier job listings require this user's skills as MANDATORY?
-   Compare user skills against Must-Have requirements in current job postings.
-
-4. Opportunity Window Score (0-100):
-   How much runway does this role have before becoming stale?
-   Based on current tenure vs market-standard tenure limit for this role.
+1. AI Exposure Clock (0-100): How much of this user's daily work can now be done by AI tools?
+2. Career Momentum Clock (0-100): How fast are jobs in this sector opening vs closing right now?
+3. Skill Relevance Clock (0-100): What % of top-tier job listings require this user's skills as MANDATORY?
+4. Opportunity Window Clock (0-100): How much runway does this role have before becoming stale?
 
 Return ONLY valid JSON, no markdown, no explanation:
 {
   "aiExposureScore": <number 0-100>,
-  "aiExposureJustification": "<one brutal honest sentence about AI risk for this specific role>",
+  "aiExposureJustification": "<one sentence summary>",
+  "aiExposureFactors": [
+    { "factorText": "<specific factor from CV>", "impactDirection": "DOWN", "explanation": "<why this increases AI risk>" },
+    { "factorText": "<specific factor from CV>", "impactDirection": "UP", "explanation": "<why this protects against AI risk>" },
+    { "factorText": "<specific factor from CV>", "impactDirection": "NEUTRAL", "explanation": "<neutral factor>" }
+  ],
+  "aiExposureMarketSignal": "<e.g., 3 new AI coding tools launched in Jun 2026...>",
+  "aiExposurePeerSignal": "<e.g., 68% of professionals are adding X...>",
+  "aiExposureWhatChanges": "<e.g., Focus on learning X to protect this score...>",
 
   "careerMomentumScore": <number 0-100>,
-  "careerMomentumJustification": "<one sentence with specific hiring vs firing trend for this sector>",
   "careerMomentumMonths": <number 6-36>,
+  "careerMomentumJustification": "<one sentence summary>",
+  "careerMomentumFactors": [
+    { "factorText": "<specific factor from CV>", "impactDirection": "UP", "explanation": "<reason>" },
+    { "factorText": "<specific factor from CV>", "impactDirection": "DOWN", "explanation": "<reason>" },
+    { "factorText": "<specific factor from CV>", "impactDirection": "NEUTRAL", "explanation": "<reason>" }
+  ],
+  "careerMomentumMarketSignal": "<real market signal>",
+  "careerMomentumPeerSignal": "<real peer signal>",
+  "careerMomentumWhatChanges": "<actionable advice>",
 
   "skillRelevanceScore": <number 0-100>,
-  "skillRelevanceJustification": "<one sentence comparing user skills vs current job requirements>",
+  "skillRelevanceJustification": "<one sentence summary>",
+  "skillRelevanceFactors": [
+    { "factorText": "<specific factor from CV>", "impactDirection": "DOWN", "explanation": "<reason>" },
+    { "factorText": "<specific factor from CV>", "impactDirection": "UP", "explanation": "<reason>" },
+    { "factorText": "<specific factor from CV>", "impactDirection": "NEUTRAL", "explanation": "<reason>" }
+  ],
+  "skillRelevanceMarketSignal": "<real market signal>",
+  "skillRelevancePeerSignal": "<real peer signal>",
+  "skillRelevanceWhatChanges": "<actionable advice>",
 
   "opportunityWindowScore": <number 0-100>,
-  "opportunityWindowJustification": "<one sentence predicting value peak for this role>",
   "opportunityWindowYears": <number 1-5>,
+  "opportunityWindowJustification": "<one sentence summary>",
+  "opportunityWindowFactors": [
+    { "factorText": "<specific factor from CV>", "impactDirection": "UP", "explanation": "<reason>" },
+    { "factorText": "<specific factor from CV>", "impactDirection": "DOWN", "explanation": "<reason>" },
+    { "factorText": "<specific factor from CV>", "impactDirection": "NEUTRAL", "explanation": "<reason>" }
+  ],
+  "opportunityWindowMarketSignal": "<real market signal>",
+  "opportunityWindowPeerSignal": "<real peer signal>",
+  "opportunityWindowWhatChanges": "<actionable advice>",
 
   "trendTrigger": "<single most important market event affecting this profile right now>"
 }
 
 Rules:
 - All scores must be numbers 0-100
-- careerMomentumMonths must be 6-36
-- opportunityWindowYears must be 1-5
-- Each justification = exactly one sentence, brutally honest
-- trendTrigger = one specific market event
-- Base on real current AI adoption trends`;
+- Each factor array MUST contain exactly 3 factors
+- impactDirection must be strictly "UP", "DOWN", or "NEUTRAL"
+- Base explanations on real current market conditions`;
 
     const { data, duration, provider, usage } = await generateJSON(prompt);
     console.log(`[ClockService] ✅ AI calculation complete in ${duration} via ${provider}`);
@@ -238,6 +257,10 @@ function buildClocksResponse(userScores, userClock = {}, marketScores = null) {
             color: uAi > 70 ? 'RED' : uAi > 40 ? 'AMBER' : 'GREEN',
             showRiskBadge: uAi > 70,
             justification: userClock.aiExposureJustification || userScores.aiExposureJustification || null,
+            factors: userClock.aiExposureFactors || userScores.aiExposureFactors || [],
+            marketSignal: userClock.aiExposureMarketSignal || userScores.aiExposureMarketSignal || null,
+            peerSignal: userClock.aiExposurePeerSignal || userScores.aiExposurePeerSignal || null,
+            whatChanges: userClock.aiExposureWhatChanges || userScores.aiExposureWhatChanges || null,
             benchmarks: aiBench
         },
         careerMomentum: {
@@ -246,6 +269,10 @@ function buildClocksResponse(userScores, userClock = {}, marketScores = null) {
             months: userScores.careerMomentumMonths ?? 18,
             color: uMom >= 70 ? 'GREEN' : uMom >= 40 ? 'AMBER' : 'RED',
             justification: userClock.careerMomentumJustification || userScores.careerMomentumJustification || null,
+            factors: userClock.careerMomentumFactors || userScores.careerMomentumFactors || [],
+            marketSignal: userClock.careerMomentumMarketSignal || userScores.careerMomentumMarketSignal || null,
+            peerSignal: userClock.careerMomentumPeerSignal || userScores.careerMomentumPeerSignal || null,
+            whatChanges: userClock.careerMomentumWhatChanges || userScores.careerMomentumWhatChanges || null,
             benchmarks: momBench
         },
         skillRelevance: {
@@ -253,6 +280,10 @@ function buildClocksResponse(userScores, userClock = {}, marketScores = null) {
             display: `${uSkl}%`,
             color: uSkl >= 70 ? 'GREEN' : uSkl >= 40 ? 'AMBER' : 'RED',
             justification: userClock.skillRelevanceJustification || userScores.skillRelevanceJustification || null,
+            factors: userClock.skillRelevanceFactors || userScores.skillRelevanceFactors || [],
+            marketSignal: userClock.skillRelevanceMarketSignal || userScores.skillRelevanceMarketSignal || null,
+            peerSignal: userClock.skillRelevancePeerSignal || userScores.skillRelevancePeerSignal || null,
+            whatChanges: userClock.skillRelevanceWhatChanges || userScores.skillRelevanceWhatChanges || null,
             benchmarks: sklBench
         },
         opportunityWindow: {
@@ -261,6 +292,10 @@ function buildClocksResponse(userScores, userClock = {}, marketScores = null) {
             years: userScores.opportunityWindowYears ?? 2,
             color: 'BLUE',
             justification: userClock.opportunityWindowJustification || userScores.opportunityWindowJustification || null,
+            factors: userClock.opportunityWindowFactors || userScores.opportunityWindowFactors || [],
+            marketSignal: userClock.opportunityWindowMarketSignal || userScores.opportunityWindowMarketSignal || null,
+            peerSignal: userClock.opportunityWindowPeerSignal || userScores.opportunityWindowPeerSignal || null,
+            whatChanges: userClock.opportunityWindowWhatChanges || userScores.opportunityWindowWhatChanges || null,
             benchmarks: oppBench
         }
     };
