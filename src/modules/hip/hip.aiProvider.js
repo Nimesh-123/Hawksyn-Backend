@@ -19,7 +19,7 @@ async function generateJSON(prompt, systemPrompt, options = {}) {
         try {
             const claudeModel = 'claude-sonnet-4-6'; // The specific model requested by user
             console.log(`[HIP-AI] ⚡ Attempting isolated Anthropic (${claudeModel})...`);
-            
+
             let safePrompt = prompt;
             if (!safePrompt || safePrompt.trim() === '') {
                 safePrompt = "Please generate the JSON output according to the system prompt instructions.";
@@ -35,7 +35,7 @@ async function generateJSON(prompt, systemPrompt, options = {}) {
             const raw = message.content[0].text;
             const data = parseCleanJSON(raw, `Anthropic-${claudeModel}`);
             const duration = (Date.now() - startTime) / 1000;
-            
+
             return {
                 data,
                 provider: `Anthropic-${claudeModel}`,
@@ -50,11 +50,14 @@ async function generateJSON(prompt, systemPrompt, options = {}) {
     // 2. Default / Fallback to Gemini
     try {
         console.log(`[HIP-AI] 🤖 Attempting isolated Gemini (gemini-2.5-flash)...`);
-        const genModel = gemini.getGenerativeModel({ 
+        const genModel = gemini.getGenerativeModel({
             model: 'gemini-2.5-flash',
-            generationConfig: { maxOutputTokens: maxTokens || 4000 }
+            generationConfig: {
+                maxOutputTokens: maxTokens || 4000,
+                responseMimeType: "application/json"
+            }
         });
-        
+
         const fullPrompt = `${systemPrompt}\n\nUser Request:\n${prompt}`;
         const result = await genModel.generateContent(fullPrompt);
         const response = await result.response;
@@ -62,7 +65,7 @@ async function generateJSON(prompt, systemPrompt, options = {}) {
 
         const data = parseCleanJSON(raw, 'Gemini-2.5-Flash');
         const duration = (Date.now() - startTime) / 1000;
-        
+
         return {
             data,
             provider: 'Gemini-2.5-Flash',
@@ -83,7 +86,7 @@ function parseCleanJSON(raw, providerName) {
         let startArr = raw.indexOf('[');
         let start = -1;
         let end = -1;
-        
+
         if (startObj !== -1 && startArr !== -1) {
             start = Math.min(startObj, startArr);
             end = start === startObj ? raw.lastIndexOf('}') : raw.lastIndexOf(']');
@@ -94,12 +97,12 @@ function parseCleanJSON(raw, providerName) {
             start = startArr;
             end = raw.lastIndexOf(']');
         }
-        
+
         if (start === -1 || end === -1) {
             console.error(`[HIP-AI] ❌ RAW OUTPUT (${providerName}):\n${raw}\n----------------`);
             try {
                 fs.appendFileSync('ai_failures.log', `\n\n--- FAILED ${providerName} ---\n${raw}\n------------------`);
-            } catch (e) {}
+            } catch (e) { }
             throw new Error('No JSON block found in response');
         }
 

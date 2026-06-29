@@ -14,7 +14,7 @@ const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const { aiSemaphore } = require('../../utils/concurrency.js');
-const modelFamily = 'claude-3-7-sonnet-latest';
+const modelFamily = 'claude-haiku-4-5-20251001';
 
 /**
  * Universal JSON LLM Caller
@@ -42,7 +42,7 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
     if (model) {
         try {
             console.log(`[AI-Provider] ⚡ DYNAMIC: Attempting ${model}...`);
-            
+
             if (model.includes('gpt')) {
                 const response = await openai.chat.completions.create({
                     model: model,
@@ -89,10 +89,11 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
                     duration: `${duration}s`
                 };
             } else if (model.includes('gemini')) {
-                const genModel = gemini.getGenerativeModel({ 
+                const genModel = gemini.getGenerativeModel({
                     model: model,
                     generationConfig: {
-                        maxOutputTokens: maxTokens || 4000
+                        maxOutputTokens: maxTokens || 4000,
+                        responseMimeType: "application/json"
                     }
                 });
                 const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
@@ -117,15 +118,18 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
             const errorReport = `Time: ${new Date().toISOString()}\nModel: ${model}\nStatus: ${err.status}\nMessage: ${err.message}\nType: ${err.type}\nStack: ${err.stack}\n`;
             try {
                 fs.writeFileSync(path.join(__dirname, '../../CLAUDE_ERROR.txt'), errorReport);
-            } catch (fsErr) {}
+            } catch (fsErr) { }
 
             console.error(`[AI-Provider] ❌ Dynamic model ${model} failed! (Logged to CLAUDE_ERROR.txt)`);
             console.error(`[AI-Provider] Error Detail:`, err.status, err.message, err.type);
-            
+
             // If it's a 404 (Model Not Found), we should definitely skip to Gemini
             console.warn(`[AI-Provider] ⚠️ Falling back to Gemini...`);
             try {
-                const modelObj = gemini.getGenerativeModel({ model: 'gemini-3.5-flash' });
+                const modelObj = gemini.getGenerativeModel({
+                    model: 'gemini-2.5-flash',
+                    generationConfig: { responseMimeType: "application/json" }
+                });
                 const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
                 const result = await modelObj.generateContent(fullPrompt);
                 const response = await result.response;
@@ -152,10 +156,14 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
     // --- Fallback Chain (Default) ---
     if (!forceProvider || forceProvider === 'Gemini') {
         try {
-            console.log(`[AI-Provider] ⚡ ${forceProvider ? 'FORCED' : 'DEFAULT'}: Attempting Gemini (Gemini-2.0-Flash)...`);
-            const modelObj = gemini.getGenerativeModel({ model: 'gemini-3.5-flash' });
+            console.log(`[AI-Provider] ⚡ ${forceProvider ? 'FORCED' : 'DEFAULT'}: Attempting Gemini (Gemini-2.5-Flash)...`);
+            const modelObj = gemini.getGenerativeModel({
+                model: 'gemini-2.5-flash',
+                generationConfig: { responseMimeType: "application/json" }
+            });
             const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
             const result = await modelObj.generateContent(fullPrompt);
+
             const response = await result.response;
             const raw = response.text();
 
@@ -204,8 +212,11 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
 
         // Gemini Flash (Fallback 1)
         try {
-            console.log('[AI-Provider] 🤖 Attempting Gemini (Gemini-2.0-Flash)...');
-            const model = gemini.getGenerativeModel({ model: 'gemini-3.5-flash' });
+            console.log('[AI-Provider] 🤖 Attempting Gemini (Gemini-2.5-Flash)...');
+            const model = gemini.getGenerativeModel({
+                model: 'gemini-2.5-flash',
+                generationConfig: { responseMimeType: "application/json" }
+            });
             const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
             const result = await model.generateContent(fullPrompt);
             const response = await result.response;
@@ -230,7 +241,7 @@ async function _executeGenerateJSON(prompt, systemPrompt, options = {}) {
             try {
                 console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Sonnet) [High Accuracy]...');
                 const message = await anthropic.messages.create({
-                    model: "claude-3-7-sonnet-latest",
+                    model: "claude-sonnet-4-6",
                     max_tokens: 8192,
                     system: systemPrompt,
                     messages: [{ role: 'user', content: prompt }]
@@ -295,13 +306,13 @@ function parseCleanJSON(raw, providerName) {
         // Find the first '{' and the last '}' to extract ONLY the JSON block
         const start = raw.indexOf('{');
         const end = raw.lastIndexOf('}');
-        
+
         if (start === -1 || end === -1) {
             throw new Error('No JSON block found in response');
         }
 
         const jsonBlock = raw.substring(start, end + 1);
-        
+
         // Remove trailing commas which often break JSON.parse
         const cleanJson = jsonBlock.replace(/,\s*([\]}])/g, '$1');
 
@@ -335,7 +346,7 @@ async function _executeGenerateText(prompt, systemPrompt, forceProvider) {
     if (!forceProvider || forceProvider === 'Gemini') {
         try {
             console.log(`[AI-Provider] ⚡ ${forceProvider ? 'FORCED' : 'DEFAULT'}: Attempting Gemini (Gemini-2.0-Flash) [Text]...`);
-            const model = gemini.getGenerativeModel({ model: 'gemini-3.5-flash' });
+            const model = gemini.getGenerativeModel({ model: 'gemini-flash-latest' });
             const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
             const result = await model.generateContent(fullPrompt);
             const response = await result.response;
@@ -381,7 +392,7 @@ async function _executeGenerateText(prompt, systemPrompt, forceProvider) {
         // --- Step 2: GEMINI (Fallback 1) ---
         try {
             console.log('[AI-Provider] 🤖 Attempting Gemini (Gemini-2.0-Flash) [Text]...');
-            const model = gemini.getGenerativeModel({ model: 'gemini-3.5-flash' });
+            const model = gemini.getGenerativeModel({ model: 'gemini-flash-latest' });
             const fullPrompt = `${systemPrompt}\n\nUser Request: ${prompt}`;
             const result = await model.generateContent(fullPrompt);
             const response = await result.response;
@@ -403,7 +414,7 @@ async function _executeGenerateText(prompt, systemPrompt, forceProvider) {
             try {
                 console.log('[AI-Provider] 🤖 Attempting Anthropic (Claude-3-5-Sonnet) [Text]...');
                 const message = await anthropic.messages.create({
-                    model: 'claude-3-7-sonnet-latest',
+                    model: 'claude-sonnet-4-6',
                     max_tokens: 4096,
                     system: systemPrompt,
                     messages: [{ role: 'user', content: prompt }]

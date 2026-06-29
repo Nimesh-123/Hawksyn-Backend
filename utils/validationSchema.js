@@ -7,20 +7,20 @@ const validationSchema = {
   "/user/verify-otp": {
     schema: {
       email: "required|email",
-      otp: "required|string|size:4",
+      otp: "required|string|size:6",
     },
   },
   "/user/set-pin": {
     schema: {
       email: "required|email",
-      mPin: "required|string|size:4",
-      confirmMPin: "required|string|size:4",
+      mPin: "required|string|size:6",
+      confirmMPin: "required|string|size:6",
     },
   },
   "/user/login-with-pin": {
     schema: {
       email: "required|email",
-      mPin: "required|string|size:4",
+      mPin: "required|string|size:6",
     },
   },
 };

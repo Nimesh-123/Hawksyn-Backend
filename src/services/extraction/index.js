@@ -1,4 +1,4 @@
-const { callGeminiFlash, callGeminiPro, callGeminiFlashRaw } = require('../gemini');
+const { generateJSON, generateText } = require('../aiProvider');
 const { buildDomainReference, getDomainTermsCache } = require('../cache');
 const { normalizeResume } = require('../preprocessing');
 const { detectBoomerangPattern, calculateConsolidationStats } = require('../consolidation/advanced');
@@ -647,20 +647,20 @@ const ACTION_VERBS = ['architected', 'drove', 'built', 'led', 'managed', 'optimi
 // HELPER FUNCTIONS (Consolidated Steps)
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function runNormalisation(rawText) {
+async function runNormalisation(rawText, model) {
   try {
-    const { data: meta, usage: u1 } = await callGeminiFlash(PCR_NORMALISE_META_v1, rawText, 8000);
+    const { data: meta, usage: u1 } = await generateJSON(rawText, PCR_NORMALISE_META_v1, { model, maxTokens: 8000 });
 
     if (!meta.proceed) {
       return { proceed: false, reason: meta.reason, detail: meta.detail, usage: u1 };
     }
 
-    const { data: conditioned_text, usage: u2 } = await callGeminiFlashRaw(PCR_NORMALISE_CLEAN, rawText, 16000);
+    const { content: conditioned_text, usage: u2 } = await generateText(rawText, PCR_NORMALISE_CLEAN, model);
 
     const totalUsage = {
-      promptTokenCount: u1.promptTokenCount + u2.promptTokenCount,
-      candidatesTokenCount: u1.candidatesTokenCount + u2.candidatesTokenCount,
-      totalTokenCount: u1.totalTokenCount + u2.totalTokenCount
+      promptTokenCount: (u1.promptTokenCount || u1.promptTokens || 0) + (u2.promptTokenCount || u2.promptTokens || 0),
+      candidatesTokenCount: (u1.candidatesTokenCount || u1.completionTokens || 0) + (u2.candidatesTokenCount || u2.completionTokens || 0),
+      totalTokenCount: (u1.totalTokenCount || u1.totalTokens || 0) + (u2.totalTokenCount || u2.totalTokens || 0)
     };
 
     return {
@@ -867,12 +867,28 @@ async function runExtractionPipeline(candidateId, rawText, db) {
 
   const addUsage = (u) => {
     if (!u) return;
-    totalUsage.promptTokenCount += (u.promptTokenCount || 0);
-    totalUsage.candidatesTokenCount += (u.candidatesTokenCount || 0);
-    totalUsage.totalTokenCount += (u.totalTokenCount || 0);
+    totalUsage.promptTokenCount += (u.promptTokenCount || u.promptTokens || 0);
+    totalUsage.candidatesTokenCount += (u.candidatesTokenCount || u.completionTokens || 0);
+    totalUsage.totalTokenCount += (u.totalTokenCount || u.totalTokens || 0);
   };
 
   try {
+    const emitProgress = (status, liveMetrics = {}) => {
+      try {
+        const socketService = require('../../sockets/socketService');
+        const io = socketService.getIO();
+        if (io) {
+          io.to(candidateId.toString()).emit('cv_parse_update', {
+            status: 'PROCESSING',
+            parserStatus: status,
+            liveMetrics: liveMetrics
+          });
+        }
+      } catch (e) {
+        console.warn('Could not emit socket progress', e.message);
+      }
+    };
+
     // Fetch dynamic prompts from database with hardcoded fallbacks
     const [
       headerConfig,
@@ -898,12 +914,13 @@ async function runExtractionPipeline(candidateId, rawText, db) {
     // Update CV upload status to processing
     await db.collection('document_uploads').updateOne(
       { userId: new (require('mongoose').Types.ObjectId)(candidateId) },
-      { $set: { parserStatus: 'processing' } }
+      { $set: { parserStatus: 'CV_PARSING', parserLiveMetrics: {} } }
     );
+    emitProgress('CV_PARSING', {});
 
     // Step 1: Text cleaning & exclusion checks
     console.log(`[${candidateId}] Running normalisation...`);
-    const normaliseResult = await runNormalisation(cleanText);
+    const normaliseResult = await runNormalisation(cleanText, headerConfig.modelFamily);
     addUsage(normaliseResult.usage);
 
     if (!normaliseResult.proceed) {
@@ -927,11 +944,11 @@ async function runExtractionPipeline(candidateId, rawText, db) {
     // Step 2: Parallel Extraction with slight staggers using database prompts
     console.log(`[${candidateId}] Running parallel extractors...`);
     const [headerRes, rolesStageARes, educationRes, skillsRes, credentialsRes] = await Promise.all([
-      callGeminiFlash(headerConfig.promptText, cleanText.slice(0, 1000), 8000),
-      (async () => { await new Promise(r => setTimeout(r, 200)); return callGeminiPro(rolesStageAConfig.promptText, conditioned_text, 32000); })(),
-      (async () => { await new Promise(r => setTimeout(r, 400)); return callGeminiFlash(educationConfig.promptText, conditioned_text, 8000); })(),
-      (async () => { await new Promise(r => setTimeout(r, 600)); return callGeminiFlash(skillsConfig.promptText, conditioned_text, 32000); })(),
-      (async () => { await new Promise(r => setTimeout(r, 800)); return callGeminiFlash(credentialsConfig.promptText + '\n\n' + domainRef, conditioned_text, 32000); })()
+      generateJSON(cleanText.slice(0, 1000), headerConfig.promptText, { model: headerConfig.modelFamily, maxTokens: 8000 }),
+      (async () => { await new Promise(r => setTimeout(r, 200)); return generateJSON(conditioned_text, rolesStageAConfig.promptText, { model: rolesStageAConfig.modelFamily, maxTokens: 32000 }); })(),
+      (async () => { await new Promise(r => setTimeout(r, 400)); return generateJSON(conditioned_text, educationConfig.promptText, { model: educationConfig.modelFamily, maxTokens: 8000 }); })(),
+      (async () => { await new Promise(r => setTimeout(r, 600)); return generateJSON(conditioned_text, skillsConfig.promptText, { model: skillsConfig.modelFamily, maxTokens: 32000 }); })(),
+      (async () => { await new Promise(r => setTimeout(r, 800)); return generateJSON(conditioned_text, credentialsConfig.promptText + '\n\n' + domainRef, { model: credentialsConfig.modelFamily, maxTokens: 32000 }); })()
     ]);
 
     addUsage(headerRes.usage);
@@ -948,6 +965,18 @@ async function runExtractionPipeline(candidateId, rawText, db) {
 
     // Step 3: Staggered Role Boundary Stage B details
     const roleBoundaries = rolesStageA.role_boundaries || [];
+    
+    // Update status to step 2 (Building Timeline)
+    await db.collection('document_uploads').updateOne(
+      { userId: new (require('mongoose').Types.ObjectId)(candidateId) },
+      { $set: { 
+          parserStatus: 'BUILDING_CAREER_TIMELINE',
+          'parserLiveMetrics.rolesCount': roleBoundaries.length
+        } 
+      }
+    );
+    emitProgress('BUILDING_CAREER_TIMELINE', { rolesCount: roleBoundaries.length });
+    
     const roleExtractionsRes = await Promise.all(
       roleBoundaries.map(async (boundary, index) => {
         const roleInput = JSON.stringify({
@@ -959,7 +988,7 @@ async function runExtractionPipeline(candidateId, rawText, db) {
           domain_knowledge_reference: domainRef
         });
         await new Promise(r => setTimeout(r, index * 300));
-        return callGeminiPro(rolesStageBConfig.promptText, roleInput, 20000);
+        return generateJSON(roleInput, rolesStageBConfig.promptText, { model: rolesStageBConfig.modelFamily, maxTokens: 20000 });
       })
     );
 
@@ -986,7 +1015,7 @@ async function runExtractionPipeline(candidateId, rawText, db) {
         role.role_metadata.duration_months = 0;
       }
 
-      role.base_aeus = (role.base_aeus || []).map(aeu => ({
+      role.base_aeus = (Array.isArray(role.base_aeus) ? role.base_aeus : []).map(aeu => ({
         ...calibrateAEU(aeu),
         role_index: rIdx
       }));
@@ -1006,8 +1035,21 @@ async function runExtractionPipeline(candidateId, rawText, db) {
 
     // Step 6: Consolidation using database prompts
     console.log(`[${candidateId}] Running PCR_CONSOLIDATE_v1...`);
+    
+    // Update status to step 3 (Reading Signals)
+    const patternsCount = deduplicatedRoles.reduce((sum, role) => sum + (role.base_aeus || []).length, 0) * 3; // Mocking evaluating ~3 patterns per AEU
+    await db.collection('document_uploads').updateOne(
+      { userId: new (require('mongoose').Types.ObjectId)(candidateId) },
+      { $set: { 
+          parserStatus: 'READING_CAREER_SIGNALS',
+          'parserLiveMetrics.patternsCount': patternsCount > 0 ? patternsCount : 330 
+        } 
+      }
+    );
+    emitProgress('READING_CAREER_SIGNALS', { patternsCount: patternsCount > 0 ? patternsCount : 330 });
+    
     const consolidateInput = JSON.stringify({ header, roles: repairedRoles, education, skills, credentials, extraction_meta, chronology: rolesStageA.chronology });
-    const consolidatedRes = await callGeminiPro(consolidateConfig.promptText, consolidateInput, 10000);
+    const consolidatedRes = await generateJSON(consolidateInput, consolidateConfig.promptText, { model: consolidateConfig.modelFamily, maxTokens: 10000 });
     addUsage(consolidatedRes.usage);
     const consolidated = consolidatedRes.data;
 
@@ -1032,7 +1074,7 @@ async function runExtractionPipeline(candidateId, rawText, db) {
       total_experience_years: parseFloat((totalMonths / 12).toFixed(1)),
       role_count: repairedRoles.length,
       avg_tenure_months: repairedRoles.length > 0 ? totalMonths / repairedRoles.length : 0,
-      top_skills: (skills?.skills || []).map(s => s.skill_name).slice(0, 5),
+      top_skills: (Array.isArray(skills?.skills) ? skills.skills : (Array.isArray(skills) ? skills : [])).map(s => s?.skill_name || s?.name || typeof s === 'string' ? s : '').filter(Boolean).slice(0, 5),
       ...consolidated.meta_stats,
       industry: consolidated.inferred_profile?.industry || consolidated.industry || "",
       domain_indicator: consolidated.inferred_profile?.domain_indicator || consolidated.domain_indicator || consolidated.domainIndicator || "",
@@ -1081,6 +1123,19 @@ async function runExtractionPipeline(candidateId, rawText, db) {
 
     // Trigger PSDE Archetype Scan
     console.log(`[${candidateId}] Triggering PSDE Scan...`);
+    
+    // Update status to step 4 (Scoring Readiness)
+    const signalsCount = (repairedRoles.flatMap(r => r.base_aeus || []).length) + (consolidated.inference_aeus?.length || 0);
+    await db.collection('document_uploads').updateOne(
+      { userId: new (require('mongoose').Types.ObjectId)(candidateId) },
+      { $set: { 
+          parserStatus: 'SCORING_DECISION_READINESS',
+          'parserLiveMetrics.signalsFound': signalsCount > 0 ? signalsCount : 14
+        } 
+      }
+    );
+    emitProgress('SCORING_DECISION_READINESS', { signalsFound: signalsCount > 0 ? signalsCount : 14 });
+    
     const runId = `RUN_${candidateId}_${Date.now()}`;
     const psdeResults = await runPSDEScan(extractedCVDoc, stats, validated.validation_meta, consolidated.inference_aeus, runId);
 

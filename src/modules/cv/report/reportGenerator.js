@@ -107,8 +107,9 @@ function generateReport(extractedCV, psdeResult, metrics) {
         const aeusCount = baseAEUs.filter(a => a.role_index === roleIndexMatch || a.role_index === idx || a.role_index === idx + 1).length;
 
         return {
-            company: r.role_metadata?.company_canonical || 'Unknown',
+            company: r.role_metadata?.company_canonical || r.role_metadata?.company || 'Unknown',
             title: r.role_metadata?.title || 'Unknown',
+            location: r.role_metadata?.location || 'Not Specified',
             start_date: r.role_metadata?.start_date,
             end_date: r.role_metadata?.end_date,
             duration_months: r.role_metadata?.duration_months || 0,

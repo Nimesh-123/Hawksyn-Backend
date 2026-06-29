@@ -65,6 +65,23 @@ router.get('/cv/report', cvController.getLatestCvReport);
 
 /**
  * @swagger
+ * /runs/cv/report/download-pdf:
+ *   get:
+ *     summary: Download the Candidate Snapshot report as a PDF
+ *     tags: ["5. Run Operations (AI Flow)"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: PDF file returned successfully
+ *       404:
+ *         description: Required intelligence data not found
+ */
+router.get('/cv/report/download-pdf', cvController.downloadCvReportPdf);
+
+
+/**
+ * @swagger
  * /runs/{runId}/cv/keep-existing:
  *   post:
  *     summary: Continue with existing CV for a specific run

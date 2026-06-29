@@ -498,11 +498,23 @@ exports.getAllPayments = async (req, res) => {
         const query = { userId };
         if (status) query.status = status;
 
-        const payments = await Payments.find(query).sort({ createdAt: -1 });
+        const payments = await Payments.find(query).sort({ createdAt: 1 }); // Sort oldest first to determine first run
+
+        const caseFirstPaymentMap = {};
 
         const enrichedList = await Promise.all(payments.map(async (p) => {
             const caseData = await CaseRegistry.findOne({ caseId: p.caseId });
             const intentData = await require('../assurance/IntentTaxonomy.model').findOne({ intentId: p.intentId });
+
+            let isReRun = false;
+            if (p.status === 'COMPLETED' || p.status === 'PENDING') {
+                if (!caseFirstPaymentMap[p.caseId]) {
+                    caseFirstPaymentMap[p.caseId] = true;
+                    isReRun = false;
+                } else {
+                    isReRun = true;
+                }
+            }
 
             return {
                 paymentId: p.paymentId,
@@ -520,9 +532,12 @@ exports.getAllPayments = async (req, res) => {
                 runId: p.runId,
                 paidAt: p.verifiedAt || p.updatedAt,
                 isTestPayment: p.isTestPayment,
+                isReRun,
                 createdAt: p.createdAt
             };
         }));
+
+        enrichedList.reverse(); // Reverse to return newest first
 
         return res.status(200).json({
             success: true,

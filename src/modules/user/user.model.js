@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema(
         name: { type: String, trim: true },
         fullName: { type: String, trim: true },
         avatar: { type: String }, // User profile picture from Google/Social
+        profilePhoto: { type: String, default: null }, // User uploaded profile photo
         googleId: { type: String }, // Unique identifier for Google login
         email: {
             type: String,
@@ -15,6 +16,8 @@ const userSchema = new mongoose.Schema(
         mPin: { type: String }, // Hashed 4-digit PIN
         wrongPinCount: { type: Number, default: 0 },
         isEmailVerified: { type: Boolean, default: false },
+        isPhoneVerified: { type: Boolean, default: false },
+        whatsappNumber: { type: String, trim: true },
         isDeleted: { type: Boolean, default: false },
         deletedAt: { type: Date },
         deletionReason: { type: String, default: null }, // Selected from dropdown 
@@ -36,6 +39,7 @@ const userSchema = new mongoose.Schema(
         notificationPreferences: {
             push: { type: Boolean, default: true },
             email: { type: Boolean, default: true },
+            whatsapp: { type: Boolean, default: true },
             // Slide 39 Toggles
             clockCritical: { type: Boolean, default: true }, // Locked to ON in logic
             clockExpired:  { type: Boolean, default: true },
@@ -45,7 +49,8 @@ const userSchema = new mongoose.Schema(
             rerunReminder: { type: Boolean, default: true },
             productUpdates: { type: Boolean, default: false }
         },
-        chatExpiryDate: { type: Date, default: null }
+        chatExpiryDate: { type: Date, default: null },
+        hasPaidForRerun: { type: Boolean, default: false }
     },
     { timestamps: true }
 );

@@ -1,7 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-console.log('✅ [Gemini Service] Loaded successfully with 2026 models (2.0/2.5)');
+console.log('✅ [Gemini Service] Loaded successfully with models (2.0)');
 
 // Safety settings — BLOCK_NONE on all categories
 const SAFETY_SETTINGS = [
@@ -17,10 +17,10 @@ async function callGemini(modelName, promptText, userInput, maxTokens, returnRaw
     safetySettings: SAFETY_SETTINGS
   });
 
-  // Force the token limit in the generationConfig inside the call
   const generationConfig = {
-    temperature: 0.1, // Slightly higher than 0 to prevent "stuck" loops
+    temperature: 0.1,
     maxOutputTokens: maxTokens,
+    responseMimeType: returnRaw ? "text/plain" : "application/json",
   };
 
   // Add a system-level instruction to the prompt itself to prevent truncation
@@ -39,22 +39,22 @@ async function callGemini(modelName, promptText, userInput, maxTokens, returnRaw
   let usage = { promptTokenCount: 0, candidatesTokenCount: 0, totalTokenCount: 0 };
   try {
     const generatePromise = model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: finalPrompt }] }],
-        generationConfig
+      contents: [{ role: 'user', parts: [{ text: finalPrompt }] }],
+      generationConfig
     });
-    
-    const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('TIMEOUT')), 120000)
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), 120000)
     );
-    
+
     const result = await Promise.race([generatePromise, timeoutPromise]);
-    
+
     const response = await result.response;
     const candidate = response.candidates?.[0];
     const finishReason = candidate?.finishReason;
-    
+
     usage = response.usageMetadata || usage;
-    
+
     raw = response.text();
     console.log(`    Model: ${modelName} | Raw length: ${raw.length} | Finish: ${finishReason} | Tokens: ${usage.totalTokenCount}`);
 
@@ -64,7 +64,7 @@ async function callGemini(modelName, promptText, userInput, maxTokens, returnRaw
 
   } catch (err) {
     if (!raw && err.response) {
-        try { raw = err.response.text(); } catch(e) {}
+      try { raw = err.response.text(); } catch (e) { }
     }
     const finalErr = new Error(err.message);
     finalErr.raw = raw || "";
@@ -92,12 +92,12 @@ function safeParseJSON(raw, modelName = '') {
         const sliced = clean.slice(firstBrace, lastBrace + 1);
         return JSON.parse(sliced);
       } catch (e2) {
-         // Final fallback for truncated JSON: try to close it
-         try {
-            return JSON.parse(sliced + '"}');
-         } catch(e3) {
-            try { return JSON.parse(sliced + '}'); } catch(e4) {}
-         }
+        // Final fallback for truncated JSON: try to close it
+        try {
+          return JSON.parse(sliced + '"}');
+        } catch (e3) {
+          try { return JSON.parse(sliced + '}'); } catch (e4) { }
+        }
       }
     }
     const err = new Error(`JSON parse failed: ${e1.message}`);
@@ -112,13 +112,13 @@ async function callWithRetry(modelName, promptText, userInput, maxTokens, return
       return await callGemini(modelName, promptText, userInput, maxTokens, returnRaw);
     } catch (err) {
       if (err.message.includes('SAFETY')) throw err;
-      
+
       if (attempt < retries) {
         // Exponential backoff for 429s or other transient errors
         const delay = Math.pow(2, attempt) * 1000;
         console.warn(`    Attempt ${attempt} failed: ${err.message}`);
         if (err.raw) {
-            console.log(`    [DEBUG] Raw preview (Last 200 chars): "${err.raw.substring(err.raw.length - 200)}"`);
+          console.log(`    [DEBUG] Raw preview (Last 200 chars): "${err.raw.substring(err.raw.length - 200)}"`);
         }
         console.log(`    Retrying in ${delay}ms...`);
         await new Promise(r => setTimeout(r, delay));

@@ -55,10 +55,78 @@ route.post('/verify-otp', userController.verifyOTP);
 
 /**
  * @swagger
+ * /user/clocks/send-whatsapp-otp:
+ *   post:
+ *     summary: Send OTP via WhatsApp for Clock Activation
+ *     tags: ["8. Command Center & Trends"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               whatsappNumber:
+ *                 type: string
+ *                 example: "+91 9876543210"
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+route.post('/clocks/send-whatsapp-otp', userController.sendWhatsAppOTP);
+
+/**
+ * @swagger
+ * /user/clocks/verify-whatsapp-otp:
+ *   post:
+ *     summary: Verify WhatsApp OTP and trigger Clock Generation
+ *     tags: ["8. Command Center & Trends"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               whatsappNumber:
+ *                 type: string
+ *                 example: "+91 9876543210"
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+route.post('/clocks/verify-whatsapp-otp', userController.verifyWhatsAppOTP);
+
+/**
+ * @swagger
+ * /user/clocks/status:
+ *   get:
+ *     summary: Get Clocks Generation Status (Polling)
+ *     tags: ["8. Command Center & Trends"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+route.get('/clocks/status', userController.getClocksStatus);
+
+
+/**
+ * @swagger
  * /user/set-pin:
  *   post:
  *     summary: Set M-PIN
  *     tags: ["1. Authentication & Security"]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -220,6 +288,20 @@ route.post('/upload-cv', upload.single('cv'), userController.uploadCV);
 
 /**
  * @swagger
+ * /user/upload-cv/status:
+ *   get:
+ *     summary: Get live status of CV parsing
+ *     tags: ["2. Onboarding (Profile Setup)"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+route.get('/upload-cv/status', userController.getCvStatus);
+
+/**
+ * @swagger
  * /user/trends:
  *   get:
  *     summary: Fetch personalized, CV-derived market trends and benchmarks
@@ -342,5 +424,123 @@ route.post('/change-pin', userController.changeMPin);
 
 route.post('/apply-expert', userController.applyAsExpert);
 
+/**
+ * @swagger
+ * /user/payment/razorpay/create-order:
+ *   post:
+ *     summary: Create Razorpay Order for CV Re-upload
+ *     tags: ["9. Billing & Payments"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns mock Razorpay order ID
+ */
+route.post('/payment/razorpay/create-order', userController.createRazorpayOrder);
+
+/**
+ * @swagger
+ * /user/payment/razorpay/verify:
+ *   post:
+ *     summary: Verify Razorpay Payment for CV Re-upload
+ *     tags: ["9. Billing & Payments"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [razorpay_payment_id, razorpay_order_id]
+ *             properties:
+ *               razorpay_payment_id:
+ *                 type: string
+ *                 example: "pay_29QQoUBi66xm2f"
+ *               razorpay_order_id:
+ *                 type: string
+ *                 example: "order_9A33XWu170gUtm"
+ *               razorpay_signature:
+ *                 type: string
+ *                 example: "9ef0c35..."
+ *     responses:
+ *       200:
+ *         description: Payment verified successfully
+ */
+route.post('/payment/razorpay/verify', userController.verifyRazorpayPayment);
+
+
+/**
+ * @swagger
+ * /user/upload-profile-photo:
+ *   post:
+ *     summary: Upload User Profile Photo
+ *     tags: ["2. Onboarding (Profile Setup)"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profilePhoto:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Profile photo updated successfully.
+ *       400:
+ *         description: Invalid file type or file too large.
+ */
+route.post('/upload-profile-photo', upload.single('profilePhoto'), userController.uploadProfilePhoto);
+
+/**
+ * @swagger
+ * /user/profile-photo/{id}:
+ *   get:
+ *     summary: View user profile photo (Proxy from S3)
+ *     tags: ["1. Authentication & Security"]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Profile photo stream
+ */
+route.get('/profile-photo/:id', userController.downloadProfilePhotoS3);
+
+/**
+ * @swagger
+ * /user/audit-trail:
+ *   get:
+ *     summary: Get user's own audit trail
+ *     tags: ["1. Authentication & Security"]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: action
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+route.get('/audit-trail', userController.getAuditTrail);
 
 module.exports = route;

@@ -183,7 +183,7 @@ exports.runHawk = async (req, res) => {
         // Recalculate using Unified AI Chain (Primary: Claude)
         const newScores = await generateClockScores(dataForGemini);
         const significantChange = detectSignificantChange(userClock, newScores);
-        const clockValidUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        const clockValidUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
         await db.UserClocks.findOneAndUpdate(
             { userId },
@@ -198,7 +198,7 @@ exports.runHawk = async (req, res) => {
                     validityState:    'ACTIVE_CLOCK',
                     clockValidUntil,
                     effectiveValidUntil: clockValidUntil,
-                    daysLeft:         7,
+                    daysLeft:         30,
                     lastCalculatedBy: 'HAWK',
                     lastCalculatedAt: new Date(),
                     updatedAt:        new Date()
@@ -219,11 +219,11 @@ exports.runHawk = async (req, res) => {
                 localCost: convertToLocalCurrency(calculateAICost(newScores.llm + '-' + newScores.model, newScores.tokenUsage), detectRegionFromIP(req.ip || '122.161.48.0').currency).amount,
                 localCurrency: detectRegionFromIP(req.ip || '122.161.48.0').currency,
                 clockValidUntil,
-                daysLeft: 7,
+                daysLeft: 30,
                 clocks: buildClocksResponse(newScores, newScores, newScores), // Benchmarks relative to fresh AI scores
                 insightText: newScores.trendTrigger || newScores.aiExposureJustification,
                 significantChange,
-                message: 'Hawk complete. Clocks recalibrated and valid for 7 days.'
+                message: 'Hawk complete. Clocks recalibrated and valid for 30 days.'
             }
         });
 

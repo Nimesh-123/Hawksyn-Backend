@@ -176,6 +176,26 @@ exports.getDeletedUsers = async (req, res) => {
     }
 };
 
+exports.restoreUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await db.User.findById(id);
+        if (!user) return RESPONSE.error(res, 404, 3001, 'User not found');
+
+        if (!user.isDeleted) return RESPONSE.error(res, 400, 4444, 'User is not deleted');
+
+        user.isDeleted = false;
+        user.deletedAt = null;
+        user.deletionReason = undefined;
+        user.deletionComment = undefined;
+        await user.save();
+
+        return RESPONSE.success(res, 200, 1001, { message: 'User restored successfully' });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
 exports.getUserDetails = async (req, res) => {
     try {
         const { userId } = req.params;

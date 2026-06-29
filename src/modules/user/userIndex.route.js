@@ -5,6 +5,6 @@ const userProfileRoutes = require('./userProfile.route.js');
 
 route.use('/', userRoute);
 route.use('/', userProfileRoutes);
-
+route.use('/helpdesk', require('../helpdesk/helpdesk.route.js'));
 
 module.exports = route;

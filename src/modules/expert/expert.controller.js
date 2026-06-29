@@ -993,9 +993,9 @@ exports.getSlaStatus = async (req, res) => {
         // Fetch custom SLA commitment hours
         let slaHours = expert.slaCommitmentHours || 72;
         try {
-            const systemConfig = await db.SystemConfig.findOne({ configKey: 'CHAT_SETTINGS' });
-            if (systemConfig && systemConfig.configValue && systemConfig.configValue.slaCommitmentHours) {
-                slaHours = systemConfig.configValue.slaCommitmentHours;
+            const systemConfig = await db.SystemConfig.findOne({ configKey: 'GLOBAL_SETTINGS' });
+            if (systemConfig && systemConfig.configValue && systemConfig.configValue.chatSettings && systemConfig.configValue.chatSettings.slaCommitmentHours) {
+                slaHours = systemConfig.configValue.chatSettings.slaCommitmentHours;
             }
         } catch (cfgErr) {
             console.warn('[ExpertController] Config fetch failed:', cfgErr.message);

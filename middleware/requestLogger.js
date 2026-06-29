@@ -7,6 +7,8 @@ const requestLogger = (req, res, next) => {
     return next();
   }
 
+  console.log(`[MIDDLEWARE TRIGGERED] ${req.method} ${req.originalUrl}`);
+
   const requestId = uuidv4();
   req.requestId = requestId;
 

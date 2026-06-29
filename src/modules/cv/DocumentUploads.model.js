@@ -34,10 +34,14 @@ const documentUploadsSchema = new mongoose.Schema(
         // Parser & Audit Logic
         parserStatus: {
             type: String,
-            enum: ['PENDING', 'SUCCESS', 'FAILED', 'EMPTY', 'INVALID_FORMAT', 'NOT_A_CV', 'REJECTED', 'accepted', 'rejected', 'processing', 'extraction_complete'],
+            enum: ['PENDING', 'SUCCESS', 'FAILED', 'EMPTY', 'INVALID_FORMAT', 'NOT_A_CV', 'REJECTED', 'accepted', 'rejected', 'processing', 'extraction_complete', 'CV_PARSING', 'BUILDING_CAREER_TIMELINE', 'READING_CAREER_SIGNALS', 'SCORING_DECISION_READINESS'],
             default: 'PENDING'
         },
         parsedCvData: {
+            type: mongoose.Schema.Types.Mixed,
+            default: null
+        },
+        parserLiveMetrics: {
             type: mongoose.Schema.Types.Mixed,
             default: null
         },

@@ -62,6 +62,8 @@ exports.getUserProfile = async (req, res) => {
             db.User.findById(userId)
         ]);
 
+        const cvDoc = (profile && profile.lastCvUploadId) ? await db.DocumentUploads.findById(profile.lastCvUploadId) : null;
+
         if (!profile) return res.status(404).json({ success: false, message: "Please upload your CV first" });
 
         const p = profile.confirmedProfile || profile.originalParsedData.structured;
@@ -82,11 +84,28 @@ exports.getUserProfile = async (req, res) => {
             isConfirmed: profile.isConfirmed,
             confirmedAt: profile.confirmedAt,
             mPinSet: user ? user.mPinSet : false,
+            
+            // --- NEW: Account info for "My Account" screen ---
+            authStatus: {
+                isEmailVerified: user ? user.isEmailVerified : false,
+                isPhoneVerified: user ? user.isPhoneVerified : false,
+                whatsappNumber: user ? user.whatsappNumber : "",
+                email: user ? user.email : "",
+                profilePhoto: user ? ((user.profilePhoto || user.avatar)?.includes('amazonaws.com') ? `${process.env.API_URL || 'http://localhost:3002/api/v1'}/user/profile-photo/${user._id}` : (user.profilePhoto || user.avatar)) : null
+            },
+            cvFile: cvDoc ? {
+                fileName: cvDoc.file_name_original || cvDoc.fileName,
+                fileSizeBytes: cvDoc.file_size_bytes,
+                cvUrl: cvDoc.cvUrl || profile.cvUrl,
+                uploadedAt: cvDoc.uploadedAt
+            } : null,
+            // -------------------------------------------------
+
             personalInfo: {
                 fullName: p.identity?.fullName || p.identity?.name || "",
                 email: p.identity?.email || "",
                 phone: p.identity?.phone || "",
-                location: p.identity?.location || "",
+                location: typeof p.identity?.location === 'object' ? [p.identity.location.primary_city, p.identity.location.state].filter(Boolean).join(', ') : (p.identity?.location || ""),
                 currentRoleTitle: p.identity?.currentRoleTitle || p.identity?.headline_title || "",
                 linkedinUrl: p.identity?.linkedinUrl || p.identity?.social_links?.linkedin || "",
                 githubUrl: p.identity?.githubUrl || p.identity?.social_links?.github || ""
@@ -218,12 +237,83 @@ exports.updateUserProfile = async (req, res) => {
             const user = await db.User.findById(req.user.id);
             if (user) await notificationService.notifyIntakeProgress(activeRun.runId, user);
 
-            clockService.recalibrateForUser(req.user.id, mergedProfile);
+            // Removed clockService.recalibrateForUser(req.user.id, mergedProfile);
+            // Clock generation is now triggered by WhatsApp mobile verification (Activate Skill Clocks)
         }
 
         return res.status(200).json({
             success: true,
             data: { isConfirmed: true, confirmedAt: userProfile.confirmedAt, message: "Profile confirmed successfully. Proceeding to intake assessment." }
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.getHomeStatus = async (req, res) => {
+    try {
+        // Handle unauthenticated users
+        if (!req.user || !req.user.id) {
+            return res.status(200).json({
+                success: true,
+                data: {
+                    overallProgress: 0,
+                    cards: {
+                        discoverYourself: 'ACTIVE',
+                        skillClocks: 'LOCKED',
+                        buildHip: 'LOCKED'
+                    }
+                }
+            });
+        }
+
+        const userId = req.user.id;
+
+        // 1. Check Discover Yourself (Card 1)
+        const profile = await db.UserProfile.findOne({ userId }).lean();
+        const isDiscoverComplete = !!(profile && profile.isConfirmed);
+
+        // 2. Check Skill Clocks (Card 2)
+        const user = await db.User.findById(userId).lean();
+        const clocks = await db.UserClocks.findOne({ userId }).lean();
+        const isClocksComplete = !!(user && user.isPhoneVerified && clocks && clocks.generationStatus === 'COMPLETED');
+
+        // 3. Check HIP (Card 3)
+        const hip = await db.HipProfile.findOne({ userId }).lean();
+        const isHipComplete = !!(user && hip && hip.publishedAt);
+
+        // Determine Statuses
+        const status = {
+            discoverYourself: 'ACTIVE',
+            skillClocks: 'LOCKED',
+            buildHip: 'LOCKED'
+        };
+
+        let overallProgress = 0;
+
+        if (isDiscoverComplete) {
+            status.discoverYourself = 'COMPLETED';
+            status.skillClocks = 'ACTIVE';
+            overallProgress = 1;
+
+            if (isClocksComplete) {
+                status.skillClocks = 'COMPLETED';
+                status.buildHip = 'ACTIVE';
+                overallProgress = 2;
+
+                if (isHipComplete) {
+                    status.buildHip = 'COMPLETED';
+                    overallProgress = 3;
+                }
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                overallProgress,
+                cards: status
+            }
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });

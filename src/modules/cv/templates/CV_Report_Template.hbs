@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hawksyn Evidence Intelligence Report</title>
+    <style>
+    :root {
+      --bg:       #141414;
+      --bg2:      #1c1c1c;
+      --bg3:      #242424;
+      --bg4:      #2c2c2c;
+      --border:   #333;
+      --border2:  #3d3d3d;
+      --text:     #f0f0f0;
+      --text2:    #a0a0a0;
+      --text3:    #666;
+      --orange:   #e85c0d;
+      --orange2:  #ff7a2f;
+      --teal:     #0d9488;
+      --teal2:    #14b8a6;
+      --teal3:    #0f766e;
+      --red:      #ef4444;
+      --red2:     #dc2626;
+      --amber:    #f59e0b;
+      --amber2:   #d97706;
+      --blue:     #3b82f6;
+      --green:    #22c55e;
+      --pos:      #0d9488;
+      --neg:      #ef4444;
+      --neu:      #a0a0a0;
+      --ctx:      #f59e0b;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'SF Pro Display', -apple-system, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .wireframe-app {
+      width: 100%;
+    }
+
+    /* Header */
+    .wf-header-banner {
+      padding: 30px 40px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+    .wf-logo-text { font-size: 24px; font-weight: 600; color: var(--text); letter-spacing: -0.03em; }
+    .wf-logo-text span { color: var(--orange); }
+    .wf-logo-sub { font-size: 11px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+
+    .wf-content-header { padding: 20px 40px 16px; border-bottom: 1px solid var(--border); background: var(--bg2); }
+    .wf-content-title { font-size: 24px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; margin-bottom: 8px; }
+    .wf-content-sub { font-size: 14px; color: var(--text2); }
+    .wf-badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .wf-badge { display: inline-flex; align-items: center; gap: 4px; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: 500; }
+    .wf-badge-pos { background: rgba(13,148,136,0.15); color: var(--teal2); border: 1px solid rgba(13,148,136,0.3); }
+    .wf-badge-neg { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+    .wf-badge-neu { background: rgba(160,160,160,0.1); color: var(--text2); border: 1px solid var(--border); }
+
+    .wf-section { padding: 40px; border-bottom: 1px solid var(--border); }
+    .wf-section-title { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; margin-bottom: 20px; }
+
+    /* Timeline */
+    .wf-timeline-wrap { overflow-x: auto; padding-bottom: 4px; }
+    .wf-timeline-track { display: flex; gap: 4px; align-items: flex-end; height: 56px; min-width: 100%; padding: 4px 0; }
+    .wf-role-block { border-radius: 5px; height: 100%; position: relative; }
+
+    .wf-tl-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+    .wf-tl-li { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text3); }
+    .wf-tl-ld { width: 10px; height: 10px; border-radius: 3px; }
+
+    .wf-tl-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    .wf-tl-stat { background: var(--bg3); border-radius: 8px; padding: 10px 12px; text-align: center; }
+    .wf-tl-stat-n { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -0.03em; }
+    .wf-tl-stat-l { font-size: 9px; color: var(--text3); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .wf-insight { background: rgba(13,148,136,0.08); border: 1px solid rgba(13,148,136,0.2); border-radius: 8px; padding: 16px 20px; margin-top: 16px; }
+    .wf-insight-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: var(--teal2); text-transform: uppercase; margin-bottom: 8px; }
+    .wf-insight p { font-size: 13px; color: #cbd5e1; line-height: 1.6; margin:0; }
+    .wf-insight p strong { color: var(--text); font-weight: 500; }
+
+    .wf-warn { background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; padding: 12px 14px; margin-top: 10px; }
+    .wf-warn-label { font-size: 9px; font-weight: 600; letter-spacing: 0.08em; color: #f87171; text-transform: uppercase; margin-bottom: 5px; }
+
+    /* Recruiter Card */
+    .wf-recruiter-card { 
+      background: var(--bg2);
+      border: 1px solid var(--border2); 
+      border-radius: 12px; 
+      padding: 32px; 
+      margin: 40px;
+      max-width: 800px; 
+      page-break-inside: avoid;
+    }
+    .wf-rec-title { font-size: 36px; font-weight: 700; color: var(--orange); letter-spacing: -0.04em; margin-bottom: 4px; }
+    .wf-rec-subtitle { font-size: 15px; color: var(--text2); margin-bottom: 24px; }
+    .wf-rec-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }
+    .wf-rec-pill { background: var(--bg3); border: 1px solid var(--border); border-radius: 16px; padding: 6px 16px; font-size: 12px; color: var(--text2); }
+
+    .wf-rec-sec-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; color: var(--text3); text-transform: uppercase; margin-bottom: 12px; }
+    .wf-rec-sig-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px;}
+    .r-chip-g { background: rgba(13,148,136,0.1); border: 1px solid rgba(13,148,136,0.3); border-radius: 20px; padding: 6px 14px; font-size: 11px; color: var(--teal2); }
+    .r-chip-r { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 20px; padding: 6px 14px; font-size: 11px; color: #f87171; }
+
+    .wf-rec-snap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 32px; }
+    .wf-rec-snap-card { background: var(--bg3); border-radius: 10px; padding: 16px; text-align: center; border: 1px solid var(--border); }
+    .wf-rec-snap-n { font-size: 24px; font-weight: 600; color: var(--text); }
+    .wf-rec-snap-l { font-size: 10px; color: var(--text3); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .wf-verdict-card { border-radius: 12px; padding: 24px; text-align: center; background: rgba(13,148,136,0.12); border: 1px solid rgba(13,148,136,0.4); margin-top: 24px; }
+    .wf-v-word { font-size: 28px; font-weight: 800; color: var(--teal2); letter-spacing: -0.02em; }
+    .wf-v-meta { font-size: 12px; color: var(--teal); margin-top: 6px; font-weight: 500; }
+
+    /* Tables */
+    .wf-table-wrapper { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 40px; background: var(--bg); }
+    .wf-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .wf-table thead tr { background: #161616; border-bottom: 1px solid var(--border); }
+    .wf-table th { padding: 14px 16px; text-align: left; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
+    .wf-table td { padding: 16px; border-bottom: 1px solid #1a1a1a; vertical-align: top; line-height: 1.5; color: var(--text2); }
+    .wf-table tr:last-child td { border-bottom: none; }
+    .text-text { color: var(--text); }
+    .font-medium { font-weight: 500; }
+
+    .wf-pill { padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; text-transform: uppercase; display: inline-block; }
+    .wf-pill-teal { background: rgba(13,148,136,0.1); color: var(--teal2); border: 1px solid rgba(13,148,136,0.2); }
+    .wf-pill-red { background: rgba(239,68,68,0.08); color: #f87171; border: 1px solid rgba(239,68,68,0.15); }
+    .wf-pill-neu { background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+
+    /* Ext Grid */
+    .wf-ext-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    .wf-ext-chip { background: var(--bg3); border: 1px solid var(--border2); border-radius: 20px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; }
+    .wf-ext-chip-icon { font-size: 16px; }
+    .wf-ext-chip-label { font-size: 12px; color: var(--text2); }
+    .wf-ext-chip-n { font-size: 12px; font-weight: 600; color: var(--text); }
+
+    /* Clusters */
+    .cl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 24px; margin-bottom: 40px; page-break-inside: avoid;}
+    .cl-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+    .cl-card-header { margin-bottom: 12px; }
+    .cl-name { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
+    .cl-nums { margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .cl-fired { font-size: 16px; font-weight: 700; color: var(--text); }
+    .cl-bar-bg { height: 4px; background: var(--bg4); border-radius: 2px; overflow: hidden; }
+    .cl-bar-fg { height: 100%; border-radius: 2px; }
+
+    /* Signals */
+    .signal-table { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 40px; }
+    .signal-row { display: flex; border-bottom: 1px solid var(--border); }
+    .signal-row:last-child { border-bottom: none; }
+    .sig-pol { width: 4px; flex-shrink: 0; }
+    .sig-body { padding: 16px 20px; flex: 1; }
+    .sig-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .sig-meaning { font-size: 13px; color: var(--text2); line-height: 1.5; margin-bottom: 10px; }
+    .sig-sowhat { font-size: 12px; color: var(--teal2); font-style: italic; background: rgba(13,148,136,0.05); padding: 8px 12px; border-radius: 4px; }
+    .sig-meta { padding: 16px 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; width: 140px; }
+    .sig-pol-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 4px; }
+    .sig-pol-pos { color: var(--teal2); background: rgba(13,148,136,0.1); }
+    .sig-pol-neg { color: var(--red); background: rgba(239,68,68,0.1); }
+
+    .page-break { page-break-before: always; }
+    </style>
+</head>
+<body>
+    <div class="wireframe-app">
+        <!-- HEADER -->
+        <div class="wf-header-banner">
+            <div class="wf-logo-text">hawk<span>k</span>syn</div>
+            <div class="wf-logo-sub">Evidence Intelligence Report</div>
+        </div>
+
+        <div class="wf-content-header">
+            <div class="wf-content-title">Recruiter Intelligence Snapshot</div>
+            <div class="wf-content-sub">Confidential verdict for {{report.header.candidate_name}} &middot; {{report.header.headline_title}}</div>
+            <div class="wf-badge-row">
+                <span class="wf-badge wf-badge-neu">{{report.header.experience_years}} years of career</span>
+                <span class="wf-badge wf-badge-pos">&check; {{report.career_timeline.length}} roles parsed</span>
+            </div>
+        </div>
+
+        <!-- RECRUITER VIEW -->
+        <div class="wf-recruiter-card">
+            <div class="wf-rec-title">{{report.header.headline_title}}</div>
+            <div class="wf-rec-subtitle">{{report.header.candidate_name}} &middot; Operating mode derived from intelligence signals</div>
+            
+            <div class="wf-rec-pills">
+                <div class="wf-rec-pill">{{report.header.experience_years}} years career</div>
+                <div class="wf-rec-pill">{{report.header.career_level}}</div>
+                <div class="wf-rec-pill">{{report.header.top_domain}}</div>
+                <div class="wf-rec-pill">{{report.header.current_company}}</div>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <div class="wf-rec-sec-label">WHAT THIS PERSON DOES BEST &mdash; TOP POSITIVE SIGNALS</div>
+                <div class="wf-rec-sig-chips">
+                    {{#if report.executive_summary.top_strengths.length}}
+                        {{#each report.executive_summary.top_strengths}}
+                            <div class="r-chip-g">{{this}}</div>
+                        {{/each}}
+                    {{else}}
+                        <div style="font-size: 11px; color: var(--text3); font-style: italic;">No high-confidence positive signals detected.</div>
+                    {{/if}}
+                </div>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <div class="wf-rec-sec-label">FLAGS TO EXPLORE &mdash; AREAS WHERE EVIDENCE IS THIN OR RISKY</div>
+                <div class="wf-rec-sig-chips">
+                    {{#if report.executive_summary.top_risks.length}}
+                        {{#each report.executive_summary.top_risks}}
+                            <div class="r-chip-r">{{this}}</div>
+                        {{/each}}
+                    {{else}}
+                        <div style="font-size: 11px; color: var(--text3); font-style: italic;">No high-risk flags identified.</div>
+                    {{/if}}
+                </div>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <div class="wf-rec-sec-label">EVIDENCE SNAPSHOT</div>
+                <div class="wf-rec-snap">
+                    <div class="wf-rec-snap-card">
+                        <div class="wf-rec-snap-n">{{report.header.experience_years}} yrs</div>
+                        <div class="wf-rec-snap-l">Career</div>
+                    </div>
+                    <div class="wf-rec-snap-card">
+                        <div class="wf-rec-snap-n">{{report.career_timeline.length}}</div>
+                        <div class="wf-rec-snap-l">Roles</div>
+                    </div>
+                    <div class="wf-rec-snap-card">
+                        <div class="wf-rec-snap-n">{{report.data_health.validation_score}}%</div>
+                        <div class="wf-rec-snap-l">Strong Evidence</div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="wf-rec-sec-label">AUDITOR VERDICT &mdash; STAMPED BY A HUMAN PROFESSIONAL</div>
+                <div class="wf-verdict-card">
+                    <div class="wf-v-word">{{report.executive_summary.overall_recommendation}}</div>
+                    <div class="wf-v-meta">Reviewed by Hawksyn Intelligence Auditor</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-break"></div>
+
+        <div class="wf-content-header">
+            <div class="wf-content-title">Evidence Trail &mdash; The Proof Behind Every Signal</div>
+            <div class="wf-content-sub">Two tables. Table 1 shows exactly what Hawksyn read from your CV &mdash; verbatim extracted facts, nothing added.</div>
+        </div>
+
+        <div class="wf-section">
+            <div class="wf-section-title">TABLE 1 &mdash; WHAT YOUR CV ACTUALLY SAYS</div>
+            <p style="font-size: 12px; color: var(--text2); margin-bottom: 32px; opacity: 0.8; line-height: 1.6;">These are the raw facts extracted from your CV by Hawksyn's parsing engine. Each row is one verified fact.</p>
+
+            <div class="wf-rec-sec-label">ROLES AND TIMELINE</div>
+            <div class="wf-table-wrapper">
+                <table class="wf-table">
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Title</th>
+                            <th>Duration</th>
+                            <th>Seniority Rank</th>
+                            <th>Location</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each report.career_timeline}}
+                        <tr>
+                            <td class="font-medium text-text">{{this.company}}</td>
+                            <td>{{this.title}}</td>
+                            <td>{{this.duration_months}} months</td>
+                            <td><span class="wf-pill wf-pill-neu">Rank {{this.seniority_score}} &mdash; {{this.domain}}</span></td>
+                            <td>{{this.location}}</td>
+                        </tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="wf-rec-sec-label">SKILLS FOUND IN YOUR CV</div>
+            <div class="wf-table-wrapper">
+                <table class="wf-table">
+                    <thead>
+                        <tr>
+                            <th>Skill Name</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each report.extracted_cv.skills}}
+                        <tr>
+                            <td class="font-medium text-text">{{this.skill_name}}</td>
+                            <td><span class="wf-pill wf-pill-neu">{{this.category}}</span></td>
+                            <td>
+                                {{#if this.is_proven}}
+                                    <span class="wf-pill wf-pill-teal">Proven</span>
+                                {{else}}
+                                    <span class="wf-pill wf-pill-red">Claimed only</span>
+                                {{/if}}
+                            </td>
+                        </tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="wf-rec-sec-label">CAREER GAPS DETECTED</div>
+            <div class="wf-table-wrapper">
+                <table class="wf-table">
+                    <thead>
+                        <tr>
+                            <th>Between Roles</th>
+                            <th>Gap Duration</th>
+                            <th>Flag Raised</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#if report.extracted_cv.gap_periods.length}}
+                            {{#each report.extracted_cv.gap_periods}}
+                            <tr>
+                                <td class="font-medium text-text">{{this.between_roles}}</td>
+                                <td>{{this.duration_months}} months</td>
+                                <td>
+                                    {{#if this.flag_raised}}
+                                        <span class="wf-pill wf-pill-red">Yes</span>
+                                    {{else}}
+                                        <span class="wf-pill wf-pill-neu">No Flag</span>
+                                    {{/if}}
+                                </td>
+                            </tr>
+                            {{/each}}
+                        {{else}}
+                            <tr><td colspan="3" style="text-align: center; font-style: italic; color: var(--text3); padding: 20px;">No significant career gaps detected.</td></tr>
+                        {{/if}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="page-break"></div>
+
+        <div class="wf-content-header">
+            <div class="wf-content-title">Impact &amp; Execution Evidence</div>
+            <div class="wf-content-sub">Quantified outcomes and initiatives detected from your CV.</div>
+        </div>
+
+        <div class="wf-section">
+            <div class="wf-rec-sec-label">IMPACT EVIDENCE</div>
+            <div class="wf-table-wrapper">
+                <table class="wf-table">
+                    <thead>
+                        <tr>
+                            <th>Action / Initiative</th>
+                            <th>Metric / Value</th>
+                            <th>Complexity</th>
+                            <th>Evidence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#if report.impact_evidence.length}}
+                            {{#each report.impact_evidence}}
+                            <tr>
+                                <td class="font-medium text-text">{{this.action}} {{this.object}}</td>
+                                <td><span class="wf-pill wf-pill-neu">{{#if this.metric_value}}{{this.currency_code}} {{this.metric_value}} {{this.metric_unit}}{{else}}Verified outcome{{/if}}</span></td>
+                                <td>{{this.complexity}}</td>
+                                <td><span class="wf-pill wf-pill-teal">Strong</span></td>
+                            </tr>
+                            {{/each}}
+                        {{else}}
+                            <tr><td colspan="4" style="text-align: center; color: var(--text3); padding: 20px;">No specific quantified impact detected.</td></tr>
+                        {{/if}}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="wf-rec-sec-label" style="margin-top: 32px;">LEADERSHIP INSIGHTS</div>
+            <div class="wf-table-wrapper">
+                <table class="wf-table">
+                    <thead>
+                        <tr>
+                            <th>Ownership Signal</th>
+                            <th>Metric / Scale</th>
+                            <th>Role Index</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#if report.leadership_insights.ownership_signals.length}}
+                            {{#each report.leadership_insights.ownership_signals}}
+                            <tr>
+                                <td class="font-medium text-text">{{this.action}} {{this.object}}</td>
+                                <td>{{#if this.metrics.value}}{{this.metrics.value}} {{this.metrics.metric_name}}{{else}}Owned{{/if}}</td>
+                                <td>Role {{this.role_index}}</td>
+                            </tr>
+                            {{/each}}
+                        {{else}}
+                            <tr><td colspan="3" style="text-align: center; color: var(--text3); padding: 20px;">No leadership ownership signals detected.</td></tr>
+                        {{/if}}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="wf-rec-sec-label" style="margin-top: 32px;">EDUCATION &amp; CREDENTIALS</div>
+            <div class="wf-table-wrapper">
+                <table class="wf-table">
+                    <thead>
+                        <tr>
+                            <th>Institution</th>
+                            <th>Degree</th>
+                            <th>Year</th>
+                            <th>Tier</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#if report.education_section.length}}
+                            {{#each report.education_section}}
+                            <tr>
+                                <td class="font-medium text-text">{{this.institution}}</td>
+                                <td>{{this.degree}}</td>
+                                <td>{{this.year_completed}}</td>
+                                <td>{{#if this.tier1_institution}}<span class="wf-pill wf-pill-teal">Tier 1</span>{{else}}<span class="wf-pill wf-pill-neu">Standard</span>{{/if}}</td>
+                            </tr>
+                            {{/each}}
+                        {{else}}
+                            <tr><td colspan="4" style="text-align: center; color: var(--text3); padding: 20px;">No education records found.</td></tr>
+                        {{/if}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="page-break"></div>
+
+        <div class="wf-content-header">
+            <div class="wf-content-title">Signals Found &mdash; Your Career Archetypes</div>
+            <div class="wf-content-sub">Detected patterns across 8 core clusters that define your professional DNA.</div>
+        </div>
+
+        <div class="wf-section" style="padding-top: 20px;">
+            <div class="wf-section-title">YOUR TOP TAKEAWAYS</div>
+            <div class="wf-insight">
+                <p>{{report.executive_summary.candidate_intelligence_summary}}</p>
+            </div>
+
+            <div class="wf-section-title" style="margin-top: 40px;">CLUSTER ACTIVITY DASHBOARD</div>
+            <div class="cl-grid">
+                {{#each report.cluster_dashboard.cluster_summary}}
+                <div class="cl-card">
+                    <div class="cl-card-header">
+                        <div class="cl-name">{{@key}}</div>
+                    </div>
+                    <div class="cl-bar-bg">
+                        <div class="cl-bar-fg" style="width: {{multiply this.score 100}}%; background: {{#if (gt this.score 0.2)}}var(--teal2){{else}}var(--blue){{/if}};"></div>
+                    </div>
+                    <div class="cl-nums">
+                        <div class="cl-fired">{{this.detected}} detected</div>
+                        <div style="font-size: 10px; color: var(--text3);">/ {{this.total_evaluated}} eval</div>
+                    </div>
+                </div>
+                {{/each}}
+            </div>
+        </div>
+
+        <div class="wf-section">
+            <div class="wf-section-title">ALL ACTIVE SIGNALS</div>
+            <div class="signal-table">
+                {{#if report.top_signals.length}}
+                    {{#each report.top_signals}}
+                    <div class="signal-row">
+                        <div class="sig-pol" style="background: {{#if (eq this.severity 'positive')}}var(--teal){{else}}var(--red){{/if}};"></div>
+                        <div class="sig-body">
+                            <div class="sig-name">&bull; {{this.archetype_name}} <span style="font-size: 10px; color: var(--text3); margin-left: 8px;">[{{this.cluster}}]</span></div>
+                            <div class="sig-meaning">{{this.reasoning}}</div>
+                            {{#if this.so_what}}
+                                <div class="sig-sowhat">{{this.so_what}}</div>
+                            {{/if}}
+                        </div>
+                        <div class="sig-meta">
+                            {{#if (eq this.severity 'positive')}}
+                                <span class="sig-pol-badge sig-pol-pos">Strength</span>
+                            {{else}}
+                                <span class="sig-pol-badge sig-pol-neg">Flag</span>
+                            {{/if}}
+                        </div>
+                    </div>
+                    {{/each}}
+                {{else}}
+                    <div style="padding: 40px; text-align: center; color: var(--text3); font-style: italic;">No active signals detected.</div>
+                {{/if}}
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
