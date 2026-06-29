@@ -33,6 +33,7 @@ class HipController {
             const userProfile = await db.UserProfile.findOne({ userId: profile.userId });
             const cvData = userProfile?.confirmedProfile || userProfile?.originalParsedData || {};
             const psdeResult = await db.PSDEResult.findOne({ candidate_id: profile.userId }).lean() || {};
+            const userDoc = await db.User.findById(profile.userId).lean();
 
             // 2. Load the HTML Wireframe Template
             const templatePath = path.join(__dirname, 'HIP_Template_Dynamic.hbs');
@@ -69,7 +70,8 @@ class HipController {
                     strong_signals: psdeResult.total_detected || '3', // From PSDE
                     years_experience: Math.round(cvData?.structured?.inferred?.totalExperienceYears || cvData?.inferred?.totalExperienceYears) || cvData.yearsOfExperience || '8',
                     rarity_score: profile.seoMetadata.rarityScore || 95,
-                    partial_matches: psdeResult.total_partial || '5' // From PSDE
+                    partial_matches: psdeResult.total_partial || '5', // From PSDE
+                    profilePhoto: userDoc?.profilePhoto ? `/api/v1/user/profile-photo/${profile.userId}` : null
                 },
                 CERT: {
                     run_id: profile.runId,
