@@ -12,7 +12,6 @@ const auth = (req, res, next) => {
                 message: 'Unauthorized: No token provided'
             });
         }
-
         const token = authHeader.split(' ')[1];
         const secret = process.env.JWT_SECRET;
 
