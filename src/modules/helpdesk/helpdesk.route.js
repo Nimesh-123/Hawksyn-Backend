@@ -68,7 +68,7 @@ route.post('/tickets', authMiddleware, helpdeskController.createTicket);
 
 /**
  * @swagger
- * /helpdesk/tickets/{id}:
+ * /user/helpdesk/tickets/{id}:
  *   get:
  *     summary: Get a specific ticket thread
  *     tags: [Helpdesk]
@@ -93,7 +93,7 @@ route.get('/tickets/:id', authMiddleware, helpdeskController.getTicketThread);
 
 /**
  * @swagger
- * /helpdesk/tickets/{id}/reply:
+ * /user/helpdesk/tickets/{id}/reply:
  *   post:
  *     summary: Reply to an existing open ticket
  *     tags: [Helpdesk]
