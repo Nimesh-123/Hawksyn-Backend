@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hawksyn · Journey 4 — Re-Run CV Re-upload</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#080808;font-family:'Inter',sans-serif}
+.slide{width:100%;background:#080808;display:flex;align-items:flex-start;justify-content:center;padding:52px 0 60px;position:relative;border-bottom:1px solid #0e0e0e}
+.sn{position:absolute;top:18px;left:22px;font-size:11px;color:#252525;letter-spacing:.04em;font-weight:400}
+.st{position:absolute;top:18px;left:64px;font-size:11px;color:#e8600a;font-weight:600;letter-spacing:.01em}
+.sg{position:absolute;top:16px;right:22px;font-size:9px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:.04em;text-transform:uppercase}
+.tr{background:#1f0900;color:#e8600a;border:1px solid #3a1500}
+.tn{background:#070f1a;color:#4a9eff;border:1px solid #0d2040}
+.tk{background:#071407;color:#4caf50;border:1px solid #0d280d}
+.si{display:flex;align-items:flex-start;justify-content:center;width:100%;max-width:1120px;padding:0 16px}
+.al{width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:20px;align-items:flex-end;padding-top:60px}
+.ar{width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:20px;align-items:flex-start;padding-top:60px}
+.an{display:flex;align-items:flex-start}
+.anl{flex-direction:row}.anr{flex-direction:row-reverse}
+.at{font-size:10.5px;color:#303030;line-height:1.65;max-width:178px;font-weight:400}
+.anl .at{text-align:right}.anr .at{text-align:left}
+.aln{display:flex;align-items:center;margin:0 8px;flex-shrink:0;margin-top:4px}
+.atag{display:inline-block;font-size:8px;font-weight:700;padding:2px 8px;border-radius:3px;margin-bottom:5px;letter-spacing:.06em;text-transform:uppercase}
+.atag-e{background:#1f0900;color:#e8600a;border:1px solid #3a1500}
+.atag-h{background:#071407;color:#4caf50;border:1px solid #0d280d}
+.atag-m{background:#070f1a;color:#4a9eff;border:1px solid #0d2040}
+.atag-w{background:#1a1000;color:#f0a030;border:1px solid #2a1a00}
+.pw{flex-shrink:0;padding-top:16px}
+.ph{width:290px;background:#0c0c0c;border-radius:42px;border:1.5px solid #1e1e1e;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 1px #111,0 24px 80px rgba(0,0,0,.95),0 8px 32px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.025)}
+.cam{width:8px;height:8px;background:#141414;border-radius:50%;margin:10px auto 0;flex-shrink:0}
+.topbar,.back-bar{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;flex-shrink:0;border-bottom:1px solid #111;background:#0c0c0c}
+.scr{flex:1;overflow:hidden;padding:14px 16px;display:flex;flex-direction:column}
+.bnav{height:58px;background:#090909;border-top:1px solid #111;display:flex;align-items:center;justify-content:space-evenly;flex-shrink:0}
+.bni{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex:1}
+.bni-lbl{font-size:9px;color:#888;font-weight:400;text-align:center}
+.bni-lbl-a{font-size:9px;color:#e8600a;font-weight:600;text-align:center}
+</style>
+</head>
+<body>
+<div style="background:#080808;padding:40px 24px 10px;border-bottom:1px solid #0e0e0e">
+  <div style="font-size:10px;font-weight:700;color:#333;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">Hawksyn · Journey 4 of 4</div>
+  <div style="font-size:20px;font-weight:800;color:#f0f0f0;letter-spacing:-.01em;margin-bottom:4px">Re-Run — CV Re-upload</div>
+  <div style="font-size:11px;font-weight:400;color:#333;margin-bottom:16px">Returning user journey · Splash → M-PIN (with errors + lockout) → Home → Menu → Warning → Consent (3 states) → Payment (processing / fail / success) → Upload → Re-scan → 
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <span style="background:#1f0900;color:#e8600a;border:1px solid #3a1500;font-size:8px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase">16 screens</span>
+    <span style="background:#071407;color:#4caf50;border:1px solid #0d280d;font-size:8px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase">Returning user</span>
+    <span style="background:#070f1a;color:#4a9eff;border:1px solid #0d2040;font-size:8px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase">IAP &#8377;99</span>
+    <span style="background:#180808;color:#e05050;border:1px solid rgba(224,80,80,.3);font-size:8px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase">All error states</span>
+  </div>
+</div>
+<div class="slide">
+  <div class="sn">J4-S01</div><div class="st">Splash — returning user, profile exists</div>
+  <span class="sg tk">Returning splash</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-e">Bar difference</div><div class="at">Bar is 100% full — signals existing profile found. First-time splash: 65% partial. This single visual tells returning vs new without any text.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div><div class="an anl"><div><div class="atag atag-m">Sub-text</div><div class="at">"Profile found" instead of "Starting up..." — confirms the app recognised the device. Auto-push to J4-S02 M-PIN login after 1.8s.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:520px"><div class="cam"></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px">
+  <div style="text-align:center;margin-bottom:36px">
+    <div style="font-size:36px;font-weight:800;color:#f0f0f0;letter-spacing:-.04em;line-height:1">Hawk<span style="color:#e8600a">s</span>yn</div>
+    <div style="font-size:9px;font-weight:400;color:#282828;margin-top:10px;letter-spacing:.14em;text-transform:uppercase">Professional Intelligence System</div>
+  </div>
+  <div style="width:52px;height:3px;background:#141414;border-radius:2px;overflow:hidden;margin-bottom:10px">
+    <div style="width:100%;height:3px;background:linear-gradient(90deg,#e8600a,#f0a030);border-radius:2px"></div>
+  </div>
+  <div style="font-size:9px;color:#2a2a2a;letter-spacing:.04em">Profile found</div>
+</div>
+<div style="padding:18px;text-align:center">
+  <div style="font-size:8px;color:#181818">v1.0 · Hyumeans Pvt Ltd · DIPP246851</div>
+</div>
+</div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-h">Same brand</div><div class="at">Brand mark, typography, and layout identical to first-time splash. Only difference: bar and sub-text. Visual consistency maintained.</div></div></div><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-e">Auto-push</div><div class="at">No tap needed. Transitions to M-PIN login, not to home. PIN gate is the only thing between splash and app on returning visit.</div></div></div></div>
+  </div>
+</div><div class="slide">
+  <div class="sn">J4-S02</div><div class="st">M-PIN login — 3 of 6 dots filled, user mid-entry</div>
+  <span class="sg tr">M-PIN · 3/6</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-e">Only gate</div><div class="at">Email and phone already verified from first setup. Only PIN needed. No other friction.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div><div class="an anl"><div><div class="atag atag-m">Name shown</div><div class="at">User name "Pranjal Sarkar" shown below the title — confirms the right profile is loaded. Critical on shared devices.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:640px"><div class="cam"></div><div class="back-bar"><div style="width:28px"></div><div style="font-size:13px;font-weight:600;color:#f0f0f0">Welcome back</div><div style="width:18px"></div></div>
+<div class="scr" style="gap:14px;padding-top:18px">
+  <div style="text-align:center">
+    <div style="font-size:16px;font-weight:700;color:#f0f0f0;margin-bottom:3px">Enter your M-PIN</div>
+    <div style="font-size:11px;font-weight:400;color:#555;margin-top:2px">Pranjal Sarkar</div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:center;gap:18px;padding:10px 0"><div style="width:16px;height:16px;border-radius:50%;background:#e8600a;border:1px solid rgba(232,96,10,.5)"></div><div style="width:16px;height:16px;border-radius:50%;background:#e8600a;border:1px solid rgba(232,96,10,.5)"></div><div style="width:16px;height:16px;border-radius:50%;background:#e8600a;border:1px solid rgba(232,96,10,.5)"></div><div style="width:12px;height:12px;border-radius:50%;background:#1a1a1a;border:1px solid #252525"></div><div style="width:12px;height:12px;border-radius:50%;background:#1a1a1a;border:1px solid #252525"></div><div style="width:12px;height:12px;border-radius:50%;background:#1a1a1a;border:1px solid #252525"></div></div>
+  <div style="display:flex;flex-direction:column;gap:8px"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">1</span></div><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">2</span></div><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">3</span></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">4</span></div><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">5</span></div><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">6</span></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">7</span></div><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">8</span></div><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">9</span></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div></div><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">0</span></div><div style="background:#141414;border:1px solid #222;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:16px;font-weight:700;color:#e8600a">⌫</span></div></div></div>
+  <div style="text-align:center">
+    <span style="font-size:10px;color:#333">Forgot PIN? </span>
+    <span style="font-size:10px;font-weight:600;color:#e8600a">Re-verify to reset</span>
+  </div>
+</div><div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div></div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-h">No back</div><div class="at">No back button on this screen. Splash → PIN → home. User cannot skip the PIN gate.</div></div></div><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-e">Forgot PIN</div><div class="at">"Re-verify to reset" → email OTP → new PIN. Account always recoverable.</div></div></div></div>
+  </div>
+</div><div class="slide">
+  <div class="sn">J4-S03</div><div class="st">M-PIN wrong — all 6 red, attempt counter shown</div>
+  <span class="sg tr">Wrong PIN</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-e">Wrong PIN</div><div class="at">All 6 dots red. Error banner: "Incorrect PIN. 2 attempts remaining." Dots clear automatically. Unlike OTP error, attempt counter IS shown here — PIN lockout is a real security event.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div><div class="an anl"><div><div class="atag atag-m">Why show count</div><div class="at">OTP errors = no count (spam prevention). PIN errors = show count (security transparency). User must know they are close to lockout so they do not accidentally lock themselves out.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:660px"><div class="cam"></div><div class="back-bar"><div style="width:28px"></div><div style="font-size:13px;font-weight:600;color:#f0f0f0">Welcome back</div><div style="width:18px"></div></div>
+<div class="scr" style="gap:14px;padding-top:18px">
+  <div style="text-align:center">
+    <div style="font-size:16px;font-weight:700;color:#f0f0f0;margin-bottom:3px">Enter your M-PIN</div>
+    <div style="font-size:11px;font-weight:400;color:#555;margin-top:2px">Pranjal Sarkar</div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:center;gap:18px;padding:10px 0"><div style="width:16px;height:16px;border-radius:50%;background:#e05050;border:1px solid rgba(224,80,80,.6)"></div><div style="width:16px;height:16px;border-radius:50%;background:#e05050;border:1px solid rgba(224,80,80,.6)"></div><div style="width:16px;height:16px;border-radius:50%;background:#e05050;border:1px solid rgba(224,80,80,.6)"></div><div style="width:16px;height:16px;border-radius:50%;background:#e05050;border:1px solid rgba(224,80,80,.6)"></div><div style="width:16px;height:16px;border-radius:50%;background:#e05050;border:1px solid rgba(224,80,80,.6)"></div><div style="width:16px;height:16px;border-radius:50%;background:#e05050;border:1px solid rgba(224,80,80,.6)"></div></div>
+  <div style="background:#180808;border:1px solid rgba(224,80,80,.3);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#e05050" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v4M8 11v.5"/></svg><div style="font-size:10px;font-weight:500;color:#e05050">Incorrect PIN. 2 attempts remaining.</div></div>
+  <div style="display:flex;flex-direction:column;gap:8px"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">1</span></div><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">2</span></div><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">3</span></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">4</span></div><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">5</span></div><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">6</span></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">7</span></div><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">8</span></div><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">9</span></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div></div><div style="background:#141414;border:1px solid #1e1e1e;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:20px;font-weight:400;color:#f0f0f0">0</span></div><div style="background:#141414;border:1px solid #222;border-radius:12px;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:16px;font-weight:700;color:#e8600a">⌫</span></div></div></div>
+  <div style="text-align:center">
+    <span style="font-size:10px;color:#333">Forgot PIN? </span>
+    <span style="font-size:10px;font-weight:600;color:#e8600a">Re-verify to reset</span>
+  </div>
+</div><div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div></div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-h">Attempt limit</div><div class="at">3 attempts total. After 3rd failure → J4-S04 lockout screen. Counter shows remaining attempts, not attempts used.</div></div></div><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-e">Dots clear</div><div class="at">6 dots clear on error. User re-enters fresh. Backspace not needed.</div></div></div></div>
+  </div>
+</div><div class="slide">
+  <div class="sn">J4-S04</div><div class="st">M-PIN locked — account locked after 3 wrong attempts</div>
+  <span class="sg tr">Locked out</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-e">Lockout screen</div><div class="at">Red lock icon in circle. "Account locked." 2-step unlock: verify email with OTP → create new M-PIN. That is all. Simple and fast.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div><div class="an anl"><div><div class="atag atag-m">Tone</div><div class="at">Not threatening. "This protects your intelligence profile" — frames lockout as a security feature, not a punishment. Email re-verify proves identity. New PIN restores access.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:660px"><div class="cam"></div><div class="back-bar"><div style="width:28px"></div><div style="font-size:13px;font-weight:600;color:#f0f0f0">Welcome back</div><div style="width:18px"></div></div>
+<div class="scr" style="gap:14px;padding-top:18px">
+  <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:16px 0 8px;gap:14px">
+    <div style="width:60px;height:60px;border-radius:50%;background:#180808;border:2px solid rgba(224,80,80,.3);display:flex;align-items:center;justify-content:center">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <div>
+      <div style="font-size:16px;font-weight:700;color:#f0f0f0;margin-bottom:5px">Account locked</div>
+      <div style="font-size:10px;font-weight:400;color:#aaaaaa;line-height:1.65">Too many incorrect attempts. You need to re-verify your identity to reset your PIN.</div>
+    </div>
+  </div>
+  <div style="background:#180808;border:1px solid rgba(224,80,80,.2);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:9px;font-weight:700;color:#e05050;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px">To unlock your account</div>
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:20px;height:20px;border-radius:50%;background:#1a0808;border:1px solid rgba(224,80,80,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:9px;font-weight:700;color:#e05050">1</span></div><div style="font-size:10px;color:#d0d0d0">Verify your email with OTP</div></div>
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:20px;height:20px;border-radius:50%;background:#1a0808;border:1px solid rgba(224,80,80,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:9px;font-weight:700;color:#e05050">2</span></div><div style="font-size:10px;color:#d0d0d0">Create a new M-PIN</div></div>
+  </div>
+  <div style="background:#e8600a;border-radius:14px;padding:15px;text-align:center;box-shadow:0 4px 20px rgba(232,96,10,.3)"><span style="font-size:13px;font-weight:700;color:#fff">Verify my email →</span></div>
+  <div style="text-align:center"><span style="font-size:9px;color:#333">This protects your intelligence profile</span></div>
+</div><div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div></div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-h">Recovery path</div><div class="at">Tap "Verify my email →" → email OTP screen (same as J1-S03) → new M-PIN screen. Two steps. Full access restored.</div></div></div><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-e">No numpad</div><div class="at">Numpad removed on lockout. No further entry attempts. Only path is email re-verify.</div></div></div></div>
+  </div>
+</div><div class="slide">
+  <div class="sn">J4-S05</div><div class="st">Home (Who I Am) — post-activation, returning user sees Who I Am hub</div>
+  <span class="sg tk">Returning home</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-h">Screen change</div><div class="at">Once all 3 cards are activated, the home screen permanently becomes the "Who I Am" hub — not a 3-card dashboard. 4 CTA sections. Stats header. Returning user sees their live scan data.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div><div class="an anl"><div><div class="atag atag-m">Menu access</div><div class="at">Hamburger top-left → slide-in menu. Path to Upload CV (J4-S06). Same hamburger pattern as all inner screens — amber, 3 lines.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:620px"><div class="cam"></div>
+    <div class="topbar">
+      <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><line x1="0" y1="1" x2="18" y2="1" stroke="#e8600a" stroke-width="1.5" stroke-linecap="round"/><line x1="0" y1="7" x2="18" y2="7" stroke="#e8600a" stroke-width="1.5" stroke-linecap="round"/><line x1="0" y1="13" x2="18" y2="13" stroke="#e8600a" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <div style="font-size:13px;font-weight:600;color:#f0f0f0">Who I Am</div>
+      <svg width="16" height="18" viewBox="0 0 24 24" fill="none" stroke="#b0b0b0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </div>
+    <div class="scr" style="gap:10px;padding-top:14px">
+      <!-- Stat chips row -->
+      <div style="display:flex;gap:8px">
+        <div style="flex:1;background:#1a0e00;border:1px solid rgba(232,96,10,.2);border-radius:10px;padding:10px 8px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:#e8600a;line-height:1;letter-spacing:-.02em">14</div>
+          <div style="font-size:8px;color:#e8600a;margin-top:3px;font-weight:500">signals fired</div>
+        </div>
+        <div style="flex:1;background:#180808;border:1px solid rgba(224,80,80,.2);border-radius:10px;padding:10px 8px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:#e05050;line-height:1;letter-spacing:-.02em">3</div>
+          <div style="font-size:8px;color:#e05050;margin-top:3px;font-weight:500">flags raised</div>
+        </div>
+        <div style="flex:1;background:#081408;border:1px solid rgba(76,175,80,.2);border-radius:10px;padding:10px 8px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:#4caf50;line-height:1;letter-spacing:-.02em">61%</div>
+          <div style="font-size:8px;color:#4caf50;margin-top:3px;font-weight:500">profile score</div>
+        </div>
+      </div>
+      <!-- 4 equal-height CTA cards -->
+      <div style="background:#161616;border:1px solid #222;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#1a0a00;border:1px solid rgba(232,96,10,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <span style="font-size:10px;font-weight:700;color:#e8600a">1</span>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;color:#f0f0f0;margin-bottom:3px;line-height:1.3">What Hawksyn Read From Your CV</div>
+          <div style="font-size:9px;color:#888;line-height:1.4">Career arc · evidence depth · your gaps</div>
+        </div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div style="background:#161616;border:1px solid #222;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#081408;border:1px solid rgba(76,175,80,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <span style="font-size:10px;font-weight:700;color:#4caf50">2</span>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;color:#f0f0f0;margin-bottom:3px;line-height:1.3">How We Know This</div>
+          <div style="font-size:9px;color:#888;line-height:1.4">The proof behind every signal</div>
+        </div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div style="background:#060c18;border:1px solid rgba(74,158,255,.4);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#4a9eff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 8px rgba(74,158,255,.4)">
+          <span style="font-size:10px;font-weight:700;color:#fff">3</span>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;color:#f0f0f0;margin-bottom:3px;line-height:1.3">Your Career Signals Discovered</div>
+          <div style="font-size:9px;color:#4a9eff;line-height:1.4">Every archetype that fired in your scan</div>
+        </div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4a9eff" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div style="background:#161616;border:1px solid #222;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#1a1000;border:1px solid rgba(240,160,48,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <span style="font-size:10px;font-weight:700;color:#f0a030">4</span>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;color:#f0f0f0;margin-bottom:3px;line-height:1.3">Third-Party View</div>
+          <div style="font-size:9px;color:#888;line-height:1.4">What someone else sees when you share your CV</div>
+        </div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <!-- Footer -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:5px;margin-top:2px">
+        <div style="width:4px;height:4px;border-radius:50%;background:#252525"></div>
+        <div style="font-size:8px;color:#333">Scan completed Jun 2026 · 330 archetypes evaluated</div>
+      </div>
+    </div>
+    <div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div>
+    </div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-e">No 3-card home</div><div class="at">The 3 green done-cards are gone. Home IS the Who I Am hub from this point. Same screen structure as Journey 3 entry — but this is the permanent state for a returning user.</div></div></div><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-h">Card 3 highlight</div><div class="at">CTA 3 "Your Career Signals Discovered" — badge fills solid blue with white number. This is the next section the user will naturally explore. Not pre-selected — user taps freely.</div></div></div></div>
+  </div>
+</div>
+<div class="slide">
+  <div class="sn">J4-S06</div><div class="st">Slide-in menu — full 9-item menu, Upload CV highlighted with ₹99 badge</div>
+  <span class="sg tr">Menu open</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-e">Menu structure</div><div class="at">9 items in 3 groups. Group 1 (amber): Upload CV · Share My HIP · Download. Group 2 (off-white): My Account · Settings. Group 3 (dim off-white): Helpdesk · Suggestion Box · Rate This App. Logout alone at bottom in red. No grey text anywhere.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div><div class="an anl"><div><div class="atag atag-m">Upload CV highlighted</div><div class="at">Upload CV has amber left border + active background + ₹99 IAP badge. It is the action this menu exists to serve in Journey 4. All other items normal weight, no special highlight.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:620px"><div class="cam"></div>
+<div style="flex:1;display:flex;position:relative;overflow:hidden">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.6)"></div>
+  <div style="position:absolute;left:0;top:0;bottom:0;width:76%;background:#111;border-right:1px solid #1e1e1e;display:flex;flex-direction:column;padding:0;overflow-y:auto">
+    <div style="padding:16px 16px 12px;border-bottom:1px solid #1a1a1a">
+      <div style="width:32px;height:32px;border-radius:50%;background:#1a0e00;border:1.5px solid rgba(232,96,10,.4);display:flex;align-items:center;justify-content:center;margin-bottom:8px">
+        <span style="font-size:11px;font-weight:700;color:#e8600a">PS</span>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:#f0f0f0;line-height:1.3">Pranjal Sarkar</div>
+      <div style="font-size:9px;font-weight:400;color:#b0b0b0;margin-top:2px">pranjal@gmail.com</div>
+    </div>
+    <div style="padding:6px 0">
+      <!-- GROUP 1: Primary actions — amber -->
+      <div style="padding:10px 16px;display:flex;align-items:center;gap:10px;border-left:2px solid #e8600a;background:rgba(232,96,10,.05)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div style="flex:1"><div style="font-size:11px;font-weight:600;color:#e8600a">Upload CV</div></div>
+        <div style="background:#1a0a00;border:1px solid rgba(232,96,10,.3);border-radius:4px;padding:2px 6px"><span style="font-size:7px;font-weight:700;color:#e8600a">&#8377;99</span></div>
+      </div>
+      <div style="padding:10px 16px;display:flex;align-items:center;gap:10px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        <div style="font-size:11px;font-weight:500;color:#e8600a">Share My HIP</div>
+      </div>
+      <div style="padding:10px 16px;display:flex;align-items:center;gap:10px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <div style="flex:1;font-size:11px;font-weight:500;color:#e8600a">Download</div>
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <!-- Download submenu -->
+      <div style="margin:0 0 0 24px;border-left:1px solid #2a2a2a;padding:0 0 4px 0">
+        <div style="padding:6px 12px;font-size:9px;color:#c8c8c8">Full Profile Discovery Report</div>
+        <div style="height:0.5px;background:#1e1e1e;margin:0 8px"></div>
+        <div style="padding:6px 12px;font-size:9px;color:#c8c8c8">Hawksyn Intelligence Profile (HIP)</div>
+      </div>
+      <div style="height:1px;background:#1e1e1e;margin:4px 14px"></div>
+      <!-- GROUP 2: Account — off-white -->
+      <div style="padding:10px 16px;display:flex;align-items:center;gap:10px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e8f0e8" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <div style="font-size:11px;font-weight:400;color:#f0f0f0">My Account</div>
+      </div>
+      <div style="padding:10px 16px;display:flex;align-items:center;gap:10px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e8f0e8" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <div style="font-size:11px;font-weight:400;color:#f0f0f0">Settings</div>
+      </div>
+      <div style="height:1px;background:#1e1e1e;margin:4px 14px"></div>
+      <!-- GROUP 3: Support — dim off-white -->
+      <div style="padding:10px 16px;display:flex;align-items:center;gap:10px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c8c8c8" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div style="font-size:11px;font-weight:400;color:#c8c8c8">Helpdesk</div>
+      </div>
+      <div style="padding:10px 16px;display:flex;align-items:center;gap:10px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c8c8c8" stroke-width="1.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <div style="font-size:11px;font-weight:400;color:#c8c8c8">Suggestion Box</div>
+      </div>
+      <div style="padding:10px 16px;display:flex;align-items:center;gap:10px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c8c8c8" stroke-width="1.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <div style="font-size:11px;font-weight:400;color:#c8c8c8">Rate This App</div>
+      </div>
+      <div style="height:1px;background:#1e1e1e;margin:4px 14px"></div>
+      <!-- LOGOUT — red -->
+      <div style="padding:10px 16px;display:flex;align-items:center;gap:10px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="1.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <div style="font-size:11px;font-weight:600;color:#e05050">Logout</div>
+      </div>
+    </div>
+  </div>
+</div><div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div></div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-h">Colour rule</div><div class="at">No grey text in the drawer. Amber = Upload CV, Share My HIP, Download (primary actions). Off-white #f0f0f0 = My Account, Settings. Dim off-white #c8c8c8 = Helpdesk, Suggestion Box, Rate This App. Red = Logout.</div></div></div><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-e">Dismiss</div><div class="at">Tap dark overlay (right 24%) → closes menu, returns to home. Swipe left also closes.</div></div></div></div>
+  </div>
+</div><div class="slide">
+  <div class="sn">J4-S07</div><div class="st">Warning — destructive action, lists 3 deletions, two CTAs</div>
+  <span class="sg tr">Warning</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-e">Red treatment</div><div class="at">Red card with warning triangle icon. Title: "This replaces your current scan". Body explains the consequence plainly.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div><div class="an anl"><div><div class="atag atag-m">Lists deletions</div><div class="at">Three explicit bullet points of what gets deleted. No ambiguity. User cannot say they were not told.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:640px"><div class="cam"></div><div class="back-bar"><div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div style="font-size:13px;font-weight:600;color:#f0f0f0">Upload CV</div></div><div style="width:18px"></div></div>
+<div class="scr" style="gap:14px;padding-top:16px">
+  <div style="background:#180808;border:1px solid rgba(224,80,80,.3);border-radius:16px;padding:18px 16px;text-align:center">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="1.5" stroke-linecap="round" style="margin-bottom:12px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <div style="font-size:15px;font-weight:700;color:#e05050;margin-bottom:8px">This replaces your current scan</div>
+    <div style="font-size:10px;font-weight:400;color:#888;line-height:1.65">Uploading a new CV deletes all existing career signals and rebuilds Skill Clocks and HIP from scratch.</div>
+  </div>
+  <div style="background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:14px 16px">
+    <div style="font-size:9px;font-weight:700;color:#e8600a;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">What gets deleted</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#e05050" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        <div style="font-size:10px;color:#888">14 career signals from your current scan</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#e05050" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        <div style="font-size:10px;color:#888">Skill Clock values will reset and recalculate</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#e05050" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        <div style="font-size:10px;color:#888">HIP will be rebuilt from the new scan</div>
+      </div>
+    </div>
+  </div>
+  <div style="background:#e8600a;border-radius:14px;padding:15px;text-align:center;box-shadow:0 4px 20px rgba(232,96,10,.3)"><span style="font-size:13px;font-weight:700;color:#fff">I understand — continue →</span></div>
+  <div style="background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:14px;text-align:center"><span style="font-size:13px;font-weight:600;color:#f0f0f0">Cancel</span></div>
+</div><div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div></div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-h">Two choices</div><div class="at">Continue or Cancel. Continue → J4-S08 consent. Cancel → back to J4-S05 home. Cancel is secondary (grey) — not buried but not dominant.</div></div></div><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-e">Tone</div><div class="at">Direct, not threatening. "What gets deleted" not "WARNING: PERMANENT DELETION". Adult language for an adult audience.</div></div></div></div>
+  </div>
+</div><div class="slide">
+  <div class="sn">J4-S08</div><div class="st">Consent — all 3 unchecked, button disabled</div>
+  <span class="sg tr">Consent · 0/3</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-e">Start state</div><div class="at">All 3 checkboxes unchecked. Button disabled and greyed. Price shown in amber box below checkboxes — ₹99 visible before payment.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div><div class="an anl"><div><div class="atag atag-m">DPDP compliance</div><div class="at">All 3 are active opt-ins. Pre-checked boxes do not count as consent under DPDP. User must deliberately tick each one.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:620px"><div class="cam"></div><div class="back-bar"><div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div style="font-size:13px;font-weight:600;color:#f0f0f0">Confirm Re-upload</div></div><div style="width:18px"></div></div>
+<div class="scr" style="gap:14px;padding-top:16px">
+  <div>
+    <div style="font-size:20px;font-weight:800;color:#f0f0f0;line-height:1.2;margin-bottom:5px">Confirm your intent</div>
+    <div style="font-size:10px;font-weight:400;color:#555;line-height:1.6">All three must be checked before you can proceed.</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:flex-start;gap:10px"><div style="padding-top:1px"><div style="width:20px;height:20px;border:1.5px solid #2a2a2a;border-radius:6px;background:#111;flex-shrink:0"></div></div><div style="font-size:10px;font-weight:400;color:#888;line-height:1.6">I understand this will delete my current scan and rebuild everything from scratch.</div></div>
+    <div style="display:flex;align-items:flex-start;gap:10px"><div style="padding-top:1px"><div style="width:20px;height:20px;border:1.5px solid #2a2a2a;border-radius:6px;background:#111;flex-shrink:0"></div></div><div style="font-size:10px;font-weight:400;color:#888;line-height:1.6">I consent to Hawksyn reading my new CV. It will not be used to train public AI models.</div></div>
+    <div style="display:flex;align-items:flex-start;gap:10px"><div style="padding-top:1px"><div style="width:20px;height:20px;border:1.5px solid #2a2a2a;border-radius:6px;background:#111;flex-shrink:0"></div></div><div style="font-size:10px;font-weight:400;color:#888;line-height:1.6">I accept the re-upload fee of &#8377;99 as a one-time in-app purchase.</div></div>
+  </div>
+  <div style="background:#0e0a00;border:1px solid rgba(232,96,10,.2);border-radius:12px;padding:11px 14px">
+    <div style="font-size:9px;font-weight:700;color:#e8600a;margin-bottom:3px">In-App Purchase · &#8377;99</div>
+    <div style="font-size:9px;font-weight:400;color:#555">One-time charge · Billed via App Store or Play Store</div>
+  </div>
+  <div style="background:#111;border:1px solid #1a1a1a;border-radius:14px;padding:15px;text-align:center;opacity:.4"><span style="font-size:13px;font-weight:700;color:#333">Proceed to payment →</span></div>
+</div><div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div></div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-h">Button state</div><div class="at">Button only activates when all 3 are checked. Checked 1 of 3 = still disabled. Checked 2 of 3 = still disabled.</div></div></div><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-e">Price transparency</div><div class="at">₹99 shown here — third time user sees the price (first: menu badge, second: checkbox 3, third: IAP box). No surprise.</div></div></div></div>
+  </div>
+</div><div class="slide">
+  <div class="sn">J4-S09</div><div class="st">Consent — 2 of 3 checked, button still disabled</div>
+  <span class="sg tr">Consent · 2/3</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-h">Two ticked</div><div class="at">Checkboxes 1 and 2 amber. Checkbox 3 (fee acceptance) still empty. Button still disabled.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:620px"><div class="cam"></div><div class="back-bar"><div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div style="font-size:13px;font-weight:600;color:#f0f0f0">Confirm Re-upload</div></div><div style="width:18px"></div></div>
+<div class="scr" style="gap:14px;padding-top:16px">
+  <div>
+    <div style="font-size:20px;font-weight:800;color:#f0f0f0;line-height:1.2;margin-bottom:5px">Confirm your intent</div>
+    <div style="font-size:10px;font-weight:400;color:#555;line-height:1.6">All three must be checked before you can proceed.</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:flex-start;gap:10px"><div style="padding-top:1px"><div style="width:20px;height:20px;border:1.5px solid #e8600a;border-radius:6px;background:#1a0a00;flex-shrink:0;display:flex;align-items:center;justify-content:center"><svg width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 5,9 11,1" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div><div style="font-size:10px;font-weight:400;color:#888;line-height:1.6">I understand this will delete my current scan and rebuild everything from scratch.</div></div>
+    <div style="display:flex;align-items:flex-start;gap:10px"><div style="padding-top:1px"><div style="width:20px;height:20px;border:1.5px solid #e8600a;border-radius:6px;background:#1a0a00;flex-shrink:0;display:flex;align-items:center;justify-content:center"><svg width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 5,9 11,1" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div><div style="font-size:10px;font-weight:400;color:#888;line-height:1.6">I consent to Hawksyn reading my new CV. It will not be used to train public AI models.</div></div>
+    <div style="display:flex;align-items:flex-start;gap:10px"><div style="padding-top:1px"><div style="width:20px;height:20px;border:1.5px solid #2a2a2a;border-radius:6px;background:#111;flex-shrink:0"></div></div><div style="font-size:10px;font-weight:400;color:#888;line-height:1.6">I accept the re-upload fee of &#8377;99 as a one-time in-app purchase.</div></div>
+  </div>
+  <div style="background:#0e0a00;border:1px solid rgba(232,96,10,.2);border-radius:12px;padding:11px 14px">
+    <div style="font-size:9px;font-weight:700;color:#e8600a;margin-bottom:3px">In-App Purchase · &#8377;99</div>
+    <div style="font-size:9px;font-weight:400;color:#555">One-time charge · Billed via App Store or Play Store</div>
+  </div>
+  <div style="background:#111;border:1px solid #1a1a1a;border-radius:14px;padding:15px;text-align:center;opacity:.4"><span style="font-size:13px;font-weight:700;color:#333">Proceed to payment →</span></div>
+</div><div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div></div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-m">Why show this</div><div class="at">This state proves to Xentrix: button must not activate until ALL 3 are checked — not 2 of 3. Explicit screen makes the rule unambiguous.</div></div></div></div>
+  </div>
+</div><div class="slide">
+  <div class="sn">J4-S10</div><div class="st">Consent — all 3 checked, button now active</div>
+  <span class="sg tr">Consent · 3/3</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-h">All checked</div><div class="at">All 3 amber. Button activates: "Proceed to payment →" — full amber, box shadow. Tap → J4-S11 payment screen.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:620px"><div class="cam"></div><div class="back-bar"><div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div style="font-size:13px;font-weight:600;color:#f0f0f0">Confirm Re-upload</div></div><div style="width:18px"></div></div>
+<div class="scr" style="gap:14px;padding-top:16px">
+  <div>
+    <div style="font-size:20px;font-weight:800;color:#f0f0f0;line-height:1.2;margin-bottom:5px">Confirm your intent</div>
+    <div style="font-size:10px;font-weight:400;color:#555;line-height:1.6">All three must be checked before you can proceed.</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:flex-start;gap:10px"><div style="padding-top:1px"><div style="width:20px;height:20px;border:1.5px solid #e8600a;border-radius:6px;background:#1a0a00;flex-shrink:0;display:flex;align-items:center;justify-content:center"><svg width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 5,9 11,1" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div><div style="font-size:10px;font-weight:400;color:#888;line-height:1.6">I understand this will delete my current scan and rebuild everything from scratch.</div></div>
+    <div style="display:flex;align-items:flex-start;gap:10px"><div style="padding-top:1px"><div style="width:20px;height:20px;border:1.5px solid #e8600a;border-radius:6px;background:#1a0a00;flex-shrink:0;display:flex;align-items:center;justify-content:center"><svg width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 5,9 11,1" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div><div style="font-size:10px;font-weight:400;color:#888;line-height:1.6">I consent to Hawksyn reading my new CV. It will not be used to train public AI models.</div></div>
+    <div style="display:flex;align-items:flex-start;gap:10px"><div style="padding-top:1px"><div style="width:20px;height:20px;border:1.5px solid #e8600a;border-radius:6px;background:#1a0a00;flex-shrink:0;display:flex;align-items:center;justify-content:center"><svg width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 5,9 11,1" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div><div style="font-size:10px;font-weight:400;color:#888;line-height:1.6">I accept the re-upload fee of &#8377;99 as a one-time in-app purchase.</div></div>
+  </div>
+  <div style="background:#0e0a00;border:1px solid rgba(232,96,10,.2);border-radius:12px;padding:11px 14px">
+    <div style="font-size:9px;font-weight:700;color:#e8600a;margin-bottom:3px">In-App Purchase · &#8377;99</div>
+    <div style="font-size:9px;font-weight:400;color:#555">One-time charge · Billed via App Store or Play Store</div>
+  </div>
+  <div style="background:#e8600a;border-radius:14px;padding:15px;text-align:center;box-shadow:0 4px 20px rgba(232,96,10,.3)"><span style="font-size:13px;font-weight:700;color:#fff">Proceed to payment →</span></div>
+</div><div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div></div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-e">Consent recorded</div><div class="at">At this moment all 3 consents are logged server-side: timestamp, user ID, session ID. DPDP compliant record.</div></div></div></div>
+  </div>
+</div><div class="slide">
+  <div class="sn">J4-S11</div><div class="st">Payment — UPI pre-selected, ₹99 summary, three methods</div>
+  <span class="sg tr">Payment</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-e">Price twice</div><div class="at">₹99 shown in summary card (large amber) and in button "Pay ₹99 →". No ambiguity about what is being charged.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div><div class="an anl"><div><div class="atag atag-m">UPI pre-selected</div><div class="at">UPI pre-selected with amber border — most likely method for Indian users. Card and net banking below, greyed, selectable.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:680px"><div class="cam"></div><div class="back-bar"><div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div style="font-size:13px;font-weight:600;color:#f0f0f0">Payment</div></div><div style="width:18px"></div></div>
+<div class="scr" style="gap:12px;padding-top:16px">
+  <div>
+    <div style="font-size:20px;font-weight:800;color:#f0f0f0;line-height:1.2;margin-bottom:4px">Complete payment</div>
+    <div style="font-size:10px;font-weight:400;color:#555;line-height:1.6">Secure · Billed via your app store account</div>
+  </div>
+  <div style="background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:600;color:#f0f0f0">CV Re-upload</div>
+      <div style="font-size:20px;font-weight:800;color:#e8600a">&#8377;99</div>
+    </div>
+    <div style="height:1px;background:#222;margin-bottom:10px"></div>
+    <div style="font-size:9px;font-weight:400;color:#444;line-height:1.5">Full scan · 330 patterns · Fresh signals · Updated Skill Clocks · Rebuilt HIP</div>
+  </div>
+  <div style="background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:14px 16px">
+    <div style="font-size:9px;font-weight:700;color:#e8600a;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Pay via</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="background:#111;border:1.5px solid #e8600a;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#e8600a;flex-shrink:0"></div>
+        <div style="font-size:11px;font-weight:600;color:#f0f0f0">UPI · PhonePe / GPay / Paytm</div>
+      </div>
+      <div style="background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#1e1e1e;border:1px solid #2a2a2a;flex-shrink:0"></div>
+        <div style="font-size:11px;font-weight:400;color:#444">Credit / Debit Card</div>
+      </div>
+      <div style="background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#1e1e1e;border:1px solid #2a2a2a;flex-shrink:0"></div>
+        <div style="font-size:11px;font-weight:400;color:#444">Net Banking</div>
+      </div>
+    </div>
+  </div>
+  <div style="background:#e8600a;border-radius:14px;padding:15px;text-align:center;box-shadow:0 4px 20px rgba(232,96,10,.3)"><span style="font-size:13px;font-weight:700;color:#fff">Pay &#8377;99 →</span></div>
+</div><div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div></div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-h">What you get</div><div class="at">Summary card lists: Full scan · 330 patterns · Fresh signals · Updated Skill Clocks · Rebuilt HIP. Value is explicit.</div></div></div><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-e">Tap Pay →</div><div class="at">→ J4-S12 payment processing. Back → J4-S10 consent. User can go back and change nothing has been charged yet.</div></div></div></div>
+  </div>
+</div><div class="slide">
+  <div class="sn">J4-S12</div><div class="st">Payment processing — spinner, ₹99 ring, do not close</div>
+  <span class="sg tr">Processing</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-m">Processing state</div><div class="at">Spinner ring with ₹99 inside. "Processing payment... Do not close the app." Button disabled. Summary strip at bottom confirms what is being charged.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div><div class="an anl"><div><div class="atag atag-e">Cannot go back</div><div class="at">Back button present but tapping shows modal: "Payment is processing. Please wait." User cannot abandon mid-transaction.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:560px"><div class="cam"></div><div class="back-bar"><div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div style="font-size:13px;font-weight:600;color:#f0f0f0">Payment</div></div><div style="width:18px"></div></div>
+<div class="scr" style="gap:14px;padding-top:16px">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px 0">
+    <div style="width:72px;height:72px;border-radius:50%;border:3px solid #1a1a1a;border-top:3px solid #e8600a;display:flex;align-items:center;justify-content:center">
+      <div style="font-size:13px;font-weight:700;color:#e8600a">&#8377;99</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:15px;font-weight:700;color:#f0f0f0;margin-bottom:4px">Processing payment...</div>
+      <div style="font-size:10px;font-weight:400;color:#555">Do not close the app</div>
+    </div>
+  </div>
+  <div style="background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:10px;font-weight:400;color:#555">CV Re-upload via UPI</div>
+    <div style="font-size:12px;font-weight:700;color:#e8600a">&#8377;99</div>
+  </div>
+  <div style="background:#111;border:1px solid #1a1a1a;border-radius:14px;padding:15px;text-align:center;opacity:.4"><span style="font-size:13px;font-weight:700;color:#333">Processing...</span></div>
+</div><div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div></div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-h">Two outcomes</div><div class="at">Success → J4-S14 payment confirmed. Failure → J4-S13 payment failed. Backend determines which.</div></div></div></div>
+  </div>
+</div><div class="slide">
+  <div class="sn">J4-S13</div><div class="st">Payment failed — red X, nothing charged, retry or cancel</div>
+  <span class="sg tr">Payment failed</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-e">Failure state</div><div class="at">Red X circle. "Payment failed." Clear statement: "Nothing was charged." Two options: retry or cancel.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div><div class="an anl"><div><div class="atag atag-m">Reason given</div><div class="at">Explanation card: network issue / UPI timeout / bank decline. User knows it is not their fault. Account not charged — stated twice.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:600px"><div class="cam"></div><div class="back-bar"><div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div style="font-size:13px;font-weight:600;color:#f0f0f0">Payment</div></div><div style="width:18px"></div></div>
+<div class="scr" style="gap:14px;padding-top:16px">
+  <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:16px 0 8px;gap:12px">
+    <div style="width:64px;height:64px;border-radius:50%;background:#180808;border:2px solid rgba(224,80,80,.3);display:flex;align-items:center;justify-content:center">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </div>
+    <div>
+      <div style="font-size:16px;font-weight:700;color:#f0f0f0;margin-bottom:5px">Payment failed</div>
+      <div style="font-size:10px;font-weight:400;color:#aaaaaa;line-height:1.65">Your payment could not be processed. Nothing was charged.</div>
+    </div>
+  </div>
+  <div style="background:#180808;border:1px solid rgba(224,80,80,.2);border-radius:12px;padding:12px 16px">
+    <div style="font-size:9px;font-weight:400;color:#555;line-height:1.5">This can happen due to a network issue, UPI timeout, or bank decline. Your account has not been charged.</div>
+  </div>
+  <div style="background:#e8600a;border-radius:14px;padding:15px;text-align:center;box-shadow:0 4px 20px rgba(232,96,10,.3)"><span style="font-size:13px;font-weight:700;color:#fff">Try again →</span></div>
+  <div style="background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:14px;text-align:center"><span style="font-size:13px;font-weight:600;color:#f0f0f0">Cancel</span></div>
+</div><div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div></div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-h">Try again</div><div class="at">→ J4-S11 payment screen, UPI still selected. User does not need to re-select method.</div></div></div><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-e">Cancel</div><div class="at">→ J4-S10 consent screen. User can choose a different payment method or walk away entirely. Nothing was charged.</div></div></div></div>
+  </div>
+</div><div class="slide">
+  <div class="sn">J4-S14</div><div class="st">Payment confirmed — green tick, ₹99 charged, transaction ID</div>
+  <span class="sg tk">Payment confirmed</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-h">Success state</div><div class="at">Green tick circle. "Payment confirmed · ₹99 charged via UPI." Green receipt card with transaction ID. CTA: "Upload my new CV →"</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div><div class="an anl"><div><div class="atag atag-m">Transaction ID</div><div class="at">Reference number shown — user has a record of the payment. Essential for any dispute resolution.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:580px"><div class="cam"></div><div class="back-bar"><div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div style="font-size:13px;font-weight:600;color:#f0f0f0">Payment</div></div><div style="width:18px"></div></div>
+<div class="scr" style="gap:14px;padding-top:16px">
+  <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:16px 0 8px;gap:12px">
+    <div style="width:64px;height:64px;border-radius:50%;background:#081408;border:2px solid rgba(76,175,80,.4);display:flex;align-items:center;justify-content:center">
+      <svg width="26" height="22" viewBox="0 0 26 22"><polyline points="2,11 9,19 24,2" fill="none" stroke="#4caf50" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div>
+      <div style="font-size:16px;font-weight:700;color:#f0f0f0;margin-bottom:5px">Payment confirmed</div>
+      <div style="font-size:10px;font-weight:400;color:#aaaaaa;line-height:1.65">&#8377;99 charged via UPI</div>
+    </div>
+  </div>
+  <div style="background:#081408;border:1px solid rgba(76,175,80,.2);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:10px;font-weight:400;color:#555">CV Re-upload</div>
+      <div style="font-size:12px;font-weight:700;color:#4caf50">&#8377;99 ✓</div>
+    </div>
+    <div style="height:1px;background:#0d1a0d"></div>
+    <div style="font-size:9px;font-weight:400;color:#2a5a2a">Transaction ID · UPI · {ref: UPI24061700001}</div>
+  </div>
+  <div style="background:#e8600a;border-radius:14px;padding:15px;text-align:center;box-shadow:0 4px 20px rgba(232,96,10,.3)"><span style="font-size:13px;font-weight:700;color:#fff">Upload my new CV →</span></div>
+</div><div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div></div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-e">Auto-push option</div><div class="at">Screen shows for 1.5s then auto-pushes to J4-S15. Or user taps the button. Either way, same destination.</div></div></div><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-h">From here</div><div class="at">→ J4-S15 CV upload with payment confirmed badge.</div></div></div></div>
+  </div>
+</div><div class="slide">
+  <div class="sn">J4-S15</div><div class="st">CV upload post-payment — payment badge, consent pre-ticked, amber zone</div>
+  <span class="sg tr">Upload ready</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-e">Post-payment context</div><div class="at">Payment confirmed green badge at top. Upload zone now has amber dashed border + amber icon (consent pre-ticked from earlier acceptance).</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div><div class="an anl"><div><div class="atag atag-m">Consent pre-ticked</div><div class="at">User already accepted CV reading consent in the consent screen (checkbox 2). It is pre-checked here. Still visible — not hidden.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:600px"><div class="cam"></div><div class="back-bar"><div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div style="font-size:13px;font-weight:600;color:#f0f0f0">Upload New CV</div></div><div style="width:18px"></div></div>
+<div class="scr" style="gap:12px;padding-top:16px">
+  <div>
+    <div style="font-size:20px;font-weight:800;color:#f0f0f0;line-height:1.25;margin-bottom:5px">Upload your new CV</div>
+    <div style="font-size:10px;font-weight:400;color:#aaaaaa;line-height:1.65">Previous scan cleared. Upload to start fresh.</div>
+  </div>
+  <div style="background:#081408;border:1px solid rgba(76,175,80,.2);border-radius:10px;padding:9px 14px;display:flex;align-items:center;gap:8px">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#4caf50" stroke-width="1.5"><polyline points="3,8 6,12 13,4"/></svg>
+    <div style="font-size:9px;font-weight:600;color:#4caf50">Payment confirmed · &#8377;99 charged</div>
+  </div>
+  <div style="background:#111;border:1.5px dashed rgba(232,96,10,.35);border-radius:16px;padding:28px 16px;text-align:center">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5" stroke-linecap="round" style="margin-bottom:12px;opacity:.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <div style="font-size:12px;font-weight:600;color:#aaaaaa;margin-bottom:4px">Tap to upload your new CV</div>
+    <div style="font-size:9px;font-weight:400;color:#555">PDF only · Max 5MB</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:flex-start">
+    <div style="width:20px;height:20px;border:1.5px solid #e8600a;border-radius:6px;background:#1a0a00;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center"><svg width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 5,9 11,1" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div style="font-size:10px;font-weight:400;color:#888;line-height:1.6">I consent to Hawksyn reading my CV. Not used for AI training.</div>
+  </div>
+  <div style="background:#e8600a;border-radius:14px;padding:15px;text-align:center;box-shadow:0 4px 20px rgba(232,96,10,.3)"><span style="font-size:13px;font-weight:700;color:#fff">Start new scan →</span></div>
+  <div style="text-align:center"><span style="font-size:9px;color:#2a2a2a">Previous scan permanently deleted</span></div>
+</div><div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div></div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-h">Footer note</div><div class="at">"Previous scan permanently deleted" — sub-text confirms the deletion happened when payment confirmed. No going back.</div></div></div><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-e">From here</div><div class="at">Tap "Start new scan →" → same scan loading flow as J1-S11 through J1-S14, but labelled as "Re-scan".</div></div></div></div>
+  </div>
+</div><div class="slide">
+  <div class="sn">J4-S16</div><div class="st">Re-scan running — step 3 active, 68%, re-scan label at bottom</div>
+  <span class="sg tr">Re-scan · 3/4</span>
+  <div class="si">
+    <div class="al"><div class="an anl"><div><div class="atag atag-e">Re-scan label</div><div class="at">Small amber badge at bottom: "Re-scan · Previous data cleared · New scan in progress". User knows this is a fresh start, not a continuation.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div><div class="an anl"><div><div class="atag atag-m">Same mechanics</div><div class="at">Identical to J1 scan steps 1–4. Steps show real results from previous steps as they complete. ~45 seconds.</div></div><div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div></div></div>
+    <div class="pw"><div class="ph" style="height:580px"><div class="cam"></div><div class="back-bar"><div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div style="font-size:13px;font-weight:600;color:#f0f0f0">Re-scan</div></div><div style="width:18px"></div></div>
+<div class="scr" style="gap:12px;padding-top:14px">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px 0">
+  <div style="position:relative;width:88px;height:88px">
+    <svg width="88" height="88" viewBox="0 0 88 88" fill="none">
+      <circle cx="44" cy="44" r="36" stroke="#1a1a1a" stroke-width="4"/>
+      <circle cx="44" cy="44" r="36" stroke="#e8600a" stroke-width="4" stroke-linecap="round"
+        stroke-dasharray="226.2" stroke-dashoffset="72" transform="rotate(-90 44 44)"/>
+    </svg>
+    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+      <div style="font-size:16px;font-weight:800;color:#e8600a">68%</div>
+    </div>
+  </div>
+  <div style="text-align:center">
+    <div style="font-size:14px;font-weight:700;color:#f0f0f0;margin-bottom:4px">Reading your new CV...</div>
+    <div style="font-size:10px;font-weight:400;color:#aaaaaa">Evaluating 330 professional patterns</div>
+  </div>
+</div>
+  <div style="background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:12px 16px"><div style="display:flex;align-items:center;gap:10px;padding:6px 0"><div style="width:8px;height:8px;border-radius:50%;background:#4caf50;flex-shrink:0"></div><div style="font-size:10px;font-weight:400;color:#888;flex:1">CV parsing</div><div style="font-size:9px;font-weight:700;color:#4caf50">✓</div></div><div style="font-size:9px;color:#555;margin-top:2px;padding-left:18px">4 pages · 14 roles</div><div style="width:1px;height:8px;background:#1a1a1a;margin:2px 0 2px 3px"></div><div style="display:flex;align-items:center;gap:10px;padding:6px 0"><div style="width:8px;height:8px;border-radius:50%;background:#4caf50;flex-shrink:0"></div><div style="font-size:10px;font-weight:400;color:#888;flex:1">Building career timeline</div><div style="font-size:9px;font-weight:700;color:#4caf50">✓</div></div><div style="font-size:9px;color:#555;margin-top:2px;padding-left:18px">14 years · 5 companies</div><div style="width:1px;height:8px;background:#1a1a1a;margin:2px 0 2px 3px"></div><div style="display:flex;align-items:center;gap:10px;padding:6px 0"><div style="width:8px;height:8px;border-radius:50%;background:#e8600a;flex-shrink:0;box-shadow:0 0 8px rgba(232,96,10,.6)"></div><div style="font-size:10px;font-weight:600;color:#f0f0f0;flex:1">Reading career signals</div><div style="font-size:9px;font-weight:600;color:#e8600a">→</div></div><div style="width:1px;height:8px;background:#1a1a1a;margin:2px 0 2px 3px"></div><div style="display:flex;align-items:center;gap:10px;padding:6px 0"><div style="width:8px;height:8px;border-radius:50%;background:#1a1a1a;border:1px solid #222;flex-shrink:0"></div><div style="font-size:10px;font-weight:400;color:#2a2a2a;flex:1">Scoring decision readiness</div></div></div>
+  <div style="background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:8px">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.5"><path d="M8 2l5 2.5v4c0 3-2.5 4.5-5 5-2.5-.5-5-2-5-5v-4L8 2z"/></svg>
+    <div style="font-size:9px;font-weight:400;color:#555">Re-scan · Previous data cleared · New scan in progress</div>
+  </div>
+  <div style="text-align:center"><span style="font-size:9px;color:#252525">Takes ~45 seconds · Please wait</span></div>
+</div><div class="bnav">
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+  <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+</div></div></div>
+    <div class="ar"><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-h">After complete</div><div class="at">→ Returns to home screen. Clocks and HIP update async in the background.</div></div></div><div class="an anr"><div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div><div><div class="atag atag-e">At 68%</div><div class="at">Steps 1+2 done with results. Step 3 active. User can read two data points already.</div></div></div></div>
+  </div>
+</div>
+</body>

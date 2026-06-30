@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hawksyn — Journey 3 Section 2: How We Know This</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#080808;font-family:'Inter',sans-serif}
+.slide{width:100%;background:#080808;display:flex;align-items:flex-start;justify-content:center;padding:52px 0 60px;position:relative;border-bottom:1px solid #111}
+.sn{position:absolute;top:18px;left:22px;font-size:11px;color:#282828;font-weight:400}
+.st{position:absolute;top:18px;left:64px;font-size:11px;color:#e8600a;font-weight:600}
+.sg{position:absolute;top:16px;right:22px;font-size:9px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:.04em}
+.tn{background:#070f1a;color:#4a9eff;border:1px solid #0d2040}
+.tr{background:#1f0900;color:#e8600a;border:1px solid #3a1500}
+.tk{background:#071407;color:#4caf50;border:1px solid #0d280d}
+.si{display:flex;align-items:flex-start;justify-content:center;width:100%;max-width:1120px;padding:0 16px}
+.al{width:248px;flex-shrink:0;display:flex;flex-direction:column;gap:22px;align-items:flex-end;padding-top:64px}
+.ar{width:248px;flex-shrink:0;display:flex;flex-direction:column;gap:22px;align-items:flex-start;padding-top:64px}
+.an{display:flex;align-items:flex-start}
+.anl{flex-direction:row}.anr{flex-direction:row-reverse}
+.at{font-size:10.5px;color:#3a3a3a;line-height:1.6;max-width:172px;font-weight:400}
+.anl .at{text-align:right}.anr .at{text-align:left}
+.aln{display:flex;align-items:center;margin:0 8px;flex-shrink:0;margin-top:4px}
+.atag{display:inline-block;font-size:8px;font-weight:700;padding:2px 7px;border-radius:3px;margin-bottom:5px;letter-spacing:.05em;text-transform:uppercase}
+.atag-e{background:#1f0900;color:#e8600a;border:1px solid #3a1500}
+.atag-h{background:#071407;color:#4caf50;border:1px solid #0d280d}
+.atag-m{background:#070f1a;color:#4a9eff;border:1px solid #0d2040}
+.atag-w{background:#1a1000;color:#f0a030;border:1px solid #2a1a00}
+.pw{flex-shrink:0;padding-top:20px}
+.ph{width:285px;height:594px;background:#0c0c0c;border-radius:40px;border:1.5px solid #1e1e1e;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 1px #111,0 24px 80px rgba(0,0,0,.9),0 8px 32px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.03)}
+.cam{width:8px;height:8px;background:#141414;border-radius:50%;margin:9px auto 0;flex-shrink:0}
+.topbar{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0;border-bottom:1px solid #111}
+.bnav{height:56px;background:#0a0a0a;border-top:1px solid #111;display:flex;align-items:center;justify-content:space-evenly;flex-shrink:0;padding:0}
+.bni{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex:1}
+.bni-lbl{font-size:9px;color:#555;font-weight:500;text-align:center}
+.bni-lbl-a{font-size:9px;color:#e8600a;font-weight:600;text-align:center}
+.scr{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.logo-k{color:#e8600a}
+.tw{color:#f0f0f0}.tg{color:#f0f0f0}.to{color:#e8600a}.td{color:#f0f0f0}
+.tgr{color:#4caf50}.trd{color:#e05050}.tam{color:#f0a030}.tbl{color:#4a9eff}
+.f14{font-size:14px;font-weight:700;letter-spacing:-.01em}
+.f13{font-size:13px;font-weight:600}
+.f12{font-size:12px;font-weight:400;line-height:1.5}
+.f11{font-size:11px;font-weight:400;line-height:1.5}
+.f10{font-size:10px;font-weight:400;line-height:1.4}
+.f9{font-size:9px;font-weight:400}
+.f8{font-size:8px;font-weight:400}
+.card{background:#161616;border:1px solid #2e2e2e;border-radius:14px;padding:14px 16px;box-shadow:0 2px 12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.03)}
+.card-info{background:#080e20;border:1px solid rgba(74,158,255,.18);border-left:2px solid #4a9eff;border-radius:0 12px 12px 0;padding:10px 12px}
+.insight{background:#0e0a00;border:1px solid rgba(232,96,10,.2);border-left:2px solid #e8600a;border-radius:0 10px 10px 0;padding:12px 14px}
+.insight-lbl{font-size:8px;font-weight:700;color:#e8600a;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.note-box{background:#0e0e0e;border:1px solid #161616;border-radius:10px;padding:7px 10px;text-align:center}
+.cta-card{background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(0,0,0,.4)}
+.cta-card-active{background:#081408;border:1px solid rgba(76,175,80,.45);border-radius:14px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 20px rgba(76,175,80,.12),inset 0 1px 0 rgba(76,175,80,.05)}
+.cta-num{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.zone-title{font-size:10px;font-weight:700;color:#f0f0f0;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
+.zone-intro{font-size:10px;color:#f0f0f0;line-height:1.5;margin-bottom:8px;font-weight:400}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:9px;font-weight:600}
+.badge-amber{background:#1a0a00;border:1px solid rgba(232,96,10,.3);color:#e8600a}
+.badge-green{background:#081408;border:1px solid rgba(76,175,80,.25);color:#4caf50}
+.badge-red{background:#180808;border:1px solid rgba(224,80,80,.25);color:#e05050}
+.badge-grey{background:#111;border:1px solid #1e1e1e;color:#f0f0f0}
+.badge-blue{background:#070f1a;border:1px solid rgba(74,158,255,.2);color:#4a9eff}
+/* Table styles */
+.tbl-wrap{background:#0e0e0e;border:1px solid #2a2a2a;border-radius:12px;overflow:hidden}
+.tbl-hdr{background:#0d0d0d;border-bottom:1px solid #2a2a2a;padding:6px 10px;display:flex;gap:4px}
+.tbl-hdr-cell{font-size:8px;font-weight:700;color:#888;letter-spacing:.06em;text-transform:uppercase}
+.tbl-row{padding:8px 10px;border-bottom:1px solid #222;display:flex;gap:4px;align-items:center}
+.tbl-row:last-child{border-bottom:none}
+.tbl-cell{font-size:9px;color:#f0f0f0;line-height:1.3}
+.tbl-cell-tw{font-size:9px;color:#f0f0f0;font-weight:600;line-height:1.3}
+.tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:8px;font-weight:700;letter-spacing:.03em}
+.tag-teal{background:#081414;color:#4caf50;border:1px solid rgba(76,175,80,.25)}
+.tag-red{background:#180808;color:#e05050;border:1px solid rgba(224,80,80,.25)}
+.tag-amber{background:#1a0a00;color:#e8600a;border:1px solid rgba(232,96,10,.25)}
+.tag-blue{background:#070f1a;color:#4a9eff;border:1px solid rgba(74,158,255,.2)}
+.tag-grey{background:#111;color:#f0f0f0;border:1px solid #1e1e1e}
+.tag-orange{background:#1a0e00;color:#f0a030;border:1px solid rgba(240,160,48,.2)}
+/* Confidence bar */
+.conf-bar-wrap{display:flex;align-items:center;gap:4px}
+.conf-bar-track{width:28px;height:5px;background:#111;border-radius:3px;overflow:hidden}
+.conf-bar-fill{height:5px;border-radius:3px}
+/* Takeaway card */
+.tw-card{background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px}
+.tw-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+/* Section divider */
+.section-divider{width:100%;background:#080808;padding:20px 22px 0;display:flex;align-items:center;gap:12px}
+.section-div-title{font-size:10px;font-weight:700;color:#1e1e1e;letter-spacing:.1em;text-transform:uppercase}
+.section-div-line{flex:1;height:1px;background:#111}
+.journey-header{width:100%;background:#080808;padding:36px 22px 6px;display:flex;align-items:center;gap:12px}
+.journey-title{font-size:11px;font-weight:700;color:#222;letter-spacing:.14em;text-transform:uppercase}
+.journey-line{flex:1;height:1px;background:#111}
+.div{height:1px;background:#141414;margin:4px 0}
+/* Count chips */
+.count-chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.count-chip{background:#141414;border:1px solid #2a2a2a;border-radius:8px;padding:5px 10px;display:flex;flex-direction:column;align-items:center}
+</style>
+</head>
+<body>
+
+<div class="journey-header">
+  <div class="journey-title">Journey 3 · Section 2 — How We Know This</div>
+  <div class="journey-line"></div>
+  <div style="font-size:9px;color:#1e1e1e;font-weight:600;letter-spacing:.06em">8 SCREENS · S20 ENTRY + S21a–S21g</div>
+</div>
+
+
+<style>
+.nav-std{height:56px;background:#0a0a0a;border-top:1px solid #111;display:flex;align-items:center;justify-content:space-around;flex-shrink:0;padding:0 8px}
+.back-bar{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0;border-bottom:1px solid #111}
+</style>
+
+
+<div class="slide">
+<div class="sn">S20</div>
+<div class="st">Who I Am entry — CTA 2 active, user taps "How We Know This"</div>
+<span class="sg tk">Entry state</span>
+<div class="si">
+  <div class="al">
+    <div class="an anl">
+      <div>
+        <div class="atag atag-h">Active state</div>
+        <div class="at">CTA 2 in active green glow state. Each CTA section has its own colour: CTA 1 = amber, CTA 2 = green, CTA 3 = blue, CTA 4 = amber-warm. Active badge fills solid green with white number. Border brightens. Sub-text turns green. One focused tap target.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+    <div class="an anl">
+      <div>
+        <div class="atag atag-m">Transition</div>
+        <div class="at">Tap CTA 2 → push right → S21a slides in. Back chevron on S21a returns to this screen. CTAs 1, 3, 4 stay inactive. User can navigate to any section independently — sections are not sequential after activation.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+  </div>
+  <div class="pw"><div class="ph" style="height:540px;height:540px">
+    <div class="cam"></div>
+    <div class="topbar">
+      <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><line x1="0" y1="1" x2="18" y2="1" stroke="#e8600a" stroke-width="1.5" stroke-linecap="round"/><line x1="0" y1="7" x2="18" y2="7" stroke="#e8600a" stroke-width="1.5" stroke-linecap="round"/><line x1="0" y1="13" x2="18" y2="13" stroke="#e8600a" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <div class="f13 tw" style="font-weight:600">Who I Am</div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="bg2" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#2a2a2a"/><stop offset="100%" stop-color="#111"/></radialGradient></defs><rect width="24" height="24" rx="8" fill="url(#bg2)"/><path d="M12 4a6 6 0 0 1 6 6c0 5 2 7 2 7H4s2-2 2-7a6 6 0 0 1 6-6z" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><path d="M10.5 19.5a1.5 1.5 0 0 0 3 0" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><circle cx="16" cy="6" r="3" fill="#e05050"/></svg>
+    </div>
+    <div class="scr" style="padding-top:14px;gap:12px;overflow-y:auto">
+      <div style="display:flex;gap:6px">
+        <div style="flex:1;background:#111;border:1px solid #1a1a1a;border-radius:10px;padding:7px 8px;text-align:center;box-shadow:inset 0 1px 4px rgba(0,0,0,.5)"><div style="font-size:16px;font-weight:800;color:#e8600a;letter-spacing:-.02em;line-height:1;filter:drop-shadow(0 0 6px rgba(232,96,10,.35))">14</div><div class="f9 td" style="margin-top:2px">signals fired</div></div>
+        <div style="flex:1;background:#111;border:1px solid #1a1a1a;border-radius:10px;padding:7px 8px;text-align:center;box-shadow:inset 0 1px 4px rgba(0,0,0,.5)"><div style="font-size:16px;font-weight:800;color:#e05050;letter-spacing:-.02em;line-height:1;filter:drop-shadow(0 0 6px rgba(224,80,80,.3))">3</div><div class="f9 td" style="margin-top:2px">flags raised</div></div>
+        <div style="flex:1;background:#081408;border:1px solid rgba(76,175,80,.15);border-radius:10px;padding:7px 8px;text-align:center;box-shadow:inset 0 1px 4px rgba(0,0,0,.4)"><div style="font-size:16px;font-weight:800;color:#4caf50;letter-spacing:-.02em;line-height:1;filter:drop-shadow(0 0 6px rgba(76,175,80,.3))">61%</div><div class="f9 td" style="margin-top:2px">profile score</div></div>
+      </div>
+      <div class="div"></div>
+      
+      <div class="cta-card">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="cta-num" style="background:#1a0a00;border:1px solid rgba(232,96,10,.3);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center"><span style="font-size:9px;font-weight:700;color:#e8600a">1</span></div>
+          <div><div class="f12 tw" style="font-weight:600;margin-bottom:2px">What Hawksyn Read From Your CV</div><div class="f10 td">Career arc · evidence depth · your gaps</div></div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      
+      <div class="cta-card-active">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:22px;height:22px;border-radius:50%;background:#4caf50;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(76,175,80,.5);flex-shrink:0"><span style="font-size:9px;font-weight:700;color:#fff">2</span></div>
+          <div><div class="f12 tw" style="font-weight:700;margin-bottom:2px;display:flex;align-items:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1a0a00;border:1px solid rgba(232,96,10,.3);border-radius:5px;margin-right:7px;flex-shrink:0;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h10M3 8h7M3 12h5"/><polyline points="11 10 13 12 15 9"/></svg></span>How Hawksyn Read Your CV</div><div style="font-size:10px;color:#4caf50;font-weight:500">How every signal was found in your work</div></div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      
+      <div class="cta-card">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="cta-num" style="background:#070f1a;border:1px solid rgba(74,158,255,.2);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center"><span style="font-size:9px;font-weight:700;color:#4a9eff">3</span></div>
+          <div><div class="f12 tw" style="font-weight:600;margin-bottom:2px">Your Career Signals Discovered</div><div class="f10 td">Every signal and pattern found in your career</div></div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      
+      <div class="cta-card">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="cta-num" style="background:#1a1000;border:1px solid rgba(240,160,48,.2);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center"><span style="font-size:9px;font-weight:700;color:#f0a030">4</span></div>
+          <div><div class="f12 tw" style="font-weight:600;margin-bottom:2px">Third-Party View</div><div class="f10 td">What someone else sees when you share your CV</div></div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:5px;margin-top:2px"><div style="width:5px;height:5px;border-radius:50%;background:#1e1e1e"></div><div class="f9 td">Scan completed Jun 2026</div></div>
+    </div>
+    <div class="bnav">
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+    </div>
+  </div></div>
+  <div class="ar">
+    <div class="an anr">
+      <div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+      <div>
+        <div class="atag atag-h">CTA 2 active design</div>
+        <div class="at">Active bg: #081408 (dark green). Border: rgba(76,175,80,.45) green. Glow shadow: 0 2px 20px rgba(76,175,80,.12). Badge: solid #4caf50 fill with white number. Sub-text: #4caf50. Chevron: green stroke-width 2.5. CTA 1 amber inactive. CTAs 3, 4 dark inactive.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+
+<div class="section-divider"><div class="section-div-title">Section 2 · S21a</div><div class="section-div-line"></div><div style="font-size:9px;color:#1e1e1e;font-weight:600;letter-spacing:.06em">PAGE HEADER + TABLE 1 INTRO</div></div>
+<div class="slide">
+<div class="sn">S21a</div>
+<div class="st">How We Know This — page header, intro box, Table 1 count chips</div>
+<span class="sg tr">T_TR_PG_* · T_TR_INTRO · T_TR_T1_CNT_*</span>
+<div class="si">
+  <div class="al">
+    <div class="an anl">
+      <div>
+        <div class="atag atag-e">Purpose</div>
+        <div class="at">T_TR_PG_TITLE: "Evidence Trail — The Proof Behind Every Signal." T_TR_PG_SUB explains two tables. 3 header badges: facts extracted (85), patterns detected (14), "Nothing invented." Blue intro box is static — every word from Doc1 T_TR_INTRO_TXT. Non-negotiable copy.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+    <div class="an anl">
+      <div>
+        <div class="atag atag-m">Count chips</div>
+        <div class="at">5 chips above Table 1 sub-tables: Roles (5), Skills (22), Domain Terms (14), Credentials (3), Total Facts (85). All from T_TR_T1_CNT_* positions. Each chip number D from extracted_cvs. Labels S static. Sets up the user before they enter the tables.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+  </div>
+  <div class="pw"><div class="ph" style="height:480px;height:480px">
+    <div class="cam"></div>
+    <div class="back-bar">
+      <div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="f13 tw" style="font-weight:600">How Hawksyn Read Your CV</div></div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="bg2" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#2a2a2a"/><stop offset="100%" stop-color="#111"/></radialGradient></defs><rect width="24" height="24" rx="8" fill="url(#bg2)"/><path d="M12 4a6 6 0 0 1 6 6c0 5 2 7 2 7H4s2-2 2-7a6 6 0 0 1 6-6z" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><path d="M10.5 19.5a1.5 1.5 0 0 0 3 0" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><circle cx="16" cy="6" r="3" fill="#e05050"/></svg>
+    </div>
+    <div class="scr" style="padding-top:12px;gap:12px;overflow-y:auto">
+      
+      <div class="f10 td" style="line-height:1.5;margin-bottom:2px">First: what Hawksyn read from your CV. Second: what it discovered about you.</div>
+      
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        <div class="badge badge-amber"><span style="font-weight:800">85</span>&nbsp;facts extracted</div>
+        <div class="badge badge-green"><span style="font-weight:800">14</span>&nbsp;signals found</div>
+        <div class="badge badge-grey">Nothing invented</div>
+      </div>
+      
+      <div class="card-info">
+        <div style="font-size:10px;font-weight:400;color:#f0f0f0;line-height:1.6">Every number, every signal, every insight in this report comes from one of the two tables below. Nothing is generated from thin air. If Hawksyn says you are a a strategic operator — and your career history backs it up. If Hawksyn says you have 9 proven skills — the details are in your CV facts section above.</div>
+      </div>
+      
+      <div class="zone-title" style="margin-top:4px;display:flex;align-items:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1a0a00;border:1px solid rgba(232,96,10,.3);border-radius:5px;margin-right:7px;flex-shrink:0;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h10M3 8h7M3 12h5"/><polyline points="11 10 13 12 15 9"/></svg></span>What Hawksyn Read From Your CV</div>
+      <div class="zone-intro">These are the raw facts extracted from your CV. Each row is one verified fact. Fields marked "assumed" were inferred — not explicitly stated.</div>
+      
+      <div class="count-chips">
+        <div class="count-chip"><div style="font-size:14px;font-weight:800;color:#e8600a;line-height:1">5</div><div class="f8 td" style="margin-top:2px">Roles</div></div>
+        <div class="count-chip"><div style="font-size:14px;font-weight:800;color:#f0f0f0;line-height:1">22</div><div class="f8 td" style="margin-top:2px">Skills</div></div>
+        <div class="count-chip"><div style="font-size:14px;font-weight:800;color:#f0f0f0;line-height:1">14</div><div class="f8 td" style="margin-top:2px">Domain Terms</div></div>
+        <div class="count-chip"><div style="font-size:14px;font-weight:800;color:#f0f0f0;line-height:1">3</div><div class="f8 td" style="margin-top:2px">Credentials</div></div>
+        <div class="count-chip" style="background:#1a0a00;border-color:rgba(232,96,10,.2)"><div style="font-size:14px;font-weight:800;color:#e8600a;line-height:1">85</div><div class="f8 td" style="margin-top:2px">Total Facts</div></div>
+      </div>
+      </div>
+    </div>
+    <div class="bnav">
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+    </div>
+  </div></div>
+  <div class="ar">
+    <div class="an anr">
+      <div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+      <div>
+        <div class="atag atag-e">Design</div>
+        <div class="at">Blue intro box: #080e20 bg, rgba(74,158,255,.18) border, 2px solid blue left border. This is the trust anchor of the entire section — every user reads it before entering the tables. Count chips row: inline horizontal scroll if too wide. Total Facts chip: amber tinted to stand out as the sum.</div>
+      </div>
+    </div>
+    <div class="an anr">
+      <div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+      <div>
+        <div class="atag atag-w">Zero state note</div>
+        <div class="at">T_TR_T1_ROLES_ZERO: if roles[] is empty, entire Table 1 section replaced with OS_ZERO_ROLES_01 note card. Count chips not shown. Blue intro box still shows. User sees the intro + the zero state explanation.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+
+<div class="section-divider"><div class="section-div-title">Section 2 · S21b</div><div class="section-div-line"></div><div style="font-size:9px;color:#1e1e1e;font-weight:600;letter-spacing:.06em">TABLE 1 — ROLES SUB-TABLE</div></div>
+<div class="slide">
+<div class="sn">S21b</div>
+<div class="st">Table 1 — Roles from your CV (T_TR_T1_ROLES_*)</div>
+<span class="sg tr">T_TR_T1_ROLES_*</span>
+<div class="si">
+  <div class="al">
+    <div class="an anl">
+      <div>
+        <div class="atag atag-m">Columns</div>
+        <div class="at">Doc1 T_TR_T1_ROLES_HDR_*: # · Company · Title · Duration · Seniority Rank · AEUs Extracted · Location · Type. 8 columns. Mobile: condensed to most critical — Company+Title stacked, Duration, Rank tag, AEUs. Location and Type shown as secondary line inside row. Source column omitted from mobile view (internal reference only).</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+    <div class="an anl">
+      <div>
+        <div class="atag atag-h">Data per row</div>
+        <div class="at">Company: roles[i].company_canonical. Title: roles[i].title. Duration: formatted per Fix I — e.g. "5 years 3 months." Rank: OS_ROLE_RANK_04 = "Rank 4 — Leadership." AEUs: count(base_aeus where role_index=i) + " facts." Type: OS_ROLE_TYPE_01 = "Full-time." Zero state: T_TR_T1_ROLES_ZERO fires if roles[] empty.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+  </div>
+  <div class="pw"><div class="ph" style="height:740px;height:740px">
+    <div class="cam"></div>
+    <div class="back-bar">
+      <div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="f13 tw" style="font-weight:600">How Hawksyn Read Your CV</div></div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="bg2" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#2a2a2a"/><stop offset="100%" stop-color="#111"/></radialGradient></defs><rect width="24" height="24" rx="8" fill="url(#bg2)"/><path d="M12 4a6 6 0 0 1 6 6c0 5 2 7 2 7H4s2-2 2-7a6 6 0 0 1 6-6z" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><path d="M10.5 19.5a1.5 1.5 0 0 0 3 0" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><circle cx="16" cy="6" r="3" fill="#e05050"/></svg>
+    </div>
+    <div class="scr" style="padding-top:12px;gap:12px;overflow-y:auto">
+      <div class="zone-title" style="display:flex;align-items:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1a0a00;border:1px solid rgba(232,96,10,.3);border-radius:5px;margin-right:7px;flex-shrink:0;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8h6M5 5h3M5 11h4"/></svg></span>Your Work History</div>
+      
+      <div style="display:flex;flex-direction:column;gap:8px">
+
+  <!-- Role 1 -->
+  <div style="background:#141414;border:1px solid #252525;border-radius:12px;padding:12px 14px;border-left:2px solid #2a2a2a">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#f0f0f0">Analyst</div>
+        <div style="font-size:10px;color:#f0f0f0;margin-top:1px;font-weight:400">Company A</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:10px;font-weight:700;color:#e8600a">6 facts</div>
+        <div style="font-size:9px;color:#f0f0f0;margin-top:1px;font-weight:400">1y 6m</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <span style="background:#111;border:1px solid #252525;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:600;color:#f0f0f0">Early career</span>
+      <span style="background:#111;border:1px solid #252525;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:400;color:#f0f0f0">Full-time</span>
+    </div>
+  </div>
+
+  <!-- Role 2 -->
+  <div style="background:#141414;border:1px solid #252525;border-radius:12px;padding:12px 14px;border-left:2px solid #2a2a2a">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#f0f0f0">Sr. Analyst</div>
+        <div style="font-size:10px;color:#f0f0f0;margin-top:1px;font-weight:400">Company B</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:10px;font-weight:700;color:#e8600a">10 things confirmed</div>
+        <div style="font-size:9px;color:#f0f0f0;margin-top:1px;font-weight:400">2y</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <span style="background:#111;border:1px solid #252525;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:600;color:#f0f0f0">Mid-level</span>
+      <span style="background:#111;border:1px solid #252525;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:400;color:#f0f0f0">Full-time</span>
+    </div>
+  </div>
+
+  <!-- Role 3 -->
+  <div style="background:#141414;border:1px solid #252525;border-radius:12px;padding:12px 14px;border-left:2px solid #2a2a2a">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#f0f0f0">Manager</div>
+        <div style="font-size:10px;color:#f0f0f0;margin-top:1px;font-weight:400">Company C</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:10px;font-weight:700;color:#e8600a">18 things confirmed</div>
+        <div style="font-size:9px;color:#f0f0f0;margin-top:1px;font-weight:400">3y 6m</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <span style="background:#111;border:1px solid #252525;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:600;color:#f0f0f0">Senior</span>
+      <span style="background:#111;border:1px solid #252525;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:400;color:#f0f0f0">Full-time</span>
+    </div>
+  </div>
+
+  <!-- Role 4 -->
+  <div style="background:#141414;border:1px solid #252525;border-radius:12px;padding:12px 14px;border-left:2px solid #2a2a2a">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#f0f0f0">Sr. Manager</div>
+        <div style="font-size:10px;color:#f0f0f0;margin-top:1px;font-weight:400">Company D</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:10px;font-weight:700;color:#e8600a">22 things confirmed</div>
+        <div style="font-size:9px;color:#f0f0f0;margin-top:1px;font-weight:400">4y</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <span style="background:#111;border:1px solid #252525;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:600;color:#f0f0f0">Leadership</span>
+      <span style="background:#111;border:1px solid #252525;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:400;color:#f0f0f0">Full-time</span>
+    </div>
+  </div>
+
+  <!-- Role 5 — most recent, amber accent -->
+  <div style="background:#1a0a00;border:1px solid rgba(232,96,10,.3);border-radius:12px;padding:12px 14px;border-left:2px solid #e8600a">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#f0f0f0">VP Product</div>
+        <div style="font-size:10px;color:#f0f0f0;margin-top:1px;font-weight:400">Cygnet Digital · B2B SaaS · Ahmedabad</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:10px;font-weight:700;color:#e8600a">29 things confirmed</div>
+        <div style="font-size:9px;color:#f0f0f0;margin-top:1px;font-weight:400">5y 3m</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <span style="background:#111;border:1px solid rgba(232,96,10,.25);border-radius:4px;padding:2px 7px;font-size:8px;font-weight:600;color:#e8600a">Leadership · Current</span>
+      <span style="background:#111;border:1px solid #252525;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:400;color:#f0f0f0">Full-time</span>
+      <span style="background:#111;border:1px solid #252525;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:400;color:#f0f0f0">Current</span>
+    </div>
+  </div>
+
+</div>
+      
+      <div class="insight">
+        <div class="insight-lbl" style="display:flex;align-items:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1a0a00;border:1px solid rgba(76,175,80,.3);border-radius:5px;margin-right:7px;flex-shrink:0;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v4M8 11v.5"/></svg></span>What this confirms</div>
+        <div style="font-size:10px;font-weight:400;color:#f0f0f0;line-height:1.6">Hawksyn confirmed 85 things from your CV. 9 of your skills are backed by real work. 13 are listed but not found in any role. If anything looks wrong, edit your profile and rescan.</div>
+      </div>
+      </div>
+    <div style="display:flex;align-items:center;justify-content:center;padding:6px 0 2px;opacity:.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg><span style="font-size:8px;color:#e8600a;margin-left:4px;font-weight:500">scroll to see all</span></div></div>
+    <div class="bnav">
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+    </div>
+  </div></div>
+  <div class="ar">
+    <div class="an anr">
+      <div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+      <div>
+        <div class="atag atag-e">Design</div>
+        <div class="at">Table: #0e0e0e bg, #1a1a1a border, 12px radius. Header row: #0a0a0a bg. Data rows: alternating #0e0e0e. Most recent role (row 5): amber left-border accent + #120800 bg tint. Rank tags colour-coded: OS_ROLE_RANK_01-02=grey, 03=grey, 04=orange, 05=amber. AEU count amber right-aligned.</div>
+      </div>
+    </div>
+    <div class="an anr">
+      <div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+      <div>
+        <div class="atag atag-m">Mobile column strategy</div>
+        <div class="at">Doc1 defines 9 columns. Mobile cannot show all 9. Strategy: Company+Title stacked in primary column. Duration condensed ("5y 3m"). Rank tag below title. AEU count right. Location and type shown as secondary line on most recent role. Source column hidden — internal use only.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+
+<div class="section-divider"><div class="section-div-title">Section 2 · S21c</div><div class="section-div-line"></div><div style="font-size:9px;color:#1e1e1e;font-weight:600;letter-spacing:.06em">TABLE 1 — SKILLS SUB-TABLE</div></div>
+<div class="slide">
+<div class="sn">S21c</div>
+<div class="st">Table 1 — Skills from your CV (T_TR_T1_SK_*)</div>
+<span class="sg tr">T_TR_T1_SK_*</span>
+<div class="si">
+  <div class="al">
+    <div class="an anl">
+      <div>
+        <div class="atag atag-m">Columns</div>
+        <div class="at">Doc1 T_TR_T1_SK_HDR_*: # · Skill Name · Category · Found In Role Bullets · Recency · Status · Source. Mobile: Skill Name primary, Category tag, In-Role status, Recency, Status tag. "Assumed" tag shown inline when is_inferred=true. Source column hidden. Showing sample of 22 total skills — scrollable.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+    <div class="an anl">
+      <div>
+        <div class="atag atag-h">Status tags</div>
+        <div class="at">OS_SK_STATUS_01: "Proven" teal tag (appears_in_role_bullets=true). OS_SK_STATUS_02: "Claimed only" red tag (false). OS_SK_REC_01: "Current" teal. OS_SK_REC_02: "Prior" grey. OS_SK_REC_03: "Unknown" grey. OS_SK_ASSUMED_01: "assumed" amber tag when is_inferred=true. OS_SK_CAT: Functional=blue, Technical=grey, Methodology=orange, Domain=teal.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+  </div>
+  <div class="pw"><div class="ph" style="height:620px;height:620px">
+    <div class="cam"></div>
+    <div class="back-bar">
+      <div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="f13 tw" style="font-weight:600">How Hawksyn Read Your CV</div></div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="bg2" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#2a2a2a"/><stop offset="100%" stop-color="#111"/></radialGradient></defs><rect width="24" height="24" rx="8" fill="url(#bg2)"/><path d="M12 4a6 6 0 0 1 6 6c0 5 2 7 2 7H4s2-2 2-7a6 6 0 0 1 6-6z" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><path d="M10.5 19.5a1.5 1.5 0 0 0 3 0" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><circle cx="16" cy="6" r="3" fill="#e05050"/></svg>
+    </div>
+    <div class="scr" style="padding-top:12px;gap:12px;overflow-y:auto">
+      <div class="zone-title" style="display:flex;align-items:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1a0a00;border:1px solid rgba(232,96,10,.3);border-radius:5px;margin-right:7px;flex-shrink:0;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="5" r="2"/><path d="M4 14s0-4 4-4 4 4 4 4"/></svg></span>Your Skills</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+
+  <!-- Proven skills -->
+  <div style="background:#141414;border:1px solid #252525;border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#f0f0f0">Product Strategy</div>
+      <div style="font-size:9px;color:#f0f0f0;margin-top:2px;font-weight:400">Used across 3 of your roles · active skill</div>
+    </div>
+    <span style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:6px;padding:3px 8px;font-size:8px;font-weight:700;color:#4caf50;white-space:nowrap">Used in your work</span>
+  </div>
+
+  <div style="background:#141414;border:1px solid #252525;border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#f0f0f0">Stakeholder Mgmt</div>
+      <div style="font-size:9px;color:#f0f0f0;margin-top:2px;font-weight:400">Used across 4 of your roles · active skill</div>
+    </div>
+    <span style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:6px;padding:3px 8px;font-size:8px;font-weight:700;color:#4caf50;white-space:nowrap">Used in your work</span>
+  </div>
+
+  <div style="background:#141414;border:1px solid #252525;border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#f0f0f0">Node.js</div>
+      <div style="font-size:9px;color:#f0f0f0;margin-top:2px;font-weight:400">Used across 2 of your roles · active skill</div>
+    </div>
+    <span style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:6px;padding:3px 8px;font-size:8px;font-weight:700;color:#4caf50;white-space:nowrap">Used in your work</span>
+  </div>
+
+  <!-- Claimed-only skills — dimmed treatment, no red, just muted -->
+  <div style="background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;opacity:.75">
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#f0f0f0">Blockchain</div>
+      <div style="font-size:9px;color:#f0f0f0;margin-top:2px;font-weight:400">You listed this but Hawksyn found no work evidence for it</div>
+    </div>
+    <span style="background:#1a1a1a;border:1px solid #252525;border-radius:6px;padding:3px 8px;font-size:8px;font-weight:700;color:#f0f0f0;white-space:nowrap">Not found in any role</span>
+  </div>
+
+  <div style="background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;opacity:.75">
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#f0f0f0">Machine Learning</div>
+      <div style="font-size:9px;color:#f0f0f0;margin-top:2px;font-weight:400">You listed this but Hawksyn found no work evidence for it</div>
+    </div>
+    <span style="background:#1a1a1a;border:1px solid #252525;border-radius:6px;padding:3px 8px;font-size:8px;font-weight:700;color:#f0f0f0;white-space:nowrap">Not found in any role</span>
+  </div>
+
+  <div style="text-align:center;padding:6px 0">
+    <span style="font-size:9px;color:#f0f0f0;font-weight:400">Showing 5 of 22 skills · scroll to see all</span>
+  </div>
+
+</div>
+      </div>
+    </div>
+    <div class="bnav">
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+    </div>
+  </div></div>
+  <div class="ar">
+    <div class="an anr">
+      <div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+      <div>
+        <div class="atag atag-e">Design</div>
+        <div class="at">Claimed-only rows: #0e0808 bg tint (very subtle red) to visually differentiate from proven rows at a glance. "assumed" amber tag appears inline beside skill name when is_inferred=true. Proven rows: default #0e0e0e. Scroll indicator at bottom: "Showing 5 of 22." Table scrollable within phone container.</div>
+      </div>
+    </div>
+    <div class="an anr">
+      <div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+      <div>
+        <div class="atag atag-w">In-role format</div>
+        <div class="at">OS_SK_INROLE_01: "✓ Yes — 1 role" · OS_SK_INROLE_02: "✓ Yes — {N} roles" · OS_SK_INROLE_03: "✗ Not in any role." Teal for yes, red for no. This single column is the most important column in the skills table — it is the proof column.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+
+<div class="section-divider"><div class="section-div-title">Section 2 · S21d</div><div class="section-div-line"></div><div style="font-size:9px;color:#1e1e1e;font-weight:600;letter-spacing:.06em">TABLE 1 — CREDENTIALS SUB-TABLE</div></div>
+<div class="slide">
+<div class="sn">S21d</div>
+<div class="st">Table 1 — Credentials from your CV (T_TR_T1_CR_*)</div>
+<span class="sg tr">T_TR_T1_CR_*</span>
+<div class="si">
+  <div class="al">
+    <div class="an anl">
+      <div>
+        <div class="atag atag-m">Columns</div>
+        <div class="at">Doc1 T_TR_T1_CR_HDR_*: # · Credential Name · Category · Year · Tier · Source. Mobile: Credential Name primary, Category tag, Year, Tier tag. Source hidden. 3 credentials shown for Salman's profile. Zero state fires T_TR_T1_CR_ZERO if credentials[] empty — replaced with OS_ZERO_CR_01 note.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+    <div class="an anl">
+      <div>
+        <div class="atag atag-h">Tier tags</div>
+        <div class="at">OS_CR_TIER_01: "Tier 1" teal. OS_CR_TIER_02: "Tier 1.5" teal lighter. OS_CR_TIER_03: "Tier 2" grey. OS_CR_TIER_04: "Internal" grey muted. Category tags: Education=blue, Certification=orange, Speaking=teal, Award=amber, Membership=grey, Publication=blue. Zero state: OS_ZERO_CR_01.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+  </div>
+  <div class="pw"><div class="ph" style="height:440px;height:440px">
+    <div class="cam"></div>
+    <div class="back-bar">
+      <div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="f13 tw" style="font-weight:600">How Hawksyn Read Your CV</div></div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="bg2" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#2a2a2a"/><stop offset="100%" stop-color="#111"/></radialGradient></defs><rect width="24" height="24" rx="8" fill="url(#bg2)"/><path d="M12 4a6 6 0 0 1 6 6c0 5 2 7 2 7H4s2-2 2-7a6 6 0 0 1 6-6z" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><path d="M10.5 19.5a1.5 1.5 0 0 0 3 0" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><circle cx="16" cy="6" r="3" fill="#e05050"/></svg>
+    </div>
+    <div class="scr" style="padding-top:12px;gap:12px;overflow-y:auto">
+      <div class="zone-title" style="display:flex;align-items:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1a0a00;border:1px solid rgba(232,96,10,.3);border-radius:5px;margin-right:7px;flex-shrink:0;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.5 3.5H14l-3.5 2.5 1.3 3.5L8 9.5l-3.8 2 1.3-3.5L2 5.5h4.5z"/></svg></span>Education & Certifications</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+
+  <div style="background:#141414;border:1px solid #252525;border-radius:12px;padding:11px 14px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#f0f0f0">MCA</div>
+      <div style="font-size:9px;color:#f0f0f0;margin-top:2px;font-weight:400">SMU · Education · 2010</div>
+    </div>
+    <span style="background:#111;border:1px solid #252525;border-radius:6px;padding:3px 8px;font-size:8px;font-weight:600;color:#f0f0f0">Recognised credential</span>
+  </div>
+
+  <div style="background:#141414;border:1px solid #252525;border-radius:12px;padding:11px 14px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#f0f0f0">PGDM</div>
+      <div style="font-size:9px;color:#f0f0f0;margin-top:2px;font-weight:400">NMIMS · Education · 2012</div>
+    </div>
+    <span style="background:#111;border:1px solid #252525;border-radius:6px;padding:3px 8px;font-size:8px;font-weight:600;color:#f0f0f0">Strong credential</span>
+  </div>
+
+  <div style="background:#1a0a00;border:1px solid rgba(232,96,10,.25);border-radius:12px;padding:11px 14px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#f0f0f0">AWS Solutions Architect</div>
+      <div style="font-size:9px;color:#f0f0f0;margin-top:2px;font-weight:400">Certification · 2021</div>
+    </div>
+    <span style="background:#111;border:1px solid rgba(232,96,10,.3);border-radius:6px;padding:3px 8px;font-size:8px;font-weight:700;color:#e8600a">Top-tier credential</span>
+  </div>
+
+</div>
+      
+      
+      </div>
+    </div>
+    <div class="bnav">
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+    </div>
+  </div></div>
+  <div class="ar">
+    <div class="an anr">
+      <div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+      <div>
+        <div class="atag atag-w">Zero state shown</div>
+        <div class="at">Zero state for credentials shown explicitly in wireframe below the live data table — Xentrix can see both states on one screen. This pattern is used across all sub-tables: show the live state, then show the zero state in a note box below so developer implements both without ambiguity.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+
+<div class="section-divider"><div class="section-div-title">Section 2 · S21e</div><div class="section-div-line"></div><div style="font-size:9px;color:#1e1e1e;font-weight:600;letter-spacing:.06em">TABLE 1 — CAREER GAPS + TABLE 1 INSIGHT</div></div>
+<div class="slide">
+<div class="sn">S21e</div>
+<div class="st">Table 1 — Career Gaps + Table 1 insight box</div>
+<span class="sg tr">T_TR_T1_GAP_* · T_TR_T1_INSIGHT_TXT</span>
+<div class="si">
+  <div class="al">
+    <div class="an anl">
+      <div>
+        <div class="atag atag-m">Columns</div>
+        <div class="at">Doc1 T_TR_T1_GAP_HDR_*: # · Between Roles · Gap Duration · Activity During Gap · Flag Raised · Source. Mobile: Between Roles (from→to), duration in months, activity string, flag tag. Source hidden. Salman: 1 gap detected (gapMonths > 1). Zero state fires if no qualifying gaps.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+    <div class="an anl">
+      <div>
+        <div class="atag atag-h">Gap flag tags</div>
+        <div class="at">OS_GAP_FLAG_01: "No flag" grey (gapMonths≤6). OS_GAP_FLAG_02: "Gap with activity" amber (>6mo + credential_during_gap=true). OS_GAP_FLAG_03: "Unexplained gap" red (>6mo + no credential). OS_GAP_ACT_01: "Credential acquired during gap" · OS_GAP_ACT_02: "No activity detected in CV." Computed boolean stored in gap_periods[].</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+  </div>
+  <div class="pw"><div class="ph" style="height:480px;height:480px">
+    <div class="cam"></div>
+    <div class="back-bar">
+      <div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="f13 tw" style="font-weight:600">How Hawksyn Read Your CV</div></div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="bg2" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#2a2a2a"/><stop offset="100%" stop-color="#111"/></radialGradient></defs><rect width="24" height="24" rx="8" fill="url(#bg2)"/><path d="M12 4a6 6 0 0 1 6 6c0 5 2 7 2 7H4s2-2 2-7a6 6 0 0 1 6-6z" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><path d="M10.5 19.5a1.5 1.5 0 0 0 3 0" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><circle cx="16" cy="6" r="3" fill="#e05050"/></svg>
+    </div>
+    <div class="scr" style="padding-top:12px;gap:12px;overflow-y:auto">
+      <div class="zone-title" style="display:flex;align-items:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1a0a00;border:1px solid rgba(232,96,10,.3);border-radius:5px;margin-right:7px;flex-shrink:0;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h4M10 8h4"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg></span>Gaps Between Roles</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+
+  <div style="background:#141414;border:1px solid #252525;border-radius:12px;padding:12px 14px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">
+      <div style="font-size:11px;font-weight:700;color:#f0f0f0">Manager → Sr. Manager</div>
+      <span style="background:#111;border:1px solid #252525;border-radius:6px;padding:2px 8px;font-size:8px;font-weight:600;color:#f0f0f0">4 months</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:9px;color:#f0f0f0;font-weight:400">No work recorded during this period</div>
+      <span style="background:#111;border:1px solid #252525;border-radius:6px;padding:2px 8px;font-size:8px;font-weight:400;color:#f0f0f0">Not a concern</span>
+    </div>
+  </div>
+
+</div>
+        
+        <div style="padding:6px 10px;border-top:1px solid #1a1a1a;background:#0a0a0a">
+          <div class="f9 td" style="font-style:italic"></div>
+      </div>
+      
+      <div class="insight">
+        <div class="insight-lbl" style="display:flex;align-items:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1a0a00;border:1px solid rgba(76,175,80,.3);border-radius:5px;margin-right:7px;flex-shrink:0;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v4M8 11v.5"/></svg></span>What this confirms</div>
+        <div style="font-size:10px;font-weight:400;color:#f0f0f0;line-height:1.6">Hawksyn confirmed 85 things from your CV. 9 skills are backed by real work. 13 are listed but not found in any role. No unexplained gaps. If anything looks wrong, edit your profile and rescan.</div>
+      </div>
+      </div>
+    </div>
+    <div class="bnav">
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+    </div>
+  </div></div>
+  <div class="ar">
+    <div class="an anr">
+      <div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+      <div>
+        <div class="atag atag-w">Gap flag logic</div>
+        <div class="at">Three flag states per Doc3: ≤6mo = No flag grey. >6mo + credential = Gap with activity amber. >6mo + no credential = Unexplained gap red. Salman gap = 4 months → No flag. credential_during_gap stored boolean per Fix F from Doc2 — computed once at parse time, not at render time.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+
+<div class="section-divider"><div class="section-div-title">Section 2 · S21f</div><div class="section-div-line"></div><div style="font-size:9px;color:#1e1e1e;font-weight:600;letter-spacing:.06em">TABLE 2 — SIGNAL PATTERNS</div></div>
+<div class="slide">
+<div class="sn">S21f</div>
+<div class="st">Table 2 — Signal patterns collected during your scan (T_TR_T2_*)</div>
+<span class="sg tr">T_TR_T2_*</span>
+<div class="si">
+  <div class="al">
+    <div class="an anl">
+      <div>
+        <div class="atag atag-e">Purpose</div>
+        <div class="at">Shows only detected archetypes (detection_state=detected). Not-detected are completely hidden per founder instruction. Each row: signal name, cluster tag, type tag (Strength/Flag/Watch/Hidden Asset/Context), evidence that triggered it, confidence bar + label, "What This Means For You" from SO_WHAT library.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+    <div class="an anl">
+      <div>
+        <div class="atag atag-m">Count chips</div>
+        <div class="at">4 chips above table: Detected (14), Not Detected (316 = 330-14 — note: shown here for developer reference, NOT shown to user per instruction), Total Evaluated (330), Flags (3). T_TR_T2_CNT_*. "Not Detected" chip hidden in user-facing UI. Flags chip: red tint.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+    <div class="an anl">
+      <div>
+        <div class="atag atag-h">Evidence anchors</div>
+        <div class="at">T_TR_T2_SIG_EVIDENCE: evidence_anchors[] rendered as "plain_label: value" per Fix H anchor map from Doc2. E.g. "CAREER_ARC → Career arc type: STRONG_UPWARD" not raw enum. Format: each anchor joined with " · ". Max 3 anchors shown before truncation on mobile.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+  </div>
+  <div class="pw"><div class="ph" style="height:680px;height:680px">
+    <div class="cam"></div>
+    <div class="back-bar">
+      <div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="f13 tw" style="font-weight:600">How Hawksyn Read Your CV</div></div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="bg2" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#2a2a2a"/><stop offset="100%" stop-color="#111"/></radialGradient></defs><rect width="24" height="24" rx="8" fill="url(#bg2)"/><path d="M12 4a6 6 0 0 1 6 6c0 5 2 7 2 7H4s2-2 2-7a6 6 0 0 1 6-6z" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><path d="M10.5 19.5a1.5 1.5 0 0 0 3 0" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><circle cx="16" cy="6" r="3" fill="#e05050"/></svg>
+    </div>
+    <div class="scr" style="padding-top:12px;gap:12px;overflow-y:auto">
+      
+      <div class="zone-title" style="display:flex;align-items:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1a0a00;border:1px solid rgba(232,96,10,.3);border-radius:5px;margin-right:7px;flex-shrink:0;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12l3-5 3 3 3-6 3 4"/><circle cx="14" cy="8" r="1" fill="currentColor"/></svg></span>What Hawksyn Discovered About You</div>
+      
+      <div class="zone-intro">These are the things Hawksyn discovered about you — things about you that most people never see clearly in their own career.</div>
+      
+      <div class="count-chips">
+        <div class="count-chip" style="background:#141414;border-color:#252525"><div style="font-size:14px;font-weight:800;color:#e8600a;line-height:1">14</div><div class="f8 td" style="margin-top:2px">Detected</div></div>
+        <div class="count-chip"><div style="font-size:14px;font-weight:800;color:#f0f0f0;line-height:1">330</div><div class="f8 td" style="margin-top:2px">Evaluated</div></div>
+        <div class="count-chip" style="background:#141414;border-color:#252525"><div style="font-size:14px;font-weight:800;color:#f0f0f0;line-height:1">3</div><div class="f8 td" style="margin-top:2px">Flags</div></div>
+      </div>
+      
+      <div style="display:flex;flex-direction:column;gap:8px">
+  <div style="background:#141414;border:1px solid #252525;border-left:2px solid #252525;border-radius:0 12px 12px 0;padding:12px 14px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;color:#f0f0f0;flex:1;padding-right:8px">You grew faster than most people at your level</div>
+      <span style="background:#1a0a00;border:1px solid rgba(232,96,10,.3);border-radius:5px;padding:2px 8px;font-size:8px;font-weight:700;color:#e8600a">Detected</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">
+      <span style="background:#111;border:1px solid #252525;border-radius:4px;padding:1px 6px;font-size:8px;font-weight:400;color:#f0f0f0">Trajectory</span>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="width:32px;height:4px;background:#1a1a1a;border-radius:2px;overflow:hidden"><div style="width:85%;height:4px;background:#e8600a;border-radius:2px"></div></div>
+        <span style="font-size:8px;font-weight:600;color:#e8600a">Strong match</span>
+      </div>
+    </div>
+    <div style="font-size:9px;color:#f0f0f0;line-height:1.5;font-weight:400;margin-bottom:5px">Your career moved upward at every stage, faster than average</div>
+    <div style="font-size:9px;color:#f0f0f0;line-height:1.5;font-weight:400;font-style:italic;opacity:.8">This is one of the strongest things about your profile. Anyone looking at your career will notice this first.</div>
+  </div>
+  <div style="opacity:.85;background:#111;border:1px solid #252525;border-left:2px solid #2a2a2a;border-radius:0 12px 12px 0;padding:12px 14px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;color:#f0f0f0;flex:1;padding-right:8px">You listed skills you haven't backed with real work</div>
+      <span style="background:#111;border:1px solid #2a2a2a;border-radius:5px;padding:2px 8px;font-size:8px;font-weight:600;color:#f0f0f0">&#x26A0; Flag</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">
+      <span style="background:#111;border:1px solid #252525;border-radius:4px;padding:1px 6px;font-size:8px;font-weight:400;color:#f0f0f0">Skills</span>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="width:32px;height:4px;background:#1a1a1a;border-radius:2px;overflow:hidden"><div style="width:55%;height:4px;background:#555;border-radius:2px"></div></div>
+        <span style="font-size:8px;font-weight:600;color:#555">Moderate match</span>
+      </div>
+    </div>
+    <div style="font-size:9px;color:#f0f0f0;line-height:1.5;font-weight:400;margin-bottom:5px">More than half your listed skills don't appear in your actual work history</div>
+    <div style="font-size:9px;color:#f0f0f0;line-height:1.5;font-weight:400;font-style:italic;opacity:.8">A smaller list of skills you can prove is far more powerful than a long list no one believes.</div>
+  </div>
+  <div style="background:#141414;border:1px solid #252525;border-left:2px solid #252525;border-radius:0 12px 12px 0;padding:12px 14px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;color:#f0f0f0;flex:1;padding-right:8px">You led more than your CV says</div>
+      <span style="background:#1a0a00;border:1px solid rgba(232,96,10,.5);border-radius:5px;padding:2px 8px;font-size:8px;font-weight:700;color:#e8600a">&#x2728; Hidden strength</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">
+      <span style="background:#111;border:1px solid #252525;border-radius:4px;padding:1px 6px;font-size:8px;font-weight:400;color:#f0f0f0">Scope</span>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="width:32px;height:4px;background:#1a1a1a;border-radius:2px;overflow:hidden"><div style="width:75%;height:4px;background:#e8600a;border-radius:2px"></div></div>
+        <span style="font-size:8px;font-weight:600;color:#e8600a">Strong match</span>
+      </div>
+    </div>
+    <div style="font-size:9px;color:#f0f0f0;line-height:1.5;font-weight:400;margin-bottom:5px">Hawksyn found ownership-level evidence in your work that your CV never claimed</div>
+    <div style="font-size:9px;color:#f0f0f0;line-height:1.5;font-weight:400;font-style:italic;opacity:.8">Your CV is underselling you. The work is there — you just haven't claimed it. This is fixable.</div>
+  </div>
+  <div style="text-align:center;padding:6px 0">
+    <span style="font-size:9px;color:#f0f0f0;font-weight:400">Showing 3 of 14 things Hawksyn found · scroll to see all</span>
+  </div>
+</div>
+      
+      <div class="insight">
+        <div class="insight-lbl" style="display:flex;align-items:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1a0a00;border:1px solid rgba(76,175,80,.3);border-radius:5px;margin-right:7px;flex-shrink:0;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v4M8 11v.5"/></svg></span>What this means for you</div>
+        <div style="font-size:10px;font-weight:400;color:#f0f0f0;line-height:1.6">Every signal was backed by specific things in your CV. 14 signals confirmed. 3 need your attention.</div>
+      </div>
+      </div>
+    <div style="display:flex;align-items:center;justify-content:center;padding:6px 0 2px;opacity:.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg><span style="font-size:8px;color:#e8600a;margin-left:4px;font-weight:500">scroll to see all</span></div></div>
+    <div class="bnav">
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+    </div>
+  </div></div>
+  <div class="ar">
+    <div class="an anr">
+      <div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+      <div>
+        <div class="atag atag-e">Row anatomy</div>
+        <div class="at">Per signal row: Line 1 — signal name bold + type tag right. Line 2 — cluster tag + confidence bar+label. Line 3 — evidence anchors (plain labels per Fix H, grey small text). Line 4 — SO_WHAT text (colour matches polarity: teal for strength, red for flag, blue for hidden asset). Line 5 — archetype ID monospace tiny.</div>
+      </div>
+    </div>
+    <div class="an anr">
+      <div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+      <div>
+        <div class="atag atag-w">Not detected — hidden</div>
+        <div class="at">Per founder instruction: not-detected signals are completely hidden. No "N archetypes not detected" separator. No dimmed rows. Only fired signals appear. The 330 archetype library is not exposed. Count chip "Not Detected" also removed from user-facing UI — only Detected, Total Evaluated, Flags are shown.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+
+<div class="section-divider"><div class="section-div-title">Section 2 · S21g</div><div class="section-div-line"></div><div style="font-size:9px;color:#1e1e1e;font-weight:600;letter-spacing:.06em">WHY THIS SCREEN EXISTS — END OF SECTION 2</div></div>
+<div class="slide" style="border-bottom:none">
+<div class="sn">S21g</div>
+<div class="st">Why this screen exists — 3 static takeaway cards (T_TR_TW_*)</div>
+<span class="sg tr">T_TR_TW_*</span>
+<div class="si">
+  <div class="al">
+    <div class="an anl">
+      <div>
+        <div class="atag atag-e">Purpose</div>
+        <div class="at">T_TR_TW_TITLE: "Why this screen exists." 3 static takeaway cards — all from Doc1, all type S (static, no variants). These three principles explain the philosophy of the evidence trail to the user. Non-negotiable copy. No substitution variables. Developer hardcodes exactly as written.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+    <div class="an anl">
+      <div>
+        <div class="atag atag-h">Static text locked</div>
+        <div class="at">TW1: "Every claim is traceable. Any signal in your report can be traced back to a specific thing in your CV." TW2: "If something is wrong, you can fix it. Edit your profile and rescan." TW3: "Claimed-only skills are a transparency signal, not an accusation." All S type — never changes.</div>
+      </div>
+      <div class="aln"><svg width="52" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/><polygon points="40,2 52,5 40,8" fill="#1e1e1e"/></svg></div>
+    </div>
+  </div>
+  <div class="pw"><div class="ph" style="height:520px;height:520px">
+    <div class="cam"></div>
+    <div class="back-bar">
+      <div style="display:flex;align-items:center;gap:8px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="10" fill="#1a0a00"/><polyline points="16 20 10 14 16 8" fill="none" stroke="#e8600a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="f13 tw" style="font-weight:600">How Hawksyn Read Your CV</div></div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="bg2" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#2a2a2a"/><stop offset="100%" stop-color="#111"/></radialGradient></defs><rect width="24" height="24" rx="8" fill="url(#bg2)"/><path d="M12 4a6 6 0 0 1 6 6c0 5 2 7 2 7H4s2-2 2-7a6 6 0 0 1 6-6z" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><path d="M10.5 19.5a1.5 1.5 0 0 0 3 0" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"/><circle cx="16" cy="6" r="3" fill="#e05050"/></svg>
+    </div>
+    <div class="scr" style="padding-top:12px;gap:12px;overflow-y:auto">
+      <div class="zone-title" style="margin-bottom:10px;display:flex;align-items:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1a0a00;border:1px solid rgba(232,96,10,.3);border-radius:5px;margin-right:7px;flex-shrink:0;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M6 6c0-1 1-2 2-2s2 1 2 2-1 1.5-2 2v1M8 12v.5"/></svg></span>How Hawksyn reads a CV</div>
+      
+      <div class="tw-card">
+        <div class="tw-icon" style="background:#081414;border:1px solid rgba(76,175,80,.2)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="1.5" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <div style="flex:1">
+          <div class="f11 tw" style="font-weight:700;margin-bottom:4px;display:flex;align-items:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1a0a00;border:1px solid rgba(232,96,10,.3);border-radius:5px;margin-right:7px;flex-shrink:0;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 5l4 3-4 3"/></svg></span>Every finding is backed by something real</div>
+          <div class="f10 td" style="line-height:1.5">Any signal in your report can be traced back to a specific thing in your CV.</div>
+        </div>
+      </div>
+      
+      <div class="tw-card">
+        <div class="tw-icon" style="background:#070f1a;border:1px solid rgba(74,158,255,.2)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4a9eff" stroke-width="1.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <div style="flex:1">
+          <div class="f11 tw" style="font-weight:700;margin-bottom:4px;display:flex;align-items:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1a0a00;border:1px solid rgba(232,96,10,.3);border-radius:5px;margin-right:7px;flex-shrink:0;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-9 9H2v-3L11 2z"/></svg></span>If something looks wrong, you can fix it</div>
+          <div class="f10 td" style="line-height:1.5">Edit your profile and rescan.</div>
+        </div>
+      </div>
+      
+      <div class="tw-card">
+        <div class="tw-icon" style="background:#1a0e00;border:1px solid rgba(240,160,48,.2)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f0a030" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div style="flex:1">
+          <div class="f11 tw" style="font-weight:700;margin-bottom:4px;display:flex;align-items:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1a0a00;border:1px solid rgba(232,96,10,.3);border-radius:5px;margin-right:7px;flex-shrink:0;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#e8600a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l6 2.5v4.5c0 3-3 5-6 6-3-1-6-3-6-6V4.5L8 2z"/></svg></span>Listing a skill you haven't used isn't a lie — but it is a risk</div>
+          <div class="f10 td" style="line-height:1.5">Not an accusation.</div>
+        </div>
+      </div>
+      </div>
+    </div>
+    <div class="bnav">
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8600a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="bni-lbl-a">Deck</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg><div class="bni-lbl">Clocks</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke-linecap="round"/></svg><div class="bni-lbl">HIP</div></div>
+      <div class="bni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e1e1e" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><div class="bni-lbl">Settings</div></div>
+    </div>
+  </div></div>
+  <div class="ar">
+    <div class="an anr">
+      <div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+      <div>
+        <div class="atag atag-e">Design</div>
+        <div class="at">TW1 icon: link chain (teal) — traceability. TW2 icon: edit pen (blue) — fixability. TW3 icon: info circle (amber) — context not accusation. Three distinct colours, three distinct icons. Each card: same structure as Section 1 takeaway cards — consistent component.</div>
+      </div>
+    </div>
+    <div class="an anr">
+      <div class="aln"><svg width="52" height="10"><polygon points="12,2 0,5 12,8" fill="#1e1e1e"/><line x1="12" y1="5" x2="52" y2="5" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3,3"/></svg></div>
+      <div>
+        <div class="atag atag-m">End of Section 2</div>
+        <div class="at">This is the last screen in Section 2. User swipes back to S20 entry to choose Section 3 (Your Career Signals Discovered) or Section 4 (Third-Party View). No forced linear flow. All 4 sections accessible independently from S20 entry screen.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>
