@@ -4,6 +4,17 @@ const path = require('path');
 const Handlebars = require('handlebars');
 const hipService = require('./hip.service');
 
+let sectionCounter = 1;
+
+Handlebars.registerHelper('resetCounter', function() {
+    sectionCounter = 1;
+    return '';
+});
+
+Handlebars.registerHelper('padSectionNumber', function() {
+    return (sectionCounter++).toString().padStart(2, '0');
+});
+
 class HipController {
     // SSR Route: Render and serve public HIP Profile HTML
     async getPublicProfile(req, res) {
@@ -223,15 +234,32 @@ class HipController {
             const userProfile = await db.UserProfile.findOne({ userId: profile.userId });
             const cvData = userProfile?.confirmedProfile || userProfile?.originalParsedData || {};
             const psdeResult = await db.PSDEResult.findOne({ candidate_id: profile.userId }).lean() || {};
+            const userDoc = await db.User.findById(profile.userId).lean();
 
-            const templatePath = path.join(__dirname, 'HIP_Template_Dynamic.hbs');
+            const templatePath = path.join(__dirname, 'HIP_Template_PDF.hbs');
             if (!fs.existsSync(templatePath)) {
                 return res.status(500).json({ success: false, message: "Template missing on server" });
             }
             const rawHtml = fs.readFileSync(templatePath, 'utf8');
             const template = Handlebars.compile(rawHtml);
             
+            let profilePhotoBase64 = null;
+            if (userDoc?.profilePhoto || userDoc?.avatar) {
+                try {
+                    const photoUrl = `${req.protocol}://${req.get('host')}/api/v1/user/profile-photo/${profile.userId}`;
+                    const resFetch = await fetch(photoUrl);
+                    if (resFetch.ok) {
+                        const buffer = await resFetch.arrayBuffer();
+                        const contentType = resFetch.headers.get('content-type') || 'image/png';
+                        profilePhotoBase64 = `data:${contentType};base64,${Buffer.from(buffer).toString('base64')}`;
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch profile photo for PDF', e);
+                }
+            }
+            
             const viewData = {
+                isPdf: true,
                 META: {
                     canonical_url: profile.seoMetadata?.canonicalUrl,
                     og_image_url: profile.seoMetadata?.ogImageUrl,
@@ -252,7 +280,8 @@ class HipController {
                     strong_signals: psdeResult.total_detected || '3', 
                     years_experience: Math.round(cvData?.structured?.inferred?.totalExperienceYears || cvData?.inferred?.totalExperienceYears) || cvData.yearsOfExperience || '8',
                     rarity_score: profile.seoMetadata?.rarityScore || 95,
-                    partial_matches: psdeResult.total_partial || '5'
+                    partial_matches: psdeResult.total_partial || '5',
+                    profilePhoto: profilePhotoBase64
                 },
                 CERT: {
                     run_id: profile.runId,

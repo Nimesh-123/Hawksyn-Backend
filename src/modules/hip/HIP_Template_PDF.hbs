@@ -21,22 +21,13 @@
     html,
     body {
       width: 100%;
-      background: #EDEAE3;
+      background: #ffffff;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       color: #1A1A1A
     }
 
     /* ── VERTICAL AMBER THREAD ─────────────────────────────────── */
-    .thread {
-      position: fixed;
-      left: 0;
-      top: 52px;
-      bottom: 0;
-      width: 3px;
-      background: linear-gradient(180deg, #C47F00 0%, #F0A500 25%, #C47F00 55%, rgba(196, 127, 0, 0.08) 100%);
-      z-index: 40;
-      pointer-events: none position:relative
-    }
+    .thread { display: none !important; }
 
     /* ── NAV ───────────────────────────────────────────────────── */
     .hdr {
@@ -45,7 +36,7 @@
       z-index: 100;
       width: 100%;
       background: linear-gradient(180deg, #222 0%, #111 100%);
-      box-shadow: 0 3px 0 #000, 0 4px 20px rgba(0, 0, 0, 0.5);
+      box-shadow: none;
       height: 52px;
       display: flex;
       align-items: center;
@@ -74,7 +65,7 @@
       font-size: 12px;
       color: rgba(255, 255, 255, 0.72);
       padding: 5px 10px;
-      border-radius: 4px;
+      border-radius: 0;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -101,10 +92,10 @@
       left: 0;
       background: #1c1c1c;
       border: 0.5px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
+      border-radius: 0;
       padding: 6px 0;
       min-width: 200px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+      box-shadow: none;
       z-index: 300
     }
 
@@ -144,7 +135,7 @@
       font-size: 12px;
       color: rgba(255, 255, 255, 0.72);
       padding: 5px 10px;
-      border-radius: 4px;
+      border-radius: 0;
       cursor: pointer;
       transition: color 0.15s, background 0.15s
     }
@@ -158,7 +149,7 @@
       font-size: 12px;
       font-weight: 600;
       padding: 7px 18px;
-      border-radius: 20px;
+      border-radius: 0;
       background: #C47F00;
       color: #fff;
       border: none;
@@ -176,12 +167,12 @@
     /* ── PAGE WRAPPER ──────────────────────────────────────────── */
     .page {
       width: 100%;
-      padding: 20px 28px 0
+      padding: 0
     }
 
     .main {
-      width: 80%;
-      max-width: 1200px;
+      width: 100%;
+      max-width: 100%;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -190,19 +181,18 @@
 
     /* ── CARD SHELL ────────────────────────────────────────────── */
     .card {
-      background: #fff;
-      border-radius: 12px;
-      border: 0.5px solid #D8D3CA;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-      overflow: hidden;
-      margin-bottom: 12px;
-      transition: box-shadow 0.25s, transform 0.25s
-    }
+  page-break-inside: avoid;
+  break-inside: avoid;
 
-    .card:hover {
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.09);
-      transform: translateY(-1px)
-    }
+  background: #fff;
+  border-radius: 0;
+  border: none;
+  border-bottom: 0.5px solid #D8D3CA;
+  box-shadow: none;
+  margin-bottom: 0;
+}
+
+    .card:hover {}
 
     /* ── SCROLL REVEAL ─────────────────────────────────────────── */
     .reveal {
@@ -303,8 +293,8 @@
 
     /* ── PROFILE BODY ──────────────────────────────────────────── */
     .profile-body {
-      padding: 0 24px 0
-    }
+  padding: 40px 60px;
+}
 
     .avatar-row {
       display: flex;
@@ -324,7 +314,7 @@
       height: 100px;
       border-radius: 50%;
       border: 4px solid #fff;
-      box-shadow: 0 3px 20px rgba(196, 127, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.18);
+      box-shadow: none;
       overflow: hidden;
       position: relative;
       background: #C47F00;
@@ -343,6 +333,18 @@
       display: block
     }
 
+    .avatar-fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      color: #fff;
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: 2px;
+    }
+
     .avatar-verified {
       position: absolute;
       bottom: 2px;
@@ -358,7 +360,7 @@
       font-size: 12px;
       color: #fff;
       font-weight: 700;
-      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.5);
+      box-shadow: none;
       z-index: 10;
       overflow: visible
     }
@@ -374,7 +376,7 @@
       font-size: 13px;
       font-weight: 600;
       padding: 8px 22px;
-      border-radius: 20px;
+      border-radius: 0;
       background: #1A1A1A;
       color: #fff;
       border: 1.5px solid #1A1A1A;
@@ -393,7 +395,7 @@
       font-size: 13px;
       font-weight: 600;
       padding: 8px 22px;
-      border-radius: 20px;
+      border-radius: 0;
       background: #C47F00;
       color: #fff;
       border: 1.5px solid #C47F00;
@@ -403,7 +405,7 @@
 
     .btn-amber:hover {
       background: #D98F00;
-      box-shadow: 0 4px 16px rgba(196, 127, 0, 0.4);
+      box-shadow: none;
       transform: translateY(-1px)
     }
 
@@ -452,7 +454,7 @@
       font-size: 11px;
       font-weight: 600;
       padding: 4px 12px;
-      border-radius: 20px;
+      border-radius: 0;
       background: #FEF3DC;
       color: #7A5200;
       border: 0.5px solid #E8C870;
@@ -524,12 +526,12 @@
     .ver-card {
       background: linear-gradient(135deg, #1A1A1A 0%, #252525 100%);
       border-color: #383838;
-      border-radius: 12px;
+      border-radius: 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 16px 22px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+      box-shadow: none;
       gap: 16px position:relative;
       overflow: hidden
     }
@@ -545,7 +547,7 @@
     .ver-icon-wrap {
       width: 40px;
       height: 40px;
-      border-radius: 10px;
+      border-radius: 0;
       background: rgba(196, 127, 0, 0.12);
       border: 0.5px solid rgba(196, 127, 0, 0.25);
       display: flex;
@@ -573,7 +575,7 @@
       font-size: 11px;
       font-weight: 600;
       padding: 6px 16px;
-      border-radius: 20px;
+      border-radius: 0;
       background: rgba(76, 175, 80, 0.12);
       color: #5CB85C;
       border: 0.5px solid rgba(76, 175, 80, 0.3);
@@ -611,8 +613,8 @@
     }
 
     .cc-body {
-      padding: 24px 24px 20px
-    }
+  padding: 40px 60px;
+}
 
     .cc-label {
       font-size: 10px;
@@ -704,7 +706,7 @@
       flex: 1;
       height: 1px;
       background: rgba(255, 255, 255, 0.1);
-      border-radius: 1px;
+      border-radius: 0;
       overflow: hidden
     }
 
@@ -751,11 +753,11 @@
 
     /* ── PATTERN A — PROSE ─────────────────────────────────────── */
     .sec-prose {
-      padding: 20px 22px 24px;
-      font-size: 14px;
-      color: #444;
-      line-height: 1.7
-    }
+  padding: 40px 60px;
+  font-size: 14px;
+  color: #444;
+  line-height: 1.7
+}
 
     .sec-prose p+p {
       margin-top: 12px
@@ -784,7 +786,7 @@
       color: rgba(255, 255, 255, 0.88);
       background: #1E1C19;
       border: 0.5px solid rgba(255, 255, 255, 0.12);
-      border-radius: 20px;
+      border-radius: 0;
       padding: 4px 11px;
       transition: background 0.2s, transform 0.15s, box-shadow 0.2s
     }
@@ -804,7 +806,7 @@
 
     .ic {
       border: 1.5px solid #E8E3DB;
-      border-radius: 10px;
+      border-radius: 0;
       padding: 18px 16px;
       background: #FAFAF8;
       cursor: default;
@@ -819,7 +821,7 @@
     .ic:hover {
       background: #F5F2EC;
       transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09), 0 2px 6px rgba(196, 127, 0, 0.06);
+      box-shadow: none;
       border-color: #C8C0B0
     }
 
@@ -859,7 +861,7 @@
       letter-spacing: 0.05em;
       text-transform: uppercase;
       padding: 4px 11px;
-      border-radius: 20px;
+      border-radius: 0;
       background: #1E1C19;
       color: rgba(255, 255, 255, 0.88);
       border: 0.5px solid rgba(255, 255, 255, 0.12);
@@ -913,8 +915,8 @@
     }
 
     .hl-body {
-      padding: 16px 24px 24px
-    }
+  padding: 40px 60px;
+}
 
     .hl-grid {
       display: grid;
@@ -924,7 +926,7 @@
 
     .hl-card {
       border: 1.5px solid #E8E3DB;
-      border-radius: 12px;
+      border-radius: 0;
       padding: 28px 24px 22px;
       background: #FAFAF8;
       cursor: default;
@@ -934,7 +936,7 @@
     .hl-card:hover {
       background: #F5F2EC;
       transform: translateY(-3px);
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.09);
+      box-shadow: none;
       border-color: #C8C0B0
     }
 
@@ -991,7 +993,7 @@
       letter-spacing: 0.05em;
       text-transform: uppercase;
       padding: 4px 12px;
-      border-radius: 20px;
+      border-radius: 0;
       background: #F0EDE6;
       color: #888
     }
@@ -1008,8 +1010,8 @@
     }
 
     .sc-body {
-      padding: 24px 24px 20px
-    }
+  padding: 40px 60px;
+}
 
     .sc-label {
       font-size: 10px;
@@ -1042,7 +1044,7 @@
       font-weight: 700;
       color: #C47F00;
       background: #1A1A1A;
-      border-radius: 6px;
+      border-radius: 0;
       padding: 3px 10px;
       letter-spacing: 0.05em
     }
@@ -1111,7 +1113,7 @@
       flex: 1;
       height: 1px;
       background: rgba(255, 255, 255, 0.25);
-      border-radius: 1px;
+      border-radius: 0;
       overflow: hidden
     }
 
@@ -1244,8 +1246,8 @@
 
     /* ── GL CARDS ──────────────────────────────────────────────── */
     .gl-body {
-      padding: 16px 24px 24px
-    }
+  padding: 40px 60px;
+}
 
     .gl-grid {
       display: grid;
@@ -1302,7 +1304,7 @@
       gap: 6px;
       background: rgba(196, 127, 0, 0.06);
       border: 0.5px solid rgba(196, 127, 0, 0.2);
-      border-radius: 6px;
+      border-radius: 0;
       padding: 6px 8px;
       margin-bottom: 10px
     }
@@ -1327,7 +1329,7 @@
       font-size: 11px;
       font-weight: 600;
       padding: 5px 14px;
-      border-radius: 20px;
+      border-radius: 0;
       background: #C47F00;
       color: #fff;
       border: 1.5px solid #C47F00;
@@ -1345,15 +1347,15 @@
     .cert-card {
       background: linear-gradient(135deg, #1A1A1A, #252525);
       border-color: #383838;
-      border-radius: 12px;
+      border-radius: 0;
       margin-bottom: 12px;
       position: relative;
       overflow: hidden
     }
 
     .cert-body {
-      padding: 22px
-    }
+  padding: 40px 60px;
+}
 
     .cert-row {
       display: flex;
@@ -1396,7 +1398,7 @@
       font-size: 12px;
       font-weight: 600;
       padding: 9px 22px;
-      border-radius: 20px;
+      border-radius: 0;
       background: #1A1A1A;
       color: #fff;
       border: 1.5px solid rgba(255, 255, 255, 0.2);
@@ -1548,7 +1550,7 @@
       top: 0;
       width: 5px;
       height: 36px;
-      border-radius: 3px;
+      border-radius: 0;
       background: linear-gradient(180deg, transparent, #F0A500, transparent);
       animation: thread-bead 4s ease-in-out infinite;
       opacity: 0;
@@ -1616,7 +1618,7 @@
       height: 4px;
       border-radius: 50%;
       background: #C47F00;
-      box-shadow: 0 0 6px #C47F00;
+      box-shadow: none;
     }
 
     /* 3. B-LINE shimmer ─────────────────────────────────────────── */
@@ -1671,7 +1673,7 @@
       height: 3px;
       border-radius: 50%;
       background: #F0A500;
-      box-shadow: 0 0 5px #F0A500;
+      box-shadow: none;
       top: 28%;
       left: 45%;
       animation: star-blink 3.2s ease-in-out 0.8s infinite;
@@ -1684,7 +1686,7 @@
       height: 3px;
       border-radius: 50%;
       background: #C47F00;
-      box-shadow: 0 0 4px #C47F00;
+      box-shadow: none;
       top: 55%;
       left: 68%;
       animation: star-blink 4.1s ease-in-out 2.1s infinite;
@@ -1701,7 +1703,7 @@
       height: 3px;
       border-radius: 50%;
       background: #C47F00;
-      box-shadow: 0 0 4px #C47F00;
+      box-shadow: none;
       top: 70%;
       left: 25%;
       animation: star-blink 5.3s ease-in-out 1.4s infinite;
@@ -1714,7 +1716,7 @@
       height: 3px;
       border-radius: 50%;
       background: #F0A500;
-      box-shadow: 0 0 5px #F0A500;
+      box-shadow: none;
       top: 30%;
       left: 80%;
       animation: star-blink 3.8s ease-in-out 0.3s infinite;
@@ -1849,7 +1851,7 @@
       width: 0;
       margin: 3px auto 0;
       background: linear-gradient(90deg, transparent, #C47F00, transparent);
-      border-radius: 1px;
+      border-radius: 0;
       transition: width 0.25s ease;
     }
 
@@ -1906,7 +1908,7 @@
       height: 6px;
       border-radius: 50%;
       background: #C47F00;
-      box-shadow: 0 0 8px rgba(196, 127, 0, 0.6);
+      box-shadow: none;
       flex-shrink: 0;
       animation: beacon 2.8s ease-in-out infinite;
     }
@@ -1915,12 +1917,12 @@
 
       0%,
       100% {
-        box-shadow: 0 0 4px rgba(196, 127, 0, 0.4);
+        box-shadow: none;
         transform: scale(1);
       }
 
       50% {
-        box-shadow: 0 0 12px rgba(196, 127, 0, 0.8), 0 0 20px rgba(196, 127, 0, 0.3);
+        box-shadow: none;
         transform: scale(1.2);
       }
     }
@@ -1941,24 +1943,16 @@
 
     /* 13+SH. SECTION HEADER — black 3D + bead ───────────────────── */
     .sh {
-      padding: 14px 20px;
-      position: relative;
-      overflow: hidden;
-      background:
-        radial-gradient(ellipse at 0% 0%, rgba(255, 255, 255, 0.07) 0%, transparent 50%),
-        radial-gradient(ellipse at 100% 100%, rgba(196, 127, 0, 0.12) 0%, transparent 55%),
-        linear-gradient(160deg, #2A2520 0%, #1A1612 40%, #0D0B08 100%) !important;
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
-        inset 3px 0 0 #C47F00,
-        0 2px 8px rgba(0, 0, 0, 0.18) !important;
-      border-left: none !important;
-      border-top: 0.5px solid rgba(255, 255, 255, 0.06) !important;
-      border-right: 0.5px solid rgba(255, 255, 255, 0.04) !important;
-      border-bottom: 0.5px solid rgba(0, 0, 0, 0.3) !important;
-      transition: background 0.2s, box-shadow 0.2s;
-    }
+  padding: 18px 60px;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 0% 0%, rgba(255, 255, 255, 0.07) 0%, transparent 50%), radial-gradient(ellipse at 100% 100%, rgba(196, 127, 0, 0.12) 0%, transparent 55%), linear-gradient(160deg, #2A2520 0%, #1A1612 40%, #0D0B08 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.5), inset 3px 0 0 #C47F00, 0 3px 8px rgba(0, 0, 0, 0.12) !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.25s
+}
 
     .sh::after {
       content: '';
@@ -2223,7 +2217,7 @@
 
     /* CARD global hover glow ─────────────────────────────────────── */
     .card:hover {
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.09), 0 0 0 0.5px rgba(196, 127, 0, 0.12);
+      box-shadow: none;
     }
 
     /* REDUCED MOTION ─────────────────────────────────────────────── */
@@ -2283,7 +2277,7 @@
       letter-spacing: 0.12em;
       text-transform: uppercase;
       border: 0.5px solid rgba(255, 255, 255, 0.1);
-      border-radius: 20px;
+      border-radius: 0;
       padding: 3px 10px;
     }
 
@@ -2514,6 +2508,12 @@
         transition: none !important;
         animation: none !important;
       }
+    }
+    @page {
+      margin: 40px 0 !important;
+    }
+    @page :first {
+      margin-top: 0 !important;
     }
   </style>
 </head>

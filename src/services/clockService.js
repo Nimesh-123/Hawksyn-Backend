@@ -307,37 +307,56 @@ function buildClocksResponse(userScores, userClock = {}, marketScores = null) {
 /**
  * Real-time recalibration for a specific user (Step 1 Hook)
  */
-async function recalibrateForUser(userId, profile) {
+async function recalibrateForUser(userId, profileDoc) {
     try {
-        if (!userId || !profile) {
+        if (!userId || !profileDoc) {
             console.error('[ClockService] ❌ Recalibrate failed: Missing userId or profile');
             return null;
         }
 
-        const role = profile.identity?.currentRoleTitle || profile.current_role || 'Professional';
-        const industry = profile.inferred?.domainIndicator || profile.domain || profile.industry || 'Technology';
-        const skills = profile.composition?.skills?.technical || profile.skills || [];
-        const achievements = profile.work?.experience?.[0]?.achievements || profile.achievements || [];
-        const experienceYears = Number(profile.inferred?.totalExperienceYears || profile.experience_years || 0);
+        // Handle both raw Mongoose document and plain object
+        const profile = profileDoc.originalParsedData?.structured || profileDoc;
+
+        const role = profile.identity?.currentRoleTitle || profile.current_role || profileDoc.currentRoleTitle || 'Professional';
+        const industry = profile.inferred?.domainIndicator || profile.domain || profile.industry || profileDoc.industry || 'Technology';
+        const skills = profile.composition?.skills?.technical || profile.skills || profileDoc.skills || [];
+        
+        let achievements = profile.work?.experience?.[0]?.achievements || profile.achievements || profileDoc.achievements || [];
+        if (!achievements.length && profile.work?.experience?.[0]?.description) {
+            achievements = profile.work.experience[0].description.split('\n').filter(Boolean);
+        }
+
+        const experienceYears = Number(profile.inferred?.totalExperienceYears || profile.experience_years || profileDoc.experienceYears || 0);
 
         console.log(`[ClockService] ⏳ Starting Recalibration for ${role} in ${industry}...`);
 
         let clockScores = null;
         const pulse = await findActivePulse(role, industry);
 
+        console.log(`[ClockService] 🤖 Calling AI Provider for personalized details...`);
+        const aiScores = await generateClockScores({
+            role,
+            industry,
+            skills,
+            achievements,
+            tenure: experienceYears
+        });
+        console.log(`[ClockService] ✅ AI calculation complete for ${role}`);
+
         if (pulse) {
-            console.log(`[ClockService] ✅ Found matching Pulse: ${pulse.pulseId}`);
-            clockScores = calculateClockScores(profile, pulse);
+            console.log(`[ClockService] 📊 Found matching Pulse: ${pulse.pulseId}`);
+            const baseScores = calculateClockScores(profile, pulse);
+            clockScores = {
+                ...aiScores,
+                ...baseScores,
+                // Ensure AI generated text fields are kept
+                aiExposureJustification: aiScores.aiExposureJustification,
+                careerMomentumJustification: aiScores.careerMomentumJustification,
+                skillRelevanceJustification: aiScores.skillRelevanceJustification,
+                opportunityWindowJustification: aiScores.opportunityWindowJustification
+            };
         } else {
-            console.log(`[ClockService] 🔍 No cached pulse. Calling AI Provider...`);
-            clockScores = await generateClockScores({
-                role,
-                industry,
-                skills,
-                achievements,
-                tenure: experienceYears
-            });
-            console.log(`[ClockService] 🤖 AI calculation complete for ${role}`);
+            clockScores = aiScores;
         }
 
         if (!clockScores) {

@@ -636,9 +636,9 @@ Output ONLY JSON.
 // REGEX PATTERNS FOR ROLE SEGMENTATION (Previously in segmentation.js)
 // ─────────────────────────────────────────────────────────────────────────────
 const DATE_PATTERNS = [
-    /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–—]\s*(?:Present|Current|Now|\w+\s+\d{4})/gi,
-    /\d{1,2}\/\d{2,4}\s*[-–—]\s*(?:Present|Current|\d{1,2}\/\d{2,4})/g,
-    /\b\d{4}\s*[-–—]\s*(?:Present|Current|\d{4})\b/g
+  /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–—]\s*(?:Present|Current|Now|\w+\s+\d{4})/gi,
+  /\d{1,2}\/\d{2,4}\s*[-–—]\s*(?:Present|Current|\d{1,2}\/\d{2,4})/g,
+  /\b\d{4}\s*[-–—]\s*(?:Present|Current|\d{4})\b/g
 ];
 
 const ACTION_VERBS = ['architected', 'drove', 'built', 'led', 'managed', 'optimized', 'transformed', 'delivered', 'reduced', 'increased'];
@@ -676,184 +676,217 @@ async function runNormalisation(rawText, model) {
 }
 
 function detectRoleBoundaries(text) {
-    const lines = text.split('\n');
-    const roleBlocks = [];
-    let currentBlock = { header: '', content: [], startIndex: -1 };
+  const lines = text.split('\n');
+  const roleBlocks = [];
+  let currentBlock = { header: '', content: [], startIndex: -1 };
 
-    lines.forEach((line, index) => {
-        const isDateLine = DATE_PATTERNS.some(regex => regex.test(line));
-        
-        if (isDateLine) {
-            if (currentBlock.startIndex !== -1) {
-                roleBlocks.push(currentBlock);
-            }
-            currentBlock = { header: line, content: [], startIndex: index };
-        } else {
-            if (currentBlock.startIndex !== -1) {
-                currentBlock.content.push(line);
-            }
-        }
-    });
+  lines.forEach((line, index) => {
+    const isDateLine = DATE_PATTERNS.some(regex => regex.test(line));
 
-    if (currentBlock.startIndex !== -1) {
+    if (isDateLine) {
+      if (currentBlock.startIndex !== -1) {
         roleBlocks.push(currentBlock);
+      }
+      currentBlock = { header: line, content: [], startIndex: index };
+    } else {
+      if (currentBlock.startIndex !== -1) {
+        currentBlock.content.push(line);
+      }
     }
+  });
 
-    return roleBlocks.map(block => ({
-        header: block.header,
-        rawText: block.content.join('\n')
-    }));
+  if (currentBlock.startIndex !== -1) {
+    roleBlocks.push(currentBlock);
+  }
+
+  return roleBlocks.map(block => ({
+    header: block.header,
+    rawText: block.content.join('\n')
+  }));
 }
 
 function calibrateAEU(aeu) {
-    const rawText = (aeu.raw_text || '').toLowerCase();
-    const words = rawText.split(/[\s,]+/);
-    const action = ACTION_VERBS.find(v => words.includes(v)) || null;
-    
-    if (action) {
-        if (['led', 'managed'].includes(action)) aeu.evidence_type = 'leadership';
-        else if (['architected', 'built', 'designed', 'established'].includes(action)) aeu.evidence_type = 'initiative';
-        else if (['reduced', 'increased', 'optimized', 'delivered'].includes(action)) aeu.evidence_type = 'impact';
-        else aeu.evidence_type = 'responsibility';
+  const rawText = (aeu.raw_text || '').toLowerCase();
+  const words = rawText.split(/[\s,]+/);
+  const action = ACTION_VERBS.find(v => words.includes(v)) || null;
 
-        if (['leadership', 'initiative'].includes(aeu.evidence_type)) aeu.decision_level = 'owned';
-        if (aeu.evidence_type === 'impact' || rawText.length > 100) aeu.evidence_strength = 'strong';
-    }
-    return aeu;
+  if (action) {
+    if (['led', 'managed'].includes(action)) aeu.evidence_type = 'leadership';
+    else if (['architected', 'built', 'designed', 'established'].includes(action)) aeu.evidence_type = 'initiative';
+    else if (['reduced', 'increased', 'optimized', 'delivered'].includes(action)) aeu.evidence_type = 'impact';
+    else aeu.evidence_type = 'responsibility';
+
+    if (['leadership', 'initiative'].includes(aeu.evidence_type)) aeu.decision_level = 'owned';
+    if (aeu.evidence_type === 'impact' || rawText.length > 100) aeu.evidence_strength = 'strong';
+  }
+  return aeu;
 }
 
 function isValidRole(role) {
-    const hasTitle = !!role.role_metadata?.title;
-    const hasCompany = !!role.role_metadata?.company;
-    if (!hasTitle && !hasCompany) return false;
-    return true;
+  const hasTitle = !!role.role_metadata?.title;
+  const hasCompany = !!role.role_metadata?.company;
+  if (!hasTitle && !hasCompany) return false;
+  return true;
 }
 
 async function runValidation(consolidatedOutput, conditionedText) {
-    const violations = [];
-    let criticalCount = 0;
-    const allRoles = consolidatedOutput.roles || [];
+  const violations = [];
+  let criticalCount = 0;
+  const allRoles = consolidatedOutput.roles || [];
+  const topLevelAEUs = consolidatedOutput.base_aeus || [];
 
+  // Helper to gather all AEUs for validation
+  const getAllAEUs = () => {
+    const aeus = [...topLevelAEUs];
     for (const role of allRoles) {
-        for (const aeu of (role.base_aeus || [])) {
-            if (!aeu.raw_text) continue;
-            if (conditionedText.includes(aeu.raw_text)) continue;
-
-            const sentences = conditionedText.split(/[.\n]/).filter(s => s.trim().length > 10);
-            const fuse = new Fuse(sentences, { threshold: 0.05 });
-            const result = fuse.search(aeu.raw_text);
-
-            if (result.length === 0) {
-                aeu.aeu_validity = 'rejected';
-                violations.push({
-                    target_id: aeu.aue_id,
-                    violation: 'raw_text_not_in_source',
-                    severity: 'critical',
-                    auto_corrected: false
-                });
-                criticalCount++;
-            }
-        }
+      if (role.base_aeus) aeus.push(...role.base_aeus);
     }
+    return aeus;
+  };
 
-    const vagueVerbs = ['responsible for', 'was part of', 'helped', 'worked on', 'was involved in', 'coordinated with', 'contributed to'];
-    for (const role of allRoles) {
-        for (const aeu of (role.base_aeus || [])) {
-            if (aeu.decision_level === 'owned' && aeu.raw_text) {
-                const rawLower = aeu.raw_text.toLowerCase();
-                if (vagueVerbs.some(v => rawLower.startsWith(v))) {
-                    aeu.decision_level = 'contributed';
-                    aeu.flags = aeu.flags || [];
-                    aeu.flags.push('decision_level_auto_corrected');
-                    violations.push({
-                        target_id: aeu.aue_id,
-                        violation: 'vague_verb_with_owned_decision',
-                        severity: 'high',
-                        auto_corrected: true
-                    });
-                }
-            }
-        }
+  const allAEUsToValidate = getAllAEUs();
+
+  for (const aeu of allAEUsToValidate) {
+    if (!aeu.raw_text) continue;
+    if (conditionedText.includes(aeu.raw_text)) continue;
+
+    const sentences = conditionedText.split(/[.\n]/).filter(s => s.trim().length > 10);
+    const fuse = new Fuse(sentences, { threshold: 0.05 });
+    const result = fuse.search(aeu.raw_text);
+
+    if (result.length === 0) {
+      aeu.aeu_validity = 'rejected';
+      violations.push({
+        target_id: aeu.aue_id,
+        violation: 'raw_text_not_in_source',
+        severity: 'critical',
+        auto_corrected: false
+      });
+      criticalCount++;
     }
+  }
 
-    for (const role of allRoles) {
-        const start = new Date(role.role_metadata?.start_date);
-        const end = /present|current/i.test(role.role_metadata?.end_date) ? new Date() : new Date(role.role_metadata?.end_date);
-        
-        if (start > end) {
-            violations.push({
-                target_id: role.role_id,
-                violation: 'impossible_date_range',
-                severity: 'critical',
-                reason: `Start date ${role.role_metadata.start_date} is after end date ${role.role_metadata.end_date}`
-            });
-            criticalCount++;
-        }
+  const vagueVerbs = ['responsible for', 'was part of', 'helped', 'worked on', 'was involved in', 'coordinated with', 'contributed to'];
+  for (const aeu of allAEUsToValidate) {
+    if (aeu.decision_level === 'owned' && aeu.raw_text) {
+      const rawLower = aeu.raw_text.toLowerCase();
+      if (vagueVerbs.some(v => rawLower.startsWith(v))) {
+        aeu.decision_level = 'contributed';
+        aeu.flags = aeu.flags || [];
+        aeu.flags.push('decision_level_auto_corrected');
+        violations.push({
+          target_id: aeu.aue_id,
+          violation: 'vague_verb_with_owned_decision',
+          severity: 'high',
+          auto_corrected: true
+        });
+      }
     }
+  }
 
-    for (const role of allRoles) {
-        for (const aeu of (role.base_aeus || [])) {
-            if (aeu.metrics?.amount_inr > 100000000000) { 
-                violations.push({
-                    target_id: aeu.aue_id,
-                    violation: 'suspicious_metric_value',
-                    severity: 'warning',
-                    reason: 'Extremely high INR value detected. Verify verbatim source.'
-                });
-            }
-        }
+  for (const role of allRoles) {
+    if (!role.role_metadata?.start_date || !role.role_metadata?.end_date) continue;
+    const start = new Date(role.role_metadata.start_date);
+    const end = /present|current/i.test(role.role_metadata.end_date) ? new Date() : new Date(role.role_metadata.end_date);
+
+    if (start > end) {
+      violations.push({
+        target_id: role.role_id,
+        violation: 'impossible_date_range',
+        severity: 'critical',
+        reason: `Start date ${role.role_metadata.start_date} is after end date ${role.role_metadata.end_date}`
+      });
+      criticalCount++;
     }
+  }
 
-    const bucketLimits = { capability: 3, seniority: 2, behavior: 2, risk: 3, consistency: 2 };
-    const iaeus = consolidatedOutput.inference_aeus || [];
-    const bucketCounts = {};
-    const keptIAEUs = [];
+  for (const aeu of topLevelAEUs) {
+    if (!aeu.timeframe?.start || !aeu.timeframe?.end) continue;
+    const start = new Date(aeu.timeframe.start);
+    const end = /present|current/i.test(aeu.timeframe.end) ? new Date() : new Date(aeu.timeframe.end);
 
-    for (const iaeu of iaeus) {
-        const bucket = iaeu.type || 'unknown';
-        bucketCounts[bucket] = (bucketCounts[bucket] || 0) + 1;
-        if ((bucketLimits[bucket] || 99) >= bucketCounts[bucket]) {
-            keptIAEUs.push(iaeu);
-        } else {
-            violations.push({
-                target_id: iaeu.iaeu_id,
-                violation: 'bucket_limit_exceeded',
-                severity: 'medium',
-                auto_corrected: true
-            });
-        }
+    if (start > end) {
+      violations.push({
+        target_id: aeu.aue_id,
+        violation: 'impossible_date_range',
+        severity: 'critical',
+        reason: `Start date ${aeu.timeframe.start} is after end date ${aeu.timeframe.end}`
+      });
+      criticalCount++;
     }
-    consolidatedOutput.inference_aeus = keptIAEUs;
+  }
 
-    const status = criticalCount > 0 ? 'partial' : 'validated';
-    const verbatimMatchRate = calculateVerbatimMatchRate(allRoles);
-    const finalBand = verbatimMatchRate < 0.7 ? 'degraded'
-        : violations.filter(v => v.severity === 'critical').length > 0 ? 'low'
-            : violations.filter(v => v.severity === 'high').length > 2 ? 'medium'
-                : 'high';
+  for (const aeu of allAEUsToValidate) {
+    if (aeu.metrics?.amount_inr > 100000000000) {
+      violations.push({
+        target_id: aeu.aue_id,
+        violation: 'suspicious_metric_value',
+        severity: 'warning',
+        reason: 'Extremely high INR value detected. Verify verbatim source.'
+      });
+    }
+  }
 
-    return {
-        status,
-        consolidated_output: consolidatedOutput,
-        validation_meta: {
-            total_violations: violations.length,
-            critical_violations: criticalCount,
-            violations,
-            verbatim_match_rate: verbatimMatchRate,
-            final_confidence_band: finalBand
-        }
-    };
+  const bucketLimits = { capability: 3, seniority: 2, behavior: 2, risk: 3, consistency: 2 };
+  const iaeus = consolidatedOutput.inference_aeus || [];
+  const bucketCounts = {};
+  const keptIAEUs = [];
+
+  for (const iaeu of iaeus) {
+    const bucket = iaeu.type || 'unknown';
+    bucketCounts[bucket] = (bucketCounts[bucket] || 0) + 1;
+    if ((bucketLimits[bucket] || 99) >= bucketCounts[bucket]) {
+      keptIAEUs.push(iaeu);
+    } else {
+      violations.push({
+        target_id: iaeu.iaeu_id,
+        violation: 'bucket_limit_exceeded',
+        severity: 'medium',
+        auto_corrected: true
+      });
+    }
+  }
+  consolidatedOutput.inference_aeus = keptIAEUs;
+
+  const status = criticalCount > 0 ? 'partial' : 'validated';
+  const verbatimMatchRate = calculateVerbatimMatchRate(allRoles, topLevelAEUs);
+  const finalBand = verbatimMatchRate < 0.7 ? 'degraded'
+    : violations.filter(v => v.severity === 'critical').length > 0 ? 'low'
+      : violations.filter(v => v.severity === 'high').length > 2 ? 'medium'
+        : 'high';
+
+  return {
+    status,
+    consolidated_output: consolidatedOutput,
+    validation_meta: {
+      total_violations: violations.length,
+      critical_violations: criticalCount,
+      violations,
+      verbatim_match_rate: verbatimMatchRate,
+      final_confidence_band: finalBand
+    }
+  };
 }
 
-function calculateVerbatimMatchRate(roles) {
-    let total = 0, matched = 0;
-    for (const role of roles) {
-        for (const aeu of (role.base_aeus || [])) {
-            total++;
-            if (aeu.aeu_validity !== 'rejected') matched++;
-        }
+function calculateVerbatimMatchRate(roles, topLevelAEUs = []) {
+  let total = 0, matched = 0;
+  
+  const checkAEU = (aeu) => {
+    total++;
+    if (aeu.aeu_validity !== 'rejected') matched++;
+  };
+
+  for (const role of roles) {
+    for (const aeu of (role.base_aeus || [])) {
+      checkAEU(aeu);
     }
-    return total === 0 ? 1.0 : matched / total;
+  }
+
+  for (const aeu of topLevelAEUs) {
+    checkAEU(aeu);
+  }
+
+  return total === 0 ? 1.0 : matched / total;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -927,12 +960,12 @@ async function runExtractionPipeline(candidateId, rawText, db) {
       const duration = Date.now() - startTime;
       await db.collection('document_uploads').updateOne(
         { userId: new (require('mongoose').Types.ObjectId)(candidateId) },
-        { 
-          $set: { 
-            parserStatus: 'rejected', 
+        {
+          $set: {
+            parserStatus: 'rejected',
             errorReason: normaliseResult.reason,
             metrics: calculateFinalMetrics(totalUsage, duration)
-          } 
+          }
         }
       );
       return { success: false, reason: normaliseResult.reason };
@@ -965,18 +998,19 @@ async function runExtractionPipeline(candidateId, rawText, db) {
 
     // Step 3: Staggered Role Boundary Stage B details
     const roleBoundaries = rolesStageA.role_boundaries || [];
-    
+
     // Update status to step 2 (Building Timeline)
     await db.collection('document_uploads').updateOne(
       { userId: new (require('mongoose').Types.ObjectId)(candidateId) },
-      { $set: { 
+      {
+        $set: {
           parserStatus: 'BUILDING_CAREER_TIMELINE',
           'parserLiveMetrics.rolesCount': roleBoundaries.length
-        } 
+        }
       }
     );
     emitProgress('BUILDING_CAREER_TIMELINE', { rolesCount: roleBoundaries.length });
-    
+
     const roleExtractionsRes = await Promise.all(
       roleBoundaries.map(async (boundary, index) => {
         const roleInput = JSON.stringify({
@@ -1002,10 +1036,10 @@ async function runExtractionPipeline(candidateId, rawText, db) {
 
       if (role.role_metadata?.start_date) {
         const d1 = new Date(role.role_metadata.start_date);
-        const d2 = /present|current/i.test(role.role_metadata.end_date) 
-          ? new Date() 
+        const d2 = /present|current/i.test(role.role_metadata.end_date)
+          ? new Date()
           : new Date(role.role_metadata.end_date || role.role_metadata.start_date);
-        
+
         if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
           role.role_metadata.duration_months = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
         } else {
@@ -1035,19 +1069,20 @@ async function runExtractionPipeline(candidateId, rawText, db) {
 
     // Step 6: Consolidation using database prompts
     console.log(`[${candidateId}] Running PCR_CONSOLIDATE_v1...`);
-    
+
     // Update status to step 3 (Reading Signals)
     const patternsCount = deduplicatedRoles.reduce((sum, role) => sum + (role.base_aeus || []).length, 0) * 3; // Mocking evaluating ~3 patterns per AEU
     await db.collection('document_uploads').updateOne(
       { userId: new (require('mongoose').Types.ObjectId)(candidateId) },
-      { $set: { 
+      {
+        $set: {
           parserStatus: 'READING_CAREER_SIGNALS',
-          'parserLiveMetrics.patternsCount': patternsCount > 0 ? patternsCount : 330 
-        } 
+          'parserLiveMetrics.patternsCount': patternsCount > 0 ? patternsCount : 330
+        }
       }
     );
     emitProgress('READING_CAREER_SIGNALS', { patternsCount: patternsCount > 0 ? patternsCount : 330 });
-    
+
     const consolidateInput = JSON.stringify({ header, roles: repairedRoles, education, skills, credentials, extraction_meta, chronology: rolesStageA.chronology });
     const consolidatedRes = await generateJSON(consolidateInput, consolidateConfig.promptText, { model: consolidateConfig.modelFamily, maxTokens: 10000 });
     addUsage(consolidatedRes.usage);
@@ -1110,12 +1145,12 @@ async function runExtractionPipeline(candidateId, rawText, db) {
     await db.collection('extracted_cvs').replaceOne({ candidate_id: candidateId }, extractedCVDoc, { upsert: true });
 
     await db.collection('document_uploads').updateOne(
-      { userId: new (require('mongoose').Types.ObjectId)(candidateId) }, 
-      { 
-        $set: { 
+      { userId: new (require('mongoose').Types.ObjectId)(candidateId) },
+      {
+        $set: {
           parserStatus: 'extraction_complete',
           metrics: metrics
-        } 
+        }
       }
     );
 
@@ -1123,50 +1158,51 @@ async function runExtractionPipeline(candidateId, rawText, db) {
 
     // Trigger PSDE Archetype Scan
     console.log(`[${candidateId}] Triggering PSDE Scan...`);
-    
+
     // Update status to step 4 (Scoring Readiness)
     const signalsCount = (repairedRoles.flatMap(r => r.base_aeus || []).length) + (consolidated.inference_aeus?.length || 0);
     await db.collection('document_uploads').updateOne(
       { userId: new (require('mongoose').Types.ObjectId)(candidateId) },
-      { $set: { 
+      {
+        $set: {
           parserStatus: 'SCORING_DECISION_READINESS',
           'parserLiveMetrics.signalsFound': signalsCount > 0 ? signalsCount : 14
-        } 
+        }
       }
     );
     emitProgress('SCORING_DECISION_READINESS', { signalsFound: signalsCount > 0 ? signalsCount : 14 });
-    
+
     const runId = `RUN_${candidateId}_${Date.now()}`;
     const psdeResults = await runPSDEScan(extractedCVDoc, stats, validated.validation_meta, consolidated.inference_aeus, runId);
 
     // A. Check for existing scan to log superseded events for compliance audit
     try {
-        const existingPSDE = await PSDEResult.findOne({ candidate_id: candidateId });
-        if (existingPSDE && existingPSDE.archetype_results) {
-            const supersededEvents = [];
-            for (const oldAeu of existingPSDE.archetype_results) {
-                if (oldAeu.detection_state === 'detected' || oldAeu.detection_state === 'partial') {
-                    supersededEvents.push({
-                        aeu_id: oldAeu.archetype_id,
-                        event_type: 'superseded',
-                        before_state: oldAeu,
-                        after_state: null,
-                        changed_by: 'system',
-                        changed_at: new Date(),
-                        reason: `Superseded by new scan run: ${runId}`
-                    });
-                }
-            }
-            if (supersededEvents.length > 0) {
-                await logAuditEvent({
-                    candidate_id: candidateId,
-                    run_id: runId,
-                    events: supersededEvents
-                });
-            }
+      const existingPSDE = await PSDEResult.findOne({ candidate_id: candidateId });
+      if (existingPSDE && existingPSDE.archetype_results) {
+        const supersededEvents = [];
+        for (const oldAeu of existingPSDE.archetype_results) {
+          if (oldAeu.detection_state === 'detected' || oldAeu.detection_state === 'partial') {
+            supersededEvents.push({
+              aeu_id: oldAeu.archetype_id,
+              event_type: 'superseded',
+              before_state: oldAeu,
+              after_state: null,
+              changed_by: 'system',
+              changed_at: new Date(),
+              reason: `Superseded by new scan run: ${runId}`
+            });
+          }
         }
+        if (supersededEvents.length > 0) {
+          await logAuditEvent({
+            candidate_id: candidateId,
+            run_id: runId,
+            events: supersededEvents
+          });
+        }
+      }
     } catch (auditErr) {
-        console.error(`❌ [Audit] Failed to log superseded events for candidate ${candidateId}:`, auditErr.message);
+      console.error(`❌ [Audit] Failed to log superseded events for candidate ${candidateId}:`, auditErr.message);
     }
 
     await PSDEResult.replaceOne(
@@ -1178,39 +1214,39 @@ async function runExtractionPipeline(candidateId, rawText, db) {
 
     // B. Log creation of newly extracted/partial archetypes
     try {
-        if (psdeResults.archetype_results) {
-            const createdEvents = [];
-            for (const newAeu of psdeResults.archetype_results) {
-                if (newAeu.detection_state === 'detected' || newAeu.detection_state === 'partial') {
-                    createdEvents.push({
-                        aeu_id: newAeu.archetype_id,
-                        event_type: 'created',
-                        before_state: null,
-                        after_state: newAeu,
-                        changed_by: 'system',
-                        changed_at: new Date(),
-                        reason: `Initial automated PSDE scan extraction for Run: ${runId}`
-                    });
-                }
-            }
-            if (createdEvents.length > 0) {
-                await logAuditEvent({
-                    candidate_id: candidateId,
-                    run_id: runId,
-                    events: createdEvents
-                });
-            }
+      if (psdeResults.archetype_results) {
+        const createdEvents = [];
+        for (const newAeu of psdeResults.archetype_results) {
+          if (newAeu.detection_state === 'detected' || newAeu.detection_state === 'partial') {
+            createdEvents.push({
+              aeu_id: newAeu.archetype_id,
+              event_type: 'created',
+              before_state: null,
+              after_state: newAeu,
+              changed_by: 'system',
+              changed_at: new Date(),
+              reason: `Initial automated PSDE scan extraction for Run: ${runId}`
+            });
+          }
         }
+        if (createdEvents.length > 0) {
+          await logAuditEvent({
+            candidate_id: candidateId,
+            run_id: runId,
+            events: createdEvents
+          });
+        }
+      }
     } catch (auditErr) {
-        console.error(`❌ [Audit] Failed to log created events for candidate ${candidateId}:`, auditErr.message);
+      console.error(`❌ [Audit] Failed to log created events for candidate ${candidateId}:`, auditErr.message);
     }
 
     logPSDEResult(candidateId, psdeResults);
 
-    return { 
-      success: true, 
-      candidateId, 
-      confidenceBand: validated.validation_meta.final_confidence_band, 
+    return {
+      success: true,
+      candidateId,
+      confidenceBand: validated.validation_meta.final_confidence_band,
       psdeSummary: psdeResults.cluster_summary,
       metrics: metrics
     };
@@ -1219,12 +1255,12 @@ async function runExtractionPipeline(candidateId, rawText, db) {
     const finalDuration = Date.now() - startTime;
     console.error(`[${candidateId}] Extraction failed:`, err.message);
     await db.collection('document_uploads').updateOne(
-      { userId: new (require('mongoose').Types.ObjectId)(candidateId) }, 
-      { 
-        $set: { 
+      { userId: new (require('mongoose').Types.ObjectId)(candidateId) },
+      {
+        $set: {
           parserStatus: 'FAILED',
           metrics: calculateFinalMetrics(totalUsage, finalDuration)
-        } 
+        }
       }
     );
     return { success: false, error: err.message };
@@ -1232,13 +1268,13 @@ async function runExtractionPipeline(candidateId, rawText, db) {
 }
 
 function calculateFinalMetrics(usage, durationMs) {
-  const COST_PER_1K_INPUT = 0.0001; 
-  const COST_PER_1K_OUTPUT = 0.0004; 
-  const USD_TO_INR = 85; 
-  
-  const costUSD = ((usage.promptTokenCount / 1000) * COST_PER_1K_INPUT) + 
-                  ((usage.candidatesTokenCount / 1000) * COST_PER_1K_OUTPUT);
-               
+  const COST_PER_1K_INPUT = 0.0001;
+  const COST_PER_1K_OUTPUT = 0.0004;
+  const USD_TO_INR = 85;
+
+  const costUSD = ((usage.promptTokenCount / 1000) * COST_PER_1K_INPUT) +
+    ((usage.candidatesTokenCount / 1000) * COST_PER_1K_OUTPUT);
+
   return {
     total_tokens_input: usage.promptTokenCount,
     total_tokens_output: usage.candidatesTokenCount,
@@ -1260,8 +1296,8 @@ function serverDeduplicateAEUs(roleExtractions) {
       const normalized = aeu.raw_text
         .trim()
         .toLowerCase()
-        .replace(/^[-•\s]+/, '')  
-        .slice(0, 80);            
+        .replace(/^[-•\s]+/, '')
+        .slice(0, 80);
 
       if (!seenRawTexts.has(normalized) && normalized.length > 10) {
         seenRawTexts.add(normalized);

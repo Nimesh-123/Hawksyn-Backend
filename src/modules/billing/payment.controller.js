@@ -57,8 +57,48 @@ exports.getProduct = async (req, res) => {
 
 exports.initiatePayment = async (req, res) => {
     try {
-        const { caseId, intentId, platform = 'test', paymentMethod = 'test_gateway', previousRunId } = req.body;
+        const { caseId, intentId, platform = 'test', paymentMethod = 'test_gateway', previousRunId, productId } = req.body;
         const userId = req.user.id;
+
+        // ── Handle CV Re-upload Product ──
+        if (productId === 'CV_REUPLOAD') {
+            const user = await User.findById(userId);
+            const isInternational = user?.countryCode !== 'IN';
+            const amount = isInternational ? 4.99 : 499; // Set CV Re-upload price
+            const gateway = isInternational ? 'STRIPE' : 'RAZORPAY';
+            
+            const cvPaymentId = await generateFormattedId(Payments, 'PAY', 'paymentId');
+            const cvPurchaseId = `CV_RERUN_${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
+            const cvPayment = new Payments({
+                paymentId: cvPaymentId,
+                userId,
+                caseId: 'CV_UPLOAD',
+                intentId: 'CV_UPLOAD',
+                productId: 'CV_REUPLOAD',
+                purchaseId: cvPurchaseId,
+                amount: amount,
+                currency: isInternational ? 'USD' : 'INR',
+                status: 'PENDING',
+                isTestPayment: true,
+                paymentMethod: gateway
+            });
+
+            await cvPayment.save();
+            return res.status(200).json({
+                success: true,
+                data: {
+                    paymentId: cvPaymentId,
+                    purchaseId: cvPurchaseId,
+                    amount: amount,
+                    currency: cvPayment.currency,
+                    gateway: gateway,
+                    status: "PENDING",
+                    isTestMode: true,
+                    message: `CV Re-upload payment initiated via ${gateway}. Call /verify to complete.`
+                }
+            });
+        }
 
         if (!caseId || !intentId) {
             return res.status(400).json({ success: false, message: 'caseId and intentId are required' });
@@ -202,13 +242,51 @@ exports.verifyPayment = async (req, res) => {
         const { purchaseId, caseId, intentId } = req.body;
         const userId = req.user.id;
 
-        if (!purchaseId || !caseId || !intentId) {
-            return res.status(400).json({ success: false, message: 'Missing required fields' });
+        if (!purchaseId) {
+            return res.status(400).json({ success: false, message: 'purchaseId is required' });
         }
 
         const payment = await Payments.findOne({ purchaseId, userId });
         if (!payment) {
             return res.status(404).json({ success: false, message: 'Payment not found' });
+        }
+
+        // ── Handle CV Re-upload Product ──
+        if (payment.productId === 'CV_REUPLOAD') {
+            if (payment.status === 'COMPLETED') {
+                return res.status(200).json({
+                    success: true,
+                    data: {
+                        paymentId: payment.paymentId,
+                        status: "COMPLETED",
+                        alreadyVerified: true,
+                        message: "CV Re-upload payment already verified."
+                    }
+                });
+            }
+
+            const userDoc = await User.findById(userId);
+            if (userDoc) {
+                userDoc.hasPaidForRerun = true;
+                await userDoc.save();
+            }
+
+            payment.status = 'COMPLETED';
+            payment.verifiedAt = new Date();
+            await payment.save();
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    paymentId: payment.paymentId,
+                    status: "COMPLETED",
+                    message: "CV Re-upload payment verified successfully."
+                }
+            });
+        }
+
+        if (!caseId || !intentId) {
+            return res.status(400).json({ success: false, message: 'Missing required fields: caseId, intentId' });
         }
 
         if (payment.caseId !== caseId) {
