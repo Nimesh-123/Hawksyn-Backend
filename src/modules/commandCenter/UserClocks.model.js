@@ -67,7 +67,7 @@ const UserClocksSchema = new mongoose.Schema({
 
     insightText: { type: String, default: '' },
     lastCalculatedAt: { type: Date, default: Date.now },
-    lastCalculatedBy: { type: String, enum: ['AUTO_OPEN', 'HAWK', 'CASE_RUN'], default: 'AUTO_OPEN' },
+    lastCalculatedBy: { type: String, enum: ['AUTO_OPEN', 'HAWK', 'CASE_RUN', 'PROFILE_CONFIRM'], default: 'AUTO_OPEN' },
 
     // AI Audit Metadata
     llm: { type: String, default: 'N/A' },

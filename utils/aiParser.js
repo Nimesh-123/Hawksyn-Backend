@@ -206,7 +206,7 @@ const mapNewPipelineToHawksyn = (inputDoc) => {
         candidate_id: doc.candidate_id,
         aeuList,
         structured: {
-            identity: doc.header || consolidatorOutput.identity || {},
+            identity: doc.header?.identity || consolidatorOutput.identity || doc.header || {},
             work: {
                 experience,
                 projects: formattedProjects
@@ -218,7 +218,7 @@ const mapNewPipelineToHawksyn = (inputDoc) => {
                     soft: Array.from(softSkills)
                 },
                 languagesSpoken: Array.from(languagesSpoken).length > 0 ? Array.from(languagesSpoken) : (consolidatorOutput.languages || []),
-                certifications: doc.credentials || [],
+                certifications: (Array.isArray(doc.credentials) ? doc.credentials : doc.credentials?.certifications) || consolidatorOutput.certifications || [],
                 senioritySummary
             },
             inferred: {

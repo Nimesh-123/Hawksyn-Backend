@@ -5,7 +5,7 @@ const authMiddleware = require('../../../middleware/auth.js');
 
 /**
  * @swagger
- * /helpdesk/tickets:
+ * /user/helpdesk/tickets:
  *   get:
  *     summary: Get all helpdesk tickets for the logged-in user
  *     tags: [Helpdesk]
@@ -34,7 +34,7 @@ route.get('/tickets', authMiddleware, helpdeskController.getAllTickets);
 
 /**
  * @swagger
- * /helpdesk/tickets:
+ * /user/helpdesk/tickets:
  *   post:
  *     summary: Create a new helpdesk ticket
  *     tags: [Helpdesk]

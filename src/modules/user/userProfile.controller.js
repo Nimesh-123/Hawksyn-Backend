@@ -80,6 +80,8 @@ exports.getUserProfile = async (req, res) => {
         }
 
         // Clean User Facing Response (Identical to Original)
+        console.log('GET PROFILE - p.identity:', p?.identity);
+        console.log('GET PROFILE - originalParsedData.structured:', profile.originalParsedData?.structured);
         const cleanResponse = {
             isConfirmed: profile.isConfirmed,
             confirmedAt: profile.confirmedAt,

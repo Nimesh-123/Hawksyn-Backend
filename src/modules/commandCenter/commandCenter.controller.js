@@ -121,9 +121,9 @@ exports.getCommandCenter = async (req, res) => {
         const dashboardResponse = {
             userId: String(userId),
             profile: {
-                role:       profile?.current_role || role || 'Professional',
-                industry:   profile?.domain       || profile?.industry || industry || 'Technology',
-                experience: Number(profile?.experience_years || profile?.identity?.experienceYears || 0)
+                role:       profile?.identity?.currentRoleTitle || profile?.identity?.headline_title || profile?.current_role || role || 'Professional',
+                industry:   profile?.inferred?.domainIndicator || profile?.domain || profile?.industry || industry || 'Technology',
+                experience: Number(profile?.inferred?.totalExperienceYears || profile?.experience_years || 0)
             },
             validityState:       userClock.validityState,
             daysLeft:            userClock.daysLeft,
@@ -172,12 +172,17 @@ exports.runHawk = async (req, res) => {
         const userProfile = await db.UserProfile.findOne({ userId });
         const profileData = userProfile?.confirmedProfile || userProfile?.originalParsedData?.structured || {};
 
+        let achievements = profileData?.work?.experience?.[0]?.achievements || profileData?.achievements || [];
+        if (!achievements.length && profileData?.work?.experience?.[0]?.description) {
+            achievements = profileData.work.experience[0].description.split('\n').filter(Boolean);
+        }
+
         const dataForGemini = {
-            role:         profileData?.current_role             || profileData?.identity?.currentRoleTitle || 'Professional',
-            industry:     profileData?.domain || profileData?.industry || 'Technology',
-            skills:       profileData?.skills                   || [],
-            achievements: profileData?.achievements             || [],
-            tenure:       Number(profileData?.experience_years  || profileData?.identity?.experienceYears || 0)
+            role:         profileData?.identity?.currentRoleTitle || profileData?.identity?.headline_title || profileData?.current_role || 'Professional',
+            industry:     profileData?.inferred?.domainIndicator || profileData?.domain || profileData?.industry || 'Technology',
+            skills:       profileData?.composition?.skills?.technical || profileData?.skills || [],
+            achievements: achievements,
+            tenure:       Number(profileData?.inferred?.totalExperienceYears || profileData?.experience_years || 0)
         };
 
         // Recalculate using Unified AI Chain (Primary: Claude)

@@ -7,6 +7,6 @@
     "*.log",
     ".git"
   ],
-  "watch": ["src", "index.js", ".env"],
+  "watch": ["src", "utils", "index.js", ".env"],
   "ext": "js,json"
 }
