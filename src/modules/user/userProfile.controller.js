@@ -284,31 +284,17 @@ exports.getHomeStatus = async (req, res) => {
         const hip = await db.HipProfile.findOne({ userId }).lean();
         const isHipComplete = !!(user && hip && hip.publishedAt);
 
-        // Determine Statuses
+        // A user has completed Discover Yourself if it is currently confirmed OR if they already progressed to Step 2 in the past
+        const hasCompletedDiscover = !!(profile && profile.isConfirmed) || isClocksComplete;
+
+        // Determine Statuses based on the highest achieved milestone
         const status = {
-            discoverYourself: 'ACTIVE',
-            skillClocks: 'LOCKED',
-            buildHip: 'LOCKED'
+            discoverYourself: hasCompletedDiscover ? 'COMPLETED' : 'ACTIVE',
+            skillClocks: isClocksComplete ? 'COMPLETED' : (hasCompletedDiscover ? 'ACTIVE' : 'LOCKED'),
+            buildHip: isHipComplete ? 'COMPLETED' : (isClocksComplete ? 'ACTIVE' : 'LOCKED')
         };
 
-        let overallProgress = 0;
-
-        if (isDiscoverComplete) {
-            status.discoverYourself = 'COMPLETED';
-            status.skillClocks = 'ACTIVE';
-            overallProgress = 1;
-
-            if (isClocksComplete) {
-                status.skillClocks = 'COMPLETED';
-                status.buildHip = 'ACTIVE';
-                overallProgress = 2;
-
-                if (isHipComplete) {
-                    status.buildHip = 'COMPLETED';
-                    overallProgress = 3;
-                }
-            }
-        }
+        let overallProgress = isHipComplete ? 3 : (isClocksComplete ? 2 : (hasCompletedDiscover ? 1 : 0));
 
         return res.status(200).json({
             success: true,

@@ -114,4 +114,43 @@ router.get('/count', notificationController.getUnreadCount);
  */
 router.patch('/preferences', notificationController.updatePreferences);
 
+/**
+ * @swagger
+ * /notifications:
+ *   post:
+ *     summary: Create a mock notification for testing
+ *     tags: ["14. Notifications & Alerts"]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               targetRole:
+ *                 type: string
+ *                 example: "user"
+ *               targetUserId:
+ *                 type: string
+ *                 description: "Optional. Leave blank to target the logged-in user."
+ *               title:
+ *                 type: string
+ *                 example: "Your clocks have been updated."
+ *               message:
+ *                 type: string
+ *                 example: "Refresh notification"
+ *               type:
+ *                 type: string
+ *                 example: "CLOCK_REFRESHED"
+ *               metadata:
+ *                 type: object
+ *                 example: {}
+ *     responses:
+ *       201:
+ *         description: Created successfully
+ */
+router.post('/', notificationController.createNotification);
+
 module.exports = router;

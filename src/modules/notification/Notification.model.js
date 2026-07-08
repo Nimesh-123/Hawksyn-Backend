@@ -36,7 +36,10 @@ const NotificationSchema = new mongoose.Schema({
             'EXPERT_REPLY',
             'CONTRADICTION_ALERT',
             'MISSING_DATA_ALERT',
-            'SLA_BREACH'
+            'SLA_BREACH',
+            'CLOCK_REFRESHED',
+            'CRITICAL_DROP_ALERT',
+            'RERUN_REMINDER'
         ],
         required: true
     },

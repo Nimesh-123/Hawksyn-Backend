@@ -154,3 +154,30 @@ exports.updatePreferences = async (req, res) => {
         return RESPONSE.error(res, 500, 9999, err.message);
     }
 };
+
+exports.createNotification = async (req, res) => {
+    try {
+        const { targetRole, title, message, type, metadata, targetUserId } = req.body;
+        
+        // Ensure required fields
+        if (!title || !message || !type) {
+            return RESPONSE.error(res, 400, 1002, "title, message, and type are required");
+        }
+
+        const newNotification = await db.Notifications.create({
+            userId: targetUserId || req.user.id,
+            targetRole: targetRole || 'user',
+            title,
+            message,
+            type,
+            metadata
+        });
+        
+        return RESPONSE.success(res, 201, 1001, {
+            message: "Notification created successfully",
+            notification: newNotification
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
