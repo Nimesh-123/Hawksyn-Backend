@@ -110,6 +110,23 @@ exports.getUnreadCount = async (req, res) => {
     }
 };
 
+exports.getPreferences = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await db.User.findById(userId).lean();
+        
+        if (!user) {
+            return RESPONSE.error(res, 404, 1003, "User not found");
+        }
+
+        return RESPONSE.success(res, 200, 1001, {
+            preferences: user.notificationPreferences || {}
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
 exports.updatePreferences = async (req, res) => {
     try {
         const { 
