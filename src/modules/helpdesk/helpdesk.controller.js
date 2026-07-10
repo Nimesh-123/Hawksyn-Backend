@@ -1,6 +1,8 @@
 const { db } = require('../../models/index.model.js');
 const RESPONSE = require('../../../utils/response.js');
 const { generateFormattedId } = require('../../../utils/idGenerator.js');
+const socketService = require('../../sockets/socketService');
+const notificationService = require('../../services/notificationService');
 
 exports.getAllTickets = async (req, res) => {
     try {
@@ -55,6 +57,16 @@ exports.createTicket = async (req, res) => {
             senderType: 'USER',
             message: description
         });
+
+        // Notify Admins
+        const userName = req.user.name || req.user.fullName || 'A User';
+        await notificationService.notifyNewTicket(ticket._id, userName);
+
+        // Emit Socket Event
+        const io = socketService.getIO();
+        if (io) {
+            io.emit('new_ticket', ticket); // Broadcast to all connected admins
+        }
 
         return RESPONSE.success(res, 201, 1001, {
             message: "Ticket created successfully.",
@@ -114,9 +126,42 @@ exports.replyToTicket = async (req, res) => {
             message
         });
 
+        // Notify Admin
+        const userName = req.user.name || req.user.fullName || 'A User';
+        await notificationService.notifyTicketReplyToAdmin(ticket._id, userName);
+
+        // Emit Socket Event
+        const io = socketService.getIO();
+        if (io) {
+            io.emit('ticket_message', ticketMessage);
+        }
+
         return RESPONSE.success(res, 201, 1001, {
             message: "Reply sent successfully.",
             ticketMessage
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+exports.markAsRead = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+
+        const ticket = await db.Ticket.findOne({ _id: id, userId });
+        if (!ticket) {
+            return RESPONSE.error(res, 404, 3001, "Ticket not found.");
+        }
+
+        await db.TicketMessage.updateMany(
+            { ticketId: ticket._id, senderType: 'SUPPORT', isRead: false },
+            { $set: { isRead: true } }
+        );
+
+        return RESPONSE.success(res, 200, 1001, {
+            message: "Messages marked as read."
         });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);

@@ -146,4 +146,29 @@ route.post('/tickets/:id/reply', authMiddleware, helpdeskAdminController.replyTo
  */
 route.patch('/tickets/:id/status', authMiddleware, helpdeskAdminController.updateTicketStatus);
 
+/**
+ * @swagger
+ * /admin/helpdesk/tickets/{id}/read:
+ *   patch:
+ *     summary: Mark messages from user as read
+ *     tags: [Admin Helpdesk]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ticket ID
+ *     responses:
+ *       200:
+ *         description: Messages marked as read
+ *       404:
+ *         description: Ticket not found
+ *       500:
+ *         description: Server error
+ */
+route.patch('/tickets/:id/read', authMiddleware, helpdeskAdminController.markTicketAsReadAdmin);
+
 module.exports = route;

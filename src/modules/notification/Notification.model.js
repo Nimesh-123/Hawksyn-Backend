@@ -39,7 +39,9 @@ const NotificationSchema = new mongoose.Schema({
             'SLA_BREACH',
             'CLOCK_REFRESHED',
             'CRITICAL_DROP_ALERT',
-            'RERUN_REMINDER'
+            'RERUN_REMINDER',
+            'NEW_TICKET',
+            'TICKET_REPLY'
         ],
         required: true
     },

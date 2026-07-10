@@ -131,4 +131,29 @@ route.get('/tickets/:id', authMiddleware, helpdeskController.getTicketThread);
  */
 route.post('/tickets/:id/reply', authMiddleware, helpdeskController.replyToTicket);
 
+/**
+ * @swagger
+ * /user/helpdesk/tickets/{id}/read:
+ *   patch:
+ *     summary: Mark messages from support as read
+ *     tags: [Helpdesk]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ticket ID
+ *     responses:
+ *       200:
+ *         description: Messages marked as read
+ *       404:
+ *         description: Ticket not found
+ *       500:
+ *         description: Server error
+ */
+route.patch('/tickets/:id/read', authMiddleware, helpdeskController.markAsRead);
+
 module.exports = route;
