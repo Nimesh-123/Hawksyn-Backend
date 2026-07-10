@@ -90,6 +90,20 @@ router.get('/count', notificationController.getUnreadCount);
 /**
  * @swagger
  * /notifications/preferences:
+ *   get:
+ *     summary: Get notification preferences
+ *     tags: ["14. Notifications & Alerts"]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.get('/preferences', notificationController.getPreferences);
+
+/**
+ * @swagger
+ * /notifications/preferences:
  *   patch:
  *     summary: Update notification preferences (Slide 17)
  *     tags: ["14. Notifications & Alerts"]

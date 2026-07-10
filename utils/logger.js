@@ -16,22 +16,7 @@ const textFormat = format.printf(({ timestamp, level, message, stack }) => {
     output += `\n  ID:   ${m.requestId || 'system'}`;
     output += `\n  USER: ${m.userId || 'guest'} ${m.userEmail ? '(' + m.userEmail + ')' : ''}`;
 
-    // 3. Request Body (Prettified)
-    if (m.requestBody && Object.keys(m.requestBody).length > 0) {
-      const reqStr = JSON.stringify(m.requestBody, null, 2);
-      const indentedReq = reqStr.split('\n').map(l => '    ' + l).join('\n');
-      output += `\n  REQ:\n${indentedReq}`;
-    }
-
-    // 4. Response Body (Prettified & Truncated)
-    if (m.responseBody) {
-      const resStr = JSON.stringify(m.responseBody, null, 2);
-      // Keep it readable but prevent log floods (using 5000 chars as limit for prettified JSON)
-      const displayRes = resStr.length > 5000 ? resStr.substring(0, 5000) + "\n    ... [TRUNCATED]" : resStr;
-
-      const indentedRes = displayRes.split('\n').map(l => '    ' + l).join('\n');
-      output += `\n  RES:\n${indentedRes}`;
-    }
+    // Request and Response Body logging (REQ/RES) has been removed to prevent terminal flooding.
 
     // 5. Failure Reason
     const reason = m.failureReason || m.errorMessage;
