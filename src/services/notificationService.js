@@ -643,6 +643,70 @@ class NotificationService {
         } catch (error) { logger.error(`[Notif Error] Clock Critical: ${error.message}`); }
     }
 
+
+    /**
+     * Triggered when a User creates a new Helpdesk Ticket
+     */
+    async notifyNewTicket(ticketId, userName) {
+        try {
+            await db.Notifications.create({
+                userId: null,
+                targetRole: 'admin',
+                type: 'NEW_TICKET',
+                title: 'New Helpdesk Ticket',
+                message: `${userName} has submitted a new support ticket.`,
+                metadata: { caseId: ticketId }
+            });
+            logger.info(`[Notification] New Ticket alert sent to admins for ${ticketId}`);
+        } catch (error) { logger.error(`[Notif Error] New Ticket: ${error.message}`); }
+    }
+
+    /**
+     * Triggered when a User replies to a Helpdesk Ticket
+     */
+    async notifyTicketReplyToAdmin(ticketId, userName) {
+        try {
+            await db.Notifications.create({
+                userId: null,
+                targetRole: 'admin',
+                type: 'TICKET_REPLY',
+                title: 'New Ticket Reply',
+                message: `${userName} replied to ticket #${ticketId}.`,
+                metadata: { caseId: ticketId }
+            });
+            logger.info(`[Notification] Ticket Reply alert sent to admins for ${ticketId}`);
+        } catch (error) { logger.error(`[Notif Error] Ticket Reply (Admin): ${error.message}`); }
+    }
+
+    /**
+     * Triggered when Admin replies to a Helpdesk Ticket
+     */
+    async notifyTicketReplyToUser(ticketId, userId) {
+        try {
+            const user = await db.User.findById(userId);
+            if (!user) return;
+
+            await db.Notifications.create({
+                userId: userId,
+                targetRole: 'user',
+                type: 'TICKET_REPLY',
+                title: 'Support Replied',
+                message: `Support has replied to your ticket #${ticketId}.`,
+                metadata: { caseId: ticketId }
+            });
+
+            if (user.fcmToken) {
+                await this.sendPushNotification(
+                    user.fcmToken,
+                    'Support Replied',
+                    `Support has replied to your ticket #${ticketId}.`,
+                    { type: 'TICKET_REPLY', ticketId: ticketId.toString() }
+                );
+            }
+            logger.info(`[Notification] Ticket Reply alert sent to user ${userId} for ${ticketId}`);
+        } catch (error) { logger.error(`[Notif Error] Ticket Reply (User): ${error.message}`); }
+    }
+
 }
 
 module.exports = new NotificationService();

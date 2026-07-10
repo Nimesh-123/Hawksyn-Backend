@@ -1,5 +1,7 @@
 const { db } = require('../../models/index.model.js');
 const RESPONSE = require('../../../utils/response.js');
+const socketService = require('../../sockets/socketService');
+const notificationService = require('../../services/notificationService');
 
 exports.getAllTicketsAdmin = async (req, res) => {
     try {
@@ -79,6 +81,15 @@ exports.replyToTicketAdmin = async (req, res) => {
         // Optionally, if the ticket was closed, maybe replying as an admin should reopen it? 
         // For now, let's keep it simple.
 
+        // Notify User
+        await notificationService.notifyTicketReplyToUser(ticket._id, ticket.userId);
+
+        // Emit Socket Event
+        const io = socketService.getIO();
+        if (io) {
+            io.to(ticket.userId.toString()).emit('ticket_message', ticketMessage);
+        }
+
         return RESPONSE.success(res, 201, 1001, {
             message: "Reply sent successfully.",
             ticketMessage
@@ -114,6 +125,28 @@ exports.updateTicketStatus = async (req, res) => {
         return RESPONSE.success(res, 200, 1001, {
             message: `Ticket status updated to ${status}.`,
             ticket
+        });
+    } catch (err) {
+        return RESPONSE.error(res, 500, 9999, err.message);
+    }
+};
+
+exports.markTicketAsReadAdmin = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const ticket = await db.Ticket.findById(id);
+        if (!ticket) {
+            return RESPONSE.error(res, 404, 3001, "Ticket not found.");
+        }
+
+        await db.TicketMessage.updateMany(
+            { ticketId: ticket._id, senderType: 'USER', isRead: false },
+            { $set: { isRead: true } }
+        );
+
+        return RESPONSE.success(res, 200, 1001, {
+            message: "Messages marked as read."
         });
     } catch (err) {
         return RESPONSE.error(res, 500, 9999, err.message);
