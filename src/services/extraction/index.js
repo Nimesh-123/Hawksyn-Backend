@@ -906,15 +906,29 @@ async function runExtractionPipeline(candidateId, rawText, db) {
   };
 
   try {
+    const CV_PROGRESS_MAP = {
+      'PENDING': { progress: 10, message: "Initializing..." },
+      'PROCESSING': { progress: 20, message: "Reading document..." },
+      'BUILDING_CAREER_TIMELINE': { progress: 48, message: "Analyzing career timeline..." },
+      'READING_CAREER_SIGNALS': { progress: 72, message: "Extracting career signals..." }
+    };
+
     const emitProgress = (status, liveMetrics = {}) => {
       try {
         const socketService = require('../../sockets/socketService');
         const io = socketService.getIO();
+        const mapping = CV_PROGRESS_MAP[status] || { progress: 20, message: "Processing CV..." };
+
         if (io) {
           io.to(candidateId.toString()).emit('cv_parse_update', {
-            status: 'PROCESSING',
-            parserStatus: status,
-            liveMetrics: liveMetrics
+            success: true,
+            data: {
+              status: 'PROCESSING',
+              parserStatus: status,
+              progress: mapping.progress,
+              message: mapping.message,
+              liveMetrics: liveMetrics
+            }
           });
         }
       } catch (e) {

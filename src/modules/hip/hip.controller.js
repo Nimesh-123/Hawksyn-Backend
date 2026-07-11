@@ -4,6 +4,99 @@ const path = require('path');
 const Handlebars = require('handlebars');
 const hipService = require('./hip.service');
 
+const UI_CHAPTER_MAP = [
+    {
+        chapterName: "Core Identity",
+        sections: [
+            { id: "S02", title: "Profile Rarity" },
+            { id: "S03", title: "What the Record Reveals" },
+            { id: "S04", title: "Identity Summary" }
+        ]
+    },
+    {
+        chapterName: "Career Blueprint",
+        sections: [
+            { id: "S05", title: "Seniority Signal" },
+            { id: "S06", title: "Career Pattern" },
+            { id: "S07", title: "Measurable Impact" }
+        ]
+    },
+    {
+        chapterName: "Responsibility & Authority",
+        sections: [
+            { id: "S08", title: "Scale of Responsibility" },
+            { id: "S09", title: "Decision Authority" },
+            { id: "S10", title: "What Career Never Said" }
+        ]
+    },
+    {
+        chapterName: "Strengths and Capabilities",
+        sections: [
+            { id: "S11", title: "Professional Strengths" },
+            { id: "S13", title: "Domain Authority" },
+            { id: "S14", title: "Specialist Identity" }
+        ]
+    },
+    {
+        chapterName: "Growth and Trajectory",
+        sections: [
+            { id: "S15", title: "Growth Arc" },
+            { id: "S16", title: "How They Moved" },
+            { id: "S17", title: "Employer Pedigree" },
+            { id: "S18", title: "Domain Accumulation" }
+        ]
+    },
+    {
+        chapterName: "Character and Leadership",
+        sections: [
+            { id: "S19", title: "Leadership Signals" },
+            { id: "S20", title: "Notable Project Work" },
+            { id: "S21", title: "Trust Signals" },
+            { id: "S22", title: "Profile Rarity" }
+        ]
+    },
+    {
+        chapterName: "Market Position and Verification",
+        sections: [
+            { id: "S23", title: "Market Demand" },
+            { id: "S24", title: "Distinctive Edge" }
+        ]
+    }
+];
+
+function generateDynamicChapters(sectionsData) {
+    let dynamicChapters = [];
+    let chapterCounter = 2; // Starts from 2 because Chapter 1 is hardcoded
+
+    for (let ch of UI_CHAPTER_MAP) {
+        let activeSections = [];
+        let sectionCounter = 1;
+
+        for (let secDef of ch.sections) {
+            let secData = sectionsData[secDef.id];
+            if (secData && !secData._skipped && !secData._degraded && !secData._error) {
+                activeSections.push({
+                    id: secDef.id.toLowerCase(), // e.g. s11
+                    title: secDef.title,
+                    padId: sectionCounter.toString().padStart(2, '0'),
+                    data: secData
+                });
+                sectionCounter++;
+            }
+        }
+
+        if (activeSections.length > 0) {
+            dynamicChapters.push({
+                chapterIndex: chapterCounter,
+                chapterName: ch.chapterName,
+                sections: activeSections
+            });
+            chapterCounter++;
+        }
+    }
+    return dynamicChapters;
+}
+
 let sectionCounter = 1;
 
 Handlebars.registerHelper('resetCounter', function() {
@@ -94,13 +187,16 @@ class HipController {
                 hip: {}
             };
 
-            // Map sectionsData to hip object
-            // For example, if sectionsData['S01'] exists, it maps to hip.s01
             const sections = profile.sectionsData instanceof Map ? Object.fromEntries(profile.sectionsData) : (profile.sectionsData || {});
+            
+            // Map sectionsData to hip object for carousels and Ch 1
             for (const [secId, data] of Object.entries(sections)) {
                 const lowerId = secId.toLowerCase(); // 'S01' -> 's01'
                 viewData.hip[lowerId] = data;
             }
+
+            // Generate the dynamic chapters array
+            viewData.dynamicChapters = generateDynamicChapters(sections);
 
             // 4. Render HTML
             const finalHtml = template(viewData);
@@ -177,7 +273,7 @@ class HipController {
 
                 responsePayload.profileSlug = profile.profileSlug;
                 responsePayload.isLive = profile.status === 'PUBLISHED';
-                const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3002}/api/v1`;
+                const baseUrl = (process.env.API_URL || `http://localhost:${process.env.PORT || 3002}/api/v1`).replace('/api/v1', '');
                 responsePayload.shareUrl = `${baseUrl}/hip/public/profile/${profile.profileSlug}`;
                 responsePayload.profileData = {
                     // Original fields in case they are needed elsewhere
@@ -299,6 +395,9 @@ class HipController {
                 viewData.hip[lowerId] = data;
             }
 
+            // Generate the dynamic chapters array
+            viewData.dynamicChapters = generateDynamicChapters(sections);
+
             const finalHtml = template(viewData);
 
             const puppeteer = require('puppeteer');
@@ -334,9 +433,27 @@ class HipController {
 const generateHipProfileWithSteps = async (userId) => {
     try {
         const socketService = require('../../sockets/socketService');
-        const emitUpdate = (status) => {
+        const HIP_PROGRESS_MAP = {
+            'CAREER_SIGNALS': { progress: 20, message: "Analyzing career signals..." },
+            'CLOCK_DATA': { progress: 40, message: "Processing clock data..." },
+            'PROFILE_CARD': { progress: 60, message: "Building profile card..." },
+            'SECURE_PIN': { progress: 88, message: "Locking with your M-PIN..." },
+            'COMPLETED': { progress: 100, message: "Profile generation complete." }
+        };
+
+        const emitUpdate = (status, profileData = null) => {
             const io = socketService.getIO();
-            if (io) io.to(userId.toString()).emit('hip_generation_update', { status });
+            const mapping = HIP_PROGRESS_MAP[status] || { progress: 0, message: "Processing..." };
+            
+            if (io) io.to(userId.toString()).emit('hip_generation_update', {
+                success: true,
+                data: {
+                    generationStatus: status,
+                    progress: mapping.progress,
+                    message: mapping.message,
+                    ...(profileData && { profileData })
+                }
+            });
         };
 
         await db.HipProfile.updateOne({ userId }, { generationStatus: 'CAREER_SIGNALS' });
@@ -361,7 +478,7 @@ const generateHipProfileWithSteps = async (userId) => {
             { userId }, 
             { generationStatus: 'COMPLETED', status: 'PUBLISHED', publishedAt: new Date(), profileSlug: profile.profileSlug }
         );
-        emitUpdate('COMPLETED');
+        emitUpdate('COMPLETED', profile);
 
     } catch (error) {
         console.error('Background HIP Generation Error:', error);

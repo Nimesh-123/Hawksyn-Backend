@@ -274,15 +274,24 @@ exports.getHomeStatus = async (req, res) => {
         // 1. Check Discover Yourself (Card 1)
         const profile = await db.UserProfile.findOne({ userId }).lean();
         const isDiscoverComplete = !!(profile && profile.isConfirmed);
+        
+        const activeCvDoc = await db.DocumentUploads.findOne({ userId, isActive: true }).lean();
+        const terminalCvStates = ['SUCCESS', 'FAILED', 'NOT_A_CV', 'EMPTY', 'REJECTED', 'rejected'];
+        const discoverActiveProcess = (activeCvDoc && activeCvDoc.parserStatus && !terminalCvStates.includes(activeCvDoc.parserStatus)) 
+            ? activeCvDoc.parserStatus : null;
 
         // 2. Check Skill Clocks (Card 2)
         const user = await db.User.findById(userId).lean();
         const clocks = await db.UserClocks.findOne({ userId }).lean();
         const isClocksComplete = !!(user && user.isPhoneVerified && clocks && clocks.generationStatus === 'COMPLETED');
+        
+        const clocksActiveProcess = (clocks && clocks.generationStatus && clocks.generationStatus !== 'COMPLETED') ? clocks.generationStatus : null;
 
         // 3. Check HIP (Card 3)
         const hip = await db.HipProfile.findOne({ userId }).lean();
         const isHipComplete = !!(user && hip && hip.publishedAt);
+        
+        const hipActiveProcess = (hip && hip.generationStatus && hip.generationStatus !== 'COMPLETED') ? hip.generationStatus : null;
 
         // A user has completed Discover Yourself if it is currently confirmed OR if they already progressed to Step 2 in the past
         const hasCompletedDiscover = !!(profile && profile.isConfirmed) || isClocksComplete;
@@ -294,13 +303,20 @@ exports.getHomeStatus = async (req, res) => {
             buildHip: isHipComplete ? 'COMPLETED' : (isClocksComplete ? 'ACTIVE' : 'LOCKED')
         };
 
+        const activeProcesses = {
+            discoverYourself: discoverActiveProcess,
+            skillClocks: clocksActiveProcess,
+            buildHip: hipActiveProcess
+        };
+
         let overallProgress = isHipComplete ? 3 : (isClocksComplete ? 2 : (hasCompletedDiscover ? 1 : 0));
 
         return res.status(200).json({
             success: true,
             data: {
                 overallProgress,
-                cards: status
+                cards: status,
+                activeProcesses
             }
         });
     } catch (error) {
