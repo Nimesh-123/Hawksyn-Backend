@@ -413,9 +413,14 @@ exports.uploadCV = async (req, res) => {
                     const io = socketService.getIO();
                     if (io) {
                         io.to(userId.toString()).emit('cv_parse_update', {
-                            status: 'COMPLETED',
-                            parserStatus: 'NOT_A_CV',
-                            errorReason: 'Detected as non-CV document.'
+                            success: true,
+                            data: {
+                                status: 'COMPLETED',
+                                parserStatus: 'NOT_A_CV',
+                                progress: 100,
+                                message: 'Detected as non-CV document.',
+                                errorReason: 'Detected as non-CV document.'
+                            }
                         });
                     }
                     if (isPaidRerun) {
@@ -449,9 +454,14 @@ exports.uploadCV = async (req, res) => {
                     const io = socketService.getIO();
                     if (io) {
                         io.to(userId.toString()).emit('cv_parse_update', {
-                            status: 'COMPLETED',
-                            parserStatus: 'REJECTED',
-                            errorReason: aiError.userMessage
+                            success: true,
+                            data: {
+                                status: 'COMPLETED',
+                                parserStatus: 'REJECTED',
+                                progress: 100,
+                                message: aiError.userMessage || 'CV Parsing Rejected',
+                                errorReason: aiError.userMessage
+                            }
                         });
                     }
                     if (isPaidRerun) {
@@ -527,9 +537,14 @@ exports.uploadCV = async (req, res) => {
             const io = socketService.getIO();
             if (io) {
                 io.to(userId.toString()).emit('cv_parse_update', {
-                    status: 'COMPLETED',
-                    parserStatus: parserStatus,
-                    errorReason: errorReason
+                    success: true,
+                    data: {
+                        status: 'COMPLETED',
+                        parserStatus: parserStatus,
+                        progress: 100,
+                        message: errorReason || 'CV Parsing Complete',
+                        errorReason: errorReason
+                    }
                 });
             }
 
@@ -865,8 +880,23 @@ const generateClocksWithSteps = async (userId) => {
         const socketService = require('../../sockets/socketService');
         const io = socketService.getIO();
 
+        const CLOCK_PROGRESS_MAP = {
+            'MARKET_VELOCITY': { progress: 25, message: "Aligning market position..." },
+            'SKILL_HALFLIFE': { progress: 50, message: "Calculating skill decay..." },
+            'OPPORTUNITY_WINDOW': { progress: 75, message: "Identifying opportunities..." },
+            'COMPLETED': { progress: 100, message: "Clocks active." }
+        };
+
         const emitStatus = (status) => {
-            if (io) io.to(userId.toString()).emit('clock_generation_update', { status });
+            const mapping = CLOCK_PROGRESS_MAP[status] || { progress: 0, message: "Processing..." };
+            if (io) io.to(userId.toString()).emit('clock_generation_update', { 
+                success: true,
+                data: {
+                    status: status,
+                    progress: mapping.progress,
+                    message: mapping.message
+                }
+            });
         };
         
         // Step 1: AI Exposure (initial)

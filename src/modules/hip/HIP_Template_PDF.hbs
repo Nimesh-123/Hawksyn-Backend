@@ -2761,18 +2761,23 @@
             </div>
           </div>
 
-          <!-- ── CHAPTER 4 ── -->
-          <div class="ch-divider">Chapter 4 &middot; Strengths and Capabilities</div>
+          {{#each dynamicChapters}}
+          <div class="ch-divider">Chapter {{this.chapterIndex}} &middot; {{this.chapterName}}</div>
+          {{resetCounter}}
 
-          {{#unless hip.s11._skipped}}
+          {{#each this.sections}}
           <div class="card reveal">
-            <div class="sh" id="s11">
-              <div class="sh-meta"><span class="sh-ref">Ch 4 · S{{padSectionNumber}}</span><span class="sh-ch">Strengths and
-                  Capabilities</span></div>
-              <div class="sh-title">Professional Strengths</div>
+            <div class="sh" id="{{this.id}}">
+              <div class="sh-meta">
+                <span class="sh-ref">Ch {{../chapterIndex}} &middot; S{{this.padId}}</span>
+                <span class="sh-ch">{{../chapterName}}</span>
+              </div>
+              <div class="sh-title">{{this.title}}</div>
             </div>
+            
+            {{#if this.data.cards}}
             <div class="sec-grid">
-              {{#each hip.s11.cards}}
+              {{#each this.data.cards}}
               <div class="ic">
                 <div class="ic-label">{{this.label}}</div>
                 <div class="ic-title">{{this.title}}</div>
@@ -2781,272 +2786,32 @@
               </div>
               {{/each}}
             </div>
-          </div>
-
-          
-          {{/unless}}
-          {{#unless hip.s13._skipped}}
-          <div class="card reveal">
-            <div class="sh" id="s13">
-              <div class="sh-meta"><span class="sh-ref">Ch 4 · S{{padSectionNumber}}</span><span class="sh-ch">Strengths and
-                  Capabilities</span></div>
-              <div class="sh-title">Domain Authority</div>
-            </div>
+            {{else if this.data.prose}}
             <div class="sec-prose">
-              <p>{{hip.s13.prose}}</p>
-              {{#if hip.s13.chips}}
+              <p>{{this.data.prose}}</p>
+              {{#if this.data.chips}}
               <div class="chip-row">
-                {{#each hip.s13.chips}}
+                {{#each this.data.chips}}
                 <span class="chip">{{this}}</span>
                 {{/each}}
               </div>
               {{/if}}
             </div>
-          </div>
-
-
-          
-          {{/unless}}
-          {{#unless hip.s14._skipped}}
-          <div class="card reveal">
-            <div class="sh" id="s14">
-              <div class="sh-meta"><span class="sh-ref">Ch 4 · S{{padSectionNumber}}</span><span class="sh-ch">Strengths and
-                  Capabilities</span></div>
-              <div class="sh-title">Specialist Identity</div>
-            </div>
-            <div class="sec-prose">
-              <p>{{hip.s14.prose}}</p>
-              {{#if hip.s14.chips}}
-              <div class="chip-row">
-                {{#each hip.s14.chips}}
-                <span class="chip">{{this}}</span>
-                {{/each}}
-              </div>
-              {{/if}}
-            </div>
-          </div>
-
-          
-          {{/unless}}
-          <!-- ── CHAPTER 5 ── -->
-          <div class="ch-divider">Chapter 5 &middot; Growth and Trajectory</div>
-
-          {{#unless hip.s15._skipped}}
-          <div class="card reveal">
-            <div class="sh" id="s15">
-              <div class="sh-meta"><span class="sh-ref">Ch 5 · S{{padSectionNumber}}</span><span class="sh-ch">Growth and
-                  Trajectory</span></div>
-              <div class="sh-title">Growth Arc</div>
-            </div>
-            <div class="sec-prose">
-              <p>{{hip.s15.prose}}</p>
-              {{#if hip.s15.chips}}
-              <div class="chip-row">
-                {{#each hip.s15.chips}}
-                <span class="chip">{{this}}</span>
-                {{/each}}
-              </div>
-              {{/if}}
-            </div>
-          </div>
-
-          
-          {{/unless}}
-          {{#unless hip.s16._skipped}}
-          <div class="card reveal">
-            <div class="sh" id="s16">
-              <div class="sh-meta"><span class="sh-ref">Ch 5 · S{{padSectionNumber}}</span><span class="sh-ch">Growth and
-                  Trajectory</span></div>
-              <div class="sh-title">How They Moved</div>
-            </div>
+            {{else if this.data.columns}}
             <div class="sec-grid">
-              {{#each hip.s16.cards}}
+              {{#each this.data.columns}}
               <div class="ic">
                 <div class="ic-label">{{this.label}}</div>
-                <div class="ic-title">{{this.title}}</div>
-                <div class="ic-desc">{{this.description}}</div>
-                {{#if this.tag}}<span class="ic-tag">{{this.tag}}</span>{{/if}}
+                <div class="ic-title">{{this.value}} {{this.unit}}</div>
+                <div class="ic-desc">{{this.context}}</div>
+                {{#if this.chip}}<span class="ic-tag">{{this.chip}}</span>{{/if}}
               </div>
               {{/each}}
             </div>
+            {{/if}}
           </div>
-
-          
-          {{/unless}}
-          {{#unless hip.s17._skipped}}
-          <div class="card reveal">
-            <div class="sh" id="s17">
-              <div class="sh-meta"><span class="sh-ref">Ch 5 · S{{padSectionNumber}}</span><span class="sh-ch">Growth and
-                  Trajectory</span></div>
-              <div class="sh-title">Employer Pedigree</div>
-            </div>
-            <div class="sec-prose">
-              <p>{{hip.s17.prose}}</p>
-              {{#if hip.s17.chips}}
-              <div class="chip-row">
-                {{#each hip.s17.chips}}
-                <span class="chip">{{this}}</span>
-                {{/each}}
-              </div>
-              {{/if}}
-            </div>
-          </div>
-          
-          {{/unless}}
-          {{#unless hip.s18._skipped}}
-          <div class="card reveal">
-            <div class="sh" id="s18">
-              <div class="sh-meta"><span class="sh-ref">Ch 5 · S{{padSectionNumber}}</span><span class="sh-ch">Growth and
-                  Trajectory</span></div>
-              <div class="sh-title">Domain Accumulation</div>
-            </div>
-            <div class="sec-prose">
-              <p>{{hip.s18.prose}}</p>
-              {{#if hip.s18.chips}}
-              <div class="chip-row">
-                {{#each hip.s18.chips}}
-                <span class="chip">{{this}}</span>
-                {{/each}}
-              </div>
-              {{/if}}
-            </div>
-          </div>
-
-          
-          {{/unless}}
-          <!-- ── CHAPTER 6 ── -->
-          <div class="ch-divider">Chapter 6 &middot; Character and Leadership</div>
-
-          {{#unless hip.s19._skipped}}
-          <div class="card reveal">
-            <div class="sh" id="s19">
-              <div class="sh-meta"><span class="sh-ref">Ch 6 · S{{padSectionNumber}}</span><span class="sh-ch">Character and
-                  Leadership</span></div>
-              <div class="sh-title">Leadership Signals</div>
-            </div>
-            <div class="sec-grid">
-              {{#each hip.s19.cards}}
-              <div class="ic">
-                <div class="ic-label">{{this.label}}</div>
-                <div class="ic-title">{{this.title}}</div>
-                <div class="ic-desc">{{this.description}}</div>
-                {{#if this.tag}}<span class="ic-tag">{{this.tag}}</span>{{/if}}
-              </div>
-              {{/each}}
-            </div>
-          </div>
-
-
-          
-          {{/unless}}
-          {{#unless hip.s20._skipped}}
-          <div class="card reveal">
-            <div class="sh" id="s20">
-              <div class="sh-meta"><span class="sh-ref">Ch 6 · S{{padSectionNumber}}</span><span class="sh-ch">Character and
-                  Leadership</span></div>
-              <div class="sh-title">Notable Project Work</div>
-            </div>
-            <div class="sec-grid">
-              {{#each hip.s20.cards}}
-              <div class="ic">
-                <div class="ic-label">{{this.label}}</div>
-                <div class="ic-title">{{this.title}}</div>
-                <div class="ic-desc">{{this.description}}</div>
-                {{#if this.tag}}<span class="ic-tag">{{this.tag}}</span>{{/if}}
-              </div>
-              {{/each}}
-            </div>
-          </div>
-
-          
-          {{/unless}}
-          {{#unless hip.s21._skipped}}
-          <div class="card reveal">
-            <div class="sh" id="s21">
-              <div class="sh-meta"><span class="sh-ref">Ch 6 · S{{padSectionNumber}}</span><span class="sh-ch">Character and
-                  Leadership</span></div>
-              <div class="sh-title">Trust Signals</div>
-            </div>
-            <div class="sec-prose">
-              <p>{{hip.s21.prose}}</p>
-              {{#if hip.s21.chips}}
-              <div class="chip-row">
-                {{#each hip.s21.chips}}
-                <span class="chip">{{this}}</span>
-                {{/each}}
-              </div>
-              {{/if}}
-            </div>
-          </div>
-
-          
-          {{/unless}}
-          {{#unless hip.s22._skipped}}
-          <div class="card reveal">
-            <div class="sh" id="s22">
-              <div class="sh-meta"><span class="sh-ref">Ch 6 · S{{padSectionNumber}}</span><span class="sh-ch">Character and
-                  Leadership</span></div>
-              <div class="sh-title">Profile Rarity</div>
-            </div>
-            <div class="sec-grid">
-              {{#each hip.s22.cards}}
-              <div class="ic">
-                <div class="ic-label">{{this.label}}</div>
-                <div class="ic-title">{{this.title}}</div>
-                <div class="ic-desc">{{this.description}}</div>
-                {{#if this.tag}}<span class="ic-tag">{{this.tag}}</span>{{/if}}
-              </div>
-              {{/each}}
-            </div>
-          </div>
-
-          
-          {{/unless}}
-          <!-- ── CHAPTER 7 ── -->
-          <div class="ch-divider">Chapter 7 &middot; Market Position and Verification</div>
-
-          {{#unless hip.s23._skipped}}
-          <div class="card reveal">
-            <div class="sh" id="s23">
-              <div class="sh-meta"><span class="sh-ref">Ch 7 · S{{padSectionNumber}}</span><span class="sh-ch">Market Position and
-                  Verification</span></div>
-              <div class="sh-title">Market Demand</div>
-            </div>
-            <div class="sec-prose">
-              <p>{{hip.s23.prose}}</p>
-              {{#if hip.s23.chips}}
-              <div class="chip-row">
-                {{#each hip.s23.chips}}
-                <span class="chip">{{this}}</span>
-                {{/each}}
-              </div>
-              {{/if}}
-            </div>
-          </div>
-
-          
-          {{/unless}}
-          {{#unless hip.s24._skipped}}
-          <div class="card reveal">
-            <div class="sh" id="s24">
-              <div class="sh-meta"><span class="sh-ref">Ch 7 · S{{padSectionNumber}}</span><span class="sh-ch">Market Position and
-                  Verification</span></div>
-              <div class="sh-title">Distinctive Edge</div>
-            </div>
-            <div class="sec-prose">
-              <p>{{hip.s24.prose}}</p>
-              {{#if hip.s24.chips}}
-              <div class="chip-row">
-                {{#each hip.s24.chips}}
-                <span class="chip">{{this}}</span>
-                {{/each}}
-              </div>
-              {{/if}}
-            </div>
-          </div>
-
-          
-          {{/unless}}
+          {{/each}}
+          {{/each}}
           <!-- Footer -->
           <div class="footer-card">
             <div class="footer-top">

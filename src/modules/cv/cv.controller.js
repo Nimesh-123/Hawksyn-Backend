@@ -23,6 +23,26 @@ Handlebars.registerHelper('gt', function (a, b) {
     return Number(a) > Number(b);
 });
 
+Handlebars.registerHelper('divide', function (a, b) {
+    return Number(b) === 0 ? 0 : Number(a) / Number(b);
+});
+
+Handlebars.registerHelper('subtract', function (a, b) {
+    return Number(a) - Number(b);
+});
+
+Handlebars.registerHelper('add', function (a, b) {
+    return Number(a) + Number(b);
+});
+
+Handlebars.registerHelper('round', function (a) {
+    return Math.round(Number(a));
+});
+
+Handlebars.registerHelper('gte', function (a, b) {
+    return Number(a) >= Number(b);
+});
+
 
 /**
  * Handle "Continue with existing CV" choice.
@@ -366,6 +386,100 @@ exports.downloadCvReportPdf = async (req, res) => {
         }
 
         const report = generateReport(extractedCV, psdeResult, uploadMeta?.parserMetadata?.metrics);
+
+        // Inject computed variables for the template
+        const totalAEUs = (report.career_timeline || []).reduce((acc, curr) => acc + (curr.aeu_count || curr.base_aeu_count || 0), 0);
+        report.totalAEUs = totalAEUs;
+        report.strongAEUs = report.strong_aeu_count || 0;
+        report.ownedAEUs = report.owned_aeu_count || 0;
+        const totalSignals = (report.top_signals || []).length;
+        report.totalSignals = totalSignals;
+        report.notDetectedSignals = 330 - totalSignals;
+        
+        let flagsCount = 0;
+        let posCount = 0;
+        (report.top_signals || []).forEach(s => {
+            if (s.severity === 'negative') flagsCount++;
+            if (s.severity === 'positive') posCount++;
+        });
+        report.flagsCount = flagsCount;
+        report.posCount = posCount;
+
+        // Calculate timeline percentages
+        if (report.career_timeline && report.header && report.header.experience_years) {
+            const expYears = report.header.experience_years || 1;
+            report.career_timeline.forEach(role => {
+                const w = (role.duration_months / (expYears * 12)) * 100;
+                role.timelineWidthPct = w;
+                
+                if (role.seniority_score >= 6) role.timelineBg = '#e85c0d'; // var(--orange)
+                else if (role.seniority_score >= 4) role.timelineBg = '#0f766e'; // var(--teal3)
+                else if (role.seniority_score >= 3) role.timelineBg = '#3d5a6e';
+                else role.timelineBg = '#334155';
+            });
+        }
+
+        // Ring calculations
+        const getCircleDash = (r, count, total) => {
+            const C = 2 * Math.PI * r;
+            const t = total === 0 ? 1 : total;
+            const dash = (count / t) * C;
+            return `${dash} ${C - dash}`;
+        };
+        const getCircleOffset = (r) => {
+            const C = 2 * Math.PI * r;
+            return -C * 0.25;
+        };
+        report.ring48_dash = getCircleDash(48, totalAEUs, totalAEUs);
+        report.ring48_offset = getCircleOffset(48);
+        report.ring32_dash = getCircleDash(32, report.strongAEUs, totalAEUs);
+        report.ring32_offset = getCircleOffset(32);
+        report.ring16_dash = getCircleDash(16, report.ownedAEUs, totalAEUs);
+        report.ring16_offset = getCircleOffset(16);
+
+        // Skills bar
+        const totalSkills = report.extracted_cv?.skills?.length || 0;
+        const provenSkills = (report.extracted_cv?.skills || []).filter(s => s.is_proven).length;
+        report.totalSkillsCount = totalSkills;
+        report.provenSkillsCount = provenSkills;
+        report.provenSkillsPct = totalSkills > 0 ? (provenSkills / totalSkills) * 100 : 0;
+
+        // Clusters
+        report.clustersList = [];
+        if (report.cluster_dashboard?.cluster_summary) {
+            for (const [key, value] of Object.entries(report.cluster_dashboard.cluster_summary)) {
+                let icon = '📈';
+                let name = 'Trajectory & Growth';
+                let plain = 'How the candidate has moved through their career levels.';
+                if (key === 'growth') { icon = '📈'; name = 'Trajectory & Growth'; plain = 'How the candidate has moved through their career levels.'; }
+                else if (key === 'stability') { icon = '⚖️'; name = 'Tenure & Stability'; plain = 'Consistency, loyalty, and commitment patterns.'; }
+                else if (key === 'scope') { icon = '🎯'; name = 'Scope & Ownership'; plain = 'What the candidate actually owns vs. just contributes to.'; }
+                else if (key === 'impact') { icon = '⚡'; name = 'Impact & Output'; plain = 'Measurable outcomes and verifiable achievements.'; }
+                else if (key === 'skills') { icon = '🔧'; name = 'Skills & Learning'; plain = 'Technical proficiency and domain-relevant capabilities.'; }
+                else if (key === 'identity') { icon = '🧬'; name = 'Identity & Intent'; plain = 'Consistency of professional narrative and focus.'; }
+                else if (key === 'domain') { icon = '🌐'; name = 'Domain & Exposure'; plain = 'Depth and breadth of industry-specific knowledge.'; }
+                else if (key === 'visibility') { icon = '🖇️'; name = 'Visibility & Network'; plain = 'External recognition and professional standing.'; }
+                
+                report.clustersList.push({
+                    id: key,
+                    name,
+                    plain,
+                    icon,
+                    score: value.score || 0,
+                    detected: value.detected || 0,
+                    total_evaluated: value.total_evaluated || 0,
+                    scorePct: (value.score || 0) * 100,
+                    hasFlag: (value.score || 0) > 0.8
+                });
+            }
+        }
+
+        // Split signals by cluster
+        report.clustersList.forEach(c => {
+            c.signals = (report.top_signals || []).filter(s => s.cluster?.toLowerCase().trim() === c.id);
+            c.detected = c.signals.length; // Override just in case
+            c.scoreCount = Math.round((c.score || 0) * 10);
+        });
 
         const templatePath = path.join(__dirname, 'templates', 'CV_Report_Template.hbs');
         if (!fs.existsSync(templatePath)) {

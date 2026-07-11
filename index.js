@@ -61,6 +61,9 @@ const swaggerUiOptions = {
 app.use(`${process.env.API_COMMON_ROUTE}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
 // --- Routes ---
+// Expose public HIP profiles directly without the /api/v1 prefix
+app.get('/hip/public/profile/:slug', require('./src/modules/hip/hip.controller.js').getPublicProfile);
+
 const apiPrefix = process.env.API_COMMON_ROUTE || '/api/v1';
 app.use(apiPrefix, authenticate, check_validation, route);
 
