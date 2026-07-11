@@ -388,10 +388,10 @@ exports.downloadCvReportPdf = async (req, res) => {
         const report = generateReport(extractedCV, psdeResult, uploadMeta?.parserMetadata?.metrics);
 
         // Inject computed variables for the template
-        const totalAEUs = (report.career_timeline || []).reduce((acc, curr) => acc + (curr.aeu_count || curr.base_aeu_count || 0), 0);
+        const totalAEUs = report.evidence_stats?.total_evidence_units || (report.career_timeline || []).reduce((acc, curr) => acc + (curr.aeu_count || curr.base_aeu_count || 0), 0);
         report.totalAEUs = totalAEUs;
-        report.strongAEUs = report.strong_aeu_count || 0;
-        report.ownedAEUs = report.owned_aeu_count || 0;
+        report.strongAEUs = report.evidence_stats?.strong_evidence_units || report.strong_aeu_count || 0;
+        report.ownedAEUs = report.evidence_stats?.owned_evidence_units || report.owned_aeu_count || 0;
         const totalSignals = (report.top_signals || []).length;
         report.totalSignals = totalSignals;
         report.notDetectedSignals = 330 - totalSignals;
