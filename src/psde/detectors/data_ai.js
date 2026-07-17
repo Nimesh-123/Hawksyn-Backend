@@ -15,7 +15,7 @@ function detectAIResearcher(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrated expertise in AI research, deep learning, and advanced model architectures.' : 'No significant AI researcher signals detected.',
         anchors: []
     };
@@ -34,7 +34,7 @@ function detectMLEngineer(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven track record in building, training, and deploying machine learning models at scale.' : 'Limited evidence of ML engineering expertise.',
         anchors: []
     };
@@ -53,8 +53,8 @@ function detectDataStoryteller(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
-        reasoning: isDetected ? 'Skilled in translating complex data into actionable business insights and visual narratives.' : 'No significant data storyteller signals found.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Skilled in translating complex data into practical business insights and visual narratives.' : 'No significant data storyteller signals found.',
         anchors: []
     };
 }
@@ -72,7 +72,7 @@ function detectBigDataArchitect(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Expertise in architecting large-scale data infrastructures and distributed processing systems.' : 'Limited evidence of big data architectural leadership.',
         anchors: []
     };
@@ -91,8 +91,8 @@ function detectAnalyticsLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.91 : 0,
-        reasoning: isDetected ? 'Strong experience in leading analytics initiatives and driving decisions through statistical rigor.' : 'No significant analytics lead signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Strong experience in leading analytics initiatives and leading decisions through statistical rigor.' : 'No significant analytics lead signals detected.',
         anchors: []
     };
 }

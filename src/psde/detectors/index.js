@@ -44,7 +44,17 @@ const esgSocialImpact = require('./esg_social_impact');
 const aiEmergingTech = require('./ai_emerging_tech');
 const highStakesOps = require('./high_stakes_ops');
 
+function detectNotImplemented(cv, stats) {
+    return {
+        detected: false,
+        confidence: 0,
+        reasoning: 'Detector not yet implemented.',
+        anchors: []
+    };
+}
+
 module.exports = {
+    detectNotImplemented,
     // --- GROWTH ---
     detectLinearGrowth: growth.detectLinearGrowth,
     detectInternalPromotion: growth.detectInternalPromotion,

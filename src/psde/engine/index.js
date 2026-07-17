@@ -1,4 +1,4 @@
-const { archetypeRegistry, calcConfidence } = require('../registry');
+const { archetypeRegistry, calcConfidence, getArchetype, CLUSTER_MAP } = require('../registry');
 const { calculateConfidence } = require('../confidence');
 const { normalizeArchetypeOverlap } = require('../overlap');
 const { validateContradictions } = require('../contradictions');
@@ -31,10 +31,11 @@ function computeCareerSignals(extractedCV, precomputedStats) {
     };
 }
 
-async function runPSDEScan(extractedCV, precomputedStats, validationMeta, inferenceAEUs = [], runId = null) {
+async function runPSDEScan(extractedCV, precomputedStats, validationMeta, inferenceAEUs = [], runId = null, isDebug = false) {
     let results = [];
     const startTime = Date.now();
     const activeRunId = runId || `RUN_PSDE_${Date.now()}`;
+    const debugTrace = [];
 
     const signals = computeCareerSignals(extractedCV, precomputedStats);
     
@@ -43,50 +44,103 @@ async function runPSDEScan(extractedCV, precomputedStats, validationMeta, infere
     archetypeRegistry.forEach(r => archetypeRegistryMap.set(r.id, r));
 
     // --- STEP 1: EXECUTE ALL DETECTORS (The 330 Loop) ---
+    const { getArchetype, CLUSTER_MAP } = require('../registry');
+    const maxRank = Math.max(...((signals.senioritySeq && signals.senioritySeq.length > 0) ? signals.senioritySeq : [3]));
+
     for (const archetype of archetypeRegistry) {
         let aeu;
         try {
             const detection = archetype.detector(extractedCV, signals);
             
+            if (isDebug || process.env.PSDE_DEBUG_MODE === 'true') {
+                debugTrace.push({
+                    detector_name: archetype.detector.name || 'anonymous',
+                    archetype_id: archetype.id,
+                    input_values: { role_count: signals.role_count, avg_tenure_months: signals.avg_tenure_months, max_seniority_jump: signals.max_seniority_jump },
+                    evaluated_conditions: 'captured',
+                    matched_evidence: detection.anchors || [],
+                    rejected_evidence: [],
+                    confidence_calculation: { base: detection.confidence || 0, final: detection.confidence || 0 },
+                    mutex_evaluation: 'pending',
+                    final_decision: detection.detected ? 'detected' : 'rejected'
+                });
+            }
+            const variantData = await getArchetype(archetype.id, maxRank);
+            
+            if (!variantData) {
+                // Undocumented archetype handling (skips missing)
+                const undocumentedIds = ['ARCH_RISK_002', 'ARCH_RISK_003', 'ARCH_DOMAIN_004', 'ARCH_IND_001', 'ARCH_IND_005'];
+                if (undocumentedIds.includes(archetype.id)) {
+                    console.warn(`[PSDE] WARNING: Undocumented ID triggered by detector but missing from master table: ${archetype.id}`);
+                } else {
+                    console.error(`[PSDE] ERROR: Archetype ${archetype.id} requested by detector but missing from master table.`);
+                }
+                continue;
+            }
+
             if (detection.detected) {
-                // Calibrate Confidence with 0.9 Cap
-                const rawConfidence = detection.confidence || 0.5;
-                const finalConfidence = Math.min(0.9, rawConfidence);
+                const context = { validationMeta, stats: signals, roleCount: signals.role_count };
+                const confResult = calculateConfidence(detection, context);
+                let finalConfidence = confResult.score;
+
+                // Sanity check: detected=true must have conf > 0
+                if (finalConfidence <= 0) finalConfidence = 0.4;
+                
+                if (isDebug || process.env.PSDE_DEBUG_MODE === 'true') {
+                    debugTrace[debugTrace.length - 1].confidence_calculation = {
+                        base: detection.confidence || 0,
+                        provenance: confResult.provenance,
+                        final: finalConfidence
+                    };
+                }
 
                 const explanation = generateArchetypeExplanation(detection, extractedCV, { score: finalConfidence });
 
                 aeu = {
-                    archetype_id: archetype.id,
-                    archetype_name: archetype.name,
-                    cluster_id: normalizeClusterId(archetype.cluster),
-                    dimension_id: archetype.dimension_id || `DIM_${archetype.cluster.toUpperCase()}`,
+                    archetype_id: variantData.id,
+                    archetype_name: variantData.name,
+                    cluster_id: normalizeClusterId(variantData.cluster),
+                    dimension_id: archetype.dimension_id || `DIM_${variantData.cluster.toUpperCase()}`,
                     detection_state: 'detected',
                     confidence_score: finalConfidence,
-                    polarity: archetype.severity === 'positive' ? 'positive' : 'negative',
+                    polarity: variantData.polarity,
+                    severity: variantData.polarity, // Aliased for backward compatibility
                     evidence_source: 'cv_archetype_detection',
                     minimum_anchors_required: 1,
                     actual_anchor_count: (detection.anchors || []).length,
                     evidence_anchors: (detection.anchors || []).map((anc, idx) => ({
-                        anchor_id: `${archetype.id}_ANC_${String(idx+1).padStart(3, '0')}`,
+                        anchor_id: anc.anchor_id || `${variantData.id}_ANC_${String(idx+1).padStart(3, '0')}`,
                         anchor_type: anc.anchor_type || anc.type,
                         anchor_value: anc.anchor_value || anc.value,
                         derivation_method: determineDerivationMethod(anc),
                         cv_location: anc.cv_location || 'computed_from_roles',
                         verbatim_quote: anc.verbatim_quote || anc.quote || null,
-                        anchor_confidence: anc.anchor_confidence || 0.8
+                        anchor_confidence: anc.anchor_confidence || 0.8,
+                        section: anc.section || 'experience',
+                        role_index: anc.role_index,
+                        bullet_index: anc.bullet_index,
+                        company: anc.company,
+                        role: anc.role,
+                        date: anc.date
                     })),
                     reasoning: detection.reasoning,
                     explanation: explanation,
                     flags: []
                 };
             } else {
-                aeu = buildNotDetectedAEU(archetype);
+                aeu = buildNotDetectedAEU(archetype, variantData);
+                if (aeu) {
+                    aeu.confidence_score = 0; // Sanity check: detected=false must have conf = 0
+                }
             }
         } catch (error) {
             console.error(`[PSDE] Detector failed for ${archetype.id}:`, error.message);
-            aeu = buildNotDetectedAEU(archetype);
+            const variantData = await getArchetype(archetype.id, maxRank);
+            if(variantData) {
+                aeu = buildNotDetectedAEU(archetype, variantData);
+            }
         }
-        results.push(aeu);
+        if (aeu) results.push(aeu);
     }
 
     // --- STEP 2: POST-PROCESSING (Overlap, Contradictions, Mutex) ---
@@ -94,7 +148,7 @@ async function runPSDEScan(extractedCV, precomputedStats, validationMeta, infere
     results = validateContradictions(results);
     results = applyInferenceBoosts(results, inferenceAEUs);
     results = applyDependencyBoosts(results);
-    results = applyArchetypeMutex(results);
+    results = await applyArchetypeMutex(results, isDebug || process.env.PSDE_DEBUG_MODE === 'true' ? debugTrace : null);
 
     // --- STEP 2.5: VALIDATION ENGINE (VR_001 - VR_020) ---
     console.log(`[PSDE] Running Validation Engine for run ${activeRunId}...`);
@@ -129,6 +183,7 @@ async function runPSDEScan(extractedCV, precomputedStats, validationMeta, infere
 
     return {
         run_id: activeRunId,
+        debug_trace: isDebug || process.env.PSDE_DEBUG_MODE === 'true' ? debugTrace : undefined,
         candidate_intelligence_summary: executiveSummary,
         archetype_results: results.filter(a => a.detection_state !== 'not_detected'), 
         total_evaluated: 330,
@@ -196,15 +251,16 @@ function determineDerivationMethod(anc) {
     return specMethod;
 }
 
-function buildNotDetectedAEU(archetype) {
+function buildNotDetectedAEU(archetype, variantData) {
     return {
-        archetype_id: archetype.id,
-        archetype_name: archetype.name,
-        cluster_id: normalizeClusterId(archetype.cluster),
-        dimension_id: archetype.dimension_id || `DIM_${archetype.cluster.toUpperCase()}`,
+        archetype_id: variantData ? variantData.id : archetype.id,
+        archetype_name: variantData ? variantData.name : archetype.name,
+        cluster_id: normalizeClusterId(variantData ? variantData.cluster : archetype.cluster),
+        dimension_id: archetype.dimension_id || `DIM_${(variantData ? variantData.cluster : archetype.cluster).toUpperCase()}`,
         detection_state: 'not_detected',
         confidence_score: 0.0,
-        polarity: archetype.severity === 'positive' ? 'positive' : 'negative',
+        polarity: variantData ? variantData.polarity : 'negative',
+        severity: variantData ? variantData.polarity : 'negative', // Aliased for backward compatibility
         evidence_source: 'cv_archetype_detection',
         minimum_anchors_required: 1,
         actual_anchor_count: 0,
@@ -215,44 +271,13 @@ function buildNotDetectedAEU(archetype) {
     };
 }
 
-const CLUSTER_ID_MAP = {
-    'growth': 'C1',
-    'stability': 'C2',
-    'leadership': 'C3',
-    'scope': 'C3',
-    'impact': 'C4',
-    'execution': 'C4',
-    'skills': 'C5',
-    'behavioral': 'C5',
-    'identity': 'C6',
-    'risk': 'C6',
-    'contextual': 'C6',
-    'domain': 'C7',
-    'industry': 'C7',
-    'network': 'C8',
-    'global': 'C8',
-    'specialization': 'C5',
-    'engineering': 'C5',
-    'product': 'C5',
-    'governance': 'C3',
-    'revenue': 'C4',
-    'service': 'C4',
-    'people': 'C3',
-    'finance': 'C4',
-    'legal': 'C6',
-    'operations': 'C4',
-    'marketing': 'C4',
-    'intelligence': 'C5',
-    'credentials': 'C7',
-    'strategy': 'C3',
-    'general': 'C6'
-};
+
 
 /**
  * Normalizes cluster_id to the Hawksyn C1-C8 format for UI compatibility.
  */
 function normalizeClusterId(clusterId) {
-    return CLUSTER_ID_MAP[clusterId] || clusterId;
+    return CLUSTER_MAP[clusterId] || clusterId;
 }
 
 module.exports = { runPSDEScan };

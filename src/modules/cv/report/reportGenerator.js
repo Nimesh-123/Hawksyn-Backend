@@ -14,16 +14,7 @@ function generateReport(extractedCV, psdeResult, metrics) {
     const allArchetypes = psdeResult.archetype_results || [];
 
     // Helper: Map cluster names to UI keys (must match ReportDashboardFinal.jsx CLUSTERS keys)
-    const CLUSTER_MAP = {
-        'C1': 'growth',
-        'C2': 'stability',
-        'C3': 'scope',
-        'C4': 'impact',
-        'C5': 'skills',
-        'C6': 'identity',
-        'C7': 'domain',
-        'C8': 'visibility'
-    };
+    const { CLUSTER_MAP } = require('../../../psde/registry');
 
     // --- SECTION 1: HEADER / PROFILE HERO ---
     // Improved logic: Find the "Present" role, or the one with the latest start date
@@ -87,36 +78,44 @@ function generateReport(extractedCV, psdeResult, metrics) {
 
     // --- SECTION 4: TOP ARCHETYPES / SIGNALS ---
     const topSignals = allArchetypes
-        .filter(a => a.detection_state === 'detected')
-        .sort((a, b) => b.confidence_score - a.confidence_score)
+        .sort((a, b) => {
+            if (a.detection_state === 'detected' && b.detection_state !== 'detected') return -1;
+            if (a.detection_state !== 'detected' && b.detection_state === 'detected') return 1;
+            return b.confidence_score - a.confidence_score;
+        })
         .map(a => ({
+            archetype_id: a.archetype_id,
             archetype_name: a.archetype_name,
             cluster: CLUSTER_MAP[a.cluster_id] || a.cluster_id,
-            confidence_score: a.confidence_score,
+            confidence_score: a.confidence_score >= 0.7 ? 'High' : (a.confidence_score >= 0.4 ? 'Med' : 'Low'),
             reasoning: a.reasoning,
-            severity: a.polarity,
+            polarity: a.polarity,
             evidence_aeu_ids: a.evidence_anchors?.map(anc => anc.anchor_id) || [],
-            validation_state: a.detection_state
+            detection_state: a.detection_state
         }));
 
     // --- SECTION 5: CAREER TRAJECTORY TIMELINE ---
     const careerTimeline = roles.map((r, idx) => {
-        // Find AEUs belonging to this role
-        // role_index is 1-based and usually extracted in reverse chronological order: (roles.length - idx)
         const roleIndexMatch = roles.length - idx;
-        const aeusCount = baseAEUs.filter(a => a.role_index === roleIndexMatch || a.role_index === idx || a.role_index === idx + 1).length;
+        const aeusCount = (baseAEUs || []).filter(a => a.role_index === roleIndexMatch || a.role_index === idx || a.role_index === idx + 1).length;
+
+        const startDateStr = r.role_metadata?.start_date;
+        const endDateStr = r.role_metadata?.end_date;
+
+        const companyCanonical = r.role_metadata?.company_canonical || r.role_metadata?.company || 'Unknown';
+        const isTier1 = r.role_metadata?.is_tier1 || ['ibm', 'ibm global', 'google', 'microsoft', 'amazon', 'aws', 'meta', 'apple', 'netflix'].includes(companyCanonical.toLowerCase().trim());
 
         return {
-            company: r.role_metadata?.company_canonical || r.role_metadata?.company || 'Unknown',
+            company: companyCanonical,
             title: r.role_metadata?.title || 'Unknown',
             location: r.role_metadata?.location || 'Not Specified',
-            start_date: r.role_metadata?.start_date,
-            end_date: r.role_metadata?.end_date,
+            start_date: startDateStr || 'Unknown',
+            end_date: endDateStr || 'Unknown',
             duration_months: r.role_metadata?.duration_months || 0,
             seniority_score: r.role_metadata?.title_seniority_rank || 0,
-            internal_promotion: r.role_metadata?.internal_promotion || false,
-            tier1_employer: r.role_metadata?.is_tier1 || false,
-            domain: r.domain_metadata?.primary_industry || 'general',
+            internal_promotion: r.role_metadata?.is_internal_promotion || false,
+            tier1_employer: isTier1,
+            domain: r.domain_metadata?.primary_industry || (extractedCV.domain_intelligence && extractedCV.domain_intelligence.primary_domains && extractedCV.domain_intelligence.primary_domains[0]) || snapshot.primary_domain || 'general',
             base_aeus_count: aeusCount
         };
     });
@@ -149,11 +148,21 @@ function generateReport(extractedCV, psdeResult, metrics) {
     };
 
     // --- SECTION 8: DOMAIN DEPTH & SPECIALIZATION ---
+    const skillsDomains = skills
+        .filter(s => ['functional', 'technical', 'Domain-Specific'].includes(s.category) && s.appears_in_role_bullets)
+        .map(s => s.skill_name);
+
+    const primaryDomainsFallback = extractedCV.employment?.domain 
+        ? [extractedCV.employment.domain] 
+        : (skillsDomains.length > 0 ? skillsDomains.slice(0, 5) : ["general"]);
+
     const domainIntelligence = {
-        primary_domains: Array.from(new Set(roles.map(r => r.domain_metadata?.primary_industry).filter(Boolean))),
-        domain_depth_score: extractedCV.precomputed_stats?.domain_depth_score || 0,
+        primary_domains: extractedCV.inferred_profile?.industry 
+            ? [extractedCV.inferred_profile.industry] 
+            : primaryDomainsFallback,
+        domain_depth_score: extractedCV.precomputed_stats?.domain_depth_score || (skillsDomains.length > 5 ? 0.8 : 0.4),
         cross_domain_exposure: Array.from(new Set(roles.map(r => r.domain_metadata?.secondary_industry).filter(Boolean))),
-        specializations: skills.filter(s => s.category === 'Domain-Specific').map(s => s.skill_name),
+        specializations: skillsDomains,
         industry_consistency: snapshot.domain_confirmation_ratio > 0.6 ? 'High' : 'Mixed'
     };
 

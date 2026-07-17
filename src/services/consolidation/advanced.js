@@ -38,20 +38,26 @@ function calculateConsolidationStats(roles) {
     let leadershipSignals = 0;
     let metricsCount = 0;
     let domainTerms = new Set();
-    const sequence = [];
+    let maxTeamSize = 0;
 
     roles.forEach(role => {
         (role.base_aeus || []).forEach(aeu => {
             if (aeu.evidence_type === 'leadership') leadershipSignals++;
             if (aeu.metrics?.value) metricsCount++;
             (aeu.domain_metadata?.domain_terms_found || []).forEach(t => domainTerms.add(t));
+            if (aeu.team_context) {
+                const teamSize = parseInt(aeu.team_context.team_size) || 0;
+                const directReports = parseInt(aeu.team_context.direct_reports) || 0;
+                maxTeamSize = Math.max(maxTeamSize, teamSize, directReports);
+            }
         });
     });
 
     return {
         leadership_signal_count: leadershipSignals,
-        metrics_density: roles.length > 0 ? (metricsCount / roles.length).toFixed(2) : 0,
-        domain_depth_score: domainTerms.size
+        metrics_density: roles.length > 0 ? parseFloat((metricsCount / roles.length).toFixed(2)) : 0,
+        domain_depth_score: domainTerms.size,
+        max_team_size: maxTeamSize
     };
 }
 

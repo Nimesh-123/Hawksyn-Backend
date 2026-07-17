@@ -7,6 +7,11 @@
 
 const MUTEX_RULES = {
     // [Stronger Archetype ID] -> [Archetypes to Suppress]
+    
+    // Contradictory Profiles (Added from Audit)
+    'ARCH_003_002': ['ARCH_010_001', 'ARCH_003_001'], // Decision-Making suppresses Pure Executor & Execution Heavy
+    'ARCH_011_001': ['ARCH_012_001'], // End-to-End Ownership suppresses High Replaceability
+
     'ARCH_001_003': ['ARCH_001_001'], // Accelerated Growth suppresses Linear Growth
     'ARCH_001_011': ['ARCH_011_001', 'ARCH_012_001'], // Consistent High Velocity suppresses basic velocity/fast track
     'ARCH_001_007': ['ARCH_001_001'], // Multi-Level Jump suppresses Linear Growth
@@ -146,33 +151,96 @@ const MUTEX_RULES = {
  * @param {Array} results - The detected archetype results from the scan
  * @returns {Array} - Filtered results with suppressed archetypes marked or removed
  */
-function applyArchetypeMutex(results) {
+const mongoose = require('mongoose');
+
+async function buildDynamicMutexMap() {
+    let dynamicGroups = {};
+    try {
+        if (mongoose.connection.readyState === 1) {
+            const ArchetypeRule = require('../../modules/cv/ArchetypeRule.model');
+            const rules = await ArchetypeRule.find({ mutex_group: { $exists: true, $ne: null, $ne: '' } });
+            for (const r of rules) {
+                if (!dynamicGroups[r.mutex_group]) dynamicGroups[r.mutex_group] = [];
+                dynamicGroups[r.mutex_group].push(r.archetype_id);
+            }
+        }
+    } catch (e) {
+        console.error('[PSDE] Error fetching dynamic mutex groups:', e.message);
+    }
+    return dynamicGroups;
+}
+
+async function applyArchetypeMutex(results, debugTrace = null) {
     const detectedIds = results
         .filter(r => r.detection_state === 'detected')
         .map(r => r.archetype_id);
+
+    const dynamicGroups = await buildDynamicMutexMap();
 
     return results.map(res => {
         // If this archetype is in the suppression list of another detected archetype
         let isSuppressed = false;
         let suppressedBy = null;
+        let suppressionType = null;
 
+        // 1. Hardcoded Rules Fallback
         for (const [strongerId, suppressedIds] of Object.entries(MUTEX_RULES)) {
             if (res.detection_state === 'detected' && detectedIds.includes(strongerId) && strongerId !== res.archetype_id) {
                 if (suppressedIds.includes(res.archetype_id)) {
                     isSuppressed = true;
                     suppressedBy = strongerId;
+                    suppressionType = 'hardcoded';
                     break;
                 }
             }
         }
 
+        // 2. Dynamic Rules (Suppress lower confidence signals in the same group)
+        // [TEMPORARILY DISABLED: Over-suppressing valid signals due to confidence baseline changes]
+        /*
+        if (!isSuppressed && res.detection_state === 'detected') {
+            for (const group of Object.values(dynamicGroups)) {
+                if (group.includes(res.archetype_id)) {
+                    // Find if there is a stronger one in this group that is ALSO detected
+                    // Only suppress if the other signal is significantly stronger (gap > 0.1)
+                    const strongerDetected = results.find(other => 
+                        other.detection_state === 'detected' && 
+                        other.archetype_id !== res.archetype_id &&
+                        group.includes(other.archetype_id) &&
+                        other.confidence_score >= (res.confidence_score + 0.1)
+                    );
+                    if (strongerDetected) {
+                        isSuppressed = true;
+                        suppressedBy = strongerDetected.archetype_id;
+                        suppressionType = 'dynamic';
+                        break;
+                    }
+                }
+            }
+        }
+        */
+
         if (isSuppressed) {
+            if (debugTrace) {
+                const traceEntry = debugTrace.find(t => t.archetype_id === res.archetype_id);
+                if (traceEntry) {
+                    traceEntry.mutex_evaluation = `Suppressed (${suppressionType}) by ${suppressedBy}`;
+                    traceEntry.final_decision = 'partial';
+                }
+            }
             return {
                 ...res,
                 detection_state: 'partial', // Losers become partial, not suppressed
                 confidence_score: Math.min(res.confidence_score, 0.5), // Reduce confidence
                 flags: [...(res.flags || []), `mutex_suppressed_by:${suppressedBy}`]
             };
+        }
+
+        if (debugTrace && res.detection_state === 'detected') {
+            const traceEntry = debugTrace.find(t => t.archetype_id === res.archetype_id);
+            if (traceEntry) {
+                traceEntry.mutex_evaluation = 'Passed';
+            }
         }
 
         return res;

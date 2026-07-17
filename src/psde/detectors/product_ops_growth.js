@@ -13,7 +13,7 @@ function detectProductOpsLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven expertise in optimizing product team efficiency through standardized processes and tooling.' : 'No significant product ops signals detected.',
         anchors: []
     };
@@ -33,8 +33,8 @@ function detectPLGChampion(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
-        reasoning: isDetected ? 'Demonstrated expertise in driving growth through product-native levers and viral loops.' : 'Limited evidence of product-led growth leadership.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Demonstrated expertise in leading growth through product-native levers and viral loops.' : 'Limited evidence of product-led growth leadership.',
         anchors: []
     };
 }
@@ -49,7 +49,7 @@ function detectDesignSystemArchitect(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Experience in building and maintaining scalable design systems and UI/UX standards.' : 'No significant design system architect signals found.',
         anchors: []
     };
@@ -66,7 +66,7 @@ function detectMonetizationStrategist(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven ability to architect product monetization and pricing strategies for revenue growth.' : 'Limited evidence of monetization strategy expertise.',
         anchors: []
     };
@@ -83,8 +83,8 @@ function detectABTestingSpecialist(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.91 : 0,
-        reasoning: isDetected ? 'Highly data-driven approach using rigorous experimentation and split testing to drive product improvements.' : 'No significant experimentation signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Highly data-driven approach using rigorous experimentation and split testing to lead product improvements.' : 'No significant experimentation signals detected.',
         anchors: []
     };
 }

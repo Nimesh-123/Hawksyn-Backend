@@ -22,7 +22,7 @@ function detectSaaSExpert(extractedCV, precomputedStats) {
                     derivation_method: 'direct_extraction',
                     cv_location: { role_index: role.role_index },
                     verbatim_quote: aeu.raw_text,
-                    anchor_confidence: 0.85
+                    anchor_confidence: 0.50
                 });
             }
         }
@@ -60,8 +60,8 @@ function detectFinTechSpecialist(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
-        reasoning: isDetected ? 'Demonstrated expertise in the Financial Technology (FinTech) ecosystem.' : 'No significant FinTech signals found.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Demonstrated expertise in the Financial Technology (FinTech) environments.' : 'No significant FinTech signals found.',
         anchors: isDetected ? [{ type: 'FINTECH_KEYWORDS', value: matches }] : []
     };
 }
@@ -74,7 +74,7 @@ function detectBFSIVeteran(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Extensive experience in traditional Banking, Financial Services, and Insurance (BFSI).' : 'Limited history in core BFSI sectors.',
         anchors: isDetected ? [{ type: 'BFSI_KEYWORDS', value: matches }] : []
     };
@@ -88,7 +88,7 @@ function detectEcommerceSpecialist(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.88 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven track record in managing E-commerce or Marketplace operations.' : 'No significant E-commerce signals detected.',
         anchors: isDetected ? [{ type: 'ECOMMERCE_KEYWORDS', value: matches }] : []
     };
@@ -102,7 +102,7 @@ function detectManufacturingLead(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Deep experience in manufacturing environments and production management.' : 'Limited manufacturing background detected.',
         anchors: isDetected ? [{ type: 'MANUFACTURING_KEYWORDS', value: matches }] : []
     };
@@ -116,7 +116,7 @@ function detectHealthcareDomainExpert(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Found significant history within the Healthcare or Pharmaceutical domain.' : 'No significant healthcare signals found.',
         anchors: isDetected ? [{ type: 'HEALTHCARE_KEYWORDS', value: matches }] : []
     };
@@ -130,7 +130,7 @@ function detectConsumerGoodsExpert(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.85 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Experience in FMCG or Consumer Packaged Goods (CPG) sectors.' : 'No significant FMCG background found.',
         anchors: isDetected ? [{ type: 'CONSUMER_KEYWORDS', value: matches }] : []
     };

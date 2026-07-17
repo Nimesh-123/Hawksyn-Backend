@@ -16,8 +16,8 @@ function detectProductVisionary(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
-        reasoning: isDetected ? 'Demonstrated ability to define and drive a long-term strategic product vision.' : 'No significant product visionary signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Demonstrated ability to define and lead a long-term high-level product vision.' : 'No significant product visionary signals detected.',
         anchors: []
     };
 }
@@ -35,7 +35,7 @@ function detectDesignThinkingAdvocate(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Leads with empathy and user-centered design principles in product development.' : 'Limited evidence of design thinking advocacy.',
         anchors: []
     };
@@ -54,7 +54,7 @@ function detectRetentionSpecialist(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Obsessed with product health metrics, specifically retention and user lifecycle optimization.' : 'No strong retention specialist signals found.',
         anchors: []
     };
@@ -73,7 +73,7 @@ function detectZeroToOneLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.91 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven track record of taking products from zero to one and finding product-market fit.' : 'Limited evidence of zero-to-one product leadership.',
         anchors: []
     };
@@ -91,8 +91,8 @@ function detectVoCLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.89 : 0,
-        reasoning: isDetected ? 'Maintains deep feedback loops with users to drive product improvements.' : 'No significant Voice-of-Customer leadership detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Maintains deep feedback loops with users to lead product improvements.' : 'No significant Voice-of-Customer leadership detected.',
         anchors: []
     };
 }

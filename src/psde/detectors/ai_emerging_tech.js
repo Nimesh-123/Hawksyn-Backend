@@ -12,7 +12,7 @@ function detectMLOpsEngineer(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.96 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in the operationalization and scaling of machine learning models in production environments.' : 'No significant MLOps signals detected.',
         anchors: []
     };
@@ -28,7 +28,7 @@ function detectVectorDBSpecialist(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Expertise in high-dimensional vector databases and the architecture of semantic search systems.' : 'No significant vector DB signals found.',
         anchors: []
     };
@@ -44,8 +44,8 @@ function detectPromptEngineerStrategic(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
-        reasoning: isDetected ? 'Specializes in the systematic optimization and orchestration of large language model (LLM) prompts.' : 'Limited evidence of strategic prompt engineering.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Specializes in the systematic optimization and orchestration of large language model (LLM) prompts.' : 'Limited evidence of high-level prompt engineering.',
         anchors: []
     };
 }
@@ -60,7 +60,7 @@ function detectAIEthicsLead(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven expertise in developing frameworks for responsible AI, including bias mitigation and ethical governance.' : 'No significant AI ethics signals found.',
         anchors: []
     };
@@ -76,7 +76,7 @@ function detectGenAIProductManager(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven track record of building and launching generative AI-first product features and roadmaps.' : 'Limited evidence of GenAI product leadership.',
         anchors: []
     };
@@ -92,7 +92,7 @@ function detectComputerVisionSpecialist(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Deep expertise in computer vision algorithms, image recognition, and spatial computing applications.' : 'No significant CV signals found.',
         anchors: []
     };
@@ -108,7 +108,7 @@ function detectNLPArchitect(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in the architecture of complex NLP systems and the implementation of transformer-based models.' : 'No significant NLP signals found.',
         anchors: []
     };
@@ -124,7 +124,7 @@ function detectBlockchainArchitect(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Expertise in designing decentralized infrastructures and architecting blockchain-based solutions.' : 'No significant blockchain signals found.',
         anchors: []
     };
@@ -140,7 +140,7 @@ function detectQuantumResearcher(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.91 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrated expertise in the research and development of quantum computing algorithms and hardware.' : 'No significant quantum computing signals found.',
         anchors: []
     };
@@ -156,7 +156,7 @@ function detectRPALead(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Experienced in leading large-scale Robotics Process Automation (RPA) initiatives and bot governance.' : 'Limited evidence of RPA leadership.',
         anchors: []
     };

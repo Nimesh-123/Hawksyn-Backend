@@ -14,7 +14,7 @@ function detectExpatLeader(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrates experience as an expatriate leader with cross-cultural management exposure.' : 'No explicit expat leadership signals detected.',
         anchors: []
     };
@@ -33,8 +33,8 @@ function detectCrossBorderStrategist(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
-        reasoning: isDetected ? 'Proven expertise in driving international expansion and global market entry strategies.' : 'Limited evidence of cross-border strategic leadership.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven expertise in leading international expansion and global market entry strategies.' : 'Limited evidence of cross-border high-level leadership.',
         anchors: []
     };
 }
@@ -51,7 +51,7 @@ function detectEmergingMarketsPioneer(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Extensive experience operating in and scaling across emerging or frontier markets.' : 'No significant emerging markets signals found.',
         anchors: []
     };
@@ -69,7 +69,7 @@ function detectMultiNationalOperator(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Seasoned operator within complex multi-national corporations and matrixed environments.' : 'Limited multi-national operational signals detected.',
         anchors: []
     };
@@ -88,7 +88,7 @@ function detectGlobalMobilityExpert(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Expertise in managing global mobility programs, immigration, and international relocations.' : 'No significant global mobility expert signals found.',
         anchors: []
     };

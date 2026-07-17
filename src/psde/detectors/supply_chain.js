@@ -15,7 +15,7 @@ function detectSupplyChainOrchestrator(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven expertise in orchestrating complex, end-to-end global supply chains.' : 'No significant supply chain orchestrator signals detected.',
         anchors: []
     };
@@ -34,7 +34,7 @@ function detectLogisticsExpert(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Extensive experience in managing logistics, transportation, and large-scale distribution networks.' : 'Limited evidence of logistics expertise.',
         anchors: []
     };
@@ -53,8 +53,8 @@ function detectProcurementPowerhouse(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
-        reasoning: isDetected ? 'Proven track record in strategic sourcing, procurement, and driving significant cost savings.' : 'No significant procurement signals found.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven track record in high-level sourcing, procurement, and leading significant cost savings.' : 'No significant procurement signals found.',
         anchors: []
     };
 }
@@ -72,7 +72,7 @@ function detectInventoryOptimizer(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Expertise in optimizing inventory levels, demand forecasting, and inventory turnover.' : 'Limited evidence of inventory optimization leadership.',
         anchors: []
     };
@@ -91,8 +91,8 @@ function detectSustainabilitySupplyChain(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.91 : 0,
-        reasoning: isDetected ? 'Proven commitment to driving sustainability and ethical practices within the supply chain.' : 'No significant supply chain sustainability signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven commitment to leading sustainability and ethical practices within the supply chain.' : 'No significant supply chain sustainability signals detected.',
         anchors: []
     };
 }

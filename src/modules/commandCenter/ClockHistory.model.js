@@ -1,36 +1,27 @@
 const mongoose = require('mongoose');
 
 const ClockHistorySchema = new mongoose.Schema({
-    historyId: { type: String, required: true, unique: true },
     userId: { type: String, required: true },
+    cvId: { type: String, required: true }, // The CV that triggered this scan
     
-    // Scores
-    aiExposureScore: { type: Number, required: true },
-    careerMomentumScore: { type: Number, required: true },
-    skillRelevanceScore: { type: Number, required: true },
-    opportunityWindowScore: { type: Number, required: true },
-    
-    careerMomentumMonths: { type: Number, default: 0 },
-    opportunityWindowYears: { type: Number, default: 0 },
+    // The calculated scores for this scan
+    clock1_score: { type: Number, default: null }, // 0-100
+    clock2_level: { type: Number, default: null }, // 1-6
+    clock3_score: { type: Number, default: null }, // 0-100
+    clock4_score: { type: Number, default: null }, // 0-100
 
-    triggeredBy: { type: String, enum: ['AUTO_OPEN', 'HAWK', 'CASE_RUN'], default: 'AUTO_OPEN' },
-    pulseId: { type: String, default: null },
-    calculatedAt: { type: Date, default: Date.now },
+    // The deltas (Current - Previous) calculated at the time of this scan
+    clock1_trend: { type: Number, default: null },
+    clock2_trend: { type: Number, default: null },
+    clock3_trend: { type: Number, default: null },
+    clock4_trend: { type: Number, default: null },
 
-    // AI Audit Metadata
-    llm: { type: String, default: 'N/A' },
-    model: { type: String, default: 'N/A' },
-    tokenUsage: {
-        promptTokens: { type: Number, default: 0 },
-        completionTokens: { type: Number, default: 0 },
-        totalTokens: { type: Number, default: 0 }
-    },
-    calculationDuration: { type: String, default: null }
+    scannedAt: { type: Date, default: Date.now }
 }, {
     timestamps: true,
-    collection: 'clock_history'
+    collection: 'clock_histories'
 });
 
-ClockHistorySchema.index({ userId: 1, calculatedAt: -1 });
+ClockHistorySchema.index({ userId: 1, scannedAt: -1 });
 
 module.exports = mongoose.model('ClockHistory', ClockHistorySchema);

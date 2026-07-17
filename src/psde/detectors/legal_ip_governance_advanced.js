@@ -12,7 +12,7 @@ function detectExportControlSpecialist(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.96 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrated expertise in international trade compliance, specifically regarding ITAR, EAR, and global export controls.' : 'No significant export control signals detected.',
         anchors: []
     };
@@ -29,7 +29,7 @@ function detectLegalTechImplementationLead(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in the selection and implementation of legal technology stacks, including CLM and automated matter management.' : 'No significant legal tech implementation signals found.',
         anchors: []
     };
@@ -46,8 +46,8 @@ function detectRegulatoryAffairsDirector(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
-        reasoning: isDetected ? 'Proven ability to manage high-stakes regulatory approvals and navigate complex statutory environments.' : 'Limited evidence of regulatory affairs leadership.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven ability to manage high-stakes regulatory approvals and manage complex statutory environments.' : 'Limited evidence of regulatory affairs leadership.',
         anchors: []
     };
 }
@@ -62,7 +62,7 @@ function detectIPMonetizationStrategist(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in the commercialization of intellectual property, including licensing strategy and royalty optimization.' : 'No significant IP monetization signals found.',
         anchors: []
     };
@@ -79,7 +79,7 @@ function detectCorporateSecretary(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Expertise in managing board-level governance, statutory filings, and high-level shareholder communications.' : 'Limited evidence of corporate secretarial experience.',
         anchors: []
     };

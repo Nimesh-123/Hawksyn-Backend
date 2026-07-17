@@ -3,11 +3,9 @@ const { runTrendEngine } = require('../signals/crons/trendEngine.cron.js');
 const { 
     computeValidityState, 
     findActivePulse, 
-    calculateClockScores, 
     detectSignificantChange, 
-    buildClocksResponse,
-    generateClockScores
 } = require('../../services/clockService');
+const { buildFourClocksResponse, triggerFourClocksRecalculation } = require('../../services/fourClocksService');
 const { calculateAICost, convertToLocalCurrency } = require('../admin/helpers/aiCostHelper.js');
 const { detectRegionFromIP } = require('../../../utils/regionHelper');
 
@@ -50,21 +48,24 @@ exports.getCommandCenter = async (req, res) => {
         const role = profile.identity?.currentRoleTitle || null;
         const industry = profile.inferred?.domainIndicator || null;
 
-        let userClock = await db.UserClocks.findOne({ userId: String(userId) });
-
-        // Recalibrate for confirmed user if clocks are missing
-        if (!userClock && userProfile?.isConfirmed === true) {
-            console.log(`[CommandCenter] Auto-fixing missing clocks for confirmed user: ${userId}`);
-            await require('../../services/clockService').recalibrateForUser(String(userId), profile);
-            userClock = await db.UserClocks.findOne({ userId: String(userId) });
+        let fourClocksResponse = await buildFourClocksResponse(String(userId));
+        
+        // Auto-fix if missing
+        if (!fourClocksResponse && userProfile?.isConfirmed === true) {
+            console.log(`[CommandCenter] Auto-fixing missing four clocks for confirmed user: ${userId}`);
+            await triggerFourClocksRecalculation(String(userId));
+            fourClocksResponse = await buildFourClocksResponse(String(userId));
         }
 
-        if (!userClock) {
+        if (!fourClocksResponse) {
             return res.status(200).json({ 
                 success: true, 
                 data: { validityState: 'FROZEN', clocks: null, message: 'Please complete Step 1 to initialize clocks.' } 
             });
         }
+
+        // Fetch UserClocks for legacy validity and token tracking if needed
+        let userClock = await db.UserClocks.findOne({ userId: String(userId) }) || {};
 
         // Validity State
         const validity = computeValidityState(userClock);
@@ -102,16 +103,6 @@ exports.getCommandCenter = async (req, res) => {
             }));
         }
 
-        // Scores directly from UserClocks — NEVER recalculate on GET
-        const clocksData = {
-            aiExposureScore:        userClock.aiExposureScore        ?? 0,
-            careerMomentumScore:    userClock.careerMomentumScore    ?? 0,
-            skillRelevanceScore:    userClock.skillRelevanceScore    ?? 0,
-            opportunityWindowScore: userClock.opportunityWindowScore ?? 0,
-            careerMomentumMonths:   userClock.careerMomentumMonths   ?? 18,
-            opportunityWindowYears: userClock.opportunityWindowYears ?? 2,
-        };
-
         const marketPulseData = pulse ? {
             pulseId: pulse.pulseId,
             insight: pulse.insightText || '',
@@ -129,8 +120,8 @@ exports.getCommandCenter = async (req, res) => {
             daysLeft:            userClock.daysLeft,
             effectiveValidUntil: userClock.effectiveValidUntil,
             
-            // Build clock response using stored data vs market median
-            clocks: buildClocksResponse(clocksData, userClock, pulse),
+            // Four Clocks Response
+            clocks: fourClocksResponse,
 
             trendTrigger: userClock.trendTrigger || null,
             insightText:  userClock.insightText  || null,
@@ -185,21 +176,18 @@ exports.runHawk = async (req, res) => {
             tenure:       Number(profileData?.inferred?.totalExperienceYears || profileData?.experience_years || 0)
         };
 
-        // Recalculate using Unified AI Chain (Primary: Claude)
-        const newScores = await generateClockScores(dataForGemini);
-        const significantChange = detectSignificantChange(userClock, newScores);
+        // 1. Run Four Clocks Recalculation
+        await triggerFourClocksRecalculation(String(userId));
+        
+        // 2. Refresh Response
+        const fourClocksResponse = await buildFourClocksResponse(String(userId));
+        
+        // 3. Update legacy userClocks for validity
         const clockValidUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
         await db.UserClocks.findOneAndUpdate(
             { userId },
             {
                 $set: {
-                    ...newScores,
-                    aiExposureJustification:        newScores.aiExposureJustification,
-                    careerMomentumJustification:    newScores.careerMomentumJustification,
-                    skillRelevanceJustification:    newScores.skillRelevanceJustification,
-                    opportunityWindowJustification: newScores.opportunityWindowJustification,
-                    trendTrigger:                   newScores.trendTrigger || null,
                     validityState:    'ACTIVE_CLOCK',
                     clockValidUntil,
                     effectiveValidUntil: clockValidUntil,
@@ -212,23 +200,21 @@ exports.runHawk = async (req, res) => {
             { upsert: true }
         );
 
-        await saveClockHistory(userId, newScores, 'HAWK', null);
-
         return res.status(200).json({
             success: true,
             data: {
                 hawkRun: true,
                 validityState: 'ACTIVE_CLOCK',
-                tokenUsage: newScores.tokenUsage,
-                cost: calculateAICost(newScores.llm + '-' + newScores.model, newScores.tokenUsage),
-                localCost: convertToLocalCurrency(calculateAICost(newScores.llm + '-' + newScores.model, newScores.tokenUsage), detectRegionFromIP(req.ip || '122.161.48.0').currency).amount,
-                localCurrency: detectRegionFromIP(req.ip || '122.161.48.0').currency,
+                tokenUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+                cost: 0,
+                localCost: 0,
+                localCurrency: 'USD',
                 clockValidUntil,
                 daysLeft: 30,
-                clocks: buildClocksResponse(newScores, newScores, newScores), // Benchmarks relative to fresh AI scores
-                insightText: newScores.trendTrigger || newScores.aiExposureJustification,
-                significantChange,
-                message: 'Hawk complete. Clocks recalibrated and valid for 30 days.'
+                clocks: fourClocksResponse,
+                insightText: null,
+                significantChange: true, // We can track this in FourClocks later
+                message: 'Hawk complete. Four Clocks recalibrated and valid for 30 days.'
             }
         });
 

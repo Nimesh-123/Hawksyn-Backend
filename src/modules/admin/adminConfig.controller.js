@@ -9,7 +9,7 @@ exports.getPromptConfig = async (req, res) => {
     try {
         const { promptId } = req.params;
         let config = await db.AiPrompt.findOne({ promptId, isActive: true });
-        
+
         if (!config) {
             return RESPONSE.error(res, 404, 4004, `Prompt configuration for ${promptId} not found`);
         }
@@ -26,11 +26,11 @@ exports.getPromptConfig = async (req, res) => {
  */
 exports.upsertPromptConfig = async (req, res) => {
     try {
-        const { 
-            promptId, 
+        const {
+            promptId,
             promptText,
-            title, 
-            maxTokens, 
+            title,
+            maxTokens,
             temperature,
             modelFamily
         } = req.body;
@@ -85,7 +85,7 @@ exports.getAllPromptConfigs = async (req, res) => {
 exports.getSystemSettings = async (req, res) => {
     try {
         let config = await db.SystemConfig.findOne({ configKey: 'GLOBAL_SETTINGS' });
-        
+
         if (!config) {
             config = {
                 configKey: 'GLOBAL_SETTINGS',

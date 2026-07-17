@@ -365,11 +365,17 @@ exports.uploadCV = async (req, res) => {
         if (!req.file) return RESPONSE.error(res, 400, 3009, "No file provided.");
 
         const file = req.file;
-        if (file.mimetype !== 'application/pdf') return RESPONSE.error(res, 400, 3009, "Only PDF files allowed.");
+        const allowedMimes = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/msword'
+        ];
+        if (!allowedMimes.includes(file.mimetype)) return RESPONSE.error(res, 400, 3009, "Only PDF and DOCX files allowed.");
         if (file.size > 10 * 1024 * 1024) return RESPONSE.error(res, 400, 3009, "Limit 10MB exceeded.");
 
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const fileName = `resumes/${req.user.id}-${uniqueSuffix}.pdf`;
+        const ext = file.originalname.split('.').pop();
+        const fileName = `resumes/${req.user.id}-${uniqueSuffix}.${ext}`;
         const uploadRes = await uploadFile(file.buffer, fileName, file.mimetype);
         const fileUrl = uploadRes.url;
 

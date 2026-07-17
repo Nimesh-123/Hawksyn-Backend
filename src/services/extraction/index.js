@@ -80,19 +80,19 @@ You are the Hawksyn CV text cleaner.
 Apply these transformations to the CV text and return ONLY the cleaned text.
 No JSON. No explanation. Just the cleaned CV text.
 
-## TASK 1 — Bullet normalisation (CR-01)
+## TASK 1 - Bullet normalisation (CR-01)
 Replace with hyphen at start of lines.
-## TASK 2 — Unicode normalisation (CR-05)
+## TASK 2 - Unicode normalisation (CR-05)
 Replace smart quotes, em-dash, etc.
-## TASK 3 — Date normalisation (CR-02)
+## TASK 3 - Date normalisation (CR-02)
 Convert month/year date patterns to YYYY-MM (e.g. 'Jan 2020' to '2020-01'). Do NOT alter standalone years (e.g. '2018' stays '2018').
-## TASK 4 — Currency normalisation (CR-03 + CR-04)
+## TASK 4 - Currency normalisation (CR-03 + CR-04)
 Normalise currency expressions inline.
-## TASK 5 — Code snippet stripping (CR-11)
+## TASK 5 - Code snippet stripping (CR-11)
 Replace code blocks with '[code snippet removed]'.
-## TASK 6 — Excluded sections removal (CR-09)
+## TASK 6 - Excluded sections removal (CR-09)
 REMOVE Personal Details, Family Background, Hobbies, References, Declaration.
-## TASK 7 — Template placeholders (CR-07)
+## TASK 7 - Template placeholders (CR-07)
 Replace placeholders with [TEMPLATE_PLACEHOLDER].
 
 Return ONLY the cleaned text. Nothing else.
@@ -183,14 +183,14 @@ A new role starts when you see:
   - OR same company with clearly different title and date range
 
 For CVs with sections like "Career Objective", "Personal Details",
-"Family Background" at the top — skip these sections entirely.
+"Family Background" at the top - skip these sections entirely.
 The experience section starts after these introductory sections.
 
 ## COMPLETENESS CHECK
 After detecting roles, verify:
   - total_experience_years claimed in CV (if mentioned) ≈ sum of role durations
   - If CV says "32 years experience" but you only found 20 years of roles,
-    you likely missed some roles — look again more carefully
+    you likely missed some roles - look again more carefully
 
 For Sushil-type CVs: look for ALL of these companies if present:
   BHEL / EL / Bharat Heavy Electricals → current/most recent role
@@ -244,7 +244,7 @@ You will receive:
 3. raw_text MUST be the COMPLETE verbatim bullet.
    If a bullet is "Led the operating model redesign for a top-3 Indian
    private bank, reducing branch operations cost by INR 540 crore over
-   24 months." — raw_text must be this complete sentence.
+   24 months." - raw_text must be this complete sentence.
    NEVER truncate raw_text mid-word or mid-sentence.
    If you cannot find the complete bullet, skip the AEU entirely.
 
@@ -253,11 +253,11 @@ Do NOT extract bullets that belong to a different role.
 
 ## EXTRACTION RULES
 
-Rule 1 — One action per AEU
+Rule 1 - One action per AEU
   Each bullet = one AEU. Two distinct actions in one bullet = two AEUs.
   Never merge.
 
-Rule 2 — Vague verb mapping (CR-10) CRITICAL
+Rule 2 - Vague verb mapping (CR-10) CRITICAL
   'Responsible for X'    -> action: 'Managed X'       decision_level: contributed
   'Was part of'          -> action: 'Participated in'  decision_level: supported
   'Helped drive'         -> action: 'Supported'        decision_level: supported
@@ -270,16 +270,16 @@ Rule 2 — Vague verb mapping (CR-10) CRITICAL
   'Founded/Built/Designed/Drove/Architected/Spearheaded' -> decision_level: owned
   CRITICAL: 'Responsible for' is NEVER owned. Always contributed.
 
-Rule 3 — Metrics
+Rule 3 - Metrics
   Extract ONLY if present verbatim. Never invent. Never compute.
   Flag missing_metrics if no number present.
 
-Rule 4 — Evidence strength
+Rule 4 - Evidence strength
   strong   = specific action verb + metric + decision_level owned
   moderate = specific verb + (metric OR ownership)
   weak     = vague verb after CR-10 mapping AND no metric
 
-Rule 5 — Hollow language (CR-16)
+Rule 5 - Hollow language (CR-16)
   Cap evidence_strength at weak if bullet contains:
   'delivered impactful outcomes' / 'drive meaningful change' /
   'navigate complex stakeholder ecosystems' / 'unlock value' /
@@ -288,17 +288,17 @@ Rule 5 — Hollow language (CR-16)
   'catalyse sustainable competitive advantage'
   Add flag: hollow_language_present
 
-Rule 6 — Buzzwords (CR-17)
+Rule 6 - Buzzwords (CR-17)
   Count: transformative, synergy, leverage, paradigm, holistic, ecosystem,
   best-in-class, thought leader, visionary, catalytic, disruptive,
   next-generation, championing, dynamic, results-oriented, mission-critical
   If > 3 in one role: cap evidence_strength at moderate. Flag: high_buzzword_density
 
-Rule 7 — Marquee project (CR-14)
+Rule 7 - Marquee project (CR-14)
   Match bullet text against marquee_project list in reference.
   Flag marquee_project_referenced.
 
-Rule 10 — Title inflation check
+Rule 10 - Title inflation check
   If title contains Founder/Director/VP/SVP/CXO/Head/Chief/Principal
   AND bullets describe task-level work (handled/performed/executed/submitted)
   Add flag: possible_title_inflation
@@ -383,7 +383,7 @@ An education entry has some combination of:
 These appear on 1-3 consecutive lines.
 Section header is a HINT, not required.
 
-## INDIAN QUALIFICATION MAP (CR-08) — apply canonical form
+## INDIAN QUALIFICATION MAP (CR-08) - apply canonical form
 BTech / B.Tech / Bachelor of Technology        -> BTECH
 BE / B.E. / Bachelor of Engineering            -> BE
 MBA / M.B.A. / PGDM / Post Graduate Programme  -> MBA or PGDM
@@ -488,7 +488,7 @@ Set self_rated: true. Keep skill name without rating.
 
 RULES: 
 1. Output ONLY JSON.
-2. CAP: Extract only the top 40 most significant skills. Deduplicate aggressively.
+2. CAP: Extract up to the top 80 most significant skills. Deduplicate aggressively, but preserve highly specific domain or technical skills (e.g. Quantum Cryptography, PostgreSQL).
 `;
 
 const PCR_EXTRACT_CREDENTIALS_DEFAULT = `
@@ -540,48 +540,48 @@ Merge extractor outputs. Run cross-section checks. Generate I-AEUs.
 
 ## CROSS-SECTION CHECKS
 
-Check 1 — Date overlap (CR-12)
+Check 1 - Date overlap (CR-12)
 For each pair of full-time roles with overlap_months > 1:
   Flag both with overlapping_dates.
   Generate I-AEU type consistency: 'Concurrent Full-Time Role Overlap'
   Exception: one role is consulting/freelance/advisory -> do not flag.
 
-Check 2 — Repeat employer (CR-13)
+Check 2 - Repeat employer (CR-13)
 Group roles by company_canonical.
 Consecutive + upward title + gap < 1 month -> flag internal_promotion
 Same employer with gap > 6 months -> flag boomerang_pattern
 
-Check 3 — Skill-role mismatch
+Check 3 - Skill-role mismatch
 If > 50% of skills not mentioned in any role bullet:
   Generate I-AEU type risk: 'Skill-Role Mismatch'
 If technical skills listed (Python/ML/data) but all roles are non-technical:
   Generate I-AEU type risk: 'Possible Skill Inflation'
 
-Check 4 — Seniority signals
+Check 4 - Seniority signals
 If headline_implied_seniority is junior or mid AND any role shows:
   team_size > 50 OR amount_inr > 100000000 OR cross_functional across 3+ AEUs
   -> I-AEU type seniority: 'Underclaimed Seniority'
 
-Check 5 — Trajectory
+Check 5 - Trajectory
 Analyse role progression chronologically:
   linear: titles progress consistently up -> I-AEU capability
   accelerated: multiple promotions in short periods -> I-AEU capability
   stagnation: same level > 5 years -> I-AEU risk
   decline: lower-seniority role after higher -> I-AEU consistency
 
-Check 6 — Tenure
+Check 6 - Tenure
 avg_role_tenure < 18 months AND role_count > 5 -> I-AEU risk: chronic job hopping
 Single role > 60 months AND total experience > 96 months -> I-AEU behaviour: long-tenure
 
-Check 7 — Gap analysis
+Check 7 - Gap analysis
 Compute gaps between consecutive roles.
 Gap > 6 months with no break explanation -> I-AEU consistency: unexplained gap
 
-Check 8 — Domain depth
+Check 8 - Domain depth
 If > 8 distinct domain terms used appropriately across roles:
   -> I-AEU capability: domain depth
 
-Check 9 — Domain Inference
+Check 9 - Domain Inference
 Infer the industry, domain_indicator, and sector from the candidate's roles, company names, and projects.
 Example 1: Backend Engineer + SaaS Company -> industry = Technology, domain_indicator = SaaS
 Example 2: IT Services Firm -> industry = IT Services
@@ -616,11 +616,11 @@ Return JSON with this structure:
   "inference_aeus": [
     {
       "iaeu_id": "I_CAP_001",           (format: I_<TYPE>_<NNN>)
-      "type": "capability",              (NOT "category" — use "type")
-      "title": "<5 word title>",         (REQUIRED — short descriptive title)
-      "inferred_claim": "<full claim>",  (REQUIRED — 1-2 sentences, neutral language)
+      "type": "capability",              (NOT "category" - use "type")
+      "title": "<5 word title>",         (REQUIRED - short descriptive title)
+      "inferred_claim": "<full claim>",  (REQUIRED - 1-2 sentences, neutral language)
       "supporting_aeus": ["R1_AEU1"],   (NOT "supporting_aeu_ids")
-      "support_count": 2,               (REQUIRED — count of supporting_aeus)
+      "support_count": 2,               (REQUIRED - count of supporting_aeus)
       "confidence": "high",
       "strength": "strong",             (REQUIRED: strong/moderate/weak)
       "logic": "<reasoning>",
@@ -636,9 +636,9 @@ Output ONLY JSON.
 // REGEX PATTERNS FOR ROLE SEGMENTATION (Previously in segmentation.js)
 // ─────────────────────────────────────────────────────────────────────────────
 const DATE_PATTERNS = [
-  /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–—]\s*(?:Present|Current|Now|\w+\s+\d{4})/gi,
-  /\d{1,2}\/\d{2,4}\s*[-–—]\s*(?:Present|Current|\d{1,2}\/\d{2,4})/g,
-  /\b\d{4}\s*[-–—]\s*(?:Present|Current|\d{4})\b/g
+  /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–-]\s*(?:Present|Current|Now|\w+\s+\d{4})/gi,
+  /\d{1,2}\/\d{2,4}\s*[-–-]\s*(?:Present|Current|\d{1,2}\/\d{2,4})/g,
+  /\b\d{4}\s*[-–-]\s*(?:Present|Current|\d{4})\b/g
 ];
 
 const ACTION_VERBS = ['architected', 'drove', 'built', 'led', 'managed', 'optimized', 'transformed', 'delivered', 'reduced', 'increased'];
@@ -893,7 +893,7 @@ function calculateVerbatimMatchRate(roles, topLevelAEUs = []) {
 // CORE EXTRACTION PIPELINE SERVICE (Dynamic DB Prompts Version)
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function runExtractionPipeline(candidateId, rawText, db) {
+async function runExtractionPipeline(candidateId, rawText, db, isDebug = false) {
   db = db || require('mongoose').connection.db;
   const startTime = Date.now();
   let totalUsage = { promptTokenCount: 0, candidatesTokenCount: 0, totalTokenCount: 0 };
@@ -1113,17 +1113,19 @@ async function runExtractionPipeline(candidateId, rawText, db) {
     const validated = await runValidation(consolidated, conditioned_text);
 
     // Precompute overall stats
-    const totalMonths = calculateExperienceMonths(repairedRoles);
+    const experienceStats = calculateExperienceMonths(repairedRoles);
     const senioritySequence = buildSenioritySequence(repairedRoles);
     const trajectory = detectPromotionTrajectory(senioritySequence);
     const chronoRisks = detectChronologyRisks(repairedRoles);
 
     const stats = {
-      total_experience_months: totalMonths,
-      total_experience_years: parseFloat((totalMonths / 12).toFixed(1)),
+      total_experience_months: experienceStats.total_claimed_months,
+      total_experience_years: parseFloat((experienceStats.total_claimed_months / 12).toFixed(1)),
+      chronological_full_time_months: experienceStats.chronological_full_time_months,
+      chronological_full_time_years: parseFloat((experienceStats.chronological_full_time_months / 12).toFixed(1)),
       role_count: repairedRoles.length,
-      avg_tenure_months: repairedRoles.length > 0 ? totalMonths / repairedRoles.length : 0,
-      top_skills: (Array.isArray(skills?.skills) ? skills.skills : (Array.isArray(skills) ? skills : [])).map(s => s?.skill_name || s?.name || typeof s === 'string' ? s : '').filter(Boolean).slice(0, 5),
+      avg_tenure_months: repairedRoles.length > 0 ? experienceStats.total_claimed_months / repairedRoles.length : 0,
+      top_skills: (Array.isArray(skills?.skills) ? skills.skills : (Array.isArray(skills) ? skills : [])).map(s => typeof s === 'string' ? s : (s?.skill_name || s?.name || '')).filter(Boolean).slice(0, 5),
       ...consolidated.meta_stats,
       industry: consolidated.inferred_profile?.industry || consolidated.industry || "",
       domain_indicator: consolidated.inferred_profile?.domain_indicator || consolidated.domain_indicator || consolidated.domainIndicator || "",
@@ -1187,7 +1189,7 @@ async function runExtractionPipeline(candidateId, rawText, db) {
     emitProgress('SCORING_DECISION_READINESS', { signalsFound: signalsCount > 0 ? signalsCount : 14 });
 
     const runId = `RUN_${candidateId}_${Date.now()}`;
-    const psdeResults = await runPSDEScan(extractedCVDoc, stats, validated.validation_meta, consolidated.inference_aeus, runId);
+    const psdeResults = await runPSDEScan(extractedCVDoc, stats, validated.validation_meta, consolidated.inference_aeus, runId, isDebug);
 
     // A. Check for existing scan to log superseded events for compliance audit
     try {

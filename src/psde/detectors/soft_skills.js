@@ -15,7 +15,7 @@ function detectEmpatheticLeader(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrates a people-first leadership style focused on mentorship and culture.' : 'No significant empathetic leadership signals detected.',
         anchors: []
     };
@@ -34,8 +34,8 @@ function detectConflictNavigator(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.88 : 0,
-        reasoning: isDetected ? 'Skilled in navigating complex stakeholder environments and resolving organizational conflicts.' : 'Limited evidence of conflict navigation skills.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Skilled in working through complex team members and partners environments and resolving organizational conflicts.' : 'Limited evidence of conflict navigation skills.',
         anchors: []
     };
 }
@@ -53,8 +53,8 @@ function detectResilientOperator(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.91 : 0,
-        reasoning: isDetected ? 'Proven ability to remain effective and drive results in high-pressure or volatile environments.' : 'No significant resilience signals found.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven ability to remain effective and lead results in high-pressure or volatile environments.' : 'No significant resilience signals found.',
         anchors: []
     };
 }
@@ -72,8 +72,8 @@ function detectInfluentialCommunicator(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.87 : 0,
-        reasoning: isDetected ? 'Possesses strong communication skills and the ability to influence executive-level stakeholders.' : 'Limited evidence of high-impact communication skills.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Possesses strong communication skills and the ability to influence executive-level team members and partners.' : 'Limited evidence of high-impact communication skills.',
         anchors: []
     };
 }
@@ -90,7 +90,7 @@ function detectCollaborativeCatalyst(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Acts as a catalyst for cross-departmental collaboration and breaking down organizational silos.' : 'No significant collaborative catalyst signals detected.',
         anchors: []
     };

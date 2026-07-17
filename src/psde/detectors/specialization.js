@@ -11,7 +11,7 @@ function detectPLGExpert(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrated expertise in Product-Led Growth (PLG) strategies and unit economics.' : 'No significant PLG signals detected.',
         anchors: []
     };
@@ -27,7 +27,7 @@ function detectCapitalAllocationExpert(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Involved in high-level capital allocation, investment strategy, or portfolio oversight.' : 'Limited evidence of capital allocation responsibility.',
         anchors: []
     };
@@ -47,8 +47,8 @@ function detectProfitabilityDriver(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
-        reasoning: isDetected ? 'Proven track record of driving bottom-line profitability and large-scale cost transformations.' : 'No strong profitability-driver signals found.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven track record of leading bottom-line profitability and large-scale cost transformations.' : 'No strong profitability-driver signals found.',
         anchors: []
     };
 }
@@ -62,7 +62,7 @@ function detectCategoryCreator(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.85 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Experience in defining and building entirely new market categories.' : 'No category creation signals detected.',
         anchors: []
     };
@@ -77,7 +77,7 @@ function detectAgileTransformationLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.88 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Led organizational shifts toward agile methodologies and modern delivery frameworks.' : 'No significant agile transformation signals detected.',
         anchors: []
     };
@@ -103,7 +103,7 @@ function detectGTMArchitect(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.96 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrated expertise in designing and executing go-to-market (GTM) strategies.' : 'Limited GTM architecture signals found.',
         anchors: []
     };

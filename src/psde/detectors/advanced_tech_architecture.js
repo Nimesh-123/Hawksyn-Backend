@@ -13,7 +13,7 @@ function detectAIMLInfrastructure(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.97 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specialized expertise in the infrastructure and orchestration layers of AI and Machine Learning systems.' : 'No significant AI/ML infrastructure signals detected.',
         anchors: []
     };
@@ -32,7 +32,7 @@ function detectMicroservicesGuru(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.96 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Advanced mastery of distributed systems, service mesh technologies, and event-driven microservices architecture.' : 'Limited evidence of advanced microservices patterns.',
         anchors: []
     };
@@ -53,7 +53,7 @@ function detectServerlessEvangelist(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrated expertise in architecting and scaling serverless-first applications with complex orchestration.' : 'No significant serverless-first signals found.',
         anchors: []
     };
@@ -70,7 +70,7 @@ function detectEdgeComputingSpecialist(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in edge-side computation and global delivery strategies to minimize latency.' : 'No edge computing signals detected.',
         anchors: []
     };
@@ -87,7 +87,7 @@ function detectHighConcurrencyArchitect(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Expertise in high-throughput, concurrent systems and distributed consistency algorithms.' : 'No high-concurrency architecture signals found.',
         anchors: []
     };

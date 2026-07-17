@@ -13,7 +13,7 @@ function detectColdChainLogisticsLead(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.96 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in the complex management of temperature-controlled supply chains, crucial for pharmaceutical and food sectors.' : 'No significant cold chain signals detected.',
         anchors: []
     };
@@ -30,7 +30,7 @@ function detectLastMileOptimizationExpert(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven expertise in optimizing the final leg of the delivery journey, focusing on speed, cost, and route efficiency.' : 'No significant last-mile signals found.',
         anchors: []
     };
@@ -47,8 +47,8 @@ function detectStrategicSourcingGlobal(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
-        reasoning: isDetected ? 'Demonstrated mastery in global vendor diversification and high-stakes strategic procurement.' : 'Limited evidence of global strategic sourcing.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Demonstrated mastery in global vendor diversification and high-stakes high-level procurement.' : 'Limited evidence of global high-level sourcing.',
         anchors: []
     };
 }
@@ -64,7 +64,7 @@ function detectSupplyChainRiskArchitect(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in designing resilient supply chain frameworks and mitigating high-impact global disruptions.' : 'No significant supply chain risk architecture signals found.',
         anchors: []
     };
@@ -80,7 +80,7 @@ function detectCustomsBrokerageManager(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Expertise in international customs compliance, HTS classification, and the management of import/export duties.' : 'Limited evidence of customs and brokerage management.',
         anchors: []
     };

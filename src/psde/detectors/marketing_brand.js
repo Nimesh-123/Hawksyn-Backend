@@ -15,7 +15,7 @@ function detectBrandArchitect(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven expertise in designing and maintaining high-impact brand identities and strategies.' : 'No significant brand architect signals detected.',
         anchors: []
     };
@@ -34,7 +34,7 @@ function detectPerformanceMarketer(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Data-driven marketer with expertise in paid acquisition, ROAS optimization, and performance scaling.' : 'Limited evidence of performance marketing expertise.',
         anchors: []
     };
@@ -53,7 +53,7 @@ function detectContentStrategist(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Skilled storyteller capable of designing and executing complex content and creative strategies.' : 'No significant content strategist signals found.',
         anchors: []
     };
@@ -72,7 +72,7 @@ function detectGrowthMarketer(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven expertise in growth hacking, experimentation, and full-funnel optimization.' : 'Limited evidence of growth marketing leadership.',
         anchors: []
     };
@@ -91,7 +91,7 @@ function detectPRCommunicationsLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.91 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Experienced communications leader with a track record in reputation management and media relations.' : 'No significant PR and communications signals detected.',
         anchors: []
     };

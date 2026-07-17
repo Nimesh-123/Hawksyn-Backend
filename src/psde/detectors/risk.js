@@ -13,8 +13,8 @@ function detectCareerVolatility(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
-        reasoning: isDetected ? 'Career trajectory shows seniority regression or downward movement.' : 'No significant seniority regression detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Career career direction shows seniority regression or downward movement.' : 'No significant seniority regression detected.',
         anchors: isDetected ? [
             { type: 'SENIORITY_DROP_COUNT', value: drops }
         ] : []
@@ -25,7 +25,7 @@ function detectOverlappingRoles(cv, stats) {
     const isDetected = stats.overlapFlag === true;
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.98 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Found role dates that overlap by more than 2 months (potential dual employment).' : 'No significant role overlaps detected.',
         anchors: isDetected ? [
             { type: 'OVERLAP_DETECTED', value: true }
@@ -66,7 +66,7 @@ function detectCareerGaps(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? `Found ${unexplainedGaps.length} unexplained career gaps exceeding 6 months.` : 'No significant unexplained career gaps detected.',
         anchors: isDetected ? [
             { type: 'GAP_COUNT', value: unexplainedGaps.length },
@@ -105,7 +105,7 @@ function detectTitleInflation(cv, stats) {
     ) && stats.total_experience_years < 7;
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.85 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'High-seniority job titles achieved with significantly less than 7 years of total experience.' : 'Title-to-experience ratio appears standard.',
         anchors: [{ type: 'TOTAL_EXP_YEARS', value: stats.total_experience_years }]
     };
@@ -123,7 +123,7 @@ function detectFrequentSectorSwitching(cv, stats) {
     const isDetected = sectors.size >= 3 && stats.role_count <= 4;
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.80 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Frequent changes in industry sectors, potentially indicating a lack of deep domain specialization.' : 'Sector movement is standard or focused.',
         anchors: [{ type: 'SECTOR_COUNT', value: sectors.size }]
     };
@@ -149,7 +149,7 @@ function detectUnstableGrowthPattern(cv, stats) {
     return {
         detected: isDetected,
         confidence: isDetected ? 0.75 : 0,
-        reasoning: isDetected ? 'Career trajectory shows frequent shifts in seniority levels within a short timeframe.' : 'Growth pattern appears stable or linear.',
+        reasoning: isDetected ? 'Career career direction shows frequent shifts in seniority levels within a short timeframe.' : 'Growth pattern appears stable or linear.',
         anchors: [{ type: 'FLUCTUATION_COUNT', value: fluctuations }]
     };
 }

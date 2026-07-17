@@ -15,8 +15,8 @@ function detectGeneralCounsel(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
-        reasoning: isDetected ? 'Proven expertise as a strategic legal advisor and head of legal operations.' : 'No significant general counsel signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven expertise as a high-level legal advisor and head of legal operations.' : 'No significant general counsel signals detected.',
         anchors: []
     };
 }
@@ -34,8 +34,8 @@ function detectIPStrategist(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
-        reasoning: isDetected ? 'Demonstrated expertise in intellectual property strategy and portfolio management.' : 'Limited evidence of IP strategic leadership.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Demonstrated expertise in intellectual property strategy and portfolio management.' : 'Limited evidence of IP high-level leadership.',
         anchors: []
     };
 }
@@ -53,7 +53,7 @@ function detectLitigationSpecialist(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Extensive experience in managing complex litigation, disputes, and arbitration.' : 'No significant litigation specialist signals found.',
         anchors: []
     };
@@ -72,7 +72,7 @@ function detectPrivacyDataEthicsLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven expertise in data privacy, ethical data management, and global regulatory compliance.' : 'Limited evidence of privacy and data ethics leadership.',
         anchors: []
     };
@@ -91,7 +91,7 @@ function detectContractManagementExpert(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.91 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Expertise in managing contract lifecycles and optimizing legal operations.' : 'No significant contract management signals detected.',
         anchors: []
     };
