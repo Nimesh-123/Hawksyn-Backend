@@ -34,20 +34,36 @@ async function buildFourClocksResponse(userId) {
         ...(clocks.clock2.contributors || []),
         ...(clocks.clock3.contributors || []),
         ...(clocks.clock4.contributors || [])
-    ];
+    ].map(c => c.archetype_id || c).filter(Boolean);
     
     // Contributor records have archetype_id and belong to a clock
     const contributorRecords = await ClockContent.find({ archetype_id: { $in: allContributors } }).lean();
 
+    // Fallback: Fetch latest PSDE result for archetype names/reasoning
+    const latestPsde = await PSDEResult.findOne({ candidate_id: userId }).sort({ createdAt: -1 }).lean();
+    const psdeResultsMap = {};
+    if (latestPsde && latestPsde.archetype_results) {
+        latestPsde.archetype_results.forEach(ar => {
+            psdeResultsMap[ar.archetype_id] = {
+                title: ar.archetype_name,
+                body: ar.reasoning || ar.explanation || ''
+            };
+        });
+    }
+
     const getContribs = (clockId, ids) => {
-        return (ids || []).map(id => {
+        return (ids || []).map(idObj => {
+            const id = typeof idObj === 'string' ? idObj : idObj.archetype_id;
             const rec = contributorRecords.find(r => r.archetype_id === id && (String(r.clock_id) === String(clockId) || Number(r.clock_id) === Number(clockId)));
-            return rec ? {
+            
+            const fallback = psdeResultsMap[id] || {};
+            
+            return {
                 archetype_id: id,
-                display_title: rec.display_title,
-                display_body: rec.display_body,
-                detail_direction_tag: rec.detail_direction_tag
-            } : { archetype_id: id };
+                display_title: (rec && rec.display_title) || fallback.title || id,
+                display_body: (rec && rec.display_body) || fallback.body || 'Evidence detected in your profile.',
+                detail_direction_tag: (rec && rec.detail_direction_tag) || 'View Details'
+            };
         });
     };
 
