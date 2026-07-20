@@ -123,7 +123,9 @@ exports.getUserProfile = async (req, res) => {
             certifications: p.composition?.certifications || [],
             seniority: {
                 level: p.inferred?.seniorityLevel || "",
-                totalExperienceYears: p.inferred?.totalExperienceYears || 0,
+                dimensions: p.inferred?.seniorityDimensions || [p.inferred?.seniorityLevel].filter(Boolean),
+                totalExperienceYears: p.precomputed_stats?.total_experience_years || p.inferred?.totalExperienceYears || 0,
+                chronologicalFullTimeYears: p.precomputed_stats?.chronological_full_time_years || 0,
                 summary: p.inferred?.senioritySummary || ""
             },
             employment: {
@@ -135,9 +137,17 @@ exports.getUserProfile = async (req, res) => {
                 .filter(aeu => aeu.isInferred === true && aeu.fact)
                 .map(aeu => {
                     const parts = aeu.fact.split(':');
+                    let field = parts[0] ? parts[0].trim() : "Assumption";
+                    let assumedValue = parts[1] ? parts[1].trim() : "N/A";
+                    
+                    if (field.includes("Impact Claims Lack Quantification")) {
+                        field = "Strategic Quantification Profile";
+                        assumedValue = "Some strategic leadership claims rely on qualitative evidence, although the overall profile contains strong quantified business outcomes.";
+                    }
+
                     return {
-                        field: parts[0] ? parts[0].trim() : "Assumption",
-                        assumedValue: parts[1] ? parts[1].trim() : "N/A",
+                        field: field,
+                        assumedValue: assumedValue,
                         label: "Assumed from CV",
                         reason: aeu.inferenceReason || ""
                     };

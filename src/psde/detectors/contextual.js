@@ -11,7 +11,7 @@ function detectStartupNative(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Deep experience in high-growth, early-stage, or venture-backed environments.' : 'No significant startup-native signals detected.',
         anchors: []
     };
@@ -26,7 +26,7 @@ function detectBigTechAlumni(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.98 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? `Exposure to the high-scale engineering and operational standards of ${matches.join(', ')}.` : 'No Tier-1 Big Tech alumni signals found.',
         anchors: [{ type: 'BIG_TECH_COMPANIES', value: matches }]
     };
@@ -41,8 +41,8 @@ function detectMatureEnterpriseLeader(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.85 : 0,
-        reasoning: isDetected ? 'Proven ability to navigate and lead within large, established corporate structures.' : 'Career context is not primarily mature enterprise.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven ability to manage and lead within large, established corporate structures.' : 'Career context is not primarily mature enterprise.',
         anchors: []
     };
 }
@@ -56,7 +56,7 @@ function detectPublicSectorNavigator(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Experience working with or within government and public sector organizations.' : 'No significant public sector exposure detected.',
         anchors: []
     };
@@ -71,7 +71,7 @@ function detectFamilyOfficeProfessional(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.88 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in managing assets or operations for high-net-worth family offices.' : 'No family office context detected.',
         anchors: []
     };

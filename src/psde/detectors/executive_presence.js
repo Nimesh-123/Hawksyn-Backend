@@ -20,7 +20,7 @@ function detectBoardAdvisor(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.96 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrated experience in board-level advisory and corporate governance.' : 'No significant board advisor signals detected.',
         anchors: []
     };
@@ -41,7 +41,7 @@ function detectPublicSpeaker(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven track record of industry-level public speaking and conference participation.' : 'Limited evidence of public speaking roles.',
         anchors: []
     };
@@ -62,7 +62,7 @@ function detectESGChampion(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Active leadership in Environmental, Social, and Governance (ESG) initiatives.' : 'No significant ESG signals found.',
         anchors: []
     };
@@ -80,7 +80,7 @@ function detectIndustryInfluencer(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.91 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Recognized as an industry authority through publications, patents, awards, or significant thought leadership.' : 'No significant industry influence signals detected.',
         anchors: []
     };
@@ -97,8 +97,8 @@ function detectStrategicAdvisor(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
-        reasoning: isDetected ? 'High-level strategic advisory experience, often at the C-suite or founder level.' : 'Limited evidence of strategic advisory roles.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'High-level high-level advisory experience, often at the C-suite or founder level.' : 'Limited evidence of high-level advisory roles.',
         anchors: []
     };
 }

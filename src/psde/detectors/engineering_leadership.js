@@ -15,7 +15,7 @@ function detectCTOVisionary(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.96 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrated leadership in defining long-term technology strategy and architectural vision at the C-suite level.' : 'No significant CTO strategy signals detected.',
         anchors: []
     };
@@ -32,7 +32,7 @@ function detectVPEngineering(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven track record of scaling engineering organizations, improving delivery velocity, and managing multi-tiered technical teams.' : 'Limited evidence of VP-level engineering management.',
         anchors: []
     };
@@ -51,7 +51,7 @@ function detectTechnicalCoFounder(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Successfully led the technical birth of a product as a co-founder, balancing early-stage builds with business growth.' : 'No technical co-founder signals found.',
         anchors: []
     };
@@ -68,7 +68,7 @@ function detectHeadOfInfrastructure(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in the leadership of complex platform infrastructure, ensuring high availability and cost-efficient scaling.' : 'No significant infrastructure leadership signals detected.',
         anchors: []
     };
@@ -84,8 +84,8 @@ function detectEngineeringManagerPeople(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
-        reasoning: isDetected ? 'Strong focus on the "Human API"—specializing in hiring, talent development, and building high-retention technical teams.' : 'Limited evidence of people-focused engineering management.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Strong focus on the "Human API"-specializing in hiring, talent development, and building high-retention technical teams.' : 'Limited evidence of people-focused engineering management.',
         anchors: []
     };
 }

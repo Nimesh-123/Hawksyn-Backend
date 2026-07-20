@@ -12,7 +12,7 @@ function detectESGReportingLead(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.96 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in the complex frameworks of ESG reporting, including GRI, SASB, and carbon accounting.' : 'No significant ESG reporting signals detected.',
         anchors: []
     };
@@ -28,7 +28,7 @@ function detectImpactInvestmentAnalyst(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven ability to analyze and measure the social and environmental return on investment in sustainable finance.' : 'No significant impact investment signals found.',
         anchors: []
     };
@@ -44,8 +44,8 @@ function detectCorporatePhilanthropyDirector(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
-        reasoning: isDetected ? 'Experienced in leading corporate foundations and designing strategic community engagement and giving programs.' : 'Limited evidence of corporate philanthropy leadership.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Experienced in leading corporate foundations and designing high-level community engagement and giving programs.' : 'Limited evidence of corporate philanthropy leadership.',
         anchors: []
     };
 }
@@ -60,7 +60,7 @@ function detectGrantManagementSpecialist(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in the end-to-end management of non-profit grants, from securing funding to ensuring strict compliance.' : 'No significant grant management signals found.',
         anchors: []
     };
@@ -76,8 +76,8 @@ function detectDEILead(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
-        reasoning: isDetected ? 'Proven track record of driving organizational culture transformation through DEI strategy and inclusive practices.' : 'Limited evidence of DEI leadership.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven track record of leading organizational culture transformation through DEI strategy and inclusive practices.' : 'Limited evidence of DEI leadership.',
         anchors: []
     };
 }

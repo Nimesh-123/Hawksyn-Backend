@@ -14,7 +14,7 @@ function detectSupportArchitect(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven expertise in designing and managing large-scale customer support operations and systems.' : 'No significant support architect signals detected.',
         anchors: []
     };
@@ -32,7 +32,7 @@ function detectSLAChampion(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Focused on operational efficiency, consistently meeting or exceeding complex service level agreements.' : 'Limited evidence of SLA-driven leadership.',
         anchors: []
     };
@@ -51,8 +51,8 @@ function detectCommunityManager(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
-        reasoning: isDetected ? 'Expertise in building and managing large user communities and social support ecosystems.' : 'No significant community manager signals found.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Expertise in building and managing large user communities and social support environments.' : 'No significant community manager signals found.',
         anchors: []
     };
 }
@@ -69,7 +69,7 @@ function detectTechnicalSupportLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven ability to lead technical support teams and manage complex escalations and incidents.' : 'Limited evidence of technical support leadership.',
         anchors: []
     };
@@ -87,8 +87,8 @@ function detectSelfServiceExpert(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.91 : 0,
-        reasoning: isDetected ? 'Specialist in driving support efficiency through self-service content and automated deflection strategies.' : 'No significant self-service signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Specialist in leading support efficiency through self-service content and automated deflection strategies.' : 'No significant self-service signals detected.',
         anchors: []
     };
 }

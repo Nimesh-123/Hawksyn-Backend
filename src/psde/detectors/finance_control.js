@@ -15,8 +15,8 @@ function detectFPAStrategist(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
-        reasoning: isDetected ? 'Expertise in financial planning, analysis, and strategic forecasting.' : 'No significant FP&A strategist signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Expertise in financial planning, analysis, and high-level forecasting.' : 'No significant FP&A strategist signals detected.',
         anchors: []
     };
 }
@@ -34,7 +34,7 @@ function detectCommercialController(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven track record in commercial finance, deal-making, and margin optimization.' : 'Limited evidence of commercial control expertise.',
         anchors: []
     };
@@ -53,7 +53,7 @@ function detectTreasuryTaxLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specialized expertise in treasury operations, cash management, and tax strategy.' : 'No significant treasury and tax signals found.',
         anchors: []
     };
@@ -73,7 +73,7 @@ function detectMADealLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.96 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven expertise in managing the end-to-end M&A deal lifecycle, from valuation to execution.' : 'Limited evidence of M&A deal leadership.',
         anchors: []
     };
@@ -92,7 +92,7 @@ function detectInvestorRelationsExpert(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Strong experience in managing investor relations, fundraising, and capital market communication.' : 'No significant investor relations signals detected.',
         anchors: []
     };

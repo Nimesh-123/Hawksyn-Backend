@@ -67,38 +67,63 @@ function detectChronologyRisks(roles) {
 }
 
 
-function calculateExperienceMonths(roles) {
+function calculateIntervalsMonths(intervals) {
+    if (intervals.length === 0) return 0;
+    
+    // Clone and sort
+    const sorted = [...intervals].sort((a, b) => a.start - b.start);
     let totalMonths = 0;
-    const intervals = [];
+    
+    let mStart = sorted[0].start;
+    let mEnd = sorted[0].end;
+
+    for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i].start <= mEnd) {
+            mEnd = new Date(Math.max(mEnd, sorted[i].end));
+        } else {
+            totalMonths += monthDiff(mStart, mEnd);
+            mStart = sorted[i].start;
+            mEnd = sorted[i].end;
+        }
+    }
+    totalMonths += monthDiff(mStart, mEnd);
+
+    return totalMonths;
+}
+
+function calculateExperienceMonths(roles) {
+    const allIntervals = [];
+    const corporateIntervals = [];
 
     roles.forEach(role => {
         const meta = role.role_metadata;
         if (meta?.start_date) {
             const start = parseDate(meta.start_date);
             const end = /present|current/i.test(meta.end_date) ? new Date() : parseDate(meta.end_date || meta.start_date);
-            if (start && end && end > start) intervals.push({ start, end });
+            if (start && end && end > start) {
+                const interval = { start, end };
+                allIntervals.push(interval);
+                
+                // Exclude entrepreneurial roles and internships from the chronological corporate track
+                const title = (meta.title || '').toLowerCase();
+                const isEntrepreneurial = /founder|co-founder|freelance|self-employed|entrepreneur/i.test(title);
+                const isInternship = /intern|internship/i.test(title);
+                if (!isEntrepreneurial && !isInternship) {
+                    corporateIntervals.push(interval);
+                }
+            }
         }
     });
 
-    if (intervals.length === 0) return 0;
+    const total_claimed_months = calculateIntervalsMonths(allIntervals);
+    const chronological_full_time_months = calculateIntervalsMonths(corporateIntervals);
 
-    // Merge Intervals
-    intervals.sort((a, b) => a.start - b.start);
-    let mStart = intervals[0].start;
-    let mEnd = intervals[0].end;
+    // Maintain backwards compatibility if it's used as a primitive elsewhere
+    const result = new Number(total_claimed_months);
+    result.total_claimed_months = total_claimed_months;
+    result.chronological_full_time_months = chronological_full_time_months;
 
-    for (let i = 1; i < intervals.length; i++) {
-        if (intervals[i].start <= mEnd) {
-            mEnd = new Date(Math.max(mEnd, intervals[i].end));
-        } else {
-            totalMonths += monthDiff(mStart, mEnd);
-            mStart = intervals[i].start;
-            mEnd = intervals[i].end;
-        }
-    }
-    totalMonths += monthDiff(mStart, mEnd);
-
-    return totalMonths;
+    return result;
 }
 
 function monthDiff(d1, d2) {

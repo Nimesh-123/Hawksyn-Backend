@@ -62,9 +62,13 @@ async function VR_002(aeu, archetypeRegistryMap) {
 
 // VR_003 — cluster_id matches the cluster that produced this AEU
 async function VR_003(aeu, archetypeRegistryMap) {
-    const rule = archetypeRegistryMap.get(aeu.archetype_id);
-    if (rule && normalizeClusterId(rule.cluster) !== aeu.cluster_id) {
-        return { pass: false, reason: `cluster mismatch: AEU says ${aeu.cluster_id} but registry says ${rule.cluster} (mapped to ${normalizeClusterId(rule.cluster)})` };
+    const { getArchetype } = require('../../psde/registry/index.js');
+    let data = await getArchetype(aeu.archetype_id, 3); // 3 defaults to JR_MID/ALL variant
+    
+    if (data) {
+        if (data.cluster !== aeu.cluster_id) {
+            return { pass: false, reason: `cluster mismatch: AEU says ${aeu.cluster_id} but master table says ${data.cluster}` };
+        }
     }
     return { pass: true };
 }

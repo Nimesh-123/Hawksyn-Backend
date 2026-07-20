@@ -59,6 +59,7 @@ const PSDEResultSchema = new mongoose.Schema({
             flags: [String]
         }
     ],
+    debug_trace: mongoose.Schema.Types.Mixed,
     meta: {
         total_scanned: Number,
         total_detected: Number,

@@ -13,8 +13,8 @@ function detectRevOpsStrategist(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.96 : 0,
-        reasoning: isDetected ? 'Demonstrated expertise in aligning sales, marketing, and customer success operations to drive revenue predictability.' : 'No significant RevOps strategy signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Demonstrated expertise in aligning sales, marketing, and customer success operations to lead revenue predictability.' : 'No significant RevOps strategy signals detected.',
         anchors: []
     };
 }
@@ -30,8 +30,8 @@ function detectGTMEnablementLead(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
-        reasoning: isDetected ? 'Proven ability to drive sales productivity through training, methodology adoption, and go-to-market playbooks.' : 'No significant GTM enablement signals found.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven ability to lead sales productivity through training, methodology adoption, and go-to-market playbooks.' : 'No significant GTM enablement signals found.',
         anchors: []
     };
 }
@@ -47,8 +47,8 @@ function detectPricingPackagingModeler(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
-        reasoning: isDetected ? 'Specializes in the strategic design of pricing, packaging, and monetization models to maximize customer lifetime value.' : 'No significant pricing/packaging modeling signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Specializes in the high-level design of pricing, packaging, and monetization models to maximize customer lifetime value.' : 'No significant pricing/packaging modeling signals detected.',
         anchors: []
     };
 }
@@ -67,7 +67,7 @@ function detectSalesTechStackArchitect(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Expertise in architecting and managing complex sales technology stacks, including CRM, CPQ, and sales engagement tools.' : 'Limited evidence of sales tech stack architecture.',
         anchors: []
     };
@@ -84,7 +84,7 @@ function detectTerritoryQuotaPlanner(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in data-driven sales capacity planning, territory allocation, and quota management.' : 'No significant territory/quota planning signals found.',
         anchors: []
     };

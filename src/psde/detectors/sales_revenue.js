@@ -15,7 +15,7 @@ function detectSalesHunter(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrated strong performance in new business acquisition and sales hunting activities.' : 'No significant sales hunter signals detected.',
         anchors: []
     };
@@ -34,8 +34,8 @@ function detectAccountFarmer(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
-        reasoning: isDetected ? 'Proven expertise in growing existing accounts and driving long-term customer value.' : 'Limited evidence of account farming or expansion skills.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven expertise in growing existing accounts and leading long-term customer value.' : 'Limited evidence of account farming or expansion skills.',
         anchors: []
     };
 }
@@ -53,8 +53,8 @@ function detectRevOpsArchitect(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
-        reasoning: isDetected ? 'Strategic thinker capable of designing and optimizing revenue operations and sales technology stacks.' : 'No significant RevOps architect signals found.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'high-level thinker capable of designing and optimizing revenue operations and sales technology stacks.' : 'No significant RevOps architect signals found.',
         anchors: []
     };
 }
@@ -72,8 +72,8 @@ function detectChannelStrategyLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
-        reasoning: isDetected ? 'Expertise in building and managing indirect sales channels and strategic partnerships.' : 'Limited evidence of channel strategy leadership.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Expertise in building and managing indirect sales channels and high-level partnerships.' : 'Limited evidence of channel strategy leadership.',
         anchors: []
     };
 }
@@ -91,7 +91,7 @@ function detectHighTicketCloser(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven track record of closing high-value, complex enterprise deals.' : 'No significant high-ticket closer signals found.',
         anchors: []
     };

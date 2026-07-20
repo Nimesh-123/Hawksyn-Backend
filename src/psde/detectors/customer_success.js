@@ -15,8 +15,8 @@ function detectRetentionMaster(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
-        reasoning: isDetected ? 'Proven track record in reducing churn and driving long-term customer retention.' : 'No significant retention master signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven track record in reducing churn and leading long-term customer retention.' : 'No significant retention master signals detected.',
         anchors: []
     };
 }
@@ -34,8 +34,8 @@ function detectCXArchitect(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
-        reasoning: isDetected ? 'Strategic thinker focused on designing and transforming the end-to-end customer experience.' : 'Limited evidence of CX architectural leadership.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'high-level thinker focused on designing and transforming the end-to-end customer experience.' : 'Limited evidence of CX architectural leadership.',
         anchors: []
     };
 }
@@ -52,8 +52,8 @@ function detectCustomerAdvocate(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
-        reasoning: isDetected ? 'Acts as a strong internal advocate for the customer, leveraging feedback to drive improvements.' : 'No significant customer advocacy signals found.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Acts as a strong internal advocate for the customer, leveraging feedback to lead improvements.' : 'No significant customer advocacy signals found.',
         anchors: []
     };
 }
@@ -71,7 +71,7 @@ function detectOnboardingSpecialist(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.91 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Expert in accelerating customer time-to-value through efficient onboarding and implementation.' : 'Limited evidence of specialized onboarding expertise.',
         anchors: []
     };
@@ -90,7 +90,7 @@ function detectScaleCSM(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.89 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Experienced in managing large account volumes through automated and digital-first customer success models.' : 'No significant Scale CSM signals detected.',
         anchors: []
     };

@@ -12,8 +12,8 @@ function detectChurnMitigationLead(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.96 : 0,
-        reasoning: isDetected ? 'Demonstrated expertise in modeling customer health and executing proactive strategies to mitigate churn and drive retention.' : 'No significant churn mitigation signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Demonstrated expertise in modeling customer health and executing proactive strategies to mitigate churn and lead retention.' : 'No significant churn mitigation signals detected.',
         anchors: []
     };
 }
@@ -28,7 +28,7 @@ function detectCSOperationsArchitect(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in the operational infrastructure of Customer Success, including tool orchestration and process automation.' : 'No significant CS operations signals found.',
         anchors: []
     };
@@ -44,8 +44,8 @@ function detectStrategicAccountDirector(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
-        reasoning: isDetected ? 'Proven track record of managing high-value enterprise accounts and driving strategic account expansion.' : 'Limited evidence of strategic account management.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven track record of managing high-value enterprise accounts and leading high-level account expansion.' : 'Limited evidence of high-level account management.',
         anchors: []
     };
 }
@@ -60,8 +60,8 @@ function detectRenewalsStrategist(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
-        reasoning: isDetected ? 'Specializes in the commercial and strategic management of customer contract renewals and negotiations.' : 'No significant renewals strategy signals found.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Specializes in the commercial and high-level management of customer contract renewals and negotiations.' : 'No significant renewals strategy signals found.',
         anchors: []
     };
 }
@@ -76,7 +76,7 @@ function detectCSMLeaderScaled(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Experienced in leading large-scale or digital-first Customer Success organizations with a focus on organizational scaling.' : 'Limited evidence of scaled CS leadership.',
         anchors: []
     };

@@ -7,7 +7,7 @@ function detectQuantifiedImpact(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'High density of quantified business outcomes detected across roles.' : 'Outcome quantification is below threshold.',
         anchors: isDetected ? [
             { type: 'PCT_METRIC_PRESENT', value: Math.round(stats.metrics_density * 20) } // Mock 20 bullets avg
@@ -20,7 +20,7 @@ function detectLeadershipDensity(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.85 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? `Found ${stats.leadership_signal_count} leadership signals including hiring, mentoring, or team growth.` : 'Limited explicit leadership signals found.',
         anchors: isDetected ? [
             { type: 'LEADERSHIP_SIGNAL_COUNT', value: stats.leadership_signal_count }
@@ -38,7 +38,7 @@ function detectExecutiveOwnership(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'High percentage of owned decisions and high-complexity initiatives.' : 'Limited evidence of executive-level autonomy.',
         anchors: isDetected ? [
             { type: 'PCT_OWNED', value: Math.round(pctOwned) }
@@ -54,7 +54,7 @@ function detectBudgetOwner(cv, stats) {
     const isDetected = budgetAeus.length >= 1;
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Found evidence of direct budget management or financial oversight.' : 'No explicit mention of budget ownership.',
         anchors: [{ type: 'BUDGET_AEU_COUNT', value: budgetAeus.length }]
     };
@@ -68,7 +68,7 @@ function detectPandLResponsibility(cv, stats) {
     const isDetected = plAeus.length >= 1;
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.98 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Found explicit P&L responsibility, a strong signal of business ownership.' : 'No P&L responsibility detected.',
         anchors: []
     };
@@ -83,8 +83,8 @@ function detectGlobalStakeholderMgmt(cv, stats) {
     const isDetected = globalAeus.length >= 2;
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.85 : 0,
-        reasoning: isDetected ? 'Experience managing stakeholders across multiple global regions or international markets.' : 'Stakeholder interaction appears local or regional.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Experience managing team members and partners across multiple global regions or international markets.' : 'team members and partners interaction appears local or regional.',
         anchors: [{ type: 'GLOBAL_AEU_COUNT', value: globalAeus.length }]
     };
 }
@@ -98,7 +98,7 @@ function detectMentorshipProfile(cv, stats) {
     const isDetected = mentorAeus.length >= 2;
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Candidate actively invests in developing others through formal or informal mentorship.' : 'Limited explicit mention of talent development.',
         anchors: []
     };
@@ -113,7 +113,7 @@ function detectTeamBuilder(cv, stats) {
     const isDetected = buildAeus.length >= 1;
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Evidence of building teams or practices from scratch or during rapid growth phases.' : 'No explicit team-building signals found.',
         anchors: []
     };
@@ -125,8 +125,8 @@ function detectStakeholderNavigator(cv, stats) {
     );
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.80 : 0,
-        reasoning: isDetected ? 'Navigates complex high-stakes environments by supporting executive decision-makers.' : 'Standard stakeholder interaction pattern.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Navigates complex high-stakes environments by supporting executive decision-makers.' : 'Standard team members and partners interaction pattern.',
         anchors: []
     };
 }
@@ -136,7 +136,7 @@ function detectHighPerformanceCulture(cv, stats) {
     const isDetected = metricCount >= 8;
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Consistent focus on high-performance metrics and quantified success across their history.' : 'Standard focus on performance metrics.',
         anchors: [{ type: 'METRIC_DENSITY_TOTAL', value: metricCount }]
     };
@@ -147,7 +147,7 @@ function detectCrossFunctionalLeader(cv, stats) {
     const isDetected = xFnCount >= 3;
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.88 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Strong record of leading initiatives across diverse functional departments.' : 'Standard functional focus.',
         anchors: [{ type: 'XFN_SIGNAL_COUNT', value: xFnCount }]
     };
@@ -162,8 +162,8 @@ function detectRevenueDriver(cv, stats) {
     const isDetected = revAeus.length >= 2;
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
-        reasoning: isDetected ? 'Proven track record of driving top-line revenue growth and commercial success.' : 'Limited evidence of direct revenue impact.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven track record of leading top-line revenue growth and commercial success.' : 'Limited evidence of direct revenue impact.',
         anchors: []
     };
 }
@@ -177,8 +177,8 @@ function detectEfficiencyExpert(cv, stats) {
     const isDetected = effAeus.length >= 3;
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
-        reasoning: isDetected ? 'Specializes in driving operational efficiencies and bottom-line savings.' : 'Standard operational focus.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Specializes in leading operational efficiencies and bottom-line savings.' : 'Standard operational focus.',
         anchors: []
     };
 }

@@ -15,7 +15,7 @@ function detectDevOpsPioneer(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrated leadership in automation, CI/CD, and Infrastructure-as-Code (IaC) practices.' : 'No significant DevOps pioneer signals detected.',
         anchors: []
     };
@@ -34,7 +34,7 @@ function detectCloudNativeArchitect(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Expertise in designing and scaling cloud-native architectures and distributed systems.' : 'Limited evidence of cloud-native architectural patterns.',
         anchors: []
     };
@@ -53,7 +53,7 @@ function detectSecurityFirstDeveloper(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Strong focus on security-first development practices and compliance standards.' : 'No significant security-first signals detected.',
         anchors: []
     };
@@ -72,7 +72,7 @@ function detectLegacyModernizer(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven experience in migrating complex legacy systems to modern, scalable architectures.' : 'Limited legacy modernization evidence found.',
         anchors: []
     };
@@ -91,7 +91,7 @@ function detectDataDrivenEngineer(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Adopts a metrics-first approach to engineering, focusing on observability and performance.' : 'No data-driven engineering signals detected.',
         anchors: []
     };

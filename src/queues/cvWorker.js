@@ -15,7 +15,7 @@ async function fetchFileBuffer(url) {
 }
 
 exports.processCVInBackground = async (jobData) => {
-    const { runId, userId, originalname, mimetype, fileUrl, fileName, ip } = jobData;
+    const { runId, userId, originalname, mimetype, fileUrl, fileName, ip, isDebug } = jobData;
     
     console.log(`[Background] Processing CV for Run: ${runId}`);
     
@@ -26,7 +26,7 @@ exports.processCVInBackground = async (jobData) => {
         const fileBuffer = await fetchFileBuffer(fileUrl);
         await createAuditLog(mockReq, 'CV_PARSING_STARTED', userId, { runId, fileName: originalname });
         
-        let extractedData = await smartCVParser(fileBuffer, originalname, mimetype, userId, fileUrl);
+        let extractedData = await smartCVParser(fileBuffer, originalname, mimetype, userId, fileUrl, isDebug);
         let parserStatus = "FAILED";
 
         if (extractedData && extractedData.isCv === false) {

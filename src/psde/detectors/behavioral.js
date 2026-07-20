@@ -11,7 +11,7 @@ function detectAnalyticalPowerhouse(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Candidate relies heavily on quantitative analysis and data-driven decision making.' : 'No strong analytical behavioral signals found.',
         anchors: isDetected ? [{ type: 'ANALYTICAL_KEYWORDS', value: matches }] : []
     };
@@ -26,7 +26,7 @@ function detectCrisisManager(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.88 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrated ability to lead and stabilize organizations during high-pressure crisis periods.' : 'No significant crisis management signals detected.',
         anchors: []
     };
@@ -41,8 +41,8 @@ function detectVisionaryLeader(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
-        reasoning: isDetected ? 'Focuses on long-term industry shifts and pioneering new strategic directions.' : 'Limited evidence of visionary-level strategic planning.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Focuses on long-term industry shifts and pioneering new high-level directions.' : 'Limited evidence of visionary-level high-level planning.',
         anchors: []
     };
 }
@@ -56,7 +56,7 @@ function detectMethodicalOperator(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.85 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Prioritizes structured processes, governance, and methodical execution.' : 'No strong methodical behavioral signals found.',
         anchors: []
     };
@@ -70,7 +70,7 @@ function detectHighAmbitionSignal(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Candidate demonstrates a consistent pattern of high-prestige and high-velocity career moves.' : 'Standard career ambition profile.',
         anchors: []
     };

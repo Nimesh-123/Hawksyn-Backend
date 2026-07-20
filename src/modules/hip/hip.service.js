@@ -1,5 +1,4 @@
 const { db } = require('../../models/index.model');
-const hipAiProvider = require('./hip.aiProvider');
 const Handlebars = require('handlebars');
 const { v4: uuidv4 } = require('uuid');
 
@@ -43,322 +42,111 @@ class HipService {
                 }
             };
 
-            // 2. Fetch Prompts and Rules
-            const sectionPrompts = await db.HipSectionPrompt.find({ isActive: true });
-            if (!sectionPrompts.length) throw new Error('No active HipSectionPrompts found in DB');
+            // 2. Determine Seniority Band
+            let band_code = 'MS';
+            if (profileContext.profile.years_experience <= 2) band_code = 'FR';
+            else if (profileContext.profile.years_experience <= 5) band_code = 'JR';
+            else if (profileContext.profile.years_experience <= 10) band_code = 'MS';
+            else if (profileContext.profile.years_experience <= 14) band_code = 'SR';
+            else band_code = 'LD';
 
-            const rules = await db.HipGuardrailRule.find({ isActive: true });
-            const rulesMap = {};
-            rules.forEach(r => { rulesMap[r.ruleId] = r.instruction; });
+            // 3. Fetch Deterministic Content from HipContentMap
+            console.log(`[HIP-Service] Fetching static content for band: ${band_code}`);
+            const allContentForBand = await db.HipContentMap.find({ band_code }).lean();
+
+            if (!allContentForBand.length) {
+                console.warn(`[HIP-Service] ⚠️ No content found in HipContentMap for band ${band_code}. Run seeder.`);
+            }
+
+            // 4. Map PSDE signals to Sections (Deterministic Logic)
+            // In a full implementation, you would map specific psdeResult.archetype_results to C1S1, C1S2 etc.
+            // For now, we will deterministically assign signal levels based on the overall PSDE detection rate.
+            const detectionRate = psdeResult.total_detected / (psdeResult.total_evaluated || 330);
+            const defaultSignal = detectionRate > 0.4 ? 'STRONG' : (detectionRate > 0.2 ? 'MODERATE' : 'GAP');
 
             const sectionsData = {};
-            
-            // Build a Set of valid anchor IDs from psdeResult for validation
-            const validAnchorIds = new Set();
-            const allAeusForValidation = psdeResult.base_aeus || psdeResult.archetype_results || [];
-            for (const aeu of allAeusForValidation) {
-                // Top-level id field (e.g. R1_AEU1, IAEU_CAP_1)
-                if (aeu.id) validAnchorIds.add(aeu.id);
-                // Nested evidence_anchors array if it exists
-                if (Array.isArray(aeu.evidence_anchors)) {
-                    for (const anchor of aeu.evidence_anchors) {
-                        if (anchor.anchor_id) validAnchorIds.add(anchor.anchor_id);
-                        if (anchor.id) validAnchorIds.add(anchor.id);
-                    }
-                }
-                // archetype_id as fallback identifier
-                if (aeu.archetype_id) validAnchorIds.add(aeu.archetype_id);
-            }
-            // Also add any top-level archetype anchor IDs from top_fired
-            if (Array.isArray(psdeResult.top_fired)) {
-                for (const tf of psdeResult.top_fired) {
-                    if (tf.anchor_id) validAnchorIds.add(tf.anchor_id);
-                    if (tf.id) validAnchorIds.add(tf.id);
-                }
-            }
-            // If validAnchorIds is still empty after all attempts, log a warning
-            // and disable anchor validation for this run to avoid degrading all sections
-            const skipAnchorValidation = validAnchorIds.size === 0;
-            if (skipAnchorValidation) {
-                console.warn('[HIP-Service] ⚠️ Could not build validAnchorIds — anchor validation disabled for this run.');
-            }
+            const faqEntities = [];
 
-            function sanitiseSectionOutput(data) {
-                if (!data) return data;
-                // Strip any XML/HTML-like tags the LLM may have leaked into prose
-                const stripTags = (str) => {
-                    if (typeof str !== 'string') return str;
-                    let clean = str.replace(/<[^>]+>/g, '').replace(/\s{2,}/g, ' ');
-                    // Clean up empty fragments left by stripped tags
-                    clean = clean.replace(/\s+at\s+\./g, '.').replace(/\bat\s+\./g, '.').trim();
-                    return clean;
-                };
-                
-                if (data.prose) data.prose = stripTags(data.prose);
-                if (Array.isArray(data.cards)) {
-                    data.cards = data.cards.map(card => ({
-                        ...card,
-                        title: stripTags(card.title),
-                        description: stripTags(card.description),
-                        label: stripTags(card.label),
-                    }));
-                }
-                if (Array.isArray(data.chips)) {
-                    data.chips = data.chips.map(stripTags).filter(c => c && c.trim().length > 0);
-                }
-                return data;
-            }
+            // Group content by section
+            const sectionsGrouped = allContentForBand.reduce((acc, doc) => {
+                if (!acc[doc.section_id]) acc[doc.section_id] = {};
+                acc[doc.section_id][doc.signal_level] = doc;
+                return acc;
+            }, {});
 
-            // 3. Process Each Section
-            // We do this sequentially to avoid rate limiting, but could use Promise.all with concurrency limit
-            for (const spec of sectionPrompts) {
-                console.log(`[HIP-Service] Generating section: ${spec.sectionId} - ${spec.sectionName}`);
-                
-                try {
-                    let relevantAeus = [];
-                    const allAeus = psdeResult.base_aeus || psdeResult.archetype_results || [];
-                    
-                    if (spec.aeuSelector && (
-                        (spec.aeuSelector.dimensionIds && spec.aeuSelector.dimensionIds.length > 0) || 
-                        (spec.aeuSelector.archetypeIds && spec.aeuSelector.archetypeIds.length > 0)
-                    )) {
-                        relevantAeus = allAeus.filter(a => {
-                            const matchDim = spec.aeuSelector.dimensionIds && spec.aeuSelector.dimensionIds.includes(a.dimension_id);
-                            const matchArch = spec.aeuSelector.archetypeIds && spec.aeuSelector.archetypeIds.includes(a.archetype_id);
-                            return matchDim || matchArch;
+            const rawSectionsData = {};
+            for (const sectionId in sectionsGrouped) {
+                let chosenSignal = defaultSignal; 
+                const sectionContent = sectionsGrouped[sectionId][chosenSignal] || sectionsGrouped[sectionId]['MODERATE'] || Object.values(sectionsGrouped[sectionId])[0];
+
+                if (sectionContent) {
+                    const sectionKey = sectionContent.section_id; // It's already in C1S1 format from the DB
+                    rawSectionsData[sectionKey] = {
+                        chapter_id: sectionContent.chapter_id,
+                        section_name: sectionContent.section_name,
+                        signal_level: sectionContent.signal_level,
+                        prose: sectionContent.headline + ' — ' + sectionContent.content_block,
+                        cards: [
+                            {
+                                title: sectionContent.headline,
+                                description: sectionContent.content_block,
+                                label: sectionContent.signal_level
+                            }
+                        ],
+                        chips: sectionContent.capability_titles ? sectionContent.capability_titles.split(',') : [],
+                        _degraded: false
+                    };
+
+                    // Add to FAQ
+                    if (faqEntities.length < 10) {
+                        faqEntities.push({
+                            "@type": "Question",
+                            "name": `What is the assessment for ${sectionContent.section_name}?`,
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": sectionContent.content_block
+                            }
                         });
-                        
-                        if (spec.aeuSelector.limit) {
-                            relevantAeus = relevantAeus.slice(0, spec.aeuSelector.limit);
-                        }
-                    } else {
-                        // Fall back to top-10 by confidence
-                        relevantAeus = allAeus
-                            .filter(a => a.evidence_strength === 'strong' || a.evidence_strength === 'moderate' || a.detection_state === 'detected')
-                            .sort((a, b) => (b.confidence_score || 0) - (a.confidence_score || 0))
-                            .slice(0, 10);
                     }
-
-                    const templateData = {
-                        ...profileContext,
-                        psde_aeus: relevantAeus,
-                        rarity_aeu: psdeResult.top_fired?.find(a => a.dimension_id === 'DIM_08_RARITY'),
-                        supporting_aeus: relevantAeus.slice(0, 5),
-                        consolidator_output: psdeResult.consolidator_output || {}
-                    };
-
-                    // Pattern C: build col_1, col_2, col_3 from relevantAeus
-                    // Only runs for S08 or any section with pattern containing 'C'
-                    if (spec.pattern && spec.pattern.toLowerCase().includes('c')) {
-                        
-                        // Pull anchors that carry numeric scale data
-                        // Look across all PSDE anchors for team_size, budget, tenure type fields
-                        const scaleAnchors = [];
-                        
-                        const allAeusFlat = psdeResult.base_aeus || psdeResult.archetype_results || [];
-                        
-                        for (const aeu of allAeusFlat) {
-                            if (!Array.isArray(aeu.evidence_anchors)) continue;
-                            for (const anchor of aeu.evidence_anchors) {
-                                const t = (anchor.anchor_type || '').toLowerCase();
-                                if (
-                                    t.includes('team') || t.includes('headcount') ||
-                                    t.includes('budget') || t.includes('revenue') ||
-                                    t.includes('tenure') || t.includes('years') ||
-                                    t.includes('numeric') || t.includes('scale') ||
-                                    t.includes('size') || t.includes('count')
-                                ) {
-                                    if (anchor.anchor_value && anchor.anchor_value !== null) {
-                                        scaleAnchors.push(anchor);
-                                    }
-                                }
-                            }
-                        }
-
-                        // Also check top-level AEU fields directly
-                        for (const aeu of allAeusFlat) {
-                            if (aeu.anchor_type && aeu.anchor_value !== null && aeu.anchor_value !== undefined) {
-                                const t = (aeu.anchor_type || '').toLowerCase();
-                                if (
-                                    t.includes('team') || t.includes('headcount') ||
-                                    t.includes('budget') || t.includes('revenue') ||
-                                    t.includes('tenure') || t.includes('years') ||
-                                    t.includes('numeric') || t.includes('scale')
-                                ) {
-                                    scaleAnchors.push({
-                                        anchor_id: aeu.id || aeu.anchor_id,
-                                        anchor_type: aeu.anchor_type,
-                                        anchor_value: aeu.anchor_value,
-                                        verbatim_quote: aeu.raw_text || aeu.verbatim_quote || ''
-                                    });
-                                }
-                            }
-                        }
-
-                        const nullCol = { 
-                            anchor_id: null, 
-                            anchor_type: null, 
-                            anchor_value: null, 
-                            verbatim_quote: null 
-                        };
-
-                        templateData.col_1 = scaleAnchors[0] || nullCol;
-                        templateData.col_2 = scaleAnchors[1] || nullCol;
-                        templateData.col_3 = scaleAnchors[2] || nullCol;
-
-                        // If no scale anchors found at all, skip S08 entirely
-                        if (!scaleAnchors[0]) {
-                            console.warn(`[HIP-Service] ⚠️ S08: No scale anchors found in PSDE result — skipping section`);
-                            sectionsData[spec.sectionId] = {
-                                columns: [],
-                                evidence_anchors_used: [],
-                                _skipped: true,
-                                _reason: 'No scale anchors available in PSDE output'
-                            };
-                            continue; // skip to next section in the loop
-                        }
-                    }
-
-                    // Pre-process the template to escape LLM instructions like {{plain English}}
-                    // We escape any {{ that is NOT followed by our known data keys (#each, profile, this, etc)
-                    const escapedTemplateStr = spec.userPromptTemplate.replace(
-                        /\{\{(?!\s*(#each|\/each|#if|\/if|profile|psde_aeus|this|rarity_aeu|supporting_aeus|@index|col_1|col_2|col_3))/g,
-                        '\\{\{'
-                    );
-
-                    // Handlebars arrays require .[0] instead of [0]
-                    const cleanArrayIndices = escapedTemplateStr.replace(/\[(\d+)\]/g, '.[$1]');
-
-                    // Compile Handlebars User Prompt
-                    const template = Handlebars.compile(cleanArrayIndices);
-                    const finalUserPrompt = template(templateData);
-
-                    // Compile System Prompt with Guardrails
-                    let finalSystemPrompt = spec.systemPrompt + '\n\nSTRICT RULES TO FOLLOW:\n';
-                    spec.activeGuardrails.forEach(ruleId => {
-                        if (rulesMap[ruleId]) {
-                            finalSystemPrompt += `- [${ruleId}] ${rulesMap[ruleId]}\n`;
-                        }
-                    });
-
-                    // Call Local HIP LLM if not a special no-LLM pattern
-                    let llmResponse = { data: {} };
-                    if (spec.pattern && spec.pattern.includes('no LLM')) {
-                        console.log(`[HIP-Service] ⏭️ Skipping LLM for ${spec.sectionId} (pattern: ${spec.pattern})`);
-                        llmResponse = { 
-                            data: { 
-                                cards: [], 
-                                columns: [], 
-                                prose: '', 
-                                chips: [], 
-                                evidence_anchors_used: [],
-                                _skipped: true
-                            } 
-                        };
-                    } else {
-                        let attempts = 0;
-                        const maxAttempts = 2;
-                        let success = false;
-                        
-                        while (attempts < maxAttempts && !success) {
-                            attempts++;
-                            try {
-                                llmResponse = await hipAiProvider.generateJSON(finalUserPrompt, finalSystemPrompt, {
-                                    model: spec.modelConfig?.modelFamily === 'Claude' ? 'Claude' : 'Gemini',
-                                    maxTokens: Math.max(spec.modelConfig?.tokenCeiling || 4000, 4000)
-                                });
-                                
-                                // Validate anchor IDs
-                                if (!skipAnchorValidation && llmResponse.data && Array.isArray(llmResponse.data.evidence_anchors_used)) {
-                                    for (const anchorId of llmResponse.data.evidence_anchors_used) {
-                                        if (!validAnchorIds.has(anchorId)) {
-                                            console.warn(`[HIP-Service] [GR_H_007] Invalid anchor ID: ${anchorId} — not in PSDE source. Flagging but not blocking.`);
-                                            // Log to gr_log if available; do not throw — degrade only if critical
-                                        }
-                                    }
-                                }
-
-                                // After anchor validation, before storing
-                                if (spec.pattern === 'C' || spec.sectionId === 'S08') {
-                                    if (!llmResponse.data.columns || llmResponse.data.columns.length === 0) {
-                                        throw new Error(`[S08] Pattern C returned empty columns — no scale data available`);
-                                    }
-                                }
-
-                                success = true;
-                            } catch (err) {
-                                console.error(`[HIP-Service] ⚠️ Attempt ${attempts} failed for section ${spec.sectionId}:`, err.message);
-                                if (attempts >= maxAttempts) {
-                                    throw err;
-                                }
-                            }
-                        }
-                    }
-
-                    sectionsData[spec.sectionId] = sanitiseSectionOutput(llmResponse.data);
-                    console.log(`[HIP-Service] ✅ Section ${spec.sectionId} generated.`);
-                    
-                } catch (secErr) {
-                    console.error(`[HIP-Service] ❌ Failed section ${spec.sectionId} after all attempts:`, secErr.message);
-                    // Mark as degraded with safe shape
-                    sectionsData[spec.sectionId] = { 
-                        _degraded: true, 
-                        cards: [], 
-                        columns: [], 
-                        prose: '', 
-                        chips: [], 
-                        evidence_anchors_used: [],
-                        _error: true,
-                        message: secErr.message
-                    };
                 }
             }
 
-            // Build FAQ mainEntity — generate proper recruiter questions from section content
-            let faqEntities = [];
+            // Map the new deterministic keys (C*S*) back to the legacy (S01-S24) format 
+            // that the Handlebars templates and UI_CHAPTER_MAP in hip.controller.js expect.
+            const compatibilityMap = {
+                "C1S1": "S01",
+                "C2S1": "S02",
+                "C2S2": "S03",
+                "C2S3": "S04",
+                "C3S1": "S05",
+                "C3S2": "S06",
+                "C3S3": "S07",
+                "C4S1": "S08",
+                "C4S2": "S09",
+                "C4S3": "S10",
+                "C1S2": "S11",
+                "C5S1": "S12", 
+                "C5S2": "S13",
+                "C5S3": "S14",
+                "C6S1": "S15",
+                "C6S2": "S16",
+                "C6S3": "S17",
+                "C6S4": "S18",
+                "C7S1": "S19",
+                "C7S2": "S20",
+                "C7S3": "S21",
+                "C7S4": "S22",
+                "C8S1": "S23",
+                "C8S2": "S24",
+                "C3S4": "S25" 
+            };
 
-            // Strategy 1: try to build from prose sections using profile context as question frame
-            const faqSourceMap = [
-                { section: 'S04', question: `What is ${profileContext.profile.full_name}'s career background?` },
-                { section: 'S05', question: `How does ${profileContext.profile.full_name}'s title compare to their actual scope?` },
-                { section: 'S11', question: `What are ${profileContext.profile.full_name}'s key professional strengths?` },
-                { section: 'S13', question: `What domain expertise does ${profileContext.profile.full_name} hold?` },
-                { section: 'S14', question: `What is ${profileContext.profile.full_name}'s specialist identity?` },
-                { section: 'S15', question: `What does ${profileContext.profile.full_name}'s growth trajectory show?` },
-                { section: 'S17', question: `What is the significance of ${profileContext.profile.full_name}'s employer history?` },
-                { section: 'S21', question: `What trust signals does ${profileContext.profile.full_name}'s record show?` },
-                { section: 'S23', question: `What market demand exists for ${profileContext.profile.full_name}'s profile?` },
-                { section: 'S24', question: `What makes ${profileContext.profile.full_name} distinctive in their field?` },
-            ];
-
-            for (const { section, question } of faqSourceMap) {
-                const sec = sectionsData[section];
-                if (!sec || sec._degraded || sec._error) continue;
-                
-                let answer = '';
-                if (sec.prose && sec.prose.trim().length > 20) {
-                    // Trim prose to 120 words max for FAQPage
-                    const words = sec.prose.trim().split(/\s+/);
-                    answer = words.length > 120 ? words.slice(0, 120).join(' ') + '...' : sec.prose.trim();
-                } else if (Array.isArray(sec.cards) && sec.cards.length > 0) {
-                    answer = sec.cards[0].description || '';
-                }
-                
-                if (answer && faqEntities.length < 10) {
-                    faqEntities.push({
-                        "@type": "Question",
-                        "name": question,
-                        "acceptedAnswer": {
-                            "@type": "Answer",
-                            "text": answer.replace(/<[^>]+>/g, '').replace(/\s+at\s+\./g, '.').replace(/\bat\s+\./g, '.').trim()
-                        }
-                    });
-                }
+            for (const [key, data] of Object.entries(rawSectionsData)) {
+                const legacyKey = compatibilityMap[key] || key;
+                sectionsData[legacyKey] = data;
             }
 
-            if (faqEntities.length === 0) {
-                console.warn('[HIP-Service] ⚠️ Could not build any FAQ entities — all source sections empty or degraded.');
-            }
+            console.log(`[HIP-Service] ✅ Sections mapped deterministically from DB.`);
 
             const safeName = resolvedName.replace(/\s+/g, '-');
             const slug = `${safeName}-${uuidv4().split('-')[0]}`.toLowerCase();

@@ -15,8 +15,8 @@ function detectPMOArchitect(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
-        reasoning: isDetected ? 'Proven ability to design and implement robust project management offices and governance frameworks.' : 'No significant PMO architect signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven ability to design and implement strong project management offices and governance frameworks.' : 'No significant PMO architect signals detected.',
         anchors: []
     };
 }
@@ -34,7 +34,7 @@ function detectAgileCoach(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Expertise in leading agile transformations and coaching teams on modern delivery methodologies.' : 'Limited evidence of agile coaching leadership.',
         anchors: []
     };
@@ -53,8 +53,8 @@ function detectDeliveryLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
-        reasoning: isDetected ? 'Proven track record of driving complex program delivery and milestone-based execution.' : 'No significant delivery lead signals found.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven track record of leading complex program delivery and milestone-based execution.' : 'No significant delivery lead signals found.',
         anchors: []
     };
 }
@@ -73,7 +73,7 @@ function detectRiskComplianceLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.91 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specialist in managing organizational risk, internal controls, and regulatory compliance.' : 'Limited evidence of risk or compliance leadership.',
         anchors: []
     };
@@ -92,8 +92,8 @@ function detectChangeManagementSpecialist(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
-        reasoning: isDetected ? 'Expertise in driving organizational change and ensuring high adoption rates for new initiatives.' : 'No significant change management signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Expertise in leading organizational change and ensuring high adoption rates for new initiatives.' : 'No significant change management signals detected.',
         anchors: []
     };
 }

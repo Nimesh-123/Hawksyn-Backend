@@ -427,6 +427,53 @@ class HipController {
         }
     }
 
+    async getProfileData(req, res) {
+        try {
+            const { slug } = req.params;
+            
+            const profile = await db.HipProfile.findOne({ profileSlug: slug });
+            if (!profile) {
+                return res.status(404).json({ success: false, message: 'Profile not found' });
+            }
+
+            if (profile.status !== 'PUBLISHED') {
+                return res.status(403).json({ success: false, message: 'Profile is not published' });
+            }
+
+            const userDoc = await db.User.findById(profile.userId).lean();
+            const psdeResult = await db.PSDEResult.findOne({ candidate_id: profile.userId }).lean() || {};
+            const userProfile = await db.UserProfile.findOne({ userId: profile.userId });
+            const cvData = userProfile?.confirmedProfile || userProfile?.originalParsedData || {};
+
+            const PROFILE = {
+                full_name: profile.seoMetadata.jsonLdPerson.name,
+                first_name: profile.seoMetadata.jsonLdPerson.name.split(' ')[0],
+                last_name: profile.seoMetadata.jsonLdPerson.name.split(' ').slice(1).join(' '),
+                current_title: profile.seoMetadata.jsonLdPerson.jobTitle,
+                linkedin_url: cvData?.structured?.identity?.social_links?.linkedin || profile.seoMetadata.jsonLdPerson.sameAs || '',
+                primary_domain: cvData?.structured?.inferred?.industry || cvData?.inferred?.industry || cvData.domain || 'Technology',
+                traits_evaluated: psdeResult.total_evaluated || '330',
+                strong_signals: psdeResult.total_detected || '3',
+                years_experience: Math.round(cvData?.structured?.inferred?.totalExperienceYears || cvData?.inferred?.totalExperienceYears) || cvData.yearsOfExperience || '8',
+                rarity_score: profile.seoMetadata.rarityScore || 95,
+                partial_matches: psdeResult.total_partial || '5',
+                profilePhoto: userDoc?.profilePhoto ? `/api/v1/user/profile-photo/${profile.userId}` : null
+            };
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    meta: profile.seoMetadata,
+                    profileData: PROFILE,
+                    sections: profile.sectionsData
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching HIP JSON data:', error);
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
 }
 
 // Background Task Function

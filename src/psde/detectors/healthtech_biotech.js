@@ -13,7 +13,7 @@ function detectClinicalOperationsDirector(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.96 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven expertise in managing the operational lifecycle of clinical trials and ensuring strict GCP compliance.' : 'No significant clinical operations signals detected.',
         anchors: []
     };
@@ -30,7 +30,7 @@ function detectHealthInformaticsLead(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in healthcare data standards and the integration of electronic health records (EHR) into clinical workflows.' : 'No significant health informatics signals found.',
         anchors: []
     };
@@ -47,7 +47,7 @@ function detectMedicalAffairsStrategist(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Proven ability to bridge scientific data and commercial strategy through medical affairs and key opinion leader (KOL) engagement.' : 'Limited evidence of medical affairs leadership.',
         anchors: []
     };
@@ -64,7 +64,7 @@ function detectBioprocessEngineer(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in the technical scaling and manufacturing of biotechnological products and processes.' : 'No significant bioprocess engineering signals found.',
         anchors: []
     };
@@ -80,7 +80,7 @@ function detectPatientAdvocacyLead(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Experienced in managing relationships with patient groups and ensuring the patient voice is central to clinical and commercial strategy.' : 'Limited evidence of patient advocacy leadership.',
         anchors: []
     };

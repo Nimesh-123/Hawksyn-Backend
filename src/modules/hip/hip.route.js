@@ -40,6 +40,37 @@ router.get('/public/profile/:slug', hipController.getPublicProfile);
 
 /**
  * @swagger
+ * /hip/data/{slug}:
+ *   get:
+ *     summary: Get Public HIP Profile Data (JSON)
+ *     description: Returns the raw JSON data of the generated HIP Profile for frontend applications (e.g. Flutter). Requires authentication.
+ *     tags: [HIP Profiles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique slug of the generated profile
+ *     responses:
+ *       200:
+ *         description: Successfully returned the profile data
+ *       401:
+ *         description: Unauthorized, missing token
+ *       403:
+ *         description: Profile is paused/draft
+ *       404:
+ *         description: Profile not found
+ *       500:
+ *         description: Server Error
+ */
+// GET: Serve the raw JSON profile data for Flutter app
+router.get('/data/:slug', hipController.getProfileData);
+
+/**
+ * @swagger
  * /hip/trigger:
  *   post:
  *     summary: Trigger HIP Generation

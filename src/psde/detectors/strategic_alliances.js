@@ -13,8 +13,8 @@ function detectPartnershipArchitect(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
-        reasoning: isDetected ? 'Proven expertise in architecting and managing strategic business partnerships and alliances.' : 'No significant partnership signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven expertise in architecting and managing high-level business partnerships and alliances.' : 'No significant partnership signals detected.',
         anchors: []
     };
 }
@@ -30,8 +30,8 @@ function detectEcosystemBuilder(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
-        reasoning: isDetected ? 'Experience in building and scaling complex business or technical ecosystems.' : 'Limited evidence of ecosystem building.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Experience in building and scaling complex business or technical environments.' : 'Limited evidence of environments building.',
         anchors: []
     };
 }
@@ -50,7 +50,7 @@ function detectMAIntegrationExpert(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specialist in the complex operational and cultural integration following M&A activity.' : 'No significant M&A integration signals found.',
         anchors: []
     };
@@ -70,8 +70,8 @@ function detectJointVentureStrategist(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
-        reasoning: isDetected ? 'Expertise in navigating the governance and strategic alignment of joint ventures.' : 'Limited evidence of joint venture management.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Expertise in working through the governance and high-level alignment of joint ventures.' : 'Limited evidence of joint venture management.',
         anchors: []
     };
 }
@@ -86,7 +86,7 @@ function detectFranchiseExpansionLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.96 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Strong track record of scaling businesses through franchise and licensed expansion models.' : 'No significant franchise signals detected.',
         anchors: []
     };

@@ -13,7 +13,7 @@ function detectDesignOpsLead(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.96 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in the operational scaling of design organizations, including toolchain management and design system governance.' : 'No significant Design Ops signals detected.',
         anchors: []
     };
@@ -29,8 +29,8 @@ function detectCreativeDirectorDigital(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.95 : 0,
-        reasoning: isDetected ? 'Proven track record of driving large-scale brand vision and creative strategy across digital and traditional mediums.' : 'Limited evidence of creative leadership.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven track record of leading large-scale brand vision and creative strategy across digital and traditional mediums.' : 'Limited evidence of creative leadership.',
         anchors: []
     };
 }
@@ -45,8 +45,8 @@ function detectUserResearchSpecialist(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
-        reasoning: isDetected ? 'Expertise in deep user research methodologies, persona development, and driving data-backed product design.' : 'No significant user research signals detected.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Expertise in deep user research methodologies, persona development, and leading data-backed product design.' : 'No significant user research signals detected.',
         anchors: []
     };
 }
@@ -61,7 +61,7 @@ function detectServiceDesignArchitect(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.93 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Specializes in architecting complex, multi-touchpoint service experiences across digital and physical domains.' : 'No significant service design signals found.',
         anchors: []
     };
@@ -77,7 +77,7 @@ function detectInclusiveDesignChampion(cv, stats) {
 
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrated mastery in accessibility standards (WCAG) and the creation of inclusive, universally accessible digital products.' : 'Limited evidence of inclusive design specialization.',
         anchors: []
     };

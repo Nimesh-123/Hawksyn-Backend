@@ -10,6 +10,8 @@ const path = require('path');
 const fs = require('fs');
 const Handlebars = require('handlebars');
 const puppeteer = require('puppeteer');
+const PsdeSignalContent = require('./PsdeSignalContent.model');
+const { getDimensionName } = require('./dimensionLookup');
 
 Handlebars.registerHelper('eq', function (a, b) {
     return a === b;
@@ -207,8 +209,14 @@ exports.uploadRunCv = async (req, res) => {
 
         const file = req.file;
 
-        if (file.mimetype !== 'application/pdf') {
-            return res.status(400).json({ success: false, message: "Invalid file type. Only PDF files are allowed." });
+        const allowedMimes = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/msword'
+        ];
+
+        if (!allowedMimes.includes(file.mimetype)) {
+            return res.status(400).json({ success: false, message: "Invalid file type. Only PDF and DOCX files are allowed." });
         }
 
         if (file.size > 10 * 1024 * 1024) {
@@ -216,7 +224,8 @@ exports.uploadRunCv = async (req, res) => {
         }
 
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const fileName = `resumes/${userId}-${uniqueSuffix}.pdf`;
+        const ext = file.originalname.split('.').pop();
+        const fileName = `resumes/${userId}-${uniqueSuffix}.${ext}`;
 
         const uploadRes = await uploadFile(file.buffer, fileName, file.mimetype);
         const fileUrl = uploadRes.url;
@@ -232,7 +241,8 @@ exports.uploadRunCv = async (req, res) => {
             mimetype: file.mimetype,
             fileUrl,
             fileName,
-            ip: req.ip
+            ip: req.ip,
+            isDebug: req.headers['x-psde-debug'] === 'true' || req.query.debug === 'true'
         }).catch(err => console.error("Background CV Processing failed:", err));
 
         // Set status to indicate CV is in queue
@@ -307,6 +317,45 @@ exports.getLatestCvReport = async (req, res) => {
             scanCompletedDate: report.meta?.generated_at || new Date(),
             archetypesEvaluated: psdeResult.total_evaluated || 330
         };
+
+        // Fetch PIF content for the detected signals
+        if (report.top_signals && report.top_signals.length > 0) {
+            const archetypeIds = report.top_signals.map(s => s.archetype_id).filter(Boolean);
+            const pifContents = await PsdeSignalContent.find({ archetype_id: { $in: archetypeIds } });
+            
+            const pifMap = {};
+            pifContents.forEach(p => {
+                if (!pifMap[p.archetype_id] || p.seniority_variant === 'ALL') {
+                    pifMap[p.archetype_id] = p;
+                }
+            });
+
+            report.top_signals = report.top_signals.map(s => {
+                const pif = pifMap[s.archetype_id];
+                if (pif) {
+                    return {
+                        ...s,
+                        dimension_name: getDimensionName(s.archetype_id),
+                        seniority_variant: pif.seniority_variant,
+                        surface_at_intake: pif.surface_at_intake,
+                        has_interview_q: pif.has_interview_q,
+                        detection_condition: pif.detection_condition,
+                        meaning: pif.meaning,
+                        outside_view: pif.outside_view,
+                        positive_reading: pif.positive_reading,
+                        negative_reading: pif.negative_reading,
+                        what_decides: pif.what_decides,
+                        closing_tension: pif.closing_tension,
+                        iq_l1_clarify: pif.iq_l1_clarify,
+                        iq_l2_probe: pif.iq_l2_probe,
+                        iq_l3_validate: pif.iq_l3_validate,
+                        iq_l4_generalise: pif.iq_l4_generalise,
+                        iq_l5_reflect: pif.iq_l5_reflect
+                    };
+                }
+                return s;
+            });
+        }
 
         return res.status(200).json({
             success: true,

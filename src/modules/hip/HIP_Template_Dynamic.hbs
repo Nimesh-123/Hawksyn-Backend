@@ -2695,10 +2695,10 @@
               {{else}}
               <div class="cc-text" id="cctxt"></div>
               <div class="cc-nav">
+                <div style="cursor:pointer; font-size:18px; padding-right:12px; color:rgba(255,255,255,0.7); user-select:none;" onclick="ccGo((cci - 1 + ccS.length) % ccS.length)">&#8592;</div>
                 <div class="cc-dots" id="ccdots"></div>
-                <div class="cc-prog">
-                  <div class="cc-bar" id="ccbar"></div>
-                </div>
+                <div style="cursor:pointer; font-size:18px; padding-left:12px; color:rgba(255,255,255,0.7); user-select:none;" onclick="ccGo((cci + 1) % ccS.length)">&#8594;</div>
+                <div style="flex:1;"></div>
                 <span class="cc-ctr" id="ccctr">1 / 5</span>
               </div>
               {{/if}}
@@ -2751,10 +2751,10 @@
                 IBNR, ULAE, GLM and Chain Ladder that fewer than 4% of operations professionals at her level carry.
                 <span class="wdm">A rare combination of operational scale and technical expertise.</span></div>
               <div class="sc-nav">
+                <div style="cursor:pointer; font-size:18px; padding-right:12px; color:rgba(255,255,255,0.7); user-select:none;" onclick="scGo((sci - 1 + scS.length) % scS.length)">&#8592;</div>
                 <div class="sc-dots" id="scdots"></div>
-                <div class="sc-prog">
-                  <div class="sc-bar" id="scbar"></div>
-                </div>
+                <div style="cursor:pointer; font-size:18px; padding-left:12px; color:rgba(255,255,255,0.7); user-select:none;" onclick="scGo((sci + 1) % scS.length)">&#8594;</div>
+                <div style="flex:1;"></div>
                 <span class="sc-ctr" id="scctr">1 / 4</span>
               </div>
               {{/if}}
@@ -2862,22 +2862,26 @@
         "{{hip.s07.prose}}",
         "{{hip.s08.prose}}"
       ].filter(Boolean);
-      let cci = 0; const cct = document.getElementById('cctxt'), ccd = document.getElementById('ccdots'), ccb = document.getElementById('ccbar'), ccc = document.getElementById('ccctr');
+      let cci = 0; const cct = document.getElementById('cctxt'), ccd = document.getElementById('ccdots'), ccc = document.getElementById('ccctr');
       ccS.forEach((_, i) => { const d = document.createElement('span'); d.className = 'cc-dot' + (i === 0 ? ' on' : ''); d.onclick = () => ccGo(i); ccd.appendChild(d); });
-      let ccP = 0, ccI; function ccSP() { clearInterval(ccI); ccP = 0; ccb.style.width = '0%'; ccI = setInterval(() => { ccP += 100 / (5000 / 100); if (ccP >= 100) ccP = 100; ccb.style.width = ccP + '%'; }, 100); }
-      function ccGo(i) { cct.classList.add('out'); setTimeout(() => { cci = i; cct.innerHTML = ccS[cci]; cct.classList.remove('out'); cct.classList.add('in'); setTimeout(() => cct.classList.remove('in'), 40); document.querySelectorAll('.cc-dot').forEach((d, j) => d.classList.toggle('on', j === cci)); ccc.textContent = (cci + 1) + ' / ' + ccS.length; ccSP(); }, 300); }
-      if (ccS.length) cct.innerHTML = ccS[0]; ccSP(); setInterval(() => ccGo((cci + 1) % ccS.length), 5000);
+      function ccGo(i) { cct.classList.add('out'); setTimeout(() => { cci = i; cct.innerHTML = ccS[cci]; cct.classList.remove('out'); cct.classList.add('in'); setTimeout(() => cct.classList.remove('in'), 40); document.querySelectorAll('.cc-dot').forEach((d, j) => d.classList.toggle('on', j === cci)); if (ccc) ccc.textContent = (cci + 1) + ' / ' + ccS.length; }, 300); }
+      if (ccS.length) { cct.innerHTML = ccS[0]; if (ccc) ccc.textContent = '1 / ' + ccS.length; }
+      
       const scS = [
         "{{hip.s11.cards.[0].description}}",
         "{{hip.s11.cards.[1].description}}",
         "{{hip.s12.cards.[0].description}}",
         "{{hip.s12.cards.[1].description}}"
       ].filter(Boolean);
-      let sci = 0; const sct = document.getElementById('sctxt'), scd = document.getElementById('scdots'), scb = document.getElementById('scbar'), scc = document.getElementById('scctr'), scbadge = document.getElementById('sc-badge');
+      let sci = 0; const sct = document.getElementById('sctxt'), scd = document.getElementById('scdots'), scc = document.getElementById('scctr'), scbadge = document.getElementById('sc-badge');
       scS.forEach((_, i) => { const d = document.createElement('span'); d.className = 'sc-dot' + (i === 0 ? ' on' : ''); d.onclick = () => scGo(i); scd.appendChild(d); });
-      let scP = 0, scI; function scSP() { clearInterval(scI); scP = 0; scb.style.width = '0%'; scI = setInterval(() => { scP += 100 / (5000 / 100); if (scP >= 100) scP = 100; scb.style.width = scP + '%'; }, 100); }
-      function scGo(i) { sct.classList.add('out'); setTimeout(() => { sci = i; sct.innerHTML = scS[sci]; sct.classList.remove('out'); sct.classList.add('in'); setTimeout(() => sct.classList.remove('in'), 40); document.querySelectorAll('.sc-dot').forEach((d, j) => d.classList.toggle('on', j === sci)); scc.textContent = (sci + 1) + ' / ' + scS.length; const pad = n => n < 10 ? '0' + n : n; scbadge.textContent = pad(sci + 1) + ' / ' + pad(scS.length); scSP(); }, 300); }
-      if (scS.length) sct.innerHTML = scS[0]; scSP(); setInterval(() => scGo((sci + 1) % scS.length), 5000);
+      function scGo(i) { sct.classList.add('out'); setTimeout(() => { sci = i; sct.innerHTML = scS[sci]; sct.classList.remove('out'); sct.classList.add('in'); setTimeout(() => sct.classList.remove('in'), 40); document.querySelectorAll('.sc-dot').forEach((d, j) => d.classList.toggle('on', j === sci)); const pad = n => n < 10 ? '0' + n : n; if (scc) scc.textContent = (sci + 1) + ' / ' + scS.length; if (scbadge) scbadge.textContent = pad(sci + 1) + ' / ' + pad(scS.length); }, 300); }
+      if (scS.length) { 
+        sct.innerHTML = scS[0]; 
+        const pad = n => n < 10 ? '0' + n : n;
+        if (scc) scc.textContent = '1 / ' + scS.length;
+        if (scbadge) scbadge.textContent = pad(1) + ' / ' + pad(scS.length);
+      }
       {{/unless}}
 
 

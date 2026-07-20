@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
 const AiPromptSchema = new mongoose.Schema({
-    promptId: { 
-        type: String, 
-        required: true, 
+    promptId: {
+        type: String,
+        required: true,
         unique: true
     },
     title: { type: String },

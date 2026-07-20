@@ -16,7 +16,7 @@ function detectGovernanceGuardian(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.94 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Demonstrated experience in corporate governance and high-level board relations.' : 'No significant governance guardian signals detected.',
         anchors: []
     };
@@ -35,8 +35,8 @@ function detectRegulatoryNavigator(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.92 : 0,
-        reasoning: isDetected ? 'Proven ability to navigate complex regulatory landscapes and ensure statutory compliance.' : 'Limited evidence of regulatory navigation skills.',
+        confidence: isDetected ? 0.50 : 0,
+        reasoning: isDetected ? 'Proven ability to manage complex regulatory landscapes and ensure statutory compliance.' : 'Limited evidence of regulatory navigation skills.',
         anchors: []
     };
 }
@@ -53,7 +53,7 @@ function detectEthicsIntegrityLead(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.90 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Strong focus on organizational ethics, integrity, and anti-corruption frameworks.' : 'No significant ethics and integrity signals detected.',
         anchors: []
     };
@@ -72,7 +72,7 @@ function detectPolicyArchitect(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.88 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Skilled in designing and implementing enterprise-wide policies and standard operating procedures.' : 'Limited evidence of policy architecture skills.',
         anchors: []
     };
@@ -91,7 +91,7 @@ function detectAuditReadinessExpert(cv, stats) {
     
     return {
         detected: isDetected,
-        confidence: isDetected ? 0.91 : 0,
+        confidence: isDetected ? 0.50 : 0,
         reasoning: isDetected ? 'Expertise in maintaining audit-ready operations and managing complex internal/external audit cycles.' : 'No significant audit readiness signals found.',
         anchors: []
     };

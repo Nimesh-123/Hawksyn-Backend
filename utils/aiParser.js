@@ -223,6 +223,11 @@ const mapNewPipelineToHawksyn = (inputDoc) => {
             },
             inferred: {
                 seniorityLevel: seniorityInference?.title || (seniorityInference?.inferred_claim ? seniorityInference.inferred_claim.split(':')[0] : "") || stats.seniority_level || "",
+                seniorityDimensions: Array.from(new Set([
+                    seniorityInference?.title,
+                    ...(stats.top_skills || []).map(s => typeof s === 'string' ? s : (s?.skill_name || s?.name || '')),
+                    stats.industry
+                ].filter(Boolean))),
                 totalExperienceYears: stats.total_experience_years || 0,
                 employmentStatus: stats.employment_status || "",
                 industry: stats.industry || "",
@@ -231,7 +236,8 @@ const mapNewPipelineToHawksyn = (inputDoc) => {
                 highestEducationLevel: stats.highest_education_level || "",
                 seniorityConfidence: 0.9,
                 senioritySummary
-            }
+            },
+            precomputed_stats: stats
         },
         parsingDuration: durationSec,
         llm: 'Gemini',
@@ -248,7 +254,7 @@ const mapNewPipelineToHawksyn = (inputDoc) => {
 /**
  * High-Accuracy Smart CV Parser leveraging advanced Guardrails and Multi-Stage extraction.
  */
-const smartCVParser = async (buffer, fileName, mimetype, userId = null, fileUrl = null) => {
+const smartCVParser = async (buffer, fileName, mimetype, userId = null, fileUrl = null, isDebug = false) => {
     console.log(`[AI Parser] Initiating new pipeline for ${fileName} | User ID: ${userId}`);
 
     // 1. Invoke Guardrails
@@ -302,7 +308,7 @@ const smartCVParser = async (buffer, fileName, mimetype, userId = null, fileUrl 
 
     // 3. Synchronously run the new multi-stage extraction pipeline
     console.log(`[AI Parser] Guardrails passed. Executing runExtractionPipeline synchronously...`);
-    const pipelineResult = await runExtractionPipeline(userId, guardrailResult.rawText, mongoose.connection.db);
+    const pipelineResult = await runExtractionPipeline(userId, guardrailResult.rawText, mongoose.connection.db, isDebug);
 
     if (!pipelineResult.success) {
         console.error(`[AI Parser] ❌ Extraction pipeline execution failed: ${pipelineResult.error || pipelineResult.reason}`);
