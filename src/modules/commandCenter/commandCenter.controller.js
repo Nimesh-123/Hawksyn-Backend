@@ -137,6 +137,7 @@ exports.getCommandCenter = async (req, res) => {
             message:           'Command center loaded successfully.'
         };
 
+        console.log("COMMAND CENTER RESPONSE - dashboardResponse:", JSON.stringify(dashboardResponse, null, 2));
         return res.status(200).json({ success: true, data: dashboardResponse });
 
     } catch (error) {
