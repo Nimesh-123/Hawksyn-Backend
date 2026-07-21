@@ -1165,7 +1165,7 @@ exports.getCvAuditLogs = async (req, res) => {
                 errorReason: l.errorReason,
                 llm: l.parserMetadata?.llm || 'N/A',
                 model: l.parserMetadata?.model || 'N/A',
-                cost: calculateAICost(l.parserMetadata?.llm + '-' + l.parserMetadata?.model, extractUsage(l.parserMetadata)),
+                cost: calculateAICost(l.parserMetadata?.llm + '-' + l.parserMetadata?.model, extractUsage({ ...(l.parserMetadata || {}), ...(l.metrics || {}) })),
                 metadata: l.parserMetadata,
                 uploadedAt: l.uploadedAt || l.createdAt
             };
@@ -1281,7 +1281,7 @@ exports.getCvAuditDetails = async (req, res) => {
                 errorReason: log.errorReason,
                 llm: log.parserMetadata?.llm || 'N/A',
                 model: log.parserMetadata?.model || 'N/A',
-                cost: calculateAICost(log.parserMetadata?.llm + '-' + log.parserMetadata?.model, extractUsage(log.parserMetadata)),
+                cost: calculateAICost(log.parserMetadata?.llm + '-' + log.parserMetadata?.model, extractUsage({ ...(log.parserMetadata || {}), ...(log.metrics || {}) })),
                 metadata: log.parserMetadata,
                 extractedData: log.parsedCvData,
                 uploadedAt: log.uploadedAt || log.createdAt
@@ -1319,7 +1319,7 @@ exports.getRunAICostAudit = async (req, res) => {
             if (run.cvSnapshot?.cvUploadId) {
                 const cvLog = await db.DocumentUploads.findById(run.cvSnapshot.cvUploadId).lean();
                 if (cvLog && cvLog.parserMetadata) {
-                    const usage = extractUsage(cvLog.parserMetadata);
+                    const usage = extractUsage({ ...(cvLog.parserMetadata || {}), ...(cvLog.metrics || {}) });
                     const cost = calculateAICost(cvLog.parserMetadata.llm + '-' + cvLog.parserMetadata.model, usage);
                     totalRunCost += cost;
                     totalPromptTokens += usage.promptTokens;
@@ -1509,9 +1509,9 @@ exports.getRunsAuditList = async (req, res) => {
                 let runCost = 0;
                 // CV Parsing
                 if (run.cvSnapshot?.cvUploadId) {
-                    const cvLog = await db.DocumentUploads.findById(run.cvSnapshot.cvUploadId).select('parserMetadata').lean();
+                    const cvLog = await db.DocumentUploads.findById(run.cvSnapshot.cvUploadId).select('parserMetadata metrics').lean();
                     if (cvLog?.parserMetadata) {
-                        runCost += calculateAICost(cvLog.parserMetadata.llm + '-' + cvLog.parserMetadata.model, extractUsage(cvLog.parserMetadata));
+                        runCost += calculateAICost(cvLog.parserMetadata.llm + '-' + cvLog.parserMetadata.model, extractUsage({ ...(cvLog.parserMetadata || {}), ...(cvLog.metrics || {}) }));
                     }
                 }
                 // Signal Research

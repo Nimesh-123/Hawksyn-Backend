@@ -4,94 +4,27 @@ const { generateJSON } = require('./aiProvider.js');
 /**
  * AI Score Generator
  */
-async function generateClockScores({ role, industry, skills, achievements, tenure }) {
-    const skillsText = Array.isArray(skills) ? skills.join(', ') : (skills || 'Not specified');
-    const achievementsText = Array.isArray(achievements) ? achievements.join(', ') : (achievements || 'Not specified');
-const prompt = `You are a career risk analyst for Hawksyn Decision Assurance Platform. Calculate 4 clock scores and detailed insights for this professional based on current market conditions.
-
-User Profile:
-- Role: ${role}
-- Industry: ${industry}
-- Skills: ${skillsText}
-- Key Achievements: ${achievementsText}
-- Current Tenure: ${tenure} years
-
-For each of the 4 clocks below, you MUST provide 3 specific "Career Factors" extracted from their CV. Each factor must have an impactDirection (UP, DOWN, or NEUTRAL). 
-You must also provide a Market Signal, a Peer Signal, and actionable advice (What Changes).
-
-1. AI Exposure Clock (0-100): How much of this user's daily work can now be done by AI tools?
-2. Career Momentum Clock (0-100): How fast are jobs in this sector opening vs closing right now?
-3. Skill Relevance Clock (0-100): What % of top-tier job listings require this user's skills as MANDATORY?
-4. Opportunity Window Clock (0-100): How much runway does this role have before becoming stale?
-
-Return ONLY valid JSON, no markdown, no explanation:
-{
-  "aiExposureScore": <number 0-100>,
-  "aiExposureJustification": "<one sentence summary>",
-  "aiExposureFactors": [
-    { "factorText": "<specific factor from CV>", "impactDirection": "DOWN", "explanation": "<why this increases AI risk>" },
-    { "factorText": "<specific factor from CV>", "impactDirection": "UP", "explanation": "<why this protects against AI risk>" },
-    { "factorText": "<specific factor from CV>", "impactDirection": "NEUTRAL", "explanation": "<neutral factor>" }
-  ],
-  "aiExposureMarketSignal": "<e.g., 3 new AI coding tools launched in Jun 2026...>",
-  "aiExposurePeerSignal": "<e.g., 68% of professionals are adding X...>",
-  "aiExposureWhatChanges": "<e.g., Focus on learning X to protect this score...>",
-
-  "careerMomentumScore": <number 0-100>,
-  "careerMomentumMonths": <number 6-36>,
-  "careerMomentumJustification": "<one sentence summary>",
-  "careerMomentumFactors": [
-    { "factorText": "<specific factor from CV>", "impactDirection": "UP", "explanation": "<reason>" },
-    { "factorText": "<specific factor from CV>", "impactDirection": "DOWN", "explanation": "<reason>" },
-    { "factorText": "<specific factor from CV>", "impactDirection": "NEUTRAL", "explanation": "<reason>" }
-  ],
-  "careerMomentumMarketSignal": "<real market signal>",
-  "careerMomentumPeerSignal": "<real peer signal>",
-  "careerMomentumWhatChanges": "<actionable advice>",
-
-  "skillRelevanceScore": <number 0-100>,
-  "skillRelevanceJustification": "<one sentence summary>",
-  "skillRelevanceFactors": [
-    { "factorText": "<specific factor from CV>", "impactDirection": "DOWN", "explanation": "<reason>" },
-    { "factorText": "<specific factor from CV>", "impactDirection": "UP", "explanation": "<reason>" },
-    { "factorText": "<specific factor from CV>", "impactDirection": "NEUTRAL", "explanation": "<reason>" }
-  ],
-  "skillRelevanceMarketSignal": "<real market signal>",
-  "skillRelevancePeerSignal": "<real peer signal>",
-  "skillRelevanceWhatChanges": "<actionable advice>",
-
-  "opportunityWindowScore": <number 0-100>,
-  "opportunityWindowYears": <number 1-5>,
-  "opportunityWindowJustification": "<one sentence summary>",
-  "opportunityWindowFactors": [
-    { "factorText": "<specific factor from CV>", "impactDirection": "UP", "explanation": "<reason>" },
-    { "factorText": "<specific factor from CV>", "impactDirection": "DOWN", "explanation": "<reason>" },
-    { "factorText": "<specific factor from CV>", "impactDirection": "NEUTRAL", "explanation": "<reason>" }
-  ],
-  "opportunityWindowMarketSignal": "<real market signal>",
-  "opportunityWindowPeerSignal": "<real peer signal>",
-  "opportunityWindowWhatChanges": "<actionable advice>",
-
-  "trendTrigger": "<single most important market event affecting this profile right now>"
-}
-
-Rules:
-- All scores must be numbers 0-100
-- Each factor array MUST contain exactly 3 factors
-- impactDirection must be strictly "UP", "DOWN", or "NEUTRAL"
-- Base explanations on real current market conditions`;
-
-    const { data, duration, provider, usage } = await generateJSON(prompt);
-    console.log(`[ClockService] ✅ AI calculation complete in ${duration} via ${provider}`);
-    
-    const [llm, model] = (provider || 'AI-Model').split('-');
-
-    return { 
-        ...data, 
-        calculationDuration: duration,
-        llm: llm || 'AI',
-        model: model || 'Model',
-        tokenUsage: usage
+/**
+ * AI Score Generator (REMOVED)
+ * The legacy LLM-based clock generation has been deprecated.
+ */
+async function generateClockScores() {
+    return {
+        aiExposureScore: 0,
+        careerMomentumScore: 0,
+        skillRelevanceScore: 0,
+        opportunityWindowScore: 0,
+        careerMomentumMonths: 0,
+        opportunityWindowYears: 0,
+        aiExposureJustification: null,
+        careerMomentumJustification: null,
+        skillRelevanceJustification: null,
+        opportunityWindowJustification: null,
+        trendTrigger: null,
+        calculationDuration: 0,
+        llm: 'N/A',
+        model: 'N/A',
+        tokenUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
     };
 }
 
@@ -333,27 +266,16 @@ async function recalibrateForUser(userId, profileDoc) {
         let clockScores = null;
         const pulse = await findActivePulse(role, industry);
 
-        console.log(`[ClockService] 🤖 Calling AI Provider for personalized details...`);
-        const aiScores = await generateClockScores({
-            role,
-            industry,
-            skills,
-            achievements,
-            tenure: experienceYears
-        });
-        console.log(`[ClockService] ✅ AI calculation complete for ${role}`);
-
+        console.log(`[ClockService] 🤖 Bypassing legacy AI Provider (Tokens saved)...`);
+        // The legacy AI calculation is disabled, rely entirely on Market Pulse or defaults
+        const aiScores = await generateClockScores(); 
+        
         if (pulse) {
             console.log(`[ClockService] 📊 Found matching Pulse: ${pulse.pulseId}`);
             const baseScores = calculateClockScores(profile, pulse);
             clockScores = {
                 ...aiScores,
-                ...baseScores,
-                // Ensure AI generated text fields are kept
-                aiExposureJustification: aiScores.aiExposureJustification,
-                careerMomentumJustification: aiScores.careerMomentumJustification,
-                skillRelevanceJustification: aiScores.skillRelevanceJustification,
-                opportunityWindowJustification: aiScores.opportunityWindowJustification
+                ...baseScores
             };
         } else {
             clockScores = aiScores;
@@ -435,30 +357,35 @@ async function refreshClocksAfterCase(userId, runId) {
             tenure: Number(profile?.experience_years || 0)
         };
 
-        let clockScores = null;
+        let clockScores = {
+            aiExposureScore: 50,
+            aiExposureJustification: 'Score based on integrity analysis — market data unavailable.',
+            careerMomentumScore: 50,
+            careerMomentumJustification: 'Score based on role uniqueness — market data unavailable.',
+            careerMomentumMonths: 18,
+            skillRelevanceScore: 50,
+            skillRelevanceJustification: 'Score based on automation exposure — market data unavailable.',
+            opportunityWindowScore: 50,
+            opportunityWindowJustification: 'Score based on financial resilience — market data unavailable.',
+            opportunityWindowYears: 2,
+            trendTrigger: null
+        };
+        
         try {
-            clockScores = await generateClockScores(data);
-        } catch (aiErr) {
-            console.warn(`[Expert] AI Provider failed — using integrity pack fallback:`, aiErr.message);
             const integrityRas = await db.Ras.findOne({ runId, artifactType: 'INTEGRITY_PACK', status: 'FINAL' });
-            const constraints = integrityRas?.artifactJson?.constraints?.results || [];
-            const cons001 = constraints.find(c => c.constraintId === 'CONS_AI_001');
-            const cons002 = constraints.find(c => c.constraintId === 'CONS_AI_002');
-            const cons003 = constraints.find(c => c.constraintId === 'CONS_AI_003');
-
-            clockScores = {
-                aiExposureScore: cons001 ? Math.round(100 - cons001.score) : 50,
-                aiExposureJustification: 'Score based on integrity analysis — market data unavailable.',
-                careerMomentumScore: cons003 ? cons003.score : 50,
-                careerMomentumJustification: 'Score based on role uniqueness — market data unavailable.',
-                careerMomentumMonths: 18,
-                skillRelevanceScore: cons001 ? cons001.score : 50,
-                skillRelevanceJustification: 'Score based on automation exposure — market data unavailable.',
-                opportunityWindowScore: cons002 ? cons002.score : 50,
-                opportunityWindowJustification: 'Score based on financial resilience — market data unavailable.',
-                opportunityWindowYears: 2,
-                trendTrigger: null
-            };
+            if (integrityRas) {
+                const constraints = integrityRas?.artifactJson?.constraints?.results || [];
+                const cons001 = constraints.find(c => c.constraintId === 'CONS_AI_001');
+                const cons002 = constraints.find(c => c.constraintId === 'CONS_AI_002');
+                const cons003 = constraints.find(c => c.constraintId === 'CONS_AI_003');
+                
+                clockScores.aiExposureScore = cons001 ? Math.round(100 - cons001.score) : 50;
+                clockScores.careerMomentumScore = cons003 ? cons003.score : 50;
+                clockScores.skillRelevanceScore = cons001 ? cons001.score : 50;
+                clockScores.opportunityWindowScore = cons002 ? cons002.score : 50;
+            }
+        } catch (e) {
+            console.warn(`[Expert] Integrity fallback failed:`, e.message);
         }
 
         const existingClock = await db.UserClocks.findOne({ userId });
