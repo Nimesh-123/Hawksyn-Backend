@@ -47,8 +47,8 @@ exports.extractUsage = (metadata) => {
     const usage = metadata.tokenUsage || metadata.usage || metadata;
     
     return {
-        promptTokens: usage.promptTokens || usage.input_tokens || usage.promptTokenCount || 0,
-        completionTokens: usage.completionTokens || usage.output_tokens || usage.candidatesTokenCount || 0
+        promptTokens: usage.promptTokens || usage.input_tokens || usage.promptTokenCount || usage.total_tokens_input || 0,
+        completionTokens: usage.completionTokens || usage.output_tokens || usage.candidatesTokenCount || usage.total_tokens_output || 0
     };
 };
 

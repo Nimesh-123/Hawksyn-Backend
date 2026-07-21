@@ -130,9 +130,9 @@ exports.getCommandCenter = async (req, res) => {
             significantChange: false,
             canRefresh:        userClock.validityState === 'FROZEN',
             experts:           assignedExperts,
-            tokenUsage:        userClock.tokenUsage || null,
-            cost:              userClock.tokenUsage ? calculateAICost((userClock.llm || 'Anthropic') + '-' + (userClock.model || 'Haiku'), userClock.tokenUsage) : 0,
-            localCost:         userClock.tokenUsage ? convertToLocalCurrency(calculateAICost((userClock.llm || 'Anthropic') + '-' + (userClock.model || 'Haiku'), userClock.tokenUsage), detectRegionFromIP(req.ip || '122.161.48.0').currency).amount : 0,
+            tokenUsage:        { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+            cost:              0,
+            localCost:         0,
             localCurrency:     detectRegionFromIP(req.ip || '122.161.48.0').currency,
             message:           'Command center loaded successfully.'
         };
@@ -254,16 +254,14 @@ exports.refreshClocksFromCase = async (req, res) => {
 
         const updatedClock = await db.UserClocks.findOneAndUpdate({ userId }, { $set: updateData }, { upsert: true, new: true });
         
-        const usage = updatedClock.tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
-        const usdCost = calculateAICost((updatedClock.llm || 'Anthropic') + '-' + (updatedClock.model || 'Haiku'), usage);
-        const local = convertToLocalCurrency(usdCost, detectRegionFromIP(req.ip || '122.161.48.0').currency);
+        const local = convertToLocalCurrency(0, detectRegionFromIP(req.ip || '122.161.48.0').currency);
 
         return res.status(200).json({ 
             success: true, 
             message: 'Clocks validity refreshed successfully.',
             data: {
-                tokenUsage: usage,
-                cost: usdCost,
+                tokenUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+                cost: 0,
                 localCost: local.amount,
                 localCurrency: local.currency
             }
